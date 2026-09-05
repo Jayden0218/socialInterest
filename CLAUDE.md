@@ -122,8 +122,22 @@ network could reach an API running here. Likely needs `--protocol http2` so the 
 connection goes over TCP/443 rather than QUIC, through the proxy. **Untested past the
 first hop** — I could not change the allowlist myself.
 
-Same story for an Android emulator: `dl.google.com` is blocked by the same allowlist, so
-the SDK will not even download. If it were allowed, the emulator would still have no
+**Update 2026-09-05: the owner set the environment to a custom allowlist**, and an
+Android APK now builds end to end in the sandbox — `expo prebuild`, the Android SDK
+from `dl.google.com`, JDK 17 from GitHub (Gradle needs 17, the image has 21 and its
+own toolchain download is blocked), then `assembleRelease`. See
+`docs/verification/tier-b-runbook.md` for the exact recipe. Sizes: 104 MB debug with
+all ABIs, 35 MB arm64 debug, **20 MB arm64 release**.
+
+**The tunnel still does not work, and not for the reason you would guess.** There are
+two enforcement layers: through the agent proxy `api.trycloudflare.com` answers 200,
+but a direct connection returns `403 x-deny-reason: host_not_allowed`. cloudflared's
+edge link is raw TCP/QUIC rather than an HTTP request, so it cannot use the proxy,
+goes direct, and is denied. Allowlisting the host does not fix it. A tunnel agent that
+honours `HTTPS_PROXY` for its transport (ngrok is the candidate) might.
+
+Historical note, for an emulator: `dl.google.com` was blocked by the default allowlist, so
+the SDK would not even download. If it were allowed, the emulator would still have no
 `/dev/kvm` and the kernel has `CONFIG_ANDROID_BINDER_IPC` unset, so redroid is out and
 only slow software emulation (`-no-accel -gpu swiftshader_indirect`) remains. iOS is
 impossible regardless — the Simulator is macOS-only.

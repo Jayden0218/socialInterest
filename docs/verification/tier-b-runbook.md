@@ -76,3 +76,41 @@ browser entirely:
 
 Those are the whole reason Tier B exists. A green browser suite says the UI and
 the service agree; it says nothing about any of the above.
+
+## Building the Android APK (verified 2026-09-05, in the cloud sandbox)
+
+The whole toolchain runs in a cloud session once the environment's network access
+allows `dl.google.com` and GitHub. No Expo account and no EAS needed.
+
+```bash
+# 1. Native project (regenerated whenever app.config.ts changes)
+pnpm --filter @sih/mobile exec expo prebuild --platform android --no-install
+
+# 2. Android SDK
+mkdir -p /opt/android-sdk/cmdline-tools && cd /opt/android-sdk/cmdline-tools
+curl -sLO https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+unzip -q commandlinetools-linux-*.zip && mv cmdline-tools latest
+export ANDROID_HOME=/opt/android-sdk PATH=$PATH:/opt/android-sdk/cmdline-tools/latest/bin
+yes | sdkmanager --licenses
+sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+# 3. JDK 17. Gradle requires 17; the image ships 21, and Gradle's own toolchain
+#    download is blocked by the egress proxy (foojay). Fetch Temurin from GitHub.
+curl -sL -o /tmp/jdk17.tar.gz \
+  https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.13%2B11/OpenJDK17U-jdk_x64_linux_hotspot_17.0.13_11.tar.gz
+mkdir -p /opt/jdk17 && tar xzf /tmp/jdk17.tar.gz -C /opt/jdk17 --strip-components=1
+
+# 4. Build. arm64-v8a only, release: a debug APK with every ABI is 104 MB,
+#    arm64 debug is 35 MB, arm64 release with R8 is 20 MB.
+cd apps/mobile/android && echo "sdk.dir=/opt/android-sdk" > local.properties
+JAVA_HOME=/opt/jdk17 PATH=/opt/jdk17/bin:$PATH \
+EXPO_PUBLIC_API_BASE_URL=http://<reachable-host>:3000/v1 \
+  ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a \
+    -Dorg.gradle.java.installations.paths=/opt/jdk17
+# -> app/build/outputs/apk/release/app-release.apk
+```
+
+**The API URL is compiled in.** `EXPO_PUBLIC_API_BASE_URL` is inlined at build
+time, so an APK built with one address cannot be repointed. Build it with an
+address the device can actually reach: a LAN address for a phone on your network,
+or a public URL for a cloud device farm.
