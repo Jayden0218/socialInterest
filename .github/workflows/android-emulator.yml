@@ -70,11 +70,12 @@ jobs:
             | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+          # The device node and its permissions are all that can be checked
+          # here. `emulator -accel-check` belongs in the device-pass script:
+          # the emulator package is installed by the runner action below, so
+          # calling it at this point exits 127 and kills the job before the
+          # emulator ever starts.
           ls -l /dev/kvm
-          # Prove acceleration rather than assume it. The sandbox run failed
-          # because TCG cannot boot Android at all, so "is KVM actually in use"
-          # is the one thing worth asserting before blaming a timeout.
-          $ANDROID_HOME/emulator/emulator -accel-check
 
       - name: Boot the emulator and drive the app
         uses: reactivecircus/android-emulator-runner@v2

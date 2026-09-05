@@ -13,6 +13,12 @@ APK=apps/mobile/android/app/build/outputs/apk/release/app-release.apk
 OUT=artifacts/android-device-pass
 mkdir -p "$OUT"
 
+# How did this boot? The sandbox proved TCG cannot run Android at all, so if a
+# run is slow or unstable the first question is whether acceleration engaged.
+# Non-fatal: this reports, it does not gate.
+echo "== acceleration =="
+"${ANDROID_HOME:-$ANDROID_SDK_ROOT}/emulator/emulator" -accel-check || true
+
 echo "== the emulator must be able to reach the API on the host =="
 # 10.0.2.2 is the emulator's alias for the host loopback. If this fails the app
 # cannot possibly work, and we want to know that before blaming the app.
