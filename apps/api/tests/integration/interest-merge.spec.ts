@@ -1,5 +1,6 @@
 import request from 'supertest';
 import { bootHarness, type Harness } from './harness';
+import { randomUUID } from 'node:crypto';
 
 /**
  * FR-030. The spec's edge cases are explicit that posts must never be orphaned,
@@ -26,7 +27,12 @@ describe('FR-030 — interest merge, re-parent and retire', () => {
     const res = await request(h.app.getHttpServer())
       .post('/v1/interests')
       .set('authorization', `Bearer ${await h.token(await h.createPerson('subowner'))}`)
-      .send({ name: `${name} ${Date.now().toString().slice(-6)}`, parentId: topId });
+      // The suffix must be HIGH-ENTROPY, not merely unique. A timestamp suffix makes
+      // consecutive names minimally different - "ParentA 123456" vs "ParentB 123457"
+      // scores 0.857, over the 0.85 blocking threshold - so the near-duplicate check
+      // (FR-029) correctly refuses the second one with a 409. That made this suite fail
+      // only when two calls landed within ~10ms of each other.
+      .send({ name: `${name} ${randomUUID().slice(0, 8)}`, parentId: topId });
     expect(res.status).toBe(201);
     return res.body.interestId as string;
   };
