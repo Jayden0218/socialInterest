@@ -233,19 +233,19 @@ pnpm workspace monorepo per `plan.md § Project Structure`:
 
 ### Tests for User Story 4
 
-- [ ] T101 [P] [US4] Integration test `us4-follow-people` covering the four acceptance scenarios in `apps/api/tests/integration/us4-follow-people.spec.ts`
-- [ ] T102 [P] [US4] Integration test asserting a followed person's post in an unfollowed interest never reaches the feed, in `apps/api/tests/integration/us4-fr033-boundary.spec.ts` (**the guard against the feed quietly becoming an ordinary follower feed**)
-- [ ] T103 [P] [US4] Unit-test feed ranking prominence for followed authors within an interest in `apps/api/tests/unit/feed-ranking.spec.ts`
+- [x] T101 [P] [US4] Integration test `us4-follow-people` covering the four acceptance scenarios in `apps/api/tests/integration/us4-follow-people.spec.ts`
+- [x] T102 [P] [US4] Integration test asserting a followed person's post in an unfollowed interest never reaches the feed, in `apps/api/tests/integration/us4-fr033-boundary.spec.ts` (**the guard against the feed quietly becoming an ordinary follower feed**)
+- [x] T103 [P] [US4] Unit-test feed ranking prominence for followed authors within an interest in `apps/api/tests/unit/feed-ranking.spec.ts`
 
 ### Implementation for User Story 4
 
-- [ ] T104 [US4] Implement person follow and unfollow, refusing when a block exists in either direction, in `apps/api/src/modules/people/person-follow.service.ts` (FR-037, FR-044)
-- [ ] T105 [US4] Implement `PUT`/`DELETE /people/{handle}/follow` in `apps/api/src/modules/people/person-follow.controller.ts` (FR-037)
-- [ ] T106 [US4] Implement the FR-033 intersection rule in feed assembly — followed-author posts admitted only within followed interests — in `apps/api/src/modules/feed/feed.service.ts`
-- [ ] T107 [US4] Implement followed-author prominence in feed ranking in `apps/api/src/modules/feed/ranking.ts` (FR-034)
-- [ ] T108 [US4] Implement `GET /people/{handle}` with follower and following counts and top interests in `apps/api/src/modules/people/person.controller.ts` (FR-038)
-- [ ] T109 [US4] Implement `GET /people/{handle}/posts` through the visibility filter in `apps/api/src/modules/people/person.controller.ts` (FR-038)
-- [ ] T110 [P] [US4] Build the profile screen with follow control and counts in `apps/mobile/src/features/profile/ProfileScreen.tsx`
+- [x] T104 [US4] Implement person follow and unfollow, refusing when a block exists in either direction, in `apps/api/src/modules/people/person-follow.service.ts` (FR-037, FR-044)
+- [x] T105 [US4] Implement `PUT`/`DELETE /people/{handle}/follow` in `apps/api/src/modules/people/person-follow.controller.ts` (FR-037)
+- [x] T106 [US4] Implement the FR-033 intersection rule in feed assembly — followed-author posts admitted only within followed interests — in `apps/api/src/modules/feed/feed.service.ts`
+- [x] T107 [US4] Implement followed-author prominence in feed ranking in `apps/api/src/modules/feed/ranking.ts` (FR-034)
+- [x] T108 [US4] Implement `GET /people/{handle}` with follower and following counts and top interests in `apps/api/src/modules/people/person.controller.ts` (FR-038)
+- [x] T109 [US4] Implement `GET /people/{handle}/posts` through the visibility filter in `apps/api/src/modules/people/person.controller.ts` (FR-038)
+- [x] T110 [P] [US4] Build the profile screen with follow control and counts in `apps/mobile/src/features/profile/ProfileScreen.tsx`
 
 **Checkpoint**: Creators have an audience without the interest focus eroding.
 

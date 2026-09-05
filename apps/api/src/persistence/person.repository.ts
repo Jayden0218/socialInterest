@@ -31,6 +31,15 @@ export class PersonRepository extends BaseRepository {
     return page.items[0] ?? null;
   }
 
+  /** Atomic counter, so concurrent follows cannot lose an increment. */
+  async incrementCounter(
+    userId: string,
+    attribute: 'followerCount' | 'followingCount' | 'interestFollowCount',
+    by: number,
+  ): Promise<void> {
+    await this.increment(keys.person(userId), attribute, by);
+  }
+
   async create(person: PersonItem): Promise<void> {
     await this.putItem(
       {

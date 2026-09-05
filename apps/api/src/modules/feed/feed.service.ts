@@ -3,7 +3,9 @@ import { PostInterestIndexRepository } from '../../persistence/post-interest-ind
 import { VisibilityFilter, type Viewer } from '../../visibility/visibility.filter';
 import { PersonRepository } from '../../persistence/person.repository';
 import { InterestFollowService } from '../interests/interest-follow.service';
+import { PersonFollowService } from '../people/person-follow.service';
 import { FollowExpansion } from './follow-expansion';
+import { rank, type RankableItem } from './ranking';
 
 export interface FeedItem {
   postId: string;
@@ -52,6 +54,7 @@ export class FeedService {
     @Inject(PersonRepository) private readonly people: PersonRepository,
     @Inject(InterestFollowService) private readonly follows: InterestFollowService,
     @Inject(FollowExpansion) private readonly expansion: FollowExpansion,
+    @Inject(PersonFollowService) private readonly personFollows: PersonFollowService,
   ) {}
 
   async homeFeed(
@@ -92,10 +95,31 @@ export class FeedService {
         merged.push(item as FeedItem);
       }
     }
-    merged.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    /**
+     * FR-033 - THE INTERSECTION RULE, and constitution principle I.
+     *
+     * `partitions` is derived ONLY from followed interests. A followed author's
+     * posts are therefore already confined to those interests: nothing here
+     * admits a post because of who wrote it, and nothing may be added that
+     * would. Following a person can change the ORDER of this feed and never
+     * its MEMBERSHIP.
+     *
+     * The failure this guards against is silent: a "show me more from people I
+     * follow" convenience turns the product into an ordinary follower feed and
+     * the interest structure becomes decoration. us4-fr033-boundary.spec.ts
+     * asserts the negative case directly.
+     */
+    const followedAuthors = await this.personFollows.followedAuthorIds(viewer.userId);
+    const rankable: RankableItem[] = merged.map((item) => ({
+      ...item,
+      byFollowedAuthor: followedAuthors.has(item.authorId),
+    }));
+
+    // FR-034: prominence within the already-admitted set.
+    const ordered = rank(rankable);
 
     const after = this.decodeAfter(opts.cursor);
-    const windowed = after ? merged.filter((i) => i.createdAt < after) : merged;
+    const windowed = after ? ordered.filter((i) => i.createdAt < after) : ordered;
 
     // Visibility LAST, on current state, through the one boundary.
     const cache = this.visibility.newRequestCache();
