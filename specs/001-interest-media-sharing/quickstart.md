@@ -33,15 +33,17 @@ Two extra steps, because these environments start without a Docker daemon and wi
 restricted egress policy. Verified in a Claude Code cloud sandbox on 2026-09-05.
 
 ```bash
-# 1. Start the daemon — dockerd/containerd/runc are installed but not running
-dockerd > /var/log/dockerd.log 2>&1 &
-
-# 2. Docker Hub's blob CDN is commonly blocked; use a mirror
+# 1. Docker Hub's blob CDN is commonly blocked; configure a mirror first
 mkdir -p /etc/docker
 echo '{ "registry-mirrors": ["https://mirror.gcr.io"] }' > /etc/docker/daemon.json
-kill $(pgrep -x dockerd); sleep 3; dockerd > /var/log/dockerd.log 2>&1 &
 
-docker info --format '{{.RegistryConfig.Mirrors}}'   # expect [https://mirror.gcr.io/]
+# 2. Start the daemon — dockerd/containerd/runc are installed but not running.
+#    Use setsid + nohup: started with a bare `&` the daemon is reaped along with
+#    the shell that spawned it, and every later command sees a dead socket.
+setsid nohup dockerd > /var/log/dockerd.log 2>&1 < /dev/null &
+
+docker info --format '{{.ServerVersion}} {{.RegistryConfig.Mirrors}}'
+# expect: 29.x [https://mirror.gcr.io/]
 ```
 
 With the mirror configured, unqualified image names pull normally — no renaming in
@@ -250,7 +252,7 @@ checked against the 200-follow cap before it becomes a production surprise.
 |---|---|---|
 | Posts never leave `processing` | Worker pump not running, or the ffmpeg image is not pulled | `pnpm --filter @sih/workers dev`; `docker images \| grep ffmpeg` |
 | `docker: failed to copy ... Forbidden` on pull | Egress policy blocks Docker Hub's blob CDN | Configure the `mirror.gcr.io` registry mirror — see the cloud sandbox section above |
-| `Cannot connect to the Docker daemon` | Daemon not started (common in cloud sandboxes) | `dockerd &` — see the cloud sandbox section above |
+| `Cannot connect to the Docker daemon` | Daemon not started, or started with a bare `&` and reaped with its parent shell | `setsid nohup dockerd > /var/log/dockerd.log 2>&1 < /dev/null &` — see the cloud sandbox section above |
 | Video works locally but not in staging | ffmpeg and MediaConvert are different implementations of the `MediaProcessor` port, not emulations of each other (research §D9) | Run the MediaConvert smoke test against a staging account; never infer the `aws` path from green ffmpeg tests |
 | `ValidationException` on write | Table created before a `data-model.md` GSI change | `pnpm --filter @sih/infra db:recreate-local` |
 | Type-ahead returns nothing | Catalogue cache empty — it loads at API boundary startup | Restart the API after seeding; check `/v1/health` reports `catalogueSize > 0` |
