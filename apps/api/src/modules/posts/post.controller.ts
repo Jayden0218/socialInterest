@@ -7,6 +7,7 @@ import { zodBody } from '../../common/http/validation';
 import { Public } from '../../common/auth/auth.guard';
 import { RateLimit } from '../../common/rate-limit/rate-limit.guard';
 import { PostService } from './post.service';
+import { ReactionRepository } from '../../persistence/reaction.repository';
 import { PostQueryService } from './post-query.service';
 
 const updatePostSchema = z
@@ -34,6 +35,7 @@ export class PostController {
   constructor(
     @Inject(PostService) private readonly posts: PostService,
     @Inject(PostQueryService) private readonly queries: PostQueryService,
+    @Inject(ReactionRepository) private readonly reactions: ReactionRepository,
   ) {}
 
   /** FR-006, FR-007, FR-013. */
@@ -71,7 +73,20 @@ export class PostController {
         ? new DomainError(HttpStatus.NOT_FOUND, 'No longer available')
         : new DomainError(HttpStatus.FORBIDDEN, 'Not available to you');
     }
-    return { ...result.post, media: result.media };
+    /**
+     * The contract's Post carries viewerHasReacted, and only the react/unreact
+     * endpoints ever returned it - so a client reading a post could not tell
+     * whether this person had already reacted, and the control rendered
+     * unreacted every time. One point read on the viewer's own reaction.
+     *
+     * Deliberately not populated on list surfaces: that would be a lookup per
+     * item per page. The field is optional in the contract for that reason.
+     */
+    const viewerHasReacted =
+      req.viewer === undefined || req.viewer === null
+        ? false
+        : await this.reactions.exists(postId, req.viewer.userId);
+    return { ...result.post, media: result.media, viewerHasReacted };
   }
 
   /**

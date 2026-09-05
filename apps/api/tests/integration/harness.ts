@@ -28,6 +28,10 @@ export interface Harness {
 
 /** Boots the real app against DynamoDB Local and MinIO - no mocks below HTTP. */
 export async function bootHarness(): Promise<Harness> {
+  // These suites drive media processing explicitly so they can assert specific
+  // states. The real pipeline runs in apps/e2e against a real API process, which
+  // is where it belongs - see MediaDispatchService.
+  process.env['MEDIA_DISPATCH_ON_CREATE'] = 'false';
   const module = await Test.createTestingModule({ imports: [AppModule] }).compile();
   const app = module.createNestApplication();
   app.setGlobalPrefix('v1');

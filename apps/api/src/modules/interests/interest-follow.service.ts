@@ -2,6 +2,7 @@ import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { DomainError } from '../../common/errors/problem.filter';
 import { InterestFollowRepository } from '../../persistence/interest-follow.repository';
 import { InterestRepository } from '../../persistence/interest.repository';
+import { PersonRepository } from '../../persistence/person.repository';
 import { CATALOGUE_SEARCH, type CatalogueSearch } from './catalogue.cache';
 
 /**
@@ -20,6 +21,7 @@ export class InterestFollowService {
     @Inject(InterestFollowRepository) private readonly follows: InterestFollowRepository,
     @Inject(InterestRepository) private readonly interests: InterestRepository,
     @Inject(CATALOGUE_SEARCH) private readonly catalogue: CatalogueSearch,
+    @Inject(PersonRepository) private readonly people: PersonRepository,
   ) {}
 
   /** Idempotent: following twice is following once. */
@@ -47,6 +49,10 @@ export class InterestFollowService {
 
     await this.follows.follow(userId, interestId);
     await this.interests.incrementFollowerCount(interestId, 1);
+    // The person's own count, which GET /me reports. It was declared, stored and
+    // returned but never written, so every profile said 0 interests followed
+    // however many you had.
+    await this.people.incrementCounter(userId, 'interestFollowCount', 1);
     return { alreadyFollowing: false };
   }
 
@@ -55,6 +61,7 @@ export class InterestFollowService {
     if (!(await this.follows.isFollowing(userId, interestId))) return;
     await this.follows.unfollow(userId, interestId);
     await this.interests.incrementFollowerCount(interestId, -1);
+    await this.people.incrementCounter(userId, 'interestFollowCount', -1);
   }
 
   async followedIds(userId: string): Promise<string[]> {

@@ -82,20 +82,20 @@ against a live API. Delivers the first evidence the product works at all.
 
 ### Tests for User Story 1 (write first — these define the contract)
 
-- [ ] T016 [P] [US1] Write the journey suite skeleton in `apps/e2e/journeys/` with all 14 journeys from `contracts/e2e-journeys.md` present and failing, so the contract is enumerated before any of it is satisfied
+- [X] T016 [P] [US1] Write the journey suite skeleton in `apps/e2e/journeys/` with all 14 journeys from `contracts/e2e-journeys.md` present and failing, so the contract is enumerated before any of it is satisfied
 - [X] T017 [P] [US1] Write the client-drift check in `apps/e2e/journeys/contract-drift.spec.ts` (or as a CI step) asserting the regenerated client matches the committed one
 
 ### Implementation for User Story 1 — the missing data layer
 
-- [ ] T018 [US1] Create `apps/mobile/src/data/client.ts` — the app's single API entry point, wrapping the generated client with base URL and auth token handling
-- [ ] T019 [P] [US1] Create `apps/mobile/src/data/errors.ts` mapping RFC 9457 problem+json responses, including extension members, to typed client-side errors
-- [ ] T020 [P] [US1] Create `apps/mobile/src/data/interests.ts` — catalogue browse, search, follow, unfollow
-- [ ] T021 [P] [US1] Create `apps/mobile/src/data/posts.ts` — presign, upload, publish, read, edit visibility, delete
-- [ ] T022 [P] [US1] Create `apps/mobile/src/data/feed.ts` — home feed and interest space reads with pagination
-- [ ] T023 [P] [US1] Create `apps/mobile/src/data/engagement.ts` — comments and reactions
-- [ ] T024 [P] [US1] Create `apps/mobile/src/data/safety.ts` — report and block
-- [ ] T025 [US1] Create `apps/mobile/src/data/session.ts` — sign-in, token storage, refresh, sign-out (depends on T018)
-- [ ] T026 [US1] Implement `apps/e2e/support/client.ts` driving **the mobile data layer** (`apps/mobile/src/data/`), not the generated client directly — the client and the API's contract tests are both generated from one document and agree by construction, so driving the client alone would prove nothing about the app's own request construction (depends on T018–T025)
+- [X] T018 [US1] Create `apps/mobile/src/data/client.ts` — the app's single API entry point, wrapping the generated client with base URL and auth token handling
+- [X] T019 [P] [US1] Create `apps/mobile/src/data/errors.ts` mapping RFC 9457 problem+json responses, including extension members, to typed client-side errors
+- [X] T020 [P] [US1] Create `apps/mobile/src/data/interests.ts` — catalogue browse, search, follow, unfollow
+- [X] T021 [P] [US1] Create `apps/mobile/src/data/posts.ts` — presign, upload, publish, read, edit visibility, delete
+- [X] T022 [P] [US1] Create `apps/mobile/src/data/feed.ts` — home feed and interest space reads with pagination
+- [X] T023 [P] [US1] Create `apps/mobile/src/data/engagement.ts` — comments and reactions
+- [X] T024 [P] [US1] Create `apps/mobile/src/data/safety.ts` — report and block
+- [X] T025 [US1] Create `apps/mobile/src/data/session.ts` — sign-in, token storage, refresh, sign-out (depends on T018)
+- [X] T026 [US1] Implement `apps/e2e/support/client.ts` driving **the mobile data layer** (`apps/mobile/src/data/`), not the generated client directly — the client and the API's contract tests are both generated from one document and agree by construction, so driving the client alone would prove nothing about the app's own request construction (depends on T018–T025)
 
 ### Implementation for User Story 1 — wiring the screens
 
@@ -110,15 +110,15 @@ against a live API. Delivers the first evidence the product works at all.
 
 ### Implementation for User Story 1 — the journeys
 
-- [ ] T035 [P] [US1] Implement J-01 sign in and J-02 browse catalogue in `apps/e2e/journeys/onboarding.spec.ts`, via the data layer
-- [ ] T036 [P] [US1] Implement J-03 follow an interest in `apps/e2e/journeys/interests.spec.ts`, via the data layer
-- [ ] T037 [US1] Implement J-04 publish an image post in `apps/e2e/journeys/publish-image.spec.ts`, driving the real presign → upload → publish sequence through the data layer
-- [ ] T038 [US1] Implement J-05 publish a video post in `apps/e2e/journeys/publish-video.spec.ts`, asserting the post reaches a ready state
-- [ ] T039 [P] [US1] Implement J-06 home feed and J-07 interest space in `apps/e2e/journeys/feed.spec.ts`, asserting only followed-interest posts appear (Principle I)
-- [ ] T040 [P] [US1] Implement J-08 comment in `apps/e2e/journeys/engagement.spec.ts`, via the data layer
-- [ ] T041 [P] [US1] Implement J-09 report and J-10 block in `apps/e2e/journeys/safety.spec.ts`, asserting the block takes effect on every read surface immediately
-- [ ] T042 [US1] Implement negative journeys N-01 to N-04 in `apps/e2e/journeys/negative.spec.ts` using the **raw HTTP helper** from T010, deliberately bypassing the data layer so each drives the path a hostile client would take (Principle III)
-- [ ] T043 [US1] Wire `pnpm --filter @sih/e2e test` into CI and confirm the whole suite passes on a runner with no cloud credentials
+- [X] T035 [P] [US1] Implement J-01 sign in and J-02 browse catalogue in `apps/e2e/journeys/onboarding.spec.ts`, via the data layer
+- [X] T036 [P] [US1] Implement J-03 follow an interest in `apps/e2e/journeys/interests.spec.ts`, via the data layer
+- [X] T037 [US1] Implement J-04 publish an image post in `apps/e2e/journeys/publish-image.spec.ts`, driving the real presign → upload → publish sequence through the data layer
+- [X] T038 [US1] Implement J-05 publish a video post in `apps/e2e/journeys/publish-video.spec.ts`, asserting the post reaches a ready state
+- [X] T039 [P] [US1] Implement J-06 home feed and J-07 interest space in `apps/e2e/journeys/feed.spec.ts`, asserting only followed-interest posts appear (Principle I)
+- [X] T040 [P] [US1] Implement J-08 comment in `apps/e2e/journeys/engagement.spec.ts`, via the data layer
+- [X] T041 [P] [US1] Implement J-09 report and J-10 block in `apps/e2e/journeys/safety.spec.ts`, asserting the block takes effect on every read surface immediately
+- [X] T042 [US1] Implement negative journeys N-01 to N-04 in `apps/e2e/journeys/negative.spec.ts` using the **raw HTTP helper** from T010, deliberately bypassing the data layer so each drives the path a hostile client would take (Principle III)
+- [X] T043 [US1] Wire `pnpm --filter @sih/e2e test` into CI and confirm the whole suite passes on a runner with no cloud credentials
 - [ ] T044 [US1] Write the Tier B device runbook in `docs/verification/tier-b-runbook.md`, recording that the cloud sandbox has no public inbound route and this tier must run on a developer machine
 - [ ] T045 [US1] ⛔ **Requires physical hardware** — perform one Tier B pass on an iOS and an Android device and record two Journey Runs in `docs/verification/runs/`. Not completable in the cloud sandbox; do not tick from a simulator
 

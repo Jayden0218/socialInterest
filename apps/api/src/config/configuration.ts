@@ -26,7 +26,7 @@ export interface AppConfig {
     credentials?: { accessKeyId: string; secretAccessKey: string };
   };
   identity: { jwtSecret: string; issuer: string };
-  media: { ffmpegImage: string };
+  media: { ffmpegImage: string; dispatchOnCreate: boolean };
 }
 
 export function loadConfig(): AppConfig {
@@ -61,7 +61,16 @@ export function loadConfig(): AppConfig {
       jwtSecret: str('LOCAL_JWT_SECRET', isLocal ? 'dev-only-not-a-real-secret' : ''),
       issuer: str('JWT_ISSUER', 'sih-local'),
     },
-    media: { ffmpegImage: str('FFMPEG_IMAGE', 'linuxserver/ffmpeg:latest') },
+    media: {
+      ffmpegImage: str('FFMPEG_IMAGE', 'linuxserver/ffmpeg:latest'),
+      /**
+       * Run the media pipeline when a post is created. On everywhere a real
+       * client talks to the API. The integration suites turn it off because they
+       * drive processing explicitly to assert specific states, and an async
+       * pipeline racing those assertions would be flaky by construction.
+       */
+      dispatchOnCreate: bool('MEDIA_DISPATCH_ON_CREATE', true),
+    },
   };
 }
 

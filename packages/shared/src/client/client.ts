@@ -39,10 +39,20 @@ export class ApiClient {
 
     const headers: Record<string, string> = { accept: 'application/json' };
     if (init.body !== undefined) headers['content-type'] = 'application/json';
-    if (op.auth) {
-      const token = await this.opts.getToken?.();
-      if (token) headers['authorization'] = `Bearer ${token}`;
-    }
+    /**
+     * Send the token whenever we have one, not only where `auth` is true.
+     *
+     * `auth` means the endpoint REQUIRES a caller; several endpoints are readable
+     * signed out but answer differently when they know who is asking - a share
+     * link to a followers-only post, an interest space containing one, or an
+     * author's own post that is still processing. Gating the header on `auth`
+     * made a signed-in person anonymous on exactly those reads, so they were told
+     * "not available to you" about their own post. Found by the first end-to-end
+     * journey; no unit test could see it, because both sides of the contract
+     * agreed and neither sent a request.
+     */
+    const token = await this.opts.getToken?.();
+    if (token) headers['authorization'] = `Bearer ${token}`;
 
     const doFetch = this.opts.fetch ?? globalThis.fetch;
     const res = await doFetch(url.toString(), {
