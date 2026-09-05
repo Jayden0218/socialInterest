@@ -94,6 +94,24 @@ export class PostRepository extends BaseRepository {
     });
   }
 
+  /** FR-012 soft delete. Read paths treat a deleted post as gone for everyone. */
+  async setDeleted(postId: string, deletedAt: string): Promise<void> {
+    const post = await this.findById(postId);
+    if (!post) return;
+    await this.putItem({
+      ...keys.post(postId),
+      ...keys.postByAuthor(post.authorId, post.createdAt, postId),
+      type: 'Post',
+      ...post,
+      deletedAt,
+      updatedAt: deletedAt,
+    });
+  }
+
+  async incrementCommentCount(postId: string, by: number): Promise<void> {
+    await this.increment(keys.post(postId), 'commentCount', by);
+  }
+
   async setProcessingState(postId: string, state: ProcessingState): Promise<void> {
     const post = await this.findById(postId);
     if (!post) throw new Error(`post ${postId} not found`);

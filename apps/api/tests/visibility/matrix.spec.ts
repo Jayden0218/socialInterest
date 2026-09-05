@@ -65,8 +65,12 @@ const SURFACES = [
   // Built by US3: FeedService.homeFeed applies VisibilityFilter to the merged
   // fan-in result before returning a page. See us3-follow-interests.spec.ts.
   { name: 'home feed',        built: true,  story: 'US3 (T098)' },
-  { name: 'share link',       built: false, story: 'US5 (T122)' },
-  { name: 'comments',         built: false, story: 'US5 (T122)' },
+  // Built by US5: ShareResolutionService resolves against current visibility
+  // through PostQueryService.getById, and reports a block as 404 not 403.
+  { name: 'share link',       built: true,  story: 'US5 (T122)' },
+  // Built by US5: CommentService gates every read on the POST, never on the
+  // comment, so the two cannot disagree.
+  { name: 'comments',         built: true,  story: 'US5 (T122)' },
   { name: 'notifications',    built: false, story: 'T154 - closes SC-009' },
 ] as const;
 

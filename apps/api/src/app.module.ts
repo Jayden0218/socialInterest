@@ -7,6 +7,7 @@ import { InterestsModule } from './modules/interests/interests.module';
 import { InterestsHttpModule } from './modules/interests/interests-http.module';
 import { FeedModule } from './modules/feed/feed.module';
 import { PeopleModule } from './modules/people/people.module';
+import { EngagementModule } from './modules/engagement/engagement.module';
 import { PostsModule } from './modules/posts/posts.module';
 import { AuthGuard } from './common/auth/auth.guard';
 import { RateLimitGuard } from './common/rate-limit/rate-limit.guard';
@@ -23,6 +24,7 @@ import { HealthController } from './modules/health/health.controller';
     InterestsHttpModule,
     FeedModule,
     PeopleModule,
+    EngagementModule,
   ],
   controllers: [HealthController],
   providers: [

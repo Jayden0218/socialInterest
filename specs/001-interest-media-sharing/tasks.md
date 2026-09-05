@@ -259,25 +259,25 @@ pnpm workspace monorepo per `plan.md § Project Structure`:
 
 ### Tests for User Story 5
 
-- [ ] T111 [P] [US5] Contract test for reaction, comment, and share-link endpoints in `apps/api/tests/contract/engagement.contract.spec.ts`
-- [ ] T112 [P] [US5] Integration test `us5-engage` covering the five acceptance scenarios in `apps/api/tests/integration/us5-engage.spec.ts`
-- [ ] T113 [P] [US5] Integration test asserting a blocked viewer gets **404, not 403**, on a share link, in `apps/api/tests/integration/us5-block-disclosure.spec.ts` (a 403 would confirm the post exists and disclose the block)
+- [x] T111 [P] [US5] Contract test for reaction, comment, and share-link endpoints in `apps/api/tests/contract/engagement.contract.spec.ts`
+- [x] T112 [P] [US5] Integration test `us5-engage` covering the five acceptance scenarios in `apps/api/tests/integration/us5-engage.spec.ts`
+- [x] T113 [P] [US5] Integration test asserting a blocked viewer gets **404, not 403**, on a share link, in `apps/api/tests/integration/us5-block-disclosure.spec.ts` (a 403 would confirm the post exists and disclose the block)
 
 ### Implementation for User Story 5
 
-- [ ] T114 [P] [US5] Implement `ReactionRepository` whose key structure enforces one reaction per person per post in `apps/api/src/persistence/reaction.repository.ts` (A16, FR-039)
-- [ ] T115 [P] [US5] Implement `CommentRepository` in `apps/api/src/persistence/comment.repository.ts` (A15)
-- [ ] T116 [US5] Implement reaction add and remove as a guarded transaction so a double-tap cannot double-count in `apps/api/src/modules/engagement/reaction.service.ts` (FR-039)
-- [ ] T117 [US5] Implement `PUT`/`DELETE /posts/{postId}/reaction` in `apps/api/src/modules/engagement/engagement.controller.ts`
-- [ ] T118 [US5] Implement comment creation and listing, readable exactly when the post is, in `apps/api/src/modules/engagement/comment.service.ts` (FR-040)
-- [ ] T119 [US5] Implement `GET`/`POST /posts/{postId}/comments` in `apps/api/src/modules/engagement/engagement.controller.ts`
-- [ ] T120 [US5] Implement `POST /posts/{postId}/share-link` returning the link and echoing visibility in `apps/api/src/modules/engagement/share.controller.ts` (FR-041)
-- [ ] T121 [US5] Implement share-link resolution against **current** visibility, with the 403/404 disclosure rules, in `apps/api/src/modules/posts/share-resolution.service.ts` (FR-042)
-- [ ] T122 [US5] Enable the share-link and comments surfaces in the visibility matrix suite in `apps/api/tests/visibility/matrix.spec.ts`
-- [ ] T123 [P] [US5] Build reaction and comment UI in `apps/mobile/src/features/engagement/EngagementBar.tsx`
-- [ ] T124 [P] [US5] Build the comment thread screen in `apps/mobile/src/features/engagement/CommentsScreen.tsx`
-- [ ] T125 [P] [US5] Build share-sheet integration warning that a followers-only link will not open for everyone in `apps/mobile/src/features/engagement/ShareAction.tsx`
-- [ ] T126 [P] [US5] Build the signed-out share-link landing state with a join prompt in `apps/mobile/src/features/posts/SharedPostScreen.tsx`
+- [x] T114 [P] [US5] Implement `ReactionRepository` whose key structure enforces one reaction per person per post in `apps/api/src/persistence/reaction.repository.ts` (A16, FR-039)
+- [x] T115 [P] [US5] Implement `CommentRepository` in `apps/api/src/persistence/comment.repository.ts` (A15)
+- [x] T116 [US5] Implement reaction add and remove as a guarded transaction so a double-tap cannot double-count in `apps/api/src/modules/engagement/reaction.service.ts` (FR-039)
+- [x] T117 [US5] Implement `PUT`/`DELETE /posts/{postId}/reaction` in `apps/api/src/modules/engagement/engagement.controller.ts`
+- [x] T118 [US5] Implement comment creation and listing, readable exactly when the post is, in `apps/api/src/modules/engagement/comment.service.ts` (FR-040)
+- [x] T119 [US5] Implement `GET`/`POST /posts/{postId}/comments` in `apps/api/src/modules/engagement/engagement.controller.ts`
+- [x] T120 [US5] Implement `POST /posts/{postId}/share-link` returning the link and echoing visibility in `apps/api/src/modules/engagement/share.controller.ts` (FR-041)
+- [x] T121 [US5] Implement share-link resolution against **current** visibility, with the 403/404 disclosure rules, in `apps/api/src/modules/posts/share-resolution.service.ts` (FR-042)
+- [x] T122 [US5] Enable the share-link and comments surfaces in the visibility matrix suite in `apps/api/tests/visibility/matrix.spec.ts`
+- [x] T123 [P] [US5] Build reaction and comment UI in `apps/mobile/src/features/engagement/EngagementBar.tsx`
+- [x] T124 [P] [US5] Build the comment thread screen in `apps/mobile/src/features/engagement/CommentsScreen.tsx`
+- [x] T125 [P] [US5] Build share-sheet integration warning that a followers-only link will not open for everyone in `apps/mobile/src/features/engagement/ShareAction.tsx`
+- [x] T126 [P] [US5] Build the signed-out share-link landing state with a join prompt in `apps/mobile/src/features/posts/SharedPostScreen.tsx`
 
 **Checkpoint**: The product is social — engagement and outward sharing both work.
 

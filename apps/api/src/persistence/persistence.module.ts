@@ -9,6 +9,8 @@ import { BlockRepository } from './block.repository';
 import { PostRepository } from './post.repository';
 import { PostInterestIndexRepository } from './post-interest-index.repository';
 import { InterestFollowRepository } from './interest-follow.repository';
+import { ReactionRepository } from './reaction.repository';
+import { CommentRepository } from './comment.repository';
 
 const repo = <T>(
   cls: new (doc: DynamoDBDocumentClient, table: string) => T,
@@ -28,6 +30,8 @@ const providers: Provider[] = [
   repo(PostRepository),
   repo(PostInterestIndexRepository),
   repo(InterestFollowRepository),
+  repo(ReactionRepository),
+  repo(CommentRepository),
 ];
 
 @Global()
@@ -42,6 +46,8 @@ const providers: Provider[] = [
     PostRepository,
     PostInterestIndexRepository,
     InterestFollowRepository,
+    ReactionRepository,
+    CommentRepository,
   ],
 })
 export class PersistenceModule {}
