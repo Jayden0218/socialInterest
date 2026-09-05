@@ -10,25 +10,30 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    services:
-      dynamodb:
-        image: amazon/dynamodb-local:latest
-        ports: ['8000:8000']
-      s3:
-        image: minio/minio:latest
-        env:
-          MINIO_ROOT_USER: localkey
-          MINIO_ROOT_PASSWORD: localsecret
-        ports: ['9000:9000']
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with: { version: 10 }
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm lint
+      # The same compose file the local profile uses, so CI runs the configuration
+      # a developer runs. Not `services:` — those cannot pass a command, and both
+      # images need one: DynamoDB Local needs `-sharedDb`, MinIO needs `server /data`
+      # (without it the entrypoint prints usage and exits).
+      - run: docker compose up -d
+      - name: Wait for DynamoDB Local and MinIO
+        run: |
+          for _ in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:9000/minio/health/live \
+               && curl -so /dev/null http://127.0.0.1:8000; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose logs
+          exit 1
       - run: pnpm --filter @sih/infra db:create-local
       - run: pnpm --filter @sih/infra s3:create-local
       - run: pnpm --filter @sih/infra seed:catalogue

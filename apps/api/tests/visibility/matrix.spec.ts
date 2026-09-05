@@ -136,7 +136,6 @@ describe('SC-009 visibility matrix', () => {
   afterAll(() => {
     const perSurface = Object.keys(POST_STATES).length * Object.keys(VIEWERS).length;
     const built = SURFACES.filter((s) => s.built).length;
-    // eslint-disable-next-line no-console
     console.log(
       `\nSC-009: ${assertionsRun}/${perSurface * SURFACES.length} assertions run ` +
         `(${built}/${SURFACES.length} surfaces built).\n` +
