@@ -1,5 +1,25 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
-import { createAppData, type AppData, type TokenStore } from './data';
+import {
+  createAppData,
+  PersistentTokenStore,
+  browserKeyValueStore,
+  type AppData,
+  type TokenStore,
+} from './data';
+
+/**
+ * Pick a token store for the current runtime.
+ *
+ * On web, localStorage keeps a person signed in across reloads. On a device
+ * there is no backing store wired yet - react-native has no localStorage, and
+ * secure storage is not installed - so a device session is still memory-only and
+ * signs out on relaunch. That is a real remaining gap, recorded rather than
+ * hidden behind a store that silently forgets.
+ */
+function defaultTokenStore(): TokenStore | undefined {
+  const backing = browserKeyValueStore();
+  return backing ? new PersistentTokenStore(backing) : undefined;
+}
 
 /**
  * Supplies the data layer to the screens.
@@ -23,7 +43,11 @@ export function DataProvider({
   value?: AppData;
 }) {
   const data = useMemo(
-    () => value ?? createAppData({ baseUrl: baseUrl ?? '', ...(tokens ? { tokens } : {}) }),
+    () => {
+      if (value) return value;
+      const store = tokens ?? defaultTokenStore();
+      return createAppData({ baseUrl: baseUrl ?? '', ...(store ? { tokens: store } : {}) });
+    },
     [value, baseUrl, tokens],
   );
   return <DataContext.Provider value={data}>{children}</DataContext.Provider>;

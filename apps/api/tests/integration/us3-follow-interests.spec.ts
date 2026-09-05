@@ -131,4 +131,44 @@ describe('US3 — follow interests to build a personal feed', () => {
     // critical path, and SC-005 gives that path a 2s p95 budget.
     expect(MAX_FOLLOWED_INTERESTS).toBe(200);
   });
+
+  it('returns renderable posts, not index rows (FR-032)', async () => {
+    // Regression. The feed used to return the fan-in's index rows - postId,
+    // authorId, interestId, visibility, processingState, createdAt - so a client
+    // received a list of ids and rendered a blank feed. Every test missed it by
+    // asserting only that an id was present, which index rows satisfy.
+    const author = await h.token(await h.createPerson('feedshape'));
+    const interestId = await h.topInterestId();
+    const created = await request(h.app.getHttpServer())
+      .post('/v1/posts')
+      .set('authorization', `Bearer ${author}`)
+      .send({ uploadIds: [await h.uploadId(author)], interestIds: [interestId], caption: 'a caption a client can show' });
+    const postId = created.body.postId as string;
+
+    const { ProcessingService } = await import('../../src/modules/posts/processing.service');
+    const { PostRepository } = await import('../../src/persistence/post.repository');
+    const posts = h.module.get(PostRepository);
+    for (const m of await posts.listMedia(postId)) {
+      await posts.updateMediaState(postId, m.ordinal, { processingState: 'ready', exifStripped: true });
+    }
+    await h.module.get(ProcessingService).reconcile(postId);
+
+    const reader = await h.token(await h.createPerson('feedshapereader'));
+    await request(h.app.getHttpServer())
+      .put(`/v1/interests/${interestId}/follow`)
+      .set('authorization', `Bearer ${reader}`);
+
+    const feed = await request(h.app.getHttpServer())
+      .get('/v1/feed/home?limit=20')
+      .set('authorization', `Bearer ${reader}`);
+    expect(feed.status).toBe(200);
+
+    const item = feed.body.items.find((i: { postId: string }) => i.postId === postId);
+    expect(item).toBeDefined();
+    expect(item.caption).toBe('a caption a client can show');
+    expect(item.author).toBeDefined();
+    expect(item.author.handle).toBeTruthy();
+    expect(item.mediaKind).toBe('images');
+    expect(typeof item.reactionCount).toBe('number');
+  }, 60_000);
 });

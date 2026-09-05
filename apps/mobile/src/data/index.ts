@@ -45,6 +45,8 @@ export function createAppData(opts: DataClientOptions): AppData {
 export { DataClient, MemoryTokenStore, SessionData, InterestsData, PostsData, FeedData, EngagementData, SafetyData, NotificationsData };
 export type { DataClientOptions, TokenStore };
 export * from './errors';
+export { PersistentTokenStore, browserKeyValueStore } from './token-store';
+export type { KeyValueStore } from './token-store';
 export type { UploadTarget } from './posts';
 export type { PostPage } from './interests';
 export type { CommentPage } from './engagement';

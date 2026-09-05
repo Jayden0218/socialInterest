@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PostInterestIndexRepository } from '../../persistence/post-interest-index.repository';
+import { PostRepository } from '../../persistence/post.repository';
 import { VisibilityFilter, type Viewer } from '../../visibility/visibility.filter';
 import { PersonRepository } from '../../persistence/person.repository';
 import { InterestFollowService } from '../interests/interest-follow.service';
@@ -7,12 +8,36 @@ import { PersonFollowService } from '../people/person-follow.service';
 import { FollowExpansion } from './follow-expansion';
 import { rank, type RankableItem } from './ranking';
 
-export interface FeedItem {
+/**
+ * The index row the fan-in reads. Internal to the assembly pipeline: it is what
+ * ranking and the visibility filter operate on, and it is NOT what a client gets.
+ */
+export interface FeedCandidate {
   postId: string;
   authorId: string;
   interestId: string;
   visibility: 'public' | 'followers' | 'private';
   processingState: 'pending' | 'processing' | 'ready' | 'failed';
+  createdAt: string;
+}
+
+/**
+ * What a feed page returns.
+ *
+ * The response used to be the index rows above - ids, visibility, a timestamp -
+ * which a client cannot render. It now follows the contract's Post, so a feed
+ * displays without a second request per item.
+ */
+export interface FeedItem {
+  postId: string;
+  author: { userId: string; handle: string; displayName: string };
+  caption?: string;
+  interestIds: string[];
+  visibility: 'public' | 'followers' | 'private';
+  processingState: 'pending' | 'processing' | 'ready' | 'failed';
+  mediaKind: 'images' | 'video';
+  reactionCount: number;
+  commentCount: number;
   createdAt: string;
 }
 
@@ -55,6 +80,7 @@ export class FeedService {
     @Inject(InterestFollowService) private readonly follows: InterestFollowService,
     @Inject(FollowExpansion) private readonly expansion: FollowExpansion,
     @Inject(PersonFollowService) private readonly personFollows: PersonFollowService,
+    @Inject(PostRepository) private readonly posts: PostRepository,
   ) {}
 
   async homeFeed(
@@ -87,12 +113,12 @@ export class FeedService {
     // Merge newest-first, de-duplicating a post that appears under both a
     // sub-interest and its parent (FR-024 writes an index item for each).
     const seen = new Set<string>();
-    const merged: FeedItem[] = [];
+    const merged: FeedCandidate[] = [];
     for (const page of pages) {
       for (const item of page.items) {
         if (seen.has(item.postId)) continue;
         seen.add(item.postId);
-        merged.push(item as FeedItem);
+        merged.push(item as FeedCandidate);
       }
     }
     /**
@@ -136,8 +162,48 @@ export class FeedService {
       cache,
     );
 
-    const items = visible.slice(0, limit);
-    const last = items.at(-1);
+    const page = visible.slice(0, limit);
+    const last = page.at(-1);
+
+    /**
+     * Hydrate. Until now the feed returned the INDEX ROWS - postId, authorId,
+     * interestId, visibility, processingState, createdAt - and nothing else. No
+     * caption, no media, no author, no counts. A client got a list of ids and a
+     * blank feed.
+     *
+     * Nothing caught it because every test asserted on ids: the integration
+     * suites check a postId is present, and even the end-to-end journeys use
+     * `ids).toContain(...)`. Only rendering the feed showed it was empty.
+     *
+     * One batched read for the page, after visibility has already narrowed the
+     * set, so the cost is bounded by `limit` rather than by the fan-in width.
+     */
+    const items = await Promise.all(
+      page.map(async (row) => {
+        const [post, author] = await Promise.all([
+          this.posts.findById(row.postId),
+          this.people.findById(row.authorId),
+        ]);
+        if (!post) return null;
+        return {
+          postId: post.postId,
+          author: {
+            userId: row.authorId,
+            handle: author?.handle ?? '',
+            displayName: author?.displayName ?? '',
+          },
+          ...(post.caption !== undefined ? { caption: post.caption } : {}),
+          interestIds: post.interestIds,
+          visibility: post.visibility,
+          processingState: post.processingState,
+          mediaKind: post.mediaKind,
+          reactionCount: post.reactionCount,
+          commentCount: post.commentCount,
+          createdAt: post.createdAt,
+        };
+      }),
+    ).then((rows) => rows.filter((r): r is NonNullable<typeof r> => r !== null));
+
     return {
       items,
       // Cursor is the timestamp boundary, not an offset (FR-035): posts

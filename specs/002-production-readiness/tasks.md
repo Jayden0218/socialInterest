@@ -250,6 +250,7 @@ This is **not** a substitute for T045 and must never be recorded as one.
 - [X] T102 Drive the core journeys through the rendered UI against a live API with Playwright, in `apps/e2e/browser/`
 - [X] T103 Wire the browser journeys into CI
 - [X] T104 Record in the Tier B runbook what browser journeys do and do not cover
+- [X] T105 Persist the auth token so a person stays signed in, and cover authenticated screens in the browser journeys — found the feed returning index rows rather than posts
 
 ---
 

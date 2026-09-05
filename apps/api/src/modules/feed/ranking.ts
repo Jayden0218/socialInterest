@@ -1,6 +1,6 @@
-import type { FeedItem } from './feed.service';
+import type { FeedCandidate } from './feed.service';
 
-export interface RankableItem extends FeedItem {
+export interface RankableItem extends FeedCandidate {
   /** Set by the feed once it knows who the viewer follows. */
   byFollowedAuthor?: boolean;
 }
