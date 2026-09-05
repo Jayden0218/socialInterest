@@ -257,7 +257,7 @@ unmeasured.
 - [X] T096 [P] Update `specs/001-interest-media-sharing/validation-report.md` so its SC table reflects measured results rather than "bench written"
 - [X] T097 Run the full local verification sweep from `quickstart.md` and confirm every command passes
 - [X] T098 [P] Add the single-owner file table for this feature to `CLAUDE.md`, so parallel agents do not overwrite each other
-- [ ] T099 Re-run `/speckit-analyze` to check for drift between spec, plan and tasks after implementation
+- [X] T099 Re-run `/speckit-analyze` to check for drift between spec, plan and tasks after implementation
 - [X] T100 Confirm no task marked ⛔ is ticked without a corresponding Approval Record and Verification Run on disk, and that the register's `implementation` states match the code
 
 ---
@@ -359,3 +359,61 @@ unrun work is not.
 - T053–T056 are conditional on T051's finding. If the ceiling is the emulator or the harness,
   they are not done — they are **not applicable**, and should be struck through rather than
   ticked
+
+---
+
+## Traceability
+
+Added after the `/speckit-analyze` re-run at T099, which found the work complete
+but the mapping implicit. The constitution requires each task to trace to a
+requirement; naming the FR inside a task description covered only some of them,
+so the map is stated once here instead.
+
+| Requirement | Tasks | State |
+|---|---|---|
+| FR-001 core journeys through the app's data layer | T026, T035–T042 | done |
+| FR-002 journeys run on every change | T043 | done |
+| FR-003 contract drift fails the build | T017, T006 | done |
+| FR-004 no cloud account needed | T043 | done |
+| FR-005 physical-device pass | T044, **T045** | runbook done; pass needs hardware |
+| FR-006 latency budget under concurrency | T046–T050, **T052** | measured locally; budget unverified |
+| FR-007 visibility immediate under load | T058 | done |
+| FR-008 production-shaped datastore | **T052** | gated |
+| FR-009 latency per level, first breach | T047, T049 | done |
+| FR-010 re-verify the visibility contract | T057 | done, 294/294 |
+| FR-011 escalate rather than weaken | T060 | no conflict arose |
+| FR-012 generator is not the limit | T045–T047 | done — `bench:ceiling` |
+| FR-013 maintain the register | T062 | done |
+| FR-014 register completeness | T063, T064, T076 | done, enforced in CI |
+| FR-015 verified before release | **T077–T081** | gated |
+| FR-016 video 60s on production | **T079** | gated |
+| FR-017 metadata strip on production | T066 (proof stated), **T079** | gated |
+| FR-018 sign-in on production identity | **T080** | gated |
+| FR-019 media delivery unauthorised fetch | T068, **T081** | gated |
+| FR-020 approval recorded | T071, **T077** | format done; approval gated |
+| FR-021 teardown confirmed independently | T069, **T082** | script done; run gated |
+| FR-022 cost recorded | T070, **T082** | script done; run gated |
+| FR-023 run records date and version | T071 | done — template |
+| FR-024 windows declared in advance | T083 | done |
+| FR-025 unmeasurable, never estimated | T089 | done |
+| FR-026 misses reported | T084, T090 | done |
+| FR-027 undecided reports count as missed | T087 | done, with a test |
+| FR-028 aggregates only, suppression floor | T088, T090 | done |
+| FR-029 purpose limit | T090 | done — asserted structurally |
+| FR-030 too-small window says so | T089 | done |
+| FR-031 register records implementation state | T062, T063, T064 | done |
+
+| Success criterion | Tasks | State |
+|---|---|---|
+| 002/SC-001 journeys on every change, none stand-in-only | T026, T035–T043 | **met** — 22 assertions green |
+| 002/SC-002 2s p95 at 10,000 concurrent | T046–T050, **T052** | **unverified** — ceiling was the emulator |
+| 002/SC-003 visibility contract passes in full | T057, T058 | **met** — 294/294, 7/7 surfaces |
+| 002/SC-004 every divergence verified before release | **T077–T081** | gated |
+| 002/SC-005 video playable in 60s on production | **T079** | gated |
+| 002/SC-006 journeys on a physical device | **T045** | needs hardware |
+| 002/SC-007 outcome reported within a cycle | T084, **T092–T094** | job built; window gated |
+| 002/SC-008 environments confirmed destroyed | T069, **T082** | check built; run gated |
+| 002/SC-009 spend within approval | T070, **T082** | report built; run gated |
+
+**Bold** task ids are gated on the project owner's approval, or on hardware this
+environment does not have.
