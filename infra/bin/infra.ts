@@ -1,6 +1,17 @@
-// CDK entry point. The stack itself is written in Phase 10 (T167) and is
-// validated with `cdk synth` only - synth needs no account and no credentials.
-//
-// Deploying is NOT part of any task in tasks.md. See plan.md Cost Posture:
-// no task may provision billable cloud resources without explicit approval.
-export {};
+/**
+ * CDK entry point. SYNTH ONLY.
+ *
+ * Deploying is not part of any task in tasks.md and requires explicit approval -
+ * see plan.md Cost Posture. This prints the stack description so CI can validate
+ * it without an account, without credentials, and without any chance of
+ * provisioning something.
+ */
+import { synth } from '../lib/infra-stack';
+
+const description = synth();
+console.log(JSON.stringify(description, null, 2));
+console.log(
+  `\nsynth ok: table ${description.table.name} with ${description.table.indexes.length} GSIs, ` +
+    `${description.buckets.length} buckets, ${description.compute.length} compute units.`,
+);
+console.log('NOT DEPLOYED. Deploying requires explicit approval (plan.md Cost Posture).\n');

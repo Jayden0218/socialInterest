@@ -8,7 +8,9 @@
     "s3:create-local": "tsx scripts/create-local-bucket.ts",
     "seed:catalogue": "tsx scripts/seed-catalogue.ts",
     "verify:local": "tsx scripts/verify-local.ts",
-    "synth": "echo 'cdk synth is validation only - deploying requires explicit approval (plan.md Cost Posture)'"
+    "synth": "tsx bin/infra.ts",
+    "seed:load": "tsx scripts/seed-load.ts",
+    "verify:stack": "tsx scripts/verify-stack.ts"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.712.0",

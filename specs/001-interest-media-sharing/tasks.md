@@ -351,19 +351,19 @@ pnpm workspace monorepo per `plan.md § Project Structure`:
 
 **Purpose**: Cross-cutting quality, performance evidence, and the success-criteria checks.
 
-- [ ] T160 [P] Implement the analytics export to S3 for Athena-backed SC-007 and SC-008 in `apps/workers/src/analytics-export/handler.ts` (aggregation never touches the operational table)
-- [ ] T161 [P] Implement the load-data seeder in `infra/scripts/seed-load.ts` (100k posts, 5k interests, 10k people)
-- [ ] T162 Implement `bench:feed` reporting p95 **broken down by follow count** in `apps/api/bench/feed.bench.ts` (SC-005; watch the curve, not the headline — research §D1 accepts that read-time assembly scales with follow count)
-- [ ] T163 [P] Implement `bench:upload` in `apps/api/bench/upload.bench.ts` (SC-002)
-- [ ] T164 Implement a concurrency load test driving the home feed at 10 000 concurrent viewers and reporting p95 **under load** in `apps/api/bench/feed-load.bench.ts` (SC-011 — the criterion most likely to invalidate the read-time fan-in bet in research §D1)
-- [ ] T165 [P] Implement `bench:transcode` measuring upload-finished to playable latency in `apps/api/bench/transcode.bench.ts` (SC-003 — measures the ffmpeg adapter only; the MediaConvert path is covered by the smoke-test procedure task)
-- [ ] T166 [P] Emit publish-funnel analytics events (started, interest chosen, visibility set, published, abandoned) in `apps/mobile/src/lib/analytics.ts` (SC-001, SC-004 — time-to-first-post and first-attempt success rate are otherwise unmeasurable)
-- [ ] T167 [P] Write the CDK stack for table, GSIs, buckets, Fargate service, Lambdas, and CloudFront in `infra/lib/infra-stack.ts` — **validated with `cdk synth` only; deploying is out of scope and requires explicit approval**
-- [ ] T168 [P] Add a `cdk synth` check to CI in `.github/workflows/ci.yml` (no credentials, no deploy)
-- [ ] T169 [P] Write the MediaConvert smoke-test procedure in `docs/mediaconvert-smoke-test.md` (research §D9 — green ffmpeg tests are **not** evidence the `aws` path works; this runs against a staging account before launch, when one exists)
-- [ ] T170 [P] Add offline tolerance so loaded content stays viewable and actions queue in `apps/mobile/src/lib/offline-queue.ts` (spec edge case)
-- [ ] T171 Run the full `quickstart.md` validation end to end and record results in `specs/001-interest-media-sharing/validation-report.md`
-- [ ] T172 [P] Write the developer README covering local profile setup and the cloud-sandbox path in `README.md`
+- [x] T160 [P] Implement the analytics export to S3 for Athena-backed SC-007 and SC-008 in `apps/workers/src/analytics-export/handler.ts` (aggregation never touches the operational table)
+- [x] T161 [P] Implement the load-data seeder in `infra/scripts/seed-load.ts` (100k posts, 5k interests, 10k people)
+- [x] T162 Implement `bench:feed` reporting p95 **broken down by follow count** in `apps/api/bench/feed.bench.ts` (SC-005; watch the curve, not the headline — research §D1 accepts that read-time assembly scales with follow count)
+- [x] T163 [P] Implement `bench:upload` in `apps/api/bench/upload.bench.ts` (SC-002)
+- [x] T164 Implement a concurrency load test driving the home feed at 10 000 concurrent viewers and reporting p95 **under load** in `apps/api/bench/feed-load.bench.ts` (SC-011 — the criterion most likely to invalidate the read-time fan-in bet in research §D1)
+- [x] T165 [P] Implement `bench:transcode` measuring upload-finished to playable latency in `apps/api/bench/transcode.bench.ts` (SC-003 — measures the ffmpeg adapter only; the MediaConvert path is covered by the smoke-test procedure task)
+- [x] T166 [P] Emit publish-funnel analytics events (started, interest chosen, visibility set, published, abandoned) in `apps/mobile/src/lib/analytics.ts` (SC-001, SC-004 — time-to-first-post and first-attempt success rate are otherwise unmeasurable)
+- [x] T167 [P] Write the CDK stack for table, GSIs, buckets, Fargate service, Lambdas, and CloudFront in `infra/lib/infra-stack.ts` — **validated with `cdk synth` only; deploying is out of scope and requires explicit approval**
+- [x] T168 [P] Add a `cdk synth` check to CI in `.github/workflows/ci.yml` (no credentials, no deploy)
+- [x] T169 [P] Write the MediaConvert smoke-test procedure in `docs/mediaconvert-smoke-test.md` (research §D9 — green ffmpeg tests are **not** evidence the `aws` path works; this runs against a staging account before launch, when one exists)
+- [x] T170 [P] Add offline tolerance so loaded content stays viewable and actions queue in `apps/mobile/src/lib/offline-queue.ts` (spec edge case)
+- [x] T171 Run the full `quickstart.md` validation end to end and record results in `specs/001-interest-media-sharing/validation-report.md`
+- [x] T172 [P] Write the developer README covering local profile setup and the cloud-sandbox path in `README.md`
 
 ---
 

@@ -37,3 +37,7 @@ jobs:
       # metadata the way ts-jest does. Catches DI that works in tests and
       # returns 500 in production.
       - run: pnpm --filter @sih/api smoke:boot
+      # Synth only. `cdk synth` needs no account and no credentials; deploying
+      # requires explicit approval (plan.md Cost Posture), so CI can never do it.
+      - run: pnpm --filter @sih/infra verify:stack
+      - run: pnpm --filter @sih/infra synth

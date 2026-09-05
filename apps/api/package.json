@@ -11,7 +11,11 @@
     "test:contract": "jest --selectProjects contract",
     "test:visibility": "jest --selectProjects visibility",
     "test:integration": "jest --selectProjects integration",
-    "smoke:boot": "tsx scripts/smoke-boot.ts"
+    "smoke:boot": "tsx scripts/smoke-boot.ts",
+    "bench:feed": "tsx bench/feed.bench.ts",
+    "bench:upload": "tsx bench/upload.bench.ts",
+    "bench:transcode": "tsx bench/transcode.bench.ts",
+    "bench:feed-load": "tsx bench/feed-load.bench.ts"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.712.0",
