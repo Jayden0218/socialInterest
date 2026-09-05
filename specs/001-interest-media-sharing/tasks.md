@@ -133,30 +133,30 @@ pnpm workspace monorepo per `plan.md § Project Structure`:
 
 ### Tests for User Story 1
 
-- [ ] T049 [P] [US1] Contract test for `POST /media/uploads` and `POST /posts` in `apps/api/tests/contract/posts.contract.spec.ts`
-- [ ] T050 [P] [US1] Integration test `us1-publish` covering all six acceptance scenarios in `apps/api/tests/integration/us1-publish.spec.ts`
-- [ ] T051 [P] [US1] EXIF-strip verification test that uploads GPS-tagged media **through a client that skips its own stripping**, in `apps/api/tests/integration/us1-exif.spec.ts` (FR-010 is a server-side guarantee; testing only the well-behaved client proves nothing)
+- [x] T049 [P] [US1] Contract test for `POST /media/uploads` and `POST /posts` in `apps/api/tests/contract/posts.contract.spec.ts`
+- [x] T050 [P] [US1] Integration test `us1-publish` covering all six acceptance scenarios in `apps/api/tests/integration/us1-publish.spec.ts`
+- [x] T051 [P] [US1] EXIF-strip verification test that uploads GPS-tagged media **through a client that skips its own stripping**, in `apps/api/tests/integration/us1-exif.spec.ts` (FR-010 is a server-side guarantee; testing only the well-behaved client proves nothing)
 
 ### Implementation for User Story 1
 
-- [ ] T052 [P] [US1] Implement `PostRepository` with the post item and media items in one partition in `apps/api/src/persistence/post.repository.ts` (A3)
-- [ ] T053 [P] [US1] Implement `PostInterestIndexRepository` writing one index item per expanded interest in `apps/api/src/persistence/post-interest-index.repository.ts` (A4, FR-024)
-- [ ] T054 [US1] Implement `UploadService` validating type, size, and duration **before** issuing a presigned target in `apps/api/src/modules/media/upload.service.ts` (FR-005 — the caller learns of a limit up front, not after a long upload; uses the caps decided in Phase 2)
-- [ ] T055 [US1] Implement `POST /media/uploads` in `apps/api/src/modules/media/media.controller.ts` (FR-004, FR-005, FR-008)
-- [ ] T056 [US1] Implement `PostService.create` requiring at least one interest and expanding sub-interest to parent in `apps/api/src/modules/posts/post.service.ts` (FR-006, FR-024)
-- [ ] T057 [US1] Implement transactional post creation writing the post, media items, and index items atomically in `apps/api/src/modules/posts/post.transaction.ts`
-- [ ] T058 [US1] Implement `POST /posts` in `apps/api/src/modules/posts/post.controller.ts` (FR-006, FR-007, FR-013)
-- [ ] T059 [US1] Implement `GET /posts/{postId}` routed through `VisibilityFilter`, distinguishing 403 from 404 in `apps/api/src/modules/posts/post.controller.ts` (FR-042 error table)
-- [ ] T060 [P] [US1] Implement the image derivation worker producing variants and **stripping EXIF**, gating `exifStripped` before `ready`, in `apps/workers/src/media-image/handler.ts` (FR-010)
-- [ ] T061 [P] [US1] Implement the video derivation worker producing HLS renditions and a poster frame via the `MediaProcessor` port in `apps/workers/src/media-video/handler.ts` (FR-009)
-- [ ] T062 [US1] Implement processing-state aggregation promoting a post to `ready` only when every media item is ready in `apps/api/src/modules/posts/processing.service.ts`
-- [ ] T063 [US1] Enable the interest-space and profile surfaces in the visibility matrix suite in `apps/api/tests/visibility/matrix.spec.ts`
-- [ ] T064 [P] [US1] Build the media picker screen in `apps/mobile/src/features/publish/MediaPickerScreen.tsx`
-- [ ] T065 [P] [US1] Build the interest selector, blocking publish until one is chosen, in `apps/mobile/src/features/publish/InterestSelector.tsx` (FR-006)
-- [ ] T066 [P] [US1] Build the visibility control defaulting to public in `apps/mobile/src/features/publish/VisibilityControl.tsx` (FR-013)
-- [ ] T067 [US1] Build the compose-and-publish screen with upload progress and retry that does not re-select media in `apps/mobile/src/features/publish/ComposeScreen.tsx` (FR-008)
-- [ ] T068 [P] [US1] Build the post detail view with video playback and poster frame in `apps/mobile/src/features/posts/PostDetailScreen.tsx`
-- [ ] T069 [P] [US1] Add the Maestro publish-journey flow in `apps/mobile/e2e/us1-publish.yaml`
+- [x] T052 [P] [US1] Implement `PostRepository` with the post item and media items in one partition in `apps/api/src/persistence/post.repository.ts` (A3)
+- [x] T053 [P] [US1] Implement `PostInterestIndexRepository` writing one index item per expanded interest in `apps/api/src/persistence/post-interest-index.repository.ts` (A4, FR-024)
+- [x] T054 [US1] Implement `UploadService` validating type, size, and duration **before** issuing a presigned target in `apps/api/src/modules/media/upload.service.ts` (FR-005 — the caller learns of a limit up front, not after a long upload; uses the caps decided in Phase 2)
+- [x] T055 [US1] Implement `POST /media/uploads` in `apps/api/src/modules/media/media.controller.ts` (FR-004, FR-005, FR-008)
+- [x] T056 [US1] Implement `PostService.create` requiring at least one interest and expanding sub-interest to parent in `apps/api/src/modules/posts/post.service.ts` (FR-006, FR-024)
+- [x] T057 [US1] Implement transactional post creation writing the post, media items, and index items atomically in `apps/api/src/modules/posts/post.transaction.ts`
+- [x] T058 [US1] Implement `POST /posts` in `apps/api/src/modules/posts/post.controller.ts` (FR-006, FR-007, FR-013)
+- [x] T059 [US1] Implement `GET /posts/{postId}` routed through `VisibilityFilter`, distinguishing 403 from 404 in `apps/api/src/modules/posts/post.controller.ts` (FR-042 error table)
+- [x] T060 [P] [US1] Implement the image derivation worker producing variants and **stripping EXIF**, gating `exifStripped` before `ready`, in `apps/workers/src/media-image/handler.ts` (FR-010)
+- [x] T061 [P] [US1] Implement the video derivation worker producing HLS renditions and a poster frame via the `MediaProcessor` port in `apps/workers/src/media-video/handler.ts` (FR-009)
+- [x] T062 [US1] Implement processing-state aggregation promoting a post to `ready` only when every media item is ready in `apps/api/src/modules/posts/processing.service.ts`
+- [x] T063 [US1] Enable the interest-space and profile surfaces in the visibility matrix suite in `apps/api/tests/visibility/matrix.spec.ts`
+- [x] T064 [P] [US1] Build the media picker screen in `apps/mobile/src/features/publish/MediaPickerScreen.tsx`
+- [x] T065 [P] [US1] Build the interest selector, blocking publish until one is chosen, in `apps/mobile/src/features/publish/InterestSelector.tsx` (FR-006)
+- [x] T066 [P] [US1] Build the visibility control defaulting to public in `apps/mobile/src/features/publish/VisibilityControl.tsx` (FR-013)
+- [x] T067 [US1] Build the compose-and-publish screen with upload progress and retry that does not re-select media in `apps/mobile/src/features/publish/ComposeScreen.tsx` (FR-008)
+- [x] T068 [P] [US1] Build the post detail view with video playback and poster frame in `apps/mobile/src/features/posts/PostDetailScreen.tsx`
+- [x] T069 [P] [US1] Add the Maestro publish-journey flow in `apps/mobile/e2e/us1-publish.yaml`
 
 **Checkpoint**: US1 fully functional. A person can publish and see their post. **This is the MVP** — stop here and validate.
 

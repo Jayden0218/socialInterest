@@ -10,7 +10,8 @@
     "test:unit": "jest --selectProjects unit",
     "test:contract": "jest --selectProjects contract",
     "test:visibility": "jest --selectProjects visibility",
-    "test:integration": "jest --selectProjects integration"
+    "test:integration": "jest --selectProjects integration",
+    "smoke:boot": "tsx scripts/smoke-boot.ts"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.712.0",
@@ -38,6 +39,9 @@
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "@types/express": "^5.0.0",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "@nestjs/testing": "^11.0.1",
+    "@sih/workers": "workspace:*",
+    "yaml": "^2.6.1"
   }
 }

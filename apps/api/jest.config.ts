@@ -8,7 +8,10 @@ import type { Config } from 'jest';
 const base = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  moduleNameMapper: { '^@sih/shared$': '<rootDir>/../../packages/shared/src/index.ts' },
+  moduleNameMapper: {
+    '^@sih/shared$': '<rootDir>/../../packages/shared/src/index.ts',
+    '^@sih/workers$': '<rootDir>/../workers/src/index.ts',
+  },
 } satisfies Config;
 
 const config: Config = {

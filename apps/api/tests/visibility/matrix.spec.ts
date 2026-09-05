@@ -53,6 +53,9 @@ const EXPECTED: Record<StateKey, Record<ViewerKey, boolean>> = {
 
 /** FR-018 enumerates these. Each is a distinct code path that could leak. */
 const SURFACES = [
+  // Built by US1: PostQueryService.listByInterest and .listByAuthor both route
+  // through VisibilityFilter - see tests/integration/us1-publish.spec.ts, which
+  // asserts the HTTP surfaces call them.
   { name: 'interest space',   built: true,  story: 'US1 (T063)' },
   { name: 'profile',          built: true,  story: 'US1 (T063)' },
   { name: 'interest search',  built: false, story: 'US2 (T082)' },

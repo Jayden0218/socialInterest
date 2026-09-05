@@ -1,5 +1,15 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "rootDir": ".", "outDir": "dist", "types": ["node", "jest"] },
+    "compilerOptions": {
+    // Workspace root, not apps/api: this package imports @sih/shared and
+    // @sih/workers by source, and rootDir must contain every input file.
+    "rootDir": "../..",
+    "outDir": "dist",
+    "types": ["node", "jest"],
+    "paths": {
+      "@sih/shared": ["../../packages/shared/src/index.ts"],
+      "@sih/workers": ["../workers/src/index.ts"]
+    }
+  },
   "include": ["src/**/*.ts", "tests/**/*.ts", "bench/**/*.ts"]
 }
