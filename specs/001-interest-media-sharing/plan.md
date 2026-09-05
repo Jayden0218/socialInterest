@@ -42,7 +42,8 @@ preference:
 **Storage**: Amazon DynamoDB — single table `sih-main` with four GSIs
 ([data-model.md](./data-model.md)); Amazon S3 for media; CloudFront for delivery
 
-**Testing**: Jest (unit), Jest + Supertest against DynamoDB Local (integration),
+**Testing**: Jest (unit), Jest + Supertest against DynamoDB Local (integration) — the
+whole suite runs on the `local` runtime profile with no AWS account (research §D9),
 contract tests generated from `contracts/openapi.yaml`, Maestro (mobile E2E), plus a
 dedicated generated suite for the SC-009 visibility matrix
 
@@ -104,7 +105,7 @@ justified violations, and there is nothing here to violate.
 specs/001-interest-media-sharing/
 ├── plan.md                        # This file
 ├── spec.md                        # Feature specification
-├── research.md                    # Phase 0 — decisions D1-D8 with alternatives
+├── research.md                    # Phase 0 — decisions D1-D9 with alternatives
 ├── data-model.md                  # Phase 1 — DynamoDB single-table design
 ├── quickstart.md                  # Phase 1 — run and validation guide
 ├── contracts/
@@ -143,7 +144,12 @@ apps/
 │   │   │   ├── safety/            # reports, blocks
 │   │   │   └── moderation/
 │   │   ├── visibility/            # the single choke point — research §D6
-│   │   └── persistence/           # single-table access layer, one repository per entity
+│   │   ├── ports/                 # ObjectStore, MediaProcessor, IdentityProvider, EventBus
+│   │   ├── adapters/
+│   │   │   ├── aws/               # S3, MediaConvert, Cognito, EventBridge
+│   │   │   └── local/             # MinIO, ffmpeg, local JWT issuer, in-process queue
+│   │   └── persistence/           # single-table access layer — no adapter; DynamoDB Local
+│   │                              # speaks the same API as the managed service
 │   └── tests/
 │       ├── unit/
 │       ├── integration/           # acceptance scenarios vs DynamoDB Local
@@ -170,13 +176,16 @@ contract in one place and makes the shared types real rather than a convention. 
 event-driven and independently scaled — putting them in the API container would tie
 transcode bursts to feed-serving capacity. `visibility/` is deliberately a top-level
 concern within the API rather than a utility inside `posts/`, so that every module
-reaches it the same way and no module can quietly grow its own copy.
+reaches it the same way and no module can quietly grow its own copy. `ports/` and
+`adapters/` exist so the entire stack runs with no AWS account — see research §D9 for
+what that buys and the one place (MediaConvert) where the two adapters genuinely
+diverge rather than emulate each other.
 
 ## Phase Outputs
 
 | Phase | Artifact | Status |
 |---|---|---|
-| 0 | [research.md](./research.md) — 8 decisions, each with alternatives | Complete; no `NEEDS CLARIFICATION` remaining |
+| 0 | [research.md](./research.md) — 9 decisions, each with alternatives | Complete; no `NEEDS CLARIFICATION` remaining |
 | 1 | [data-model.md](./data-model.md) — 20 access patterns, 10 entities, key schema, state transitions | Complete |
 | 1 | [contracts/openapi.yaml](./contracts/openapi.yaml) — 23 paths, 34 schemas, each citing its FRs | Complete; parses as valid OpenAPI 3.1 |
 | 1 | [contracts/visibility-matrix.md](./contracts/visibility-matrix.md) — the SC-009 contract | Complete |
@@ -196,6 +205,7 @@ late. None of them blocks planning.
 | Reactions on one post share a DynamoDB partition | A viral post | Throttling on the post partition; sharded counters are the prepared, unbuilt answer |
 | Background upload continuation may need a native module | FR-008 retry across backgrounding | Spike early in mobile work — it is the one place Expo's managed surface may not reach |
 | Video duration cap is not yet a number | FR-005 | Pick it during `/speckit-tasks`; it is referenced by the upload contract and by MediaConvert presets |
+| ffmpeg and MediaConvert are different implementations of the `MediaProcessor` port, not emulations | FR-009 in production | Green local video tests are not evidence the `aws` path works; schedule a MediaConvert smoke test in staging before launch (research §D9) |
 
 ## Complexity Tracking
 

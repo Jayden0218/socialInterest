@@ -241,6 +241,72 @@ flow coverage — YAML flows are quicker to maintain and the journeys here are s
 
 ---
 
+## D9. Runtime profiles: ports and adapters, so the stack runs without AWS
+
+**Decision**: The API depends on **ports** — narrow interfaces — for every managed
+service except DynamoDB, with two adapter sets selected by a `RUNTIME_PROFILE`
+environment variable:
+
+| Port | `aws` profile | `local` profile |
+|---|---|---|
+| `ObjectStore` | S3 | MinIO (S3 API, same SDK) |
+| `MediaProcessor` | Elemental MediaConvert | ffmpeg |
+| `IdentityProvider` | Cognito | local JWT issuer with a seeded key |
+| `EventBus` | EventBridge + SQS | in-process queue |
+| Database | DynamoDB | DynamoDB Local — **no adapter**, same API |
+
+**Rationale**: the test suites that carry the most risk in this plan — the SC-009
+visibility matrix, the FR-033 feed blending rule, the interest hierarchy roll-up,
+near-duplicate matching — are logic plus DynamoDB. Requiring an AWS account to run them
+would put the slowest possible feedback loop around the code most likely to be wrong.
+Ports also keep CI free of cloud credentials and let a contributor run `pnpm test` on a
+laptop with nothing provisioned.
+
+**DynamoDB needs no adapter, and that is a genuine point in its favour** — DynamoDB
+Local speaks the same wire API as the managed service, so the persistence layer is
+byte-identical in both profiles. This offsets some of the friction recorded in §D3:
+the storage layer, which is the largest and most detail-sensitive part of the backend,
+has zero emulation drift.
+
+**Verified in a Claude Code cloud sandbox** (2026-09-05), which is where this
+requirement came from. Docker is not running at container start but `dockerd`,
+`containerd` and `runc` are installed and the daemon starts in about a second. Docker
+Hub's blob CDN is blocked by the egress policy, so a registry mirror
+(`mirror.gcr.io`) is required; with it configured, `docker compose up` brings the whole
+local profile up. Confirmed working: DynamoDB Local including `TransactWriteItems`
+(the FR-017 atomic visibility flip across a post and its index items), MinIO presigned
+`PUT` upload and readback (FR-004, FR-008), and ffmpeg producing an H.264 encode, a
+poster frame and an HLS rendition (FR-009). The `quickstart.md` setup section carries
+the exact commands.
+
+**The one real divergence, stated plainly**: `MediaProcessor`. MediaConvert has no free
+local equivalent — LocalStack covers it only in its paid tier — so the ffmpeg adapter is
+not an emulation of MediaConvert, it is a different implementation of the same port.
+Codec defaults, HLS segmenting behaviour, and failure modes will differ. Mitigations:
+keep the port's contract deliberately narrow (submit a job, poll for completion,
+receive renditions plus a poster frame); make both adapters satisfy the same contract
+test; and run a smoke test against real MediaConvert in a staging account before
+launch rather than discovering the difference in production. Do not treat green
+ffmpeg tests as evidence that the MediaConvert path works.
+
+**Two limits of the cloud sandbox that ports do not solve**, recorded so nobody plans
+around them: the container has no public inbound route, so a React Native client on a
+phone or simulator cannot reach an API running there; and the container is ephemeral,
+reclaimed after inactivity. It is a place to build and test the backend, not to host
+one. Docker in that environment is also an open feature request rather than a
+documented guarantee (anthropics/claude-code#29515), so the daemon start and mirror
+configuration are per-session setup steps, not something to depend on.
+
+**Alternatives considered**:
+
+| Option | Why not chosen |
+|---|---|
+| **AWS SDK calls inline, LocalStack for everything** | Fewer abstractions, and LocalStack covers S3, Cognito and EventBridge well. Rejected because MediaConvert needs the paid tier, so the divergence above exists either way — and without ports it would be spread through the codebase instead of behind one interface. |
+| **Mock at the HTTP boundary** | Fast, but tests the mock rather than our own integration code. The bugs this plan fears — a missed visibility surface, a wrong index write — live exactly in that code. |
+| **A shared AWS dev account for all testing** | Highest fidelity, and still the right thing before launch. Rejected as the *default* loop: minutes per iteration and a credential requirement for every contributor. |
+
+---
+
 ## Resolved unknowns
 
 | Unknown from Technical Context | Resolution |
@@ -253,5 +319,6 @@ flow coverage — YAML flows are quicker to maintain and the journeys here are s
 | Authentication | Cognito user pools (D7) |
 | React Native toolchain | Expo with development builds (D4) |
 | Testing approach | Jest / Supertest / DynamoDB Local / Maestro (D8) |
+| Running without an AWS account | Ports and adapters, `local` and `aws` runtime profiles (D9) |
 
 No `NEEDS CLARIFICATION` items remain.

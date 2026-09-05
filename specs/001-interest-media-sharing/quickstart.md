@@ -14,21 +14,53 @@ belongs in `tasks.md`.
 |---|---|---|
 | Node.js | 22 LTS | API, workers, and mobile tooling |
 | pnpm | 9+ | Workspace package manager |
-| Docker | 24+ | DynamoDB Local, LocalStack |
-| AWS CLI | v2 | Table creation and S3 interaction against LocalStack |
+| Docker + Compose | 24+ / v2+ | DynamoDB Local, MinIO, ffmpeg |
+| AWS CLI | v2 | Convenience for poking at the local S3 and table |
 | Expo CLI | via `pnpm dlx` | Mobile dev client |
 | Xcode / Android Studio | current | Simulator or emulator for the mobile app |
-| ffmpeg | 6+ | Stands in for MediaConvert locally |
 
----
+ffmpeg is **not** required on the host — the media worker invokes it through a
+container in the `local` profile, matching how MediaConvert is invoked in `aws`.
+
+Everything below runs the `local` runtime profile ([research.md §D9](./research.md)):
+MinIO for S3, ffmpeg for MediaConvert, a local JWT issuer for Cognito, and DynamoDB
+Local — which needs no adapter, because it speaks the same API as the managed service.
+No AWS account or credentials are needed to run or test anything in this guide.
+
+### Running in a cloud sandbox (Claude Code on the web, Codespaces, similar)
+
+Two extra steps, because these environments start without a Docker daemon and with a
+restricted egress policy. Verified in a Claude Code cloud sandbox on 2026-09-05.
+
+```bash
+# 1. Start the daemon — dockerd/containerd/runc are installed but not running
+dockerd > /var/log/dockerd.log 2>&1 &
+
+# 2. Docker Hub's blob CDN is commonly blocked; use a mirror
+mkdir -p /etc/docker
+echo '{ "registry-mirrors": ["https://mirror.gcr.io"] }' > /etc/docker/daemon.json
+kill $(pgrep -x dockerd); sleep 3; dockerd > /var/log/dockerd.log 2>&1 &
+
+docker info --format '{{.RegistryConfig.Mirrors}}'   # expect [https://mirror.gcr.io/]
+```
+
+With the mirror configured, unqualified image names pull normally — no renaming in
+`docker-compose.yml`. Neither step survives a container reset, so treat both as
+per-session setup. `public.ecr.aws` and `ghcr.io` are reachable as fallbacks.
+
+**Two things a cloud sandbox cannot do**, regardless of the above: it has no public
+inbound route, so a React Native client on a phone or simulator cannot reach an API
+running there; and the container is ephemeral. Use it to build and test the backend,
+not to host one. Develop the mobile app against a stack on your own machine.
 
 ## Setup
 
 ```bash
 pnpm install
-cp .env.example .env.local          # LocalStack endpoints, table name, bucket name
-docker compose up -d                # DynamoDB Local :8000, LocalStack S3 :4566
+cp .env.example .env.local          # RUNTIME_PROFILE=local, endpoints, table and bucket names
+docker compose up -d                # DynamoDB Local :8000, MinIO :9000 (console :9001)
 pnpm --filter @sih/infra db:create-local   # single table + 4 GSIs per data-model.md
+pnpm --filter @sih/infra s3:create-local   # media bucket
 pnpm --filter @sih/infra seed:catalogue    # top-level interests (FR-021)
 ```
 
@@ -42,9 +74,18 @@ pnpm --filter @sih/workers dev      # local S3/stream event pump
 pnpm --filter @sih/mobile start     # Expo dev client
 ```
 
-Health check: `curl localhost:3000/v1/health` → `{"status":"ok"}`.
+Health check: `curl localhost:3000/v1/health` → `{"status":"ok","profile":"local"}`.
 
----
+Verify the profile end to end before trusting any test result:
+
+```bash
+pnpm --filter @sih/infra verify:local
+```
+
+Asserts the four things the local profile depends on: a `TransactWriteItems` across a
+post and its index items (FR-017), a presigned `PUT` upload and readback (FR-004),
+an ffmpeg encode producing a poster frame and HLS rendition (FR-009), and a token from
+the local issuer that the API accepts.
 
 ## Test commands
 
@@ -207,7 +248,10 @@ checked against the 200-follow cap before it becomes a production surprise.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Posts never leave `processing` | Worker pump not running, or ffmpeg missing | `pnpm --filter @sih/workers dev`; `ffmpeg -version` |
+| Posts never leave `processing` | Worker pump not running, or the ffmpeg image is not pulled | `pnpm --filter @sih/workers dev`; `docker images \| grep ffmpeg` |
+| `docker: failed to copy ... Forbidden` on pull | Egress policy blocks Docker Hub's blob CDN | Configure the `mirror.gcr.io` registry mirror — see the cloud sandbox section above |
+| `Cannot connect to the Docker daemon` | Daemon not started (common in cloud sandboxes) | `dockerd &` — see the cloud sandbox section above |
+| Video works locally but not in staging | ffmpeg and MediaConvert are different implementations of the `MediaProcessor` port, not emulations of each other (research §D9) | Run the MediaConvert smoke test against a staging account; never infer the `aws` path from green ffmpeg tests |
 | `ValidationException` on write | Table created before a `data-model.md` GSI change | `pnpm --filter @sih/infra db:recreate-local` |
 | Type-ahead returns nothing | Catalogue cache empty — it loads at API boundary startup | Restart the API after seeding; check `/v1/health` reports `catalogueSize > 0` |
 | Feed empty despite following people | Working as specified — FR-033 requires following the *interest* too | Follow the interest; see US4 above |
