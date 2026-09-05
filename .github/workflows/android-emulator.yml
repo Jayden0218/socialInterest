@@ -85,11 +85,15 @@ jobs:
           # and hit the action's 10-minute limit on the heaviest image offered.
           api-level: 30
           target: default
+          # Must match the APK's ABI; the app is built -PreactNativeArchitectures=x86_64.
           arch: x86_64
-          profile: pixel_6
           emulator-boot-timeout: 1800
-          disable-animations: true
-          emulator-options: -no-window -noaudio -no-boot-anim -gpu swiftshader_indirect -no-snapshot-save
+          # Deliberately NOT overriding emulator-options or profile. The action's
+          # default is the configuration it is tested against:
+          #   -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          # The previous run overrode it and swapped -no-snapshot for
+          # -no-snapshot-save, which is a different flag - it still tries to LOAD
+          # a snapshot - and the emulator never appeared in adb at all.
           script: ./scripts/android-device-pass.sh
 
       - name: Collect evidence
