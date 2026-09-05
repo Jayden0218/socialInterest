@@ -50,10 +50,17 @@ been made.
   guarantee. Do not "optimise" this into precomputed timelines.
   **Measured 2026-09-05**: fine at rest (p95 343ms at the 200-follow cap) but
   **over budget under concurrency** (p95 11.8s at 100 concurrent, budget 2s) on
-  DynamoDB Local. The coupling is real; the numbers are not a production
-  prediction. Re-measure on provisioned DynamoDB before scaling. If it holds,
-  the answer is the **hybrid** in D1 — materialise the high-volume interests
-  only — **not** full fan-out-on-write, which FR-017 and SC-009 still forbid.
+  DynamoDB Local. **Do not cite that figure as evidence about the design.** The
+  harness calls `feed.homeFeed()` in-process, issues its concurrency as
+  `Promise.all` from one Node event loop, and hits single-process DynamoDB Local
+  — so it exercises no HTTP layer and cannot distinguish the architecture from
+  the emulator. Spec 002 (R1) reworks it over HTTP and adds `bench:ceiling` to
+  attribute the bottleneck first. The read-time fan-in coupling is real
+  arithmetic; whether it is the *observed* ceiling is not yet established.
+  If it turns out to be, the answer is the **hybrid** in D1 — materialise the
+  high-volume interests only, holding candidate references with
+  `VisibilityFilter` still running at read time — **not** full
+  fan-out-on-write, which FR-017 and SC-009 still forbid.
 - **`VisibilityFilter` is a top-level module, not a helper in `posts/`** (D6). Six
   hand-written predicates is six silent leaks. Never inline a visibility check.
 - **DynamoDB has no adapter; every other managed service does** (D9). DynamoDB Local
