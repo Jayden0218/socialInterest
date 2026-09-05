@@ -48,6 +48,12 @@ been made.
 - **Read-time feed assembly, not fan-out-on-write** (D1). Forced by FR-017 + SC-009: a
   visibility flip must land everywhere immediately, which materialised timelines cannot
   guarantee. Do not "optimise" this into precomputed timelines.
+  **Measured 2026-09-05**: fine at rest (p95 343ms at the 200-follow cap) but
+  **over budget under concurrency** (p95 11.8s at 100 concurrent, budget 2s) on
+  DynamoDB Local. The coupling is real; the numbers are not a production
+  prediction. Re-measure on provisioned DynamoDB before scaling. If it holds,
+  the answer is the **hybrid** in D1 — materialise the high-volume interests
+  only — **not** full fan-out-on-write, which FR-017 and SC-009 still forbid.
 - **`VisibilityFilter` is a top-level module, not a helper in `posts/`** (D6). Six
   hand-written predicates is six silent leaks. Never inline a visibility check.
 - **DynamoDB has no adapter; every other managed service does** (D9). DynamoDB Local

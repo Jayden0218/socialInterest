@@ -239,7 +239,8 @@ late. None of them blocks planning.
 
 | Risk | Where it bites | Early signal to watch |
 |---|---|---|
-| Read-time feed assembly scales with follow count | SC-005 at the 200-interest cap | `bench:feed` p95 curve by follow count, from the first week of the feed module |
+| Read-time feed assembly scales with follow count | SC-005 at the 200-interest cap | **MEASURED 2026-09-05: p95 343ms at 200 follows, within the 2s budget.** The curve is linear, as D1 predicted |
+| **Read-time fan-in degrades under CONCURRENCY** | **SC-011** | **MEASURED 2026-09-05: OVER BUDGET — p95 1.3s at 10 concurrent, 5.9s at 50, 11.8s at 100, against a 2s budget.** On DynamoDB Local, which is not a scale proxy — but the coupling is a property of the design, not the datastore. Re-measure on provisioned DynamoDB before scaling; if the shape holds, take the hybrid path in research §D1. See validation-report.md |
 | DynamoDB cannot do fuzzy interest matching; v1 relies on an in-memory catalogue cache | FR-023, FR-026 | Catalogue size and cache refresh latency; the seam is a `CatalogueSearch` interface, so OpenSearch replaces it without touching callers |
 | Interest merge rewrites an unbounded number of items asynchronously | FR-030 | Job duration on the largest real interest; must stay idempotent under retry |
 | Reactions on one post share a DynamoDB partition | A viral post | Throttling on the post partition; sharded counters are the prepared, unbuilt answer |

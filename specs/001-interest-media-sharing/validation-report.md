@@ -47,6 +47,82 @@ never be mistaken for a covered one:
 | Share link, comments | US5 (T122) |
 | Notifications | T154 — closed SC-009 |
 
+## Benchmark results
+
+Run 2026-09-05 against the `local` profile in a 4-core container: DynamoDB Local,
+MinIO, ffmpeg. Dataset: 8,000 posts, 400 interests, 600 people, follow counts
+bucketed 1–200.
+
+**Read the caveat before the numbers.** DynamoDB Local is a single-process
+development tool with no provisioned throughput and no distribution. It is not a
+scale model of DynamoDB, so these figures characterise the *shape* of the
+system's behaviour, not its production capacity.
+
+### bench:feed — SC-005 (budget: p95 ≤ 2000ms) — **within budget**
+
+| follows | fan-in | p50 | p95 |
+|---|---|---|---|
+| 1 | 1 | 20.9 | 29.8 |
+| 5 | 5 | 52.0 | 76.5 |
+| 20 | 20 | 120.1 | 154.4 |
+| 50 | 50 | 140.8 | 159.3 |
+| 100 | 100 | 198.8 | 231.9 |
+| 200 | 200 | 299.6 | **343.2** |
+
+The curve is roughly linear in follow count, which is exactly what research §D1
+predicted and accepted. At the 200-interest cap it sits ~6× inside budget.
+
+### bench:upload — SC-002 (budget: p95 ≤ 10s) — **within budget**
+
+10 MB image: p95 **240.7ms**.
+
+### bench:transcode — SC-003 (budget: p95 ≤ 60s) — **within budget**
+
+| clip | p95 |
+|---|---|
+| 5s | 2.2s |
+| 30s | 5.0s |
+| 60s | 8.6s |
+| **180s (the FR-005 cap)** | **26.5s** |
+
+This validates the T020 decision. The cap was set at 180s rather than 300s
+specifically because SC-003 requires playable-within-60s, and the measurement
+confirms 180s lands at 26.5s with roughly 2.3× headroom. A 300s cap would have
+been ~44s — inside budget but with little margin on slower hardware.
+
+**Measures the ffmpeg adapter only.** Constitution principle V: this is not
+evidence the MediaConvert path meets SC-003.
+
+### bench:feed-load — SC-011 — **OVER BUDGET**
+
+| concurrency | p50 | p95 |
+|---|---|---|
+| 1 | 125.3 | 304.2 |
+| 10 | 937.3 | 1277.2 |
+| 50 | 4713.2 | **5850.9** |
+| 100 | 9438.0 | **11811.7** |
+
+**This is the significant finding of the whole build.**
+
+Latency degrades roughly linearly with concurrency and blows the 2s budget
+between 10 and 50 concurrent readers — far short of the 10,000 SC-011 asks for.
+The mechanism is the one research §D1 named when it accepted the trade: read-time
+fan-in multiplies concurrency by follow count at the datastore, so 100 readers
+each following 200 interests issues ~20,000 concurrent partition queries.
+
+**What this does and does not establish.** It does not establish that production
+would fail SC-011 — DynamoDB Local is a single Java process and provisioned
+DynamoDB parallelises very differently. It does establish that the *coupling is
+real and linear*, which is the part that does not change with better hardware:
+the query count is a property of the design, not of the datastore.
+
+**Recommended action before scaling.** Re-run against provisioned DynamoDB in a
+staging account, with approval. If the shape holds, take the migration path
+§D1 already records — materialise timelines for high-volume interests only, keep
+read-time assembly and read-time visibility filtering for the tail. Do not adopt
+full fan-out-on-write: FR-017 and SC-009 forbid it, and this report is not
+grounds to reverse that.
+
 ## Success criteria
 
 | Criterion | Status |
@@ -84,10 +160,12 @@ which must run against a staging account before launch.
 **Real-user criteria.** SC-001, SC-004, SC-007, SC-008 and SC-010 need people
 using the product. The instrumentation to answer them exists; the answers do not.
 
-**The mobile app end to end.** Screens and their logic are implemented and
-typechecked, and Maestro flows are written for the US1 and US2 journeys, but
-they have not been run — that needs a simulator and a reachable API, and a cloud
-sandbox has no inbound route.
+**The mobile app on a device.** The screens are now real React Native components
+and 31 render tests exercise them through @testing-library/react-native — a
+component returning `null` typechecks perfectly, so a typecheck proved nothing
+here and the render tests do. But the app has not run on a simulator or device,
+and the Maestro flows have not been executed: that needs a simulator and a
+reachable API, and a cloud sandbox has no inbound route.
 
 ## Constitution compliance
 
