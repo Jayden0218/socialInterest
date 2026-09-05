@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { ProcessingState, Visibility } from '@sih/shared';
 import { BaseRepository, type Page } from './base.repository';
-import { SK_PREFIX } from './keys';
+import { keys, SK_PREFIX } from './keys';
 
 /**
  * The index item that makes A4 a single Query per interest.
@@ -22,6 +22,34 @@ export interface PostInterestIndexItem {
 
 @Injectable()
 export class PostInterestIndexRepository extends BaseRepository {
+  /**
+   * FR-030: move every index item from one interest to another. Idempotent -
+   * an item already at the target is simply rewritten, so a failed merge can be
+   * re-run without double-counting.
+   */
+  async moveInterest(fromInterestId: string, toInterestId: string): Promise<number> {
+    let moved = 0;
+    let cursor: string | null = null;
+    do {
+      const page: Page<PostInterestIndexItem> = await this.listByInterest(fromInterestId, {
+        limit: 100,
+        cursor,
+      });
+      for (const item of page.items) {
+        await this.putItem({
+          ...keys.postInterestIndex(toInterestId, item.createdAt, item.postId),
+          type: 'PostInterestIndex',
+          ...item,
+          interestId: toInterestId,
+        });
+        await this.deleteItem(keys.postInterestIndex(fromInterestId, item.createdAt, item.postId));
+        moved++;
+      }
+      cursor = page.nextCursor;
+    } while (cursor);
+    return moved;
+  }
+
   /** A4 - recent posts in one interest, newest first. */
   async listByInterest(
     interestId: string,

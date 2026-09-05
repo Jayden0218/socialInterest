@@ -55,6 +55,12 @@ export class VisibilityFilter {
     // Gone for everyone, the author included.
     if (candidate.deletedAt) return { visible: false, reason: 'gone' };
     if (candidate.removedByModeration) return { visible: false, reason: 'gone' };
+    /**
+     * FR-003 (T157). A non-active author has no followers for visibility
+     * purposes, so their followers-only content becomes inaccessible the moment
+     * deletion is requested - before the purge job has removed anything. The
+     * purge only has to finish eventually; it does not have to win a race.
+     */
     if (candidate.authorStatus && candidate.authorStatus !== 'active') {
       return { visible: false, reason: 'gone' };
     }

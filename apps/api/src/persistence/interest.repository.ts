@@ -53,6 +53,31 @@ export class InterestRepository extends BaseRepository {
     await this.increment(keys.interest(interestId), 'postCount', by);
   }
 
+  private async rewrite(interestId: string, patch: Partial<InterestItem>): Promise<void> {
+    const existing = await this.findById(interestId);
+    if (!existing) throw new Error(`interest ${interestId} not found`);
+    const updated = { ...existing, ...patch };
+    await this.putItem({
+      ...keys.interest(interestId),
+      ...keys.interestBySlug(updated.slug),
+      ...keys.interestHierarchy(updated.parentId ?? null, updated.nameNormalised),
+      type: 'Interest',
+      ...updated,
+    });
+  }
+
+  async setState(interestId: string, state: InterestItem['state']): Promise<void> {
+    await this.rewrite(interestId, { state });
+  }
+
+  async setMergedInto(interestId: string, mergedIntoId: string): Promise<void> {
+    await this.rewrite(interestId, { state: 'merged', mergedIntoId });
+  }
+
+  async setParent(interestId: string, parentId: string): Promise<void> {
+    await this.rewrite(interestId, { parentId });
+  }
+
   async findBySlug(slug: string): Promise<InterestItem | null> {
     const page = await this.query<InterestItem>(`ISLUG#${slug}`, { indexName: 'gsi1', limit: 1 });
     return page.items[0] ?? null;

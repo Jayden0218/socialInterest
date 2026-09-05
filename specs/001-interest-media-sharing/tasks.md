@@ -315,35 +315,35 @@ pnpm workspace monorepo per `plan.md § Project Structure`:
 
 ### Safety
 
-- [ ] T137 [P] Implement `ReportRepository` with the moderation-queue GSI in `apps/api/src/persistence/report.repository.ts` (A19)
-- [ ] T138 Implement reporting for posts, comments, **and sub-interest names** in `apps/api/src/modules/safety/report.service.ts` (FR-043 — all three subject types)
-- [ ] T139 Implement `POST /reports` in `apps/api/src/modules/safety/safety.controller.ts` (FR-043)
-- [ ] T140 Implement blocking as a transaction that also severs follows in both directions in `apps/api/src/modules/safety/block.service.ts` (FR-044)
-- [ ] T141 Implement `PUT`/`DELETE /blocks/{handle}` in `apps/api/src/modules/safety/safety.controller.ts` (FR-044)
-- [ ] T142 [P] Integration test asserting a block withdraws previously visible followers-only content in `apps/api/tests/integration/safety-block.spec.ts`
+- [x] T137 [P] Implement `ReportRepository` with the moderation-queue GSI in `apps/api/src/persistence/report.repository.ts` (A19)
+- [x] T138 Implement reporting for posts, comments, **and sub-interest names** in `apps/api/src/modules/safety/report.service.ts` (FR-043 — all three subject types)
+- [x] T139 Implement `POST /reports` in `apps/api/src/modules/safety/safety.controller.ts` (FR-043)
+- [x] T140 Implement blocking as a transaction that also severs follows in both directions in `apps/api/src/modules/safety/block.service.ts` (FR-044)
+- [x] T141 Implement `PUT`/`DELETE /blocks/{handle}` in `apps/api/src/modules/safety/safety.controller.ts` (FR-044)
+- [x] T142 [P] Integration test asserting a block withdraws previously visible followers-only content in `apps/api/tests/integration/safety-block.spec.ts`
 
 ### Moderation
 
-- [ ] T143 [P] Implement the append-only moderation audit log in `apps/api/src/persistence/moderation-log.repository.ts` (FR-047 — survives deletion of the subject)
-- [ ] T144 Implement operator authorisation in `apps/api/src/common/auth/operator.guard.ts` (FR-021, FR-045)
-- [ ] T145 Implement `GET /moderation/reports` oldest-first in `apps/api/src/modules/moderation/moderation.controller.ts` (FR-045; the ordering is what makes SC-010 measurable)
-- [ ] T146 Implement `PATCH /moderation/reports/{reportId}` writing an audit entry and notifying the author in `apps/api/src/modules/moderation/moderation.controller.ts` (FR-045, FR-047)
-- [ ] T147 Implement the interest merge, re-parent, and retire job — idempotent, batched, with a visible progress state — in `apps/workers/src/interest-jobs/handler.ts` (FR-030)
-- [ ] T148 Implement `PATCH /moderation/interests/{interestId}` returning 202 with a job, refusing retirement that would orphan posts, in `apps/api/src/modules/moderation/interest-admin.controller.ts` (FR-030)
-- [ ] T149 [P] Integration test `interest-merge` covering redirect-while-merging, follower carry-across, idempotent re-run, and refusal to orphan, in `apps/api/tests/integration/interest-merge.spec.ts`
-- [ ] T150 [P] Integration test `moderation` covering all three subject types, queue ordering, and audit durability in `apps/api/tests/integration/moderation.spec.ts`
+- [x] T143 [P] Implement the append-only moderation audit log in `apps/api/src/persistence/moderation-log.repository.ts` (FR-047 — survives deletion of the subject)
+- [x] T144 Implement operator authorisation in `apps/api/src/common/auth/operator.guard.ts` (FR-021, FR-045)
+- [x] T145 Implement `GET /moderation/reports` oldest-first in `apps/api/src/modules/moderation/moderation.controller.ts` (FR-045; the ordering is what makes SC-010 measurable)
+- [x] T146 Implement `PATCH /moderation/reports/{reportId}` writing an audit entry and notifying the author in `apps/api/src/modules/moderation/moderation.controller.ts` (FR-045, FR-047)
+- [x] T147 Implement the interest merge, re-parent, and retire job — idempotent, batched, with a visible progress state — in `apps/workers/src/interest-jobs/handler.ts` (FR-030)
+- [x] T148 Implement `PATCH /moderation/interests/{interestId}` returning 202 with a job, refusing retirement that would orphan posts, in `apps/api/src/modules/moderation/interest-admin.controller.ts` (FR-030)
+- [x] T149 [P] Integration test `interest-merge` covering redirect-while-merging, follower carry-across, idempotent re-run, and refusal to orphan, in `apps/api/tests/integration/interest-merge.spec.ts`
+- [x] T150 [P] Integration test `moderation` covering all three subject types, queue ordering, and audit durability in `apps/api/tests/integration/moderation.spec.ts`
 
 ### Notifications and account deletion
 
-- [ ] T151 [P] Implement `NotificationRepository` with TTL in `apps/api/src/persistence/notification.repository.ts` (A20)
-- [ ] T152 Implement notification generation checking **both** preferences and the visibility filter in `apps/api/src/modules/notifications/notification.service.ts` (FR-048 — a notification must never leak an unopenable post)
-- [ ] T153 Implement `GET /notifications` in `apps/api/src/modules/notifications/notification.controller.ts` (FR-048)
-- [ ] T154 Enable the notifications surface in the visibility matrix suite in `apps/api/tests/visibility/matrix.spec.ts` — **completing all seven surfaces and closing SC-009**
-- [ ] T155 Implement account deletion returning the retention outcome immediately and enqueuing the purge in `apps/api/src/modules/people/account-deletion.service.ts` (FR-003)
-- [ ] T156 Implement the purge and comment-anonymisation worker in `apps/workers/src/account-deletion/handler.ts` (FR-003)
-- [ ] T157 Make the visibility filter treat a non-`active` author as having no followers in `apps/api/src/visibility/visibility.filter.ts` (FR-003 — followers-only content becomes inaccessible before the purge completes)
-- [ ] T158 [P] Build the notifications screen and per-category preference toggles in `apps/mobile/src/features/notifications/NotificationsScreen.tsx` (FR-048, FR-049)
-- [ ] T159 [P] Build report and block actions in `apps/mobile/src/features/safety/SafetyActions.tsx` (FR-043, FR-044)
+- [x] T151 [P] Implement `NotificationRepository` with TTL in `apps/api/src/persistence/notification.repository.ts` (A20)
+- [x] T152 Implement notification generation checking **both** preferences and the visibility filter in `apps/api/src/modules/notifications/notification.service.ts` (FR-048 — a notification must never leak an unopenable post)
+- [x] T153 Implement `GET /notifications` in `apps/api/src/modules/notifications/notification.controller.ts` (FR-048)
+- [x] T154 Enable the notifications surface in the visibility matrix suite in `apps/api/tests/visibility/matrix.spec.ts` — **completing all seven surfaces and closing SC-009**
+- [x] T155 Implement account deletion returning the retention outcome immediately and enqueuing the purge in `apps/api/src/modules/people/account-deletion.service.ts` (FR-003)
+- [x] T156 Implement the purge and comment-anonymisation worker in `apps/workers/src/account-deletion/handler.ts` (FR-003)
+- [x] T157 Make the visibility filter treat a non-`active` author as having no followers in `apps/api/src/visibility/visibility.filter.ts` (FR-003 — followers-only content becomes inaccessible before the purge completes)
+- [x] T158 [P] Build the notifications screen and per-category preference toggles in `apps/mobile/src/features/notifications/NotificationsScreen.tsx` (FR-048, FR-049)
+- [x] T159 [P] Build report and block actions in `apps/mobile/src/features/safety/SafetyActions.tsx` (FR-043, FR-044)
 
 ---
 

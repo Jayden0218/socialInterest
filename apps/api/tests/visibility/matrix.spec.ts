@@ -71,7 +71,10 @@ const SURFACES = [
   // Built by US5: CommentService gates every read on the POST, never on the
   // comment, so the two cannot disagree.
   { name: 'comments',         built: true,  story: 'US5 (T122)' },
-  { name: 'notifications',    built: false, story: 'T154 - closes SC-009' },
+  // Built by T154: NotificationService checks canOpen() before generating a
+  // notification AND filters stored ones on read, since visibility can change
+  // after generation. This is the last surface - SC-009 is now closed.
+  { name: 'notifications',    built: true,  story: 'T154 - closes SC-009' },
 ] as const;
 
 function buildFilter(): VisibilityFilter {

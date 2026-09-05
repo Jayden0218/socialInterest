@@ -41,7 +41,14 @@ export class PostRepository extends BaseRepository {
     return this.getItem<PostItem>(keys.post(postId));
   }
 
-  /** A3 - post plus media in a single round trip. */
+  /**
+   * A3 - post plus media in a single round trip.
+   *
+   * Items are told apart by their `type` discriminator rather than by their
+   * sort key, because the repository strips key attributes on load (see
+   * base.repository.ts) - a rewrite must land on its new key, so the old one
+   * cannot be carried around on the item.
+   */
   async findWithMedia(
     postId: string,
   ): Promise<{ post: PostItem; media: MediaItemRecord[] } | null> {
@@ -49,11 +56,10 @@ export class PostRepository extends BaseRepository {
       ascending: true,
       limit: 20,
     });
-    const post = page.items.find((i) => i['sk'] === '#META') as PostItem | undefined;
+    const post = page.items.find((i) => i['type'] === 'Post') as PostItem | undefined;
     if (!post) return null;
-    const media = page.items
-      .filter((i) => String(i['sk']).startsWith(SK_PREFIX.media))
-      .sort((a, b) => String(a['sk']).localeCompare(String(b['sk']))) as unknown as MediaItemRecord[];
+    const media = (page.items.filter((i) => i['type'] === 'MediaItem') as unknown as MediaItemRecord[])
+      .sort((a, b) => a.ordinal - b.ordinal);
     return { post, media };
   }
 
@@ -105,6 +111,20 @@ export class PostRepository extends BaseRepository {
       ...post,
       deletedAt,
       updatedAt: deletedAt,
+    });
+  }
+
+  /** FR-045: removed by moderation is distinct from deleted by the author. */
+  async setRemovedByModeration(postId: string): Promise<void> {
+    const post = await this.findById(postId);
+    if (!post) return;
+    await this.putItem({
+      ...keys.post(postId),
+      ...keys.postByAuthor(post.authorId, post.createdAt, postId),
+      type: 'Post',
+      ...post,
+      removedByModeration: true,
+      updatedAt: new Date().toISOString(),
     });
   }
 

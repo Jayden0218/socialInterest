@@ -23,6 +23,20 @@ export class CommentRepository extends BaseRepository {
     });
   }
 
+  /** FR-003: keep the thread readable, remove the association. */
+  async anonymise(ref: { postId: string; commentId: string; createdAt: string }): Promise<void> {
+    const key = keys.comment(ref.postId, ref.createdAt, ref.commentId);
+    const existing = await this.getItem<CommentItem>(key);
+    if (!existing) return;
+    await this.putItem({
+      ...key,
+      type: 'Comment',
+      ...existing,
+      authorId: 'ANONYMISED',
+      anonymisedAt: new Date().toISOString(),
+    });
+  }
+
   async list(
     postId: string,
     opts: { limit?: number; cursor?: string | null } = {},

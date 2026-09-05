@@ -10,6 +10,32 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { decodeCursor, encodeCursor } from './cursor';
 
+/**
+ * Attributes DynamoDB stores that describe WHERE an item lives, not what it is.
+ *
+ * A loaded item carries these, and re-spreading them over a freshly built key
+ * silently writes back to the old location. Stripping them at the boundary means
+ * a rewrite always lands where its key builder says.
+ */
+const KEY_ATTRIBUTES = [
+  'pk',
+  'sk',
+  'gsi1pk',
+  'gsi1sk',
+  'gsi2pk',
+  'gsi2sk',
+  'gsi3pk',
+  'gsi3sk',
+  'gsi4pk',
+  'gsi4sk',
+] as const;
+
+export function stripKeys<T extends Record<string, unknown>>(item: T): T {
+  const out = { ...item };
+  for (const attribute of KEY_ATTRIBUTES) delete out[attribute];
+  return out;
+}
+
 export interface Page<T> {
   items: T[];
   nextCursor: string | null;
@@ -33,7 +59,7 @@ export abstract class BaseRepository {
 
   protected async getItem<T>(key: Record<string, string>): Promise<T | null> {
     const r = await this.doc.send(new GetCommand({ TableName: this.tableName, Key: key }));
-    return (r.Item as T | undefined) ?? null;
+    return r.Item ? (stripKeys(r.Item) as T) : null;
   }
 
   protected async putItem(item: Record<string, unknown>, condition?: string): Promise<void> {
@@ -94,7 +120,7 @@ export abstract class BaseRepository {
     );
 
     return {
-      items: (r.Items ?? []) as T[],
+      items: (r.Items ?? []).map((i) => stripKeys(i) as T),
       nextCursor: encodeCursor(r.LastEvaluatedKey),
     };
   }

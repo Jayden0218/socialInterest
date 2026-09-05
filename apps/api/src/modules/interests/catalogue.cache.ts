@@ -65,14 +65,20 @@ export class InMemoryCatalogueCache implements CatalogueSearch, OnModuleInit {
     const byId = new Map<string, InterestItem>();
     const byParent = new Map<string, InterestItem[]>();
     for (const item of all) {
-      if (item.state === 'retired' || item.state === 'merged') continue;
+      // Merged and retired interests STAY in byId: FR-030 requires a merged
+      // interest to redirect to its survivor, and a redirect cannot resolve an
+      // interest the cache has forgotten. Existing links would 404 instead.
       byId.set(item.interestId, item);
+
+      // ...but they are excluded from the hierarchy and from search, so they
+      // never appear as somewhere to browse, follow, or post to.
+      if (item.state !== 'active') continue;
       const parent = item.parentId ?? 'ROOT';
       byParent.set(parent, [...(byParent.get(parent) ?? []), item]);
     }
     this.byIdMap = byId;
     this.byParent = byParent;
-    this.logger.log(`catalogue loaded: ${byId.size} interests`);
+    this.logger.log(`catalogue loaded: ${this.size()} active interests (${byId.size} total)`);
   }
 
   byId(interestId: string): InterestItem | undefined {
@@ -83,8 +89,11 @@ export class InMemoryCatalogueCache implements CatalogueSearch, OnModuleInit {
     return this.byParent.get(parentId) ?? [];
   }
 
+  /** Active interests only - what /health reports and what can be posted to. */
   size(): number {
-    return this.byIdMap.size;
+    let n = 0;
+    for (const i of this.byIdMap.values()) if (i.state === 'active') n++;
+    return n;
   }
 
   /** FR-026: prefix matches rank above fuzzy ones so type-ahead feels direct. */
@@ -96,6 +105,8 @@ export class InMemoryCatalogueCache implements CatalogueSearch, OnModuleInit {
     if (!q) return [];
     const out: CatalogueMatch[] = [];
     for (const interest of this.byIdMap.values()) {
+      // Search never surfaces a merged or retired interest.
+      if (interest.state !== 'active') continue;
       if (opts.level && interest.level !== opts.level) continue;
       if (opts.parentId && interest.parentId !== opts.parentId) continue;
       const name = interest.nameNormalised;
