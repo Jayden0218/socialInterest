@@ -18,6 +18,12 @@ single-table storage, and **S3 + MediaConvert + CloudFront** for media. Media ne
 passes through the API — the client uploads to S3 via presigned URLs, and derivation
 (including the EXIF strip that FR-010 requires) happens server-side.
 
+> **The AWS services named above are a deferred placeholder, not a commitment.** All
+> development and testing runs in Docker with no AWS account and no bill — DynamoDB
+> Local, MinIO, ffmpeg, a local JWT issuer. Nothing in this plan may provision billable
+> cloud resources without explicit approval. See [Cost Posture](#cost-posture) below and
+> [research.md §D9](./research.md) for the runtime profiles that make this work.
+
 Two decisions shape everything else, and both are driven by the spec rather than by
 preference:
 
