@@ -8,9 +8,10 @@ export default {
   scheme: 'socialinterest',
   ios: { supportsTablet: false, bundleIdentifier: 'app.socialinterest' },
   android: { package: 'app.socialinterest' },
-  extra: {
-    // Points at the local profile by default. A device cannot reach a cloud
-    // sandbox (no inbound route) - run the API on your own machine.
-    apiBaseUrl: process.env.API_BASE_URL ?? 'http://localhost:3000/v1',
-  },
+  // The API base URL comes from EXPO_PUBLIC_API_BASE_URL, which Expo inlines at
+  // build time and src/config.ts reads. It deliberately does NOT live in `extra`:
+  // it was in both, under different names, and nothing read the `extra` copy.
+  //
+  // Set it at build time to whatever the device can reach - a LAN address, or a
+  // tunnel URL when the device is not on your network.
 };
