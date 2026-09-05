@@ -2,11 +2,9 @@ import { useState } from 'react';
 import { SafeAreaView, ScrollView, StatusBar, Text, View } from 'react-native';
 import { theme } from './ui/theme';
 import { Button, Row } from './ui/primitives';
-import { HomeFeedScreen } from './features/feed/HomeFeedScreen';
-import { InterestSearchScreen } from './features/discover/InterestSearchScreen';
-import { NotificationsScreen } from './features/notifications/NotificationsScreen';
-import { initialPagedState } from './components/PagedPostList';
-import type { Post } from '@sih/shared';
+import { DataProvider } from './data-provider';
+import { HomeFeedContainer, DiscoverContainer, NotificationsContainer } from './screens';
+import { API_BASE_URL } from './config';
 
 export type Tab = 'feed' | 'discover' | 'notifications';
 
@@ -31,30 +29,15 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('feed');
 
   return (
+    <DataProvider baseUrl={API_BASE_URL}>
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.color.bg }}>
       <StatusBar />
       <View testID="app-root" style={{ flex: 1 }}>
-        {tab === 'feed' ? (
-          <HomeFeedScreen
-            state={initialPagedState<Post>()}
-            onLoadMore={() => undefined}
-            onEmptyAction={() => setTab('discover')}
-            renderPost={() => <View />}
-          />
-        ) : null}
+        {tab === 'feed' ? <HomeFeedContainer onEmptyAction={() => setTab('discover')} /> : null}
 
-        {tab === 'discover' ? (
-          <InterestSearchScreen query="" results={[]} onQueryChange={() => undefined} onSelect={() => undefined} />
-        ) : null}
+        {tab === 'discover' ? <DiscoverContainer onSelect={() => undefined} /> : null}
 
-        {tab === 'notifications' ? (
-          <NotificationsScreen
-            notifications={[]}
-            prefs={{ reaction: true, comment: true, follow: true }}
-            onOpen={() => undefined}
-            onEditPrefs={() => undefined}
-          />
-        ) : null}
+        {tab === 'notifications' ? <NotificationsContainer onOpen={() => undefined} /> : null}
 
         <Row style={{ borderTopWidth: 1, borderTopColor: theme.color.border, padding: theme.space.sm }}>
           {TABS.map((t) => (
@@ -70,5 +53,6 @@ export default function App() {
         </Row>
       </View>
     </SafeAreaView>
+    </DataProvider>
   );
 }

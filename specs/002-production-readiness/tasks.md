@@ -99,14 +99,14 @@ against a live API. Delivers the first evidence the product works at all.
 
 ### Implementation for User Story 1 — wiring the screens
 
-- [ ] T027 [US1] Wire `apps/mobile/src/App.tsx` to the data layer so the tab shell loads real data instead of receiving props only
-- [ ] T028 [P] [US1] Wire `apps/mobile/src/features/feed/HomeFeedScreen.tsx` to `data/feed.ts`, preserving the existing empty and error states
-- [ ] T029 [P] [US1] Wire `apps/mobile/src/features/discover/` screens to `data/interests.ts`
-- [ ] T030 [P] [US1] Wire `apps/mobile/src/features/publish/ComposeScreen.tsx` to `data/posts.ts`, keeping the existing publish-blocked reasons
-- [ ] T031 [P] [US1] Wire `apps/mobile/src/features/posts/` screens to `data/posts.ts`
-- [ ] T032 [P] [US1] Wire `apps/mobile/src/features/engagement/` screens to `data/engagement.ts`
-- [ ] T033 [P] [US1] Wire `apps/mobile/src/features/safety/` screens to `data/safety.ts`
-- [ ] T034 [US1] Confirm the 31 existing render tests in `apps/mobile/src/__tests__/` still pass with the data layer injected, adapting them to inject a fake data layer rather than deleting assertions
+- [X] T027 [US1] Wire `apps/mobile/src/App.tsx` to the data layer so the tab shell loads real data instead of receiving props only
+- [X] T028 [P] [US1] Wire `apps/mobile/src/features/feed/HomeFeedScreen.tsx` to `data/feed.ts`, preserving the existing empty and error states
+- [X] T029 [P] [US1] Wire `apps/mobile/src/features/discover/` screens to `data/interests.ts`
+- [X] T030 [P] [US1] Wire `apps/mobile/src/features/publish/ComposeScreen.tsx` to `data/posts.ts`, keeping the existing publish-blocked reasons
+- [X] T031 [P] [US1] Wire `apps/mobile/src/features/posts/` screens to `data/posts.ts`
+- [X] T032 [P] [US1] Wire `apps/mobile/src/features/engagement/` screens to `data/engagement.ts`
+- [X] T033 [P] [US1] Wire `apps/mobile/src/features/safety/` screens to `data/safety.ts`
+- [X] T034 [US1] Confirm the 31 existing render tests in `apps/mobile/src/__tests__/` still pass with the data layer injected, adapting them to inject a fake data layer rather than deleting assertions
 
 ### Implementation for User Story 1 — the journeys
 
@@ -119,7 +119,7 @@ against a live API. Delivers the first evidence the product works at all.
 - [X] T041 [P] [US1] Implement J-09 report and J-10 block in `apps/e2e/journeys/safety.spec.ts`, asserting the block takes effect on every read surface immediately
 - [X] T042 [US1] Implement negative journeys N-01 to N-04 in `apps/e2e/journeys/negative.spec.ts` using the **raw HTTP helper** from T010, deliberately bypassing the data layer so each drives the path a hostile client would take (Principle III)
 - [X] T043 [US1] Wire `pnpm --filter @sih/e2e test` into CI and confirm the whole suite passes on a runner with no cloud credentials
-- [ ] T044 [US1] Write the Tier B device runbook in `docs/verification/tier-b-runbook.md`, recording that the cloud sandbox has no public inbound route and this tier must run on a developer machine
+- [X] T044 [US1] Write the Tier B device runbook in `docs/verification/tier-b-runbook.md`, recording that the cloud sandbox has no public inbound route and this tier must run on a developer machine
 - [ ] T045 [US1] ⛔ **Requires physical hardware** — perform one Tier B pass on an iOS and an Android device and record two Journey Runs in `docs/verification/runs/`. Not completable in the cloud sandbox; do not tick from a simulator
 
 **Checkpoint**: the product is demonstrably functional end to end for the first time.
