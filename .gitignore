@@ -12,3 +12,6 @@ apps/mobile/web/dist/
 # would mean hand-maintaining native code that prebuild overwrites.
 apps/mobile/android/
 apps/mobile/ios/
+
+# Evidence captured by the Android device-pass job; uploaded as a CI artifact.
+artifacts/

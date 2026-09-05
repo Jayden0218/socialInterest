@@ -1,0 +1,89 @@
+name: Android device pass (emulator)
+
+# Manual only. The repository is private, so Actions minutes come out of the
+# account's monthly allowance, and the cost posture in plan.md says nothing
+# spends without a deliberate decision. This job costs ~25 minutes a run, so it
+# does not belong on every push.
+on:
+  workflow_dispatch:
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      # Gradle needs 17. The runner defaults to a newer JDK, exactly as the
+      # sandbox does; pinning it here is the same fix as in the Tier B runbook.
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - run: pnpm install --frozen-lockfile
+
+      # The whole reason this job exists: the emulator and the API run on ONE
+      # machine, so the app reaches the server at 10.0.2.2 with no inbound
+      # route, no tunnel and no allowlist. That is what the cloud sandbox
+      # cannot offer and what a physical phone would need a public API for.
+      - run: docker compose up -d
+      - name: Wait for DynamoDB Local and MinIO
+        run: |
+          for _ in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:9000/minio/health/live \
+               && curl -sf -o /dev/null http://127.0.0.1:8000; then exit 0; fi
+            sleep 2
+          done
+          echo "backing services never became ready"; docker compose logs; exit 1
+      - run: pnpm --filter @sih/infra db:create-local
+      - run: pnpm --filter @sih/infra s3:create-local
+      - run: pnpm --filter @sih/infra seed:catalogue
+
+      - name: Start the API on the runner
+        run: |
+          cd apps/api
+          RUNTIME_PROFILE=local API_PORT=3000 npx tsx src/main.ts > /tmp/api.log 2>&1 &
+          for _ in $(seq 1 60); do
+            if curl -sf -o /dev/null "http://127.0.0.1:3000/v1/interests?q=a"; then exit 0; fi
+            sleep 2
+          done
+          echo "API never became ready"; cat /tmp/api.log; exit 1
+
+      # EXPO_PUBLIC_API_BASE_URL is inlined into the JS bundle at build time, so
+      # the address has to be right here - it cannot be changed on the device.
+      - name: Build the APK against the runner's API
+        run: |
+          pnpm --filter @sih/mobile exec expo prebuild --platform android --no-install
+          cd apps/mobile/android
+          EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:3000/v1 \
+            ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=x86_64
+
+      # /dev/kvm exists on the standard ubuntu runner but is not world-writable,
+      # so without this the emulator silently falls back to TCG - which is what
+      # crashloops system_server on its watchdog and never finishes booting.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          ls -l /dev/kvm
+
+      - name: Boot the emulator and drive the app
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -no-snapshot
+          script: ./scripts/android-device-pass.sh
+
+      - name: Collect evidence
+        if: always()
+        run: cp /tmp/api.log artifacts/android-device-pass/api.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-device-pass
+          path: artifacts/android-device-pass/
