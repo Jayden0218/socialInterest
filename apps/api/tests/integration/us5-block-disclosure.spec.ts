@@ -32,7 +32,7 @@ describe('FR-042 / FR-044 — a block is never disclosed by a status code', () =
     const created = await request(h.app.getHttpServer())
       .post('/v1/posts')
       .set('authorization', `Bearer ${authorToken}`)
-      .send({ uploads: [{ uploadId: 'u', key: 'k', kind: 'image' }], interestIds: [interestId] });
+      .send({ uploadIds: [await h.uploadId(authorToken)], interestIds: [interestId] });
     postId = created.body.postId;
 
     const { PostRepository } = await import('../../src/persistence/post.repository');
@@ -75,7 +75,7 @@ describe('FR-042 / FR-044 — a block is never disclosed by a status code', () =
       .post('/v1/posts')
       .set('authorization', `Bearer ${authorToken}`)
       .send({
-        uploads: [{ uploadId: 'u', key: 'k', kind: 'image' }],
+        uploadIds: [await h.uploadId(authorToken)],
         interestIds: [await h.topInterestId()],
         visibility: 'private',
       });

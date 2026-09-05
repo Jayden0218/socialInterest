@@ -50,7 +50,7 @@ describe('FR-028 — a parent follow covers a sub-interest created afterwards', 
     const created = await request(h.app.getHttpServer())
       .post('/v1/posts')
       .set('authorization', `Bearer ${author}`)
-      .send({ uploads: [{ uploadId: 'u', key: 'k', kind: 'image' }], interestIds: [subId] });
+      .send({ uploadIds: [await h.uploadId(author)], interestIds: [subId] });
     expect(created.status).toBe(201);
     const postId = created.body.postId as string;
 

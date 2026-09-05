@@ -23,7 +23,7 @@ describe('US5 — engage with and share posts', () => {
     const res = await request(h.app.getHttpServer())
       .post('/v1/posts')
       .set('authorization', `Bearer ${authorToken}`)
-      .send({ uploads: [{ uploadId: 'u', key: 'k', kind: 'image' }], interestIds: [interestId], visibility });
+      .send({ uploadIds: [await h.uploadId(authorToken)], interestIds: [interestId], visibility });
     await ready(res.body.postId);
     return res.body.postId as string;
   };

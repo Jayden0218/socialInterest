@@ -24,7 +24,7 @@ describe('US3 — follow interests to build a personal feed', () => {
     const res = await request(h.app.getHttpServer())
       .post('/v1/posts')
       .set('authorization', `Bearer ${author}`)
-      .send({ uploads: [{ uploadId: 'u', key: 'k', kind: 'image' }], interestIds: [interestId] });
+      .send({ uploadIds: [await h.uploadId(author)], interestIds: [interestId] });
     expect(res.status).toBe(201);
     const postId = res.body.postId as string;
     const { PostRepository } = await import('../../src/persistence/post.repository');

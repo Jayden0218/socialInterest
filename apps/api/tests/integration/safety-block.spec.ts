@@ -37,7 +37,7 @@ describe('FR-044 — blocking withdraws previously visible followers-only conten
       .post('/v1/posts')
       .set('authorization', `Bearer ${authorToken}`)
       .send({
-        uploads: [{ uploadId: 'u', key: 'k', kind: 'image' }],
+        uploadIds: [await h.uploadId(authorToken)],
         interestIds: [await h.topInterestId()],
         visibility: 'followers',
       });
@@ -82,7 +82,7 @@ describe('FR-044 — blocking withdraws previously visible followers-only conten
     const fansPost = await request(h.app.getHttpServer())
       .post('/v1/posts')
       .set('authorization', `Bearer ${fanToken}`)
-      .send({ uploads: [{ uploadId: 'u', key: 'k', kind: 'image' }], interestIds: [await h.topInterestId()] });
+      .send({ uploadIds: [await h.uploadId(fanToken)], interestIds: [await h.topInterestId()] });
     const fansPostId = fansPost.body.postId as string;
     const { PostRepository } = await import('../../src/persistence/post.repository');
     const { ProcessingService } = await import('../../src/modules/posts/processing.service');

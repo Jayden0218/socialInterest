@@ -55,7 +55,7 @@ describe('US4 — follow people within the interests you care about', () => {
       const res = await request(h.app.getHttpServer())
         .post('/v1/posts')
         .set('authorization', `Bearer ${token}`)
-        .send({ uploads: [{ uploadId: 'u', key: 'k', kind: 'image' }], interestIds: [interestId] });
+        .send({ uploadIds: [await h.uploadId(token)], interestIds: [interestId] });
       const postId = res.body.postId as string;
       const { PostRepository } = await import('../../src/persistence/post.repository');
       const { ProcessingService } = await import('../../src/modules/posts/processing.service');

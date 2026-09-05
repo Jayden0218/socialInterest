@@ -20,7 +20,7 @@ describe('moderation — reports, decisions, and the audit trail', () => {
     const created = await request(h.app.getHttpServer())
       .post('/v1/posts')
       .set('authorization', `Bearer ${authorToken}`)
-      .send({ uploads: [{ uploadId: 'u', key: 'k', kind: 'image' }], interestIds: [interestId] });
+      .send({ uploadIds: [await h.uploadId(authorToken)], interestIds: [interestId] });
     postId = created.body.postId;
   }, 120_000);
 

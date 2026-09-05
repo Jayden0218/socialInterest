@@ -5,13 +5,19 @@ import { DomainError } from '../../common/errors/problem.filter';
 import { MEDIA_LIMITS } from '../../config/media.limits';
 import { CATALOGUE_SEARCH, type CatalogueSearch } from '../interests/catalogue.cache';
 import { PostRepository, type MediaItemRecord, type PostItem } from '../../persistence/post.repository';
+import { UploadRepository } from '../../persistence/upload.repository';
 import { EVENT_BUS, type EventBus } from '../../ports';
 import { PostTransaction } from './post.transaction';
 import { PostUpdateTransaction, type PostUpdate } from './post-update.transaction';
 
 export interface CreatePostInput {
   authorId: string;
-  uploadIds: { uploadId: string; key: string; kind: 'image' | 'video'; durationMs?: number }[];
+  /**
+   * Ids from POST /media/uploads, as the contract's PostCreate declares. The key
+   * and kind are NOT accepted from the caller - they are read from the upload
+   * record, which also proves the upload was issued to this author.
+   */
+  uploadIds: string[];
   interestIds: string[];
   caption?: string;
   visibility?: Visibility;
@@ -26,6 +32,7 @@ export class PostService {
     @Inject(CATALOGUE_SEARCH) private readonly catalogue: CatalogueSearch,
     @Inject(EVENT_BUS) private readonly events: EventBus,
     @Inject(PostUpdateTransaction) private readonly updates: PostUpdateTransaction,
+    @Inject(UploadRepository) private readonly uploads: UploadRepository,
   ) {}
 
   /**
@@ -67,7 +74,32 @@ export class PostService {
       throw new DomainError(HttpStatus.UNPROCESSABLE_ENTITY, 'Validation failed', 'A post needs media');
     }
 
-    const kinds = new Set(input.uploadIds.map((u) => u.kind));
+    // Resolve every quoted upload from the server's own record, and refuse any
+    // that was not issued to this author. This is the check whose absence let a
+    // post point at someone else's media.
+    const resolved = await Promise.all(input.uploadIds.map((id) => this.uploads.get(id)));
+    const uploads = resolved.map((record, i) => {
+      if (record === null) {
+        throw new DomainError(
+          HttpStatus.UNPROCESSABLE_ENTITY,
+          'Validation failed',
+          `Unknown or expired upload ${input.uploadIds[i]}`,
+        );
+      }
+      if (record.userId !== input.authorId) {
+        // Deliberately the same message as an unknown upload: telling a caller
+        // that an id exists but belongs to someone else discloses another
+        // person's activity.
+        throw new DomainError(
+          HttpStatus.UNPROCESSABLE_ENTITY,
+          'Validation failed',
+          `Unknown or expired upload ${input.uploadIds[i]}`,
+        );
+      }
+      return record;
+    });
+
+    const kinds = new Set(uploads.map((u) => u.kind));
     if (kinds.size > 1) {
       throw new DomainError(
         HttpStatus.UNPROCESSABLE_ENTITY,
@@ -76,10 +108,10 @@ export class PostService {
       );
     }
     const mediaKind = kinds.has('video') ? 'video' : 'images';
-    if (mediaKind === 'video' && input.uploadIds.length !== 1) {
+    if (mediaKind === 'video' && uploads.length !== 1) {
       throw new DomainError(HttpStatus.UNPROCESSABLE_ENTITY, 'Validation failed', 'One video per post');
     }
-    if (mediaKind === 'images' && input.uploadIds.length > MEDIA_LIMITS.image.maxPerPost) {
+    if (mediaKind === 'images' && uploads.length > MEDIA_LIMITS.image.maxPerPost) {
       throw new DomainError(
         HttpStatus.UNPROCESSABLE_ENTITY,
         'Validation failed',
@@ -106,7 +138,7 @@ export class PostService {
       updatedAt: now,
     };
 
-    const media: MediaItemRecord[] = input.uploadIds.map((u, ordinal) => ({
+    const media: MediaItemRecord[] = uploads.map((u, ordinal) => ({
       postId,
       ordinal,
       kind: u.kind,

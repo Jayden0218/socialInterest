@@ -7,6 +7,14 @@ export const keys = {
   person: (userId: string) => ({ pk: `USER#${userId}`, sk: '#PROFILE' }),
   personByHandle: (handleLower: string) => ({ gsi1pk: `HANDLE#${handleLower}`, gsi1sk: '#PROFILE' }),
 
+  /**
+   * An issued upload target. Persisted so POST /posts can quote an uploadId alone
+   * (the contract's PostCreate) and the server derives key and kind from its own
+   * record - rather than trusting a client-supplied key, which let a caller point
+   * a post at another person's media.
+   */
+  upload: (uploadId: string) => ({ pk: `UPLOAD#${uploadId}`, sk: '#META' }),
+
   post: (postId: string) => ({ pk: `POST#${postId}`, sk: '#META' }),
   postByAuthor: (authorId: string, createdAt: string, postId: string) => ({
     gsi2pk: `USER#${authorId}`,

@@ -1,3 +1,4 @@
+import request from 'supertest';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { INestApplication } from '@nestjs/common';
 import { AppModule } from '../../src/app.module';
@@ -13,6 +14,15 @@ export interface Harness {
   token(userId: string, opts?: { isOperator?: boolean }): Promise<string>;
   createPerson(handle: string): Promise<string>;
   topInterestId(): Promise<string>;
+  /**
+   * A REAL upload id for `userId`, obtained through POST /media/uploads.
+   *
+   * Publishing used to accept a fabricated id and a caller-supplied key, so every
+   * suite quoted `uploadId: 'u', key: 'k'`. The server now resolves the id against
+   * its own record and refuses one issued to someone else, so tests must obtain a
+   * genuine one - which is the behaviour a real client has anyway.
+   */
+  uploadId(token: string, kind?: 'image' | 'video'): Promise<string>;
   close(): Promise<void>;
 }
 
@@ -46,6 +56,20 @@ export async function bootHarness(): Promise<Harness> {
         createdAt: new Date().toISOString(),
       });
       return userId;
+    },
+    async uploadId(token: string, kind: 'image' | 'video' = 'image') {
+      const body =
+        kind === 'video'
+          ? { kind, contentType: 'video/mp4', sizeBytes: 5_000_000, durationMs: 30_000 }
+          : { kind, contentType: 'image/jpeg', sizeBytes: 1024 };
+      const res = await request(app.getHttpServer())
+        .post('/v1/media/uploads')
+        .set('authorization', `Bearer ${token}`)
+        .send(body);
+      if (res.status !== 201) {
+        throw new Error(`could not obtain an upload target: ${res.status} ${res.text}`);
+      }
+      return res.body.uploadId as string;
     },
     async topInterestId() {
       const page = await interests.listChildren(null, { limit: 1 });

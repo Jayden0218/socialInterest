@@ -42,7 +42,7 @@ describe('FR-033 — a person-follow must not widen the feed', () => {
     const res = await request(h.app.getHttpServer())
       .post('/v1/posts')
       .set('authorization', `Bearer ${token}`)
-      .send({ uploads: [{ uploadId: 'u', key: 'k', kind: 'image' }], interestIds: [interestId] });
+      .send({ uploadIds: [await h.uploadId(token)], interestIds: [interestId] });
     expect(res.status).toBe(201);
     const postId = res.body.postId as string;
     const { PostRepository } = await import('../../src/persistence/post.repository');

@@ -24,7 +24,7 @@ describe('US6 — manage your profile and your content', () => {
     const res = await request(h.app.getHttpServer())
       .post('/v1/posts')
       .set('authorization', `Bearer ${authorToken}`)
-      .send({ uploads: [{ uploadId: 'u', key: 'k', kind: 'image' }], interestIds: [interestId], caption: 'before' });
+      .send({ uploadIds: [await h.uploadId(authorToken)], interestIds: [interestId], caption: 'before' });
     await ready(res.body.postId);
     return res.body.postId as string;
   };

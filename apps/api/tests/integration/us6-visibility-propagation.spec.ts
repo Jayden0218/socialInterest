@@ -33,7 +33,7 @@ describe('FR-017 — a public→private flip removes the post from every surface
     const created = await request(h.app.getHttpServer())
       .post('/v1/posts')
       .set('authorization', `Bearer ${authorToken}`)
-      .send({ uploads: [{ uploadId: 'u', key: 'k', kind: 'image' }], interestIds: [interestId] });
+      .send({ uploadIds: [await h.uploadId(authorToken)], interestIds: [interestId] });
     postId = created.body.postId;
 
     const { PostRepository } = await import('../../src/persistence/post.repository');

@@ -83,7 +83,7 @@ against a live API. Delivers the first evidence the product works at all.
 ### Tests for User Story 1 (write first — these define the contract)
 
 - [ ] T016 [P] [US1] Write the journey suite skeleton in `apps/e2e/journeys/` with all 14 journeys from `contracts/e2e-journeys.md` present and failing, so the contract is enumerated before any of it is satisfied
-- [ ] T017 [P] [US1] Write the client-drift check in `apps/e2e/journeys/contract-drift.spec.ts` (or as a CI step) asserting the regenerated client matches the committed one
+- [X] T017 [P] [US1] Write the client-drift check in `apps/e2e/journeys/contract-drift.spec.ts` (or as a CI step) asserting the regenerated client matches the committed one
 
 ### Implementation for User Story 1 — the missing data layer
 

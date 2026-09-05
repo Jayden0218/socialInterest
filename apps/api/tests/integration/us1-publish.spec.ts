@@ -39,7 +39,7 @@ describe('US1 — publish media to an interest', () => {
     expect(target.body.url).toContain('http');
 
     const res = await publish({
-      uploads: [{ uploadId: target.body.uploadId, key: `uploads/${authorId}/x`, kind: 'image' }],
+      uploadIds: [await h.uploadId(token)],
       interestIds: [interestId],
       caption: 'first post',
     });
@@ -58,7 +58,7 @@ describe('US1 — publish media to an interest', () => {
     expect(target.status).toBe(201);
 
     const res = await publish({
-      uploads: [{ uploadId: target.body.uploadId, key: `uploads/${authorId}/v`, kind: 'video', durationMs: 30_000 }],
+      uploadIds: [target.body.uploadId as string],
       interestIds: [interestId],
     });
     expect(res.status).toBe(201);
@@ -69,7 +69,7 @@ describe('US1 — publish media to an interest', () => {
 
   it('scenario 3: publishing without an interest is refused (FR-006)', async () => {
     const res = await publish({
-      uploads: [{ uploadId: 'u1', key: 'k', kind: 'image' }],
+      uploadIds: [await h.uploadId(token)],
       interestIds: [],
     });
     expect(res.status).toBe(422);
@@ -78,7 +78,7 @@ describe('US1 — publish media to an interest', () => {
 
   it('scenario 4: publishing without touching visibility yields a PUBLIC post (FR-013)', async () => {
     const res = await publish({
-      uploads: [{ uploadId: 'u2', key: 'k', kind: 'image' }],
+      uploadIds: [await h.uploadId(token)],
       interestIds: [interestId],
     });
     expect(res.status).toBe(201);
@@ -87,7 +87,7 @@ describe('US1 — publish media to an interest', () => {
 
   it('scenario 5: followers-only is recorded as chosen', async () => {
     const res = await publish({
-      uploads: [{ uploadId: 'u3', key: 'k', kind: 'image' }],
+      uploadIds: [await h.uploadId(token)],
       interestIds: [interestId],
       visibility: 'followers',
     });
@@ -125,10 +125,33 @@ describe('US1 — publish media to an interest', () => {
     expect(noDuration.status).toBe(422);
   });
 
+  it('refuses an upload id issued to someone else (FR-010, Principle III)', async () => {
+    // Regression. POST /posts used to take `uploads: [{uploadId, key, kind}]` and
+    // store the caller's `key` verbatim, with nothing checking it was theirs - so a
+    // post could point at another person's media. The contract always said ids
+    // only; the server now resolves them and refuses one it did not issue here.
+    const strangerToken = await h.token(await h.createPerson('stranger'));
+    const strangersUpload = await h.uploadId(strangerToken);
+
+    const res = await publish({ uploadIds: [strangersUpload], interestIds: [interestId] });
+
+    expect(res.status).toBe(422);
+    // Same message as an unknown id: confirming it exists would disclose that
+    // another person uploaded something.
+    expect(res.body.detail).toContain('Unknown or expired upload');
+  });
+
+  it('refuses an upload id that was never issued', async () => {
+    const res = await publish({ uploadIds: ['made-up'], interestIds: [interestId] });
+    expect(res.status).toBe(422);
+    expect(res.body.detail).toContain('Unknown or expired upload');
+  });
+
   it('requires authentication to publish', async () => {
     const res = await request(h.app.getHttpServer())
       .post('/v1/posts')
-      .send({ uploads: [{ uploadId: 'u', key: 'k', kind: 'image' }], interestIds: [interestId] });
+      // Auth is refused before the body is resolved, so no real upload is needed here.
+      .send({ uploadIds: ['never-resolved'], interestIds: [interestId] });
     expect(res.status).toBe(401);
   });
 });
@@ -165,7 +188,7 @@ describe('US1 — a published post appears on both surfaces', () => {
 
   it('a public, ready post is visible to a signed-out viewer on both surfaces', async () => {
     const created = await publish({
-      uploads: [{ uploadId: 'u', key: 'k', kind: 'image' }],
+      uploadIds: [await h.uploadId(token)],
       interestIds: [interestId],
       caption: 'visible everywhere',
     });
@@ -198,7 +221,7 @@ describe('US1 — a published post appears on both surfaces', () => {
 
   it('a private post is hidden on both surfaces but visible to its author (SC-009)', async () => {
     const created = await publish({
-      uploads: [{ uploadId: 'u', key: 'k', kind: 'image' }],
+      uploadIds: [await h.uploadId(token)],
       interestIds: [interestId],
       visibility: 'private',
     });

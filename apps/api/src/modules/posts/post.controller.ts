@@ -19,17 +19,9 @@ const updatePostSchema = z
   .refine((v) => Object.keys(v).length > 0, { message: 'Provide at least one field to change' });
 
 const createPostSchema = z.object({
-  uploads: z
-    .array(
-      z.object({
-        uploadId: z.string().min(1),
-        key: z.string().min(1),
-        kind: z.enum(['image', 'video']),
-        durationMs: z.number().int().positive().optional(),
-      }),
-    )
-    .min(1)
-    .max(10),
+  // contracts/openapi.yaml PostCreate: ids only. The server reads key, kind and
+  // duration from its own upload record - see PostService.create.
+  uploadIds: z.array(z.string().min(1)).min(1).max(10),
   // FR-006: at least one interest, enforced by the schema and again in the service.
   interestIds: z.array(z.string().min(1)).min(1),
   caption: z.string().max(2000).optional(),
@@ -51,7 +43,7 @@ export class PostController {
     const input = zodBody(createPostSchema, body);
     const post = await this.posts.create({
       authorId: req.viewer!.userId,
-      uploadIds: input.uploads,
+      uploadIds: input.uploadIds,
       interestIds: input.interestIds,
       ...(input.caption ? { caption: input.caption } : {}),
       visibility: input.visibility,
