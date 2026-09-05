@@ -116,6 +116,42 @@ Typing the dotted form finds nothing.
 After a spec-kit command changes an artifact, re-check the others for drift — `plan.md`'s
 Constitution Check in particular goes stale when the constitution changes.
 
+## What spec 002 established (2026-09-05)
+
+Feature 001 was complete and green and the product did not work. Five defects,
+none visible to any test that existed, all found the moment `apps/e2e` drove the
+app's own data layer over HTTP against a running API:
+
+1. **The contract and the API disagreed about publishing.** OpenAPI said
+   `uploadIds: string[]`; the server wanted `uploads: [{uploadId, key, kind}]`.
+   Any client generated from the contract 400s on every publish.
+2. **The server trusted a client-supplied media key**, so a post could point at
+   another person's media. Uploads are now persisted and the server derives key
+   and kind from its own record.
+3. **`ApiClient` sent no token on optional-auth endpoints**, so a signed-in
+   person was anonymous on `GET /posts/{id}` and was told "not available to you"
+   about their own post.
+4. **Nothing subscribed to `post.created`.** A published post stayed `pending`
+   forever, and a pending post is visible only to its author — so nobody could
+   ever see anyone else's post. 001's suites hid it by calling `reconcile()` by
+   hand. `MediaDispatchService` fixes it; `MEDIA_DISPATCH_ON_CREATE=false` in the
+   integration harness, which drives states deterministically.
+5. **`interestFollowCount` was never incremented** — every profile said 0.
+
+The lesson worth keeping: **both sides generated from one document agree with
+each other by construction.** Contract tests and a generated client cannot catch
+any of the above. Only a request can. `pnpm --filter @sih/e2e test` is that
+request; do not let it become a suite that drives the generated client instead of
+`apps/mobile/src/data`.
+
+Two more of the same shape, found earlier in the same session: `pnpm lint`
+resolved to a global eslint binary and had never actually run, and an
+integration test passed on timing luck because its uniqueness suffix was
+near-duplicate by construction.
+
+**Run the real CI step list before pushing**, not a proxy for it. Two red builds
+came from checking typecheck/lint/tests and assuming that covered CI.
+
 ## If you are asked to parallelise the build
 
 Measured from `tasks.md`, not guessed:
@@ -137,6 +173,16 @@ Measured from `tasks.md`, not guessed:
 
 - **US4 depends on US3** — the only genuine cross-story dependency (FR-033 needs the
   interest-follow feed to exist first). Same agent, sequential.
+- **Single-owner files for spec 002** — same rule, different set:
+
+  | File | Why |
+  |---|---|
+  | `apps/e2e/support/client.ts` | The one place the journeys bind to the mobile data layer |
+  | `apps/api/bench/harness.ts` | Shared by both benches |
+  | `apps/mobile/src/screens/index.tsx` | Every container lives here |
+  | `docs/verification/divergence-register.md` | `verify:register` checks it; two writers will disagree |
+  | `.github/workflows/ci.yml` | Every phase wants to add a step |
+
 - Lanes that are genuinely independent after Phase 2: `apps/api`, `apps/mobile`
   (once T018 generates the client), `apps/workers`, `infra`.
 - Sizing per Anthropic's guidance: **3–5 agents, 5–6 tasks each**, `isolation: "worktree"`.

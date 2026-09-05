@@ -144,7 +144,7 @@ requires a production-shaped datastore. Until T052 runs, the criterion is report
 - [X] T046 [US2] Rework `apps/api/bench/harness.ts` so concurrency is issued from a worker pool rather than `Promise.all` on one event loop, and so each run records how saturation was established
 - [X] T047 [US2] Add `apps/api/bench/ceiling.bench.ts` measuring three ceilings separately: the generator's own, the application's with the datastore replaced by a fixed-latency stub, and DynamoDB Local's in isolation
 - [X] T048 [US2] Rework `apps/api/bench/feed-load.bench.ts` to drive the API **over HTTP** against a booted process, replacing the in-process `feed.homeFeed()` calls, and to emit `transport: http`
-- [ ] T049 [P] [US2] Make both benches emit the Load Measurement shape from data-model.md, with `bottleneck` and `bottleneck_evidence` as required fields and `undetermined` permitted
+- [X] T049 [P] [US2] Make both benches emit the Load Measurement shape from data-model.md, with `bottleneck` and `bottleneck_evidence` as required fields and `undetermined` permitted *(bench:feed-load emits the full shape via `reportMeasurement`; bench:ceiling produces the three-way attribution that populates its `bottleneck` field rather than a Load Measurement of its own — they are different measurements, not the same one twice)*
 - [X] T050 [US2] Run `seed:load`, then `bench:ceiling` and `bench:feed-load`, and record the result as a Load Measurement in `docs/verification/runs/`
 - [X] T051 [US2] Write the attribution conclusion into `specs/002-production-readiness/research.md` under R1, stating plainly which of the three is the binding ceiling, or that it is undetermined
 - [ ] T052 [US2] ⛔ **GATED** — obtain approval, then re-run `bench:feed-load` against provisioned DynamoDB at the target concurrency and record a Load Measurement with `transport: http` and the real datastore. This is the only task that can close `002/SC-002` (FR-008)
@@ -230,15 +230,15 @@ with its target, misses included and small cells suppressed.
 
 ### Preparation — no approval needed, no spend
 
-- [ ] T083 [P] [US4] Write `docs/verification/measurement-windows.md` declaring population, window and cadence in advance, defaulting to 50+ participants over 14+ continuous days (FR-024)
-- [ ] T084 [US4] Implement `apps/workers/src/reports/outcome-report.ts` producing the Outcome Measure shape from data-model.md
-- [ ] T085 [P] [US4] Implement `001/SC-001` and `001/SC-004` derivation from the analytics events already emitted by `apps/mobile/src/lib/analytics.ts`
-- [ ] T086 [P] [US4] Implement `001/SC-007` and `001/SC-008` derivation from post-to-interest assignment and interest merge records
-- [ ] T087 [US4] Implement `001/SC-010` derivation from the append-only moderation log, counting reports with no decision as **missed** — assert this with a test, since averaging over decided reports only would report the best number when moderation is failing worst (FR-027)
-- [ ] T088 [P] [US4] Implement the 20-person suppression floor and assert suppressed cells are marked, never rounded or merged (FR-028)
-- [ ] T089 [P] [US4] Implement the `unmeasurable` path for windows under 50 participants or under 14 days, and for criteria not derivable from recorded data (FR-025, FR-030)
-- [ ] T090 [US4] Write a test in `apps/workers/tests/` proving the report contains no field from which an individual could be identified
-- [ ] T091 [US4] Run `report:outcomes` against seeded local data and confirm every criterion appears, including as `unmeasurable`
+- [X] T083 [P] [US4] Write `docs/verification/measurement-windows.md` declaring population, window and cadence in advance, defaulting to 50+ participants over 14+ continuous days (FR-024)
+- [X] T084 [US4] Implement `apps/workers/src/reports/outcome-report.ts` producing the Outcome Measure shape from data-model.md
+- [X] T085 [P] [US4] Implement `001/SC-001` and `001/SC-004` derivation from the analytics events already emitted by `apps/mobile/src/lib/analytics.ts`
+- [X] T086 [P] [US4] Implement `001/SC-007` and `001/SC-008` derivation from post-to-interest assignment and interest merge records
+- [X] T087 [US4] Implement `001/SC-010` derivation from the append-only moderation log, counting reports with no decision as **missed** — assert this with a test, since averaging over decided reports only would report the best number when moderation is failing worst (FR-027)
+- [X] T088 [P] [US4] Implement the 20-person suppression floor and assert suppressed cells are marked, never rounded or merged (FR-028)
+- [X] T089 [P] [US4] Implement the `unmeasurable` path for windows under 50 participants or under 14 days, and for criteria not derivable from recorded data (FR-025, FR-030)
+- [X] T090 [US4] Write a test in `apps/workers/tests/` proving the report contains no field from which an individual could be identified
+- [X] T091 [US4] Run `report:outcomes` against seeded local data and confirm every criterion appears, including as `unmeasurable`
 
 ### The measurement itself
 
@@ -253,12 +253,12 @@ unmeasured.
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T095 [P] Update `CLAUDE.md` with what this feature established: the corrected `001/SC-011` framing, the `apps/e2e` package, the divergence register, and the fact that the `aws` adapters were stubs
-- [ ] T096 [P] Update `specs/001-interest-media-sharing/validation-report.md` so its SC table reflects measured results rather than "bench written"
-- [ ] T097 Run the full local verification sweep from `quickstart.md` and confirm every command passes
-- [ ] T098 [P] Add the single-owner file table for this feature to `CLAUDE.md`, so parallel agents do not overwrite each other
+- [X] T095 [P] Update `CLAUDE.md` with what this feature established: the corrected `001/SC-011` framing, the `apps/e2e` package, the divergence register, and the fact that the `aws` adapters were stubs
+- [X] T096 [P] Update `specs/001-interest-media-sharing/validation-report.md` so its SC table reflects measured results rather than "bench written"
+- [X] T097 Run the full local verification sweep from `quickstart.md` and confirm every command passes
+- [X] T098 [P] Add the single-owner file table for this feature to `CLAUDE.md`, so parallel agents do not overwrite each other
 - [ ] T099 Re-run `/speckit-analyze` to check for drift between spec, plan and tasks after implementation
-- [ ] T100 Confirm no task marked ⛔ is ticked without a corresponding Approval Record and Verification Run on disk, and that the register's `implementation` states match the code
+- [X] T100 Confirm no task marked ⛔ is ticked without a corresponding Approval Record and Verification Run on disk, and that the register's `implementation` states match the code
 
 ---
 
