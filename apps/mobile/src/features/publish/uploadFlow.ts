@@ -1,6 +1,17 @@
 import type { ApiClient } from '@sih/shared';
 import type { PickedMedia } from './MediaPickerScreen';
 
+/**
+ * All this flow needs is something that can issue a call.
+ *
+ * It used to take the generated `ApiClient` directly, which predates
+ * apps/mobile/src/data - so the compose screen could not be driven by the data
+ * layer the rest of the app uses without reaching past it. Both `ApiClient` and
+ * `DataClient` satisfy this, and `DataClient` additionally converts failures
+ * into DataError, which is what the screens render.
+ */
+export type UploadCaller = Pick<ApiClient, 'call'>;
+
 export type UploadStage = 'idle' | 'requesting' | 'uploading' | 'uploaded' | 'failed';
 
 export interface UploadSlot {
@@ -27,7 +38,7 @@ export const newSlot = (media: PickedMedia): UploadSlot => ({
  * the picker. That is the requirement; showing a progress bar is the easy half.
  */
 export async function runUpload(
-  client: ApiClient,
+  client: UploadCaller,
   slot: UploadSlot,
   onChange: (next: UploadSlot) => void,
   deps: { fetch?: typeof globalThis.fetch } = {},

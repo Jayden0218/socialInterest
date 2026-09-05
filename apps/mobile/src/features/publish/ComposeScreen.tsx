@@ -8,6 +8,7 @@ import { allUploaded, canRetry, type UploadSlot } from './uploadFlow';
 import type { PickedMedia } from './MediaPickerScreen';
 
 export { runUpload, newSlot, canRetry, allUploaded } from './uploadFlow';
+export type { UploadCaller } from './uploadFlow';
 export type { UploadSlot, UploadStage } from './uploadFlow';
 
 export interface ComposeScreenProps {

@@ -170,3 +170,246 @@ export function SafetyContainer({
     />
   );
 }
+
+/* --- sign in, interest space, compose, profile: the containers the shell was
+       missing. Every screen below existed and was render-tested; none of them
+       was reachable, because App.tsx mounted three containers and there was no
+       navigation to the rest. --- */
+
+import { SignInScreen, SignedOutNotice } from '../features/auth/SignInScreen';
+import { InterestScreen, type InterestScreenData } from '../features/discover/InterestScreen';
+import { ProfileScreen, type ProfileData } from '../features/profile/ProfileScreen';
+import { ComposeScreen, newSlot, runUpload, type UploadSlot } from '../features/publish/ComposeScreen';
+import type { PickedMedia } from '../features/publish/MediaPickerScreen';
+import { DEFAULT_VISIBILITY } from '../features/publish/VisibilityControl';
+import { useInterestPosts, useProfilePosts } from '../containers';
+import type { InterestRef, Visibility } from '@sih/shared';
+
+export function SignInContainer({ onSignedIn }: { onSignedIn: () => void }) {
+  const data = useData();
+  const [token, setToken] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = useCallback(async () => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      await data.session.signIn(token.trim());
+      onSignedIn();
+    } catch (e: unknown) {
+      // signIn calls GET /v1/me with the token, so a rejected token fails here
+      // rather than being stored and failing on every later screen.
+      setError(e instanceof DataError ? e.message : String(e));
+    } finally {
+      setSubmitting(false);
+    }
+  }, [data, token, onSignedIn]);
+
+  return (
+    <SignInScreen
+      token={token}
+      submitting={submitting}
+      error={error}
+      onTokenChange={setToken}
+      onSubmit={() => void submit()}
+    />
+  );
+}
+
+export { SignedOutNotice };
+
+export function InterestContainer({
+  interestId,
+  onOpenSubInterest,
+}: {
+  interestId: string;
+  onOpenSubInterest: (id: string) => void;
+}) {
+  const data = useData();
+  const [detail, setDetail] = useState<InterestScreenData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [followedCount, setFollowedCount] = useState(0);
+  const { state, loadMore } = useInterestPosts(interestId);
+
+  useEffect(() => {
+    let live = true;
+    Promise.all([
+      data.interests.get(interestId),
+      data.interests.listChildren(interestId),
+      data.session.me().catch(() => null),
+    ])
+      .then(([interest, children, me]) => {
+        if (!live) return;
+        setDetail({ interest, subInterests: children.items, rollsUpFrom: [] });
+        setFollowedCount(me?.interestFollowCount ?? 0);
+      })
+      .catch((e: unknown) => live && setError(e instanceof DataError ? e.message : String(e)));
+    return () => {
+      live = false;
+    };
+  }, [data, interestId]);
+
+  const toggleFollow = useCallback(
+    (next: boolean) => {
+      // Optimistic, then reconciled by the refusal path: the server enforces the
+      // 200-interest cap (FR-034), so a rejection has to put the control back
+      // rather than leave it showing a follow that did not happen.
+      setDetail((d) => (d ? { ...d, interest: { ...d.interest, viewerIsFollowing: next } } : d));
+      setFollowedCount((c) => c + (next ? 1 : -1));
+      const call = next ? data.interests.follow(interestId) : data.interests.unfollow(interestId);
+      void call.catch((e: unknown) => {
+        setDetail((d) => (d ? { ...d, interest: { ...d.interest, viewerIsFollowing: !next } } : d));
+        setFollowedCount((c) => c + (next ? -1 : 1));
+        setError(e instanceof DataError ? e.message : String(e));
+      });
+    },
+    [data, interestId],
+  );
+
+  if (error) return <Failed message={error} />;
+  if (!detail) return <View testID="interest-loading" />;
+  return (
+    <InterestScreen
+      data={detail}
+      posts={state}
+      followedCount={followedCount}
+      onLoadMore={loadMore}
+      onToggleFollow={toggleFollow}
+      onOpenSubInterest={onOpenSubInterest}
+      renderPost={(post) => <Text testID={`post-${post.postId}`}>{post.caption ?? ''}</Text>}
+    />
+  );
+}
+
+export function ProfileContainer({ handle, isSelf }: { handle: string; isSelf: boolean }) {
+  const data = useData();
+  const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const { state, loadMore } = useProfilePosts(handle);
+
+  useEffect(() => {
+    let live = true;
+    data.session
+      .me()
+      .then((me) => {
+        if (!live) return;
+        setProfile({
+          handle: me.handle,
+          displayName: me.displayName,
+          bio: me.bio ?? null,
+          followerCount: me.followerCount ?? 0,
+          followingCount: me.followingCount ?? 0,
+          topInterests: me.topInterests ?? [],
+          viewerIsFollowing: false,
+        });
+      })
+      .catch((e: unknown) => live && setError(e instanceof DataError ? e.message : String(e)));
+    return () => {
+      live = false;
+    };
+  }, [data, handle]);
+
+  if (error) return <Failed message={error} />;
+  if (!profile) return <View testID="profile-loading" />;
+  return (
+    <ProfileScreen
+      profile={profile}
+      posts={state}
+      viewerFollowsAnyOfTheirInterests={false}
+      isSelf={isSelf}
+      onToggleFollow={() => undefined}
+      onLoadMore={loadMore}
+      renderPost={(post) => <Text testID={`post-${post.postId}`}>{post.caption ?? ''}</Text>}
+    />
+  );
+}
+
+/**
+ * Compose.
+ *
+ * `media` is supplied by the caller rather than picked here. There is no native
+ * picker dependency in this build, and a journey that has to drive an OS gallery
+ * dialog is the kind of device test that breaks for reasons unrelated to the
+ * product. What the journey is actually about - choose an interest, upload,
+ * publish, see it in the feed - runs end to end either way, over the real
+ * presign/PUT/publish path.
+ */
+export function ComposeContainer({
+  media,
+  onPublished,
+}: {
+  media: PickedMedia[];
+  onPublished: (postId: string) => void;
+}) {
+  const data = useData();
+  const [slots, setSlots] = useState<UploadSlot[]>([]);
+  const [options, setOptions] = useState<InterestRef[]>([]);
+  const [selected, setSelected] = useState<InterestRef[]>([]);
+  const [caption, setCaption] = useState('');
+  const [visibility, setVisibility] = useState<Visibility>(DEFAULT_VISIBILITY);
+  const [publishing, setPublishing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    data.interests
+      .suggested()
+      .then((page) => live && setOptions(page.items))
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [data]);
+
+  const upload = useCallback(
+    (slot: UploadSlot) => {
+      void runUpload(data.client, slot, (next) =>
+        setSlots((all) => all.map((s) => (s.media.uri === next.media.uri ? next : s))),
+      );
+    },
+    [data],
+  );
+
+  useEffect(() => {
+    const fresh = media.map(newSlot);
+    setSlots(fresh);
+    fresh.forEach(upload);
+  }, [media, upload]);
+
+  const publish = useCallback(async () => {
+    setPublishing(true);
+    setError(null);
+    try {
+      const post = await data.posts.publish({
+        uploadIds: slots.map((s) => s.uploadId).filter((id): id is string => Boolean(id)),
+        interestIds: selected.map((i) => i.interestId),
+        visibility,
+        ...(caption ? { caption } : {}),
+      });
+      onPublished(post.postId);
+    } catch (e: unknown) {
+      setError(e instanceof DataError ? e.message : String(e));
+    } finally {
+      setPublishing(false);
+    }
+  }, [data, slots, selected, visibility, caption, onPublished]);
+
+  return (
+    <ComposeScreen
+      media={media}
+      slots={slots}
+      interestOptions={options}
+      selectedInterests={selected}
+      caption={caption}
+      visibility={visibility}
+      publishing={publishing}
+      error={error}
+      onCaptionChange={setCaption}
+      onInterestsChange={setSelected}
+      onVisibilityChange={setVisibility}
+      onRetry={upload}
+      onPublish={() => void publish()}
+    />
+  );
+}
