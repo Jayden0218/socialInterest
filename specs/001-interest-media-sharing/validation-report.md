@@ -131,12 +131,12 @@ grounds to reverse that.
 | SC-002 image upload | `bench:upload` written |
 | SC-003 video playable in 60s | `bench:transcode` written — **ffmpeg adapter only**, see below |
 | SC-004 first-attempt publish rate | Instrumented — needs real users |
-| SC-005 feed latency | `bench:feed`, reported by follow count |
+| SC-005 feed latency | Met at rest: p50 183ms at the 200-follow cap over 100k posts, measured over HTTP |
 | SC-006 onboarding | `GET /interests/suggested`, covered by tests |
 | SC-007 / SC-008 aggregates | Analytics export written; needs production data |
 | SC-009 no visibility leak | **VERIFIED — 294/294** |
 | SC-010 moderation within 24h | Queue is oldest-first; needs operational data |
-| SC-011 10k concurrent | `bench:feed-load` written |
+| SC-011 10k concurrent | **Unverified.** Measured over HTTP 2026-09-05 and attributed: the ceiling was DynamoDB Local (827 req/s) not the design. See spec 002 R1 and docs/verification/runs/2026-09-05-load.md |
 | SC-012 second post within 7 days | Post-launch business KPI — out of scope |
 
 The benchmarks are written and runnable but **have not been run against a seeded

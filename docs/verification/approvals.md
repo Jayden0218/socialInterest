@@ -10,3 +10,16 @@ records `unverified` for every entry that needs one.
 | id | scope | ceiling | granted_at | granted_by |
 |---|---|---|---|---|
 | _(none)_ | | | | |
+
+## Format
+
+| Field | Meaning |
+|---|---|
+| `id` | `A-n` |
+| `scope` | Exactly what was approved. One verification, or one named measurement window |
+| `ceiling` | Maximum authorised spend |
+| `granted_at` | Date |
+| `granted_by` | The project owner |
+
+An approval covers **one scope**. Reusing it for a different purpose is a
+violation, not a shortcut.

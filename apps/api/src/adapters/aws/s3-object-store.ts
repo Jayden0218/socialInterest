@@ -10,6 +10,15 @@ import type { AppConfig } from '../../config/configuration';
 import type { ObjectStore, PresignedUpload } from '../../ports';
 
 /**
+ * S3. D-1 in the divergence register.
+ *
+ * DIVERGENCE WARNING: MinIO stands in for this locally. Presign semantics, the
+ * consistency model and the error taxonomy differ, so a green local suite is not
+ * evidence this path works. It has a real implementation and has never been
+ * executed - see docs/verification/runbooks/d1-object-store.md, gated on approval.
+ */
+
+/**
  * S3. Written and unit-tested; never applied by any task in tasks.md.
  * Provisioning requires explicit approval - plan.md Cost Posture.
  */

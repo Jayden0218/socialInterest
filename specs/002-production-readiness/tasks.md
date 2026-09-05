@@ -141,28 +141,33 @@ requires a production-shaped datastore. Until T052 runs, the criterion is report
 
 ### Measurement validity first (research R1)
 
-- [ ] T046 [US2] Rework `apps/api/bench/harness.ts` so concurrency is issued from a worker pool rather than `Promise.all` on one event loop, and so each run records how saturation was established
-- [ ] T047 [US2] Add `apps/api/bench/ceiling.bench.ts` measuring three ceilings separately: the generator's own, the application's with the datastore replaced by a fixed-latency stub, and DynamoDB Local's in isolation
-- [ ] T048 [US2] Rework `apps/api/bench/feed-load.bench.ts` to drive the API **over HTTP** against a booted process, replacing the in-process `feed.homeFeed()` calls, and to emit `transport: http`
+- [X] T046 [US2] Rework `apps/api/bench/harness.ts` so concurrency is issued from a worker pool rather than `Promise.all` on one event loop, and so each run records how saturation was established
+- [X] T047 [US2] Add `apps/api/bench/ceiling.bench.ts` measuring three ceilings separately: the generator's own, the application's with the datastore replaced by a fixed-latency stub, and DynamoDB Local's in isolation
+- [X] T048 [US2] Rework `apps/api/bench/feed-load.bench.ts` to drive the API **over HTTP** against a booted process, replacing the in-process `feed.homeFeed()` calls, and to emit `transport: http`
 - [ ] T049 [P] [US2] Make both benches emit the Load Measurement shape from data-model.md, with `bottleneck` and `bottleneck_evidence` as required fields and `undetermined` permitted
-- [ ] T050 [US2] Run `seed:load`, then `bench:ceiling` and `bench:feed-load`, and record the result as a Load Measurement in `docs/verification/runs/`
-- [ ] T051 [US2] Write the attribution conclusion into `specs/002-production-readiness/research.md` under R1, stating plainly which of the three is the binding ceiling, or that it is undetermined
+- [X] T050 [US2] Run `seed:load`, then `bench:ceiling` and `bench:feed-load`, and record the result as a Load Measurement in `docs/verification/runs/`
+- [X] T051 [US2] Write the attribution conclusion into `specs/002-production-readiness/research.md` under R1, stating plainly which of the three is the binding ceiling, or that it is undetermined
 - [ ] T052 [US2] ⛔ **GATED** — obtain approval, then re-run `bench:feed-load` against provisioned DynamoDB at the target concurrency and record a Load Measurement with `transport: http` and the real datastore. This is the only task that can close `002/SC-002` (FR-008)
 
 ### Conditional — only if T051 attributes the ceiling to the application
 
-- [ ] T053 [US2] **Conditional.** If and only if T051 names the application as the bottleneck, design the D1 hybrid in `specs/002-production-readiness/research.md`: candidate references for high-volume interests only, with `VisibilityFilter` still running at read time over every candidate
-- [ ] T054 [US2] **Conditional.** Implement the candidate index write path in `apps/api/src/modules/feed/`, touching `feed.service.ts` — single-owner file, do not edit concurrently with T055
-- [ ] T055 [US2] **Conditional.** Implement the read path in `apps/api/src/modules/feed/feed.service.ts` so materialised candidates and read-time assembly merge behind one interface
-- [ ] T056 [US2] **Conditional.** Re-run `bench:feed-load` and record whether the budget is met at the target concurrency
+**T051 attributed the ceiling to the datastore (the emulator), not the
+application. These four are therefore NOT APPLICABLE, marked `[~]` rather than
+ticked.** Ticking them would claim work that was correctly not done; leaving them
+open would suggest work still owed.
+
+- [~] T053 [US2] **Conditional.** **NOT APPLICABLE** — If and only if T051 names the application as the bottleneck, design the D1 hybrid in `specs/002-production-readiness/research.md`: candidate references for high-volume interests only, with `VisibilityFilter` still running at read time over every candidate
+- [~] T054 [US2] **Conditional.** **NOT APPLICABLE** — Implement the candidate index write path in `apps/api/src/modules/feed/`, touching `feed.service.ts` — single-owner file, do not edit concurrently with T055
+- [~] T055 [US2] **Conditional.** **NOT APPLICABLE** — Implement the read path in `apps/api/src/modules/feed/feed.service.ts` so materialised candidates and read-time assembly merge behind one interface
+- [~] T056 [US2] **Conditional.** **NOT APPLICABLE** — Re-run `bench:feed-load` and record whether the budget is met at the target concurrency
 
 ### The gate — runs regardless of whether the conditional tasks ran
 
-- [ ] T057 [US2] Run `pnpm --filter @sih/api test:visibility` and confirm 294/294 across all 7 surfaces, with no surface or state removed — reject any change that reduces coverage regardless of the latency it achieves
-- [ ] T058 [US2] Add a test that flips a post's visibility **during** a concurrency run and asserts it disappears from every surface immediately — FR-007 requires the guarantee to hold under load, and T057 only exercises it at rest
-- [ ] T059 [P] [US2] Run the follow-expansion tests in `apps/api/tests/unit/follow-expansion.spec.ts` and confirm a person-follow still cannot widen a feed beyond followed interests (Principle I, 001/FR-033)
-- [ ] T060 [US2] If the budget cannot be met without weakening a guarantee, record the conflict in `specs/002-production-readiness/research.md` and raise it with the project owner — do not weaken the guarantee to make the number pass (FR-011)
-- [ ] T061 [P] [US2] Update `CLAUDE.md` and `specs/001-interest-media-sharing/validation-report.md` with the attributed result, replacing the unattributed 11.8s figure
+- [X] T057 [US2] Run `pnpm --filter @sih/api test:visibility` and confirm 294/294 across all 7 surfaces, with no surface or state removed — reject any change that reduces coverage regardless of the latency it achieves
+- [X] T058 [US2] Add a test that flips a post's visibility **during** a concurrency run and asserts it disappears from every surface immediately — FR-007 requires the guarantee to hold under load, and T057 only exercises it at rest
+- [X] T059 [P] [US2] Run the follow-expansion tests in `apps/api/tests/unit/follow-expansion.spec.ts` and confirm a person-follow still cannot widen a feed beyond followed interests (Principle I, 001/FR-033)
+- [X] T060 [US2] *(No conflict arose: the budget was not missed by the design — the emulator was the ceiling. Nothing to escalate.)* If the budget cannot be met without weakening a guarantee, record the conflict in `specs/002-production-readiness/research.md` and raise it with the project owner — do not weaken the guarantee to make the number pass (FR-011)
+- [X] T061 [P] [US2] Update `CLAUDE.md` and `specs/001-interest-media-sharing/validation-report.md` with the attributed result, replacing the unattributed 11.8s figure
 
 **Checkpoint**: the latency question is answered with evidence rather than inference.
 
@@ -183,24 +188,24 @@ Writing it costs nothing and is **not** gated.
 
 ### Preparation — no approval needed, no spend
 
-- [ ] T062 [P] [US3] Write the live register `docs/verification/divergence-register.md` with D-1 object store, D-2 transcode, D-3 identity, D-4 media delivery, each carrying its `implementation` state (FR-031), per `contracts/divergence-register.md`
-- [ ] T063 [US3] Implement `infra/scripts/verify-register.ts` checking the register against the set of **capabilities** that have a production path — not against the file list in `apps/api/src/adapters/aws/`, since D-4 legitimately has no file yet — and wire it into CI as `verify:register`
-- [ ] T064 [P] [US3] Add a test asserting DynamoDB is **absent** from the register, so a future contributor cannot add a spurious entry and make completeness unfalsifiable (research R4, 001/D9)
-- [ ] T065 [P] [US3] Write the D-1 runbook in `docs/verification/runbooks/d1-object-store.md`, stating the proof before the run: presign semantics, consistency, and error taxonomy behave as the local path does
-- [ ] T066 [P] [US3] Write the D-2 runbook in `docs/verification/runbooks/d2-transcode.md`, whose proof is both `002/SC-005` (95% of videos playable within 60 seconds) **and** FR-017 (location metadata absent by the time anyone can read the media, driven as a hostile client would)
-- [ ] T067 [P] [US3] Write the D-3 runbook in `docs/verification/runbooks/d3-identity.md` covering token shape, claims, expiry and refresh
-- [ ] T068 [P] [US3] Write the D-4 runbook in `docs/verification/runbooks/d4-media-delivery.md`, whose proof includes that an unauthorised viewer requesting media directly does not receive it (FR-019)
-- [ ] T069 [US3] Implement `infra/scripts/verify-teardown.ts` listing resources by run tag and failing if any survive, invoked as its own command and never from a `finally` block (research R6)
-- [ ] T070 [P] [US3] Implement `infra/scripts/spend-report.ts` recording actual spend per run against its approval ceiling
-- [ ] T071 [P] [US3] Add `docs/verification/runs/TEMPLATE-verification-run.md` and the Approval Record format in `docs/verification/approvals.md`
-- [ ] T072 [US3] Dry-run `verify:teardown --dry-run` and `pnpm --filter @sih/infra synth` and confirm both work with no account and no credentials
+- [X] T062 [P] [US3] Write the live register `docs/verification/divergence-register.md` with D-1 object store, D-2 transcode, D-3 identity, D-4 media delivery, each carrying its `implementation` state (FR-031), per `contracts/divergence-register.md`
+- [X] T063 [US3] Implement `infra/scripts/verify-register.ts` checking the register against the set of **capabilities** that have a production path — not against the file list in `apps/api/src/adapters/aws/`, since D-4 legitimately has no file yet — and wire it into CI as `verify:register`
+- [X] T064 [P] [US3] Add a test asserting DynamoDB is **absent** from the register, so a future contributor cannot add a spurious entry and make completeness unfalsifiable (research R4, 001/D9)
+- [X] T065 [P] [US3] Write the D-1 runbook in `docs/verification/runbooks/d1-object-store.md`, stating the proof before the run: presign semantics, consistency, and error taxonomy behave as the local path does
+- [X] T066 [P] [US3] Write the D-2 runbook in `docs/verification/runbooks/d2-transcode.md`, whose proof is both `002/SC-005` (95% of videos playable within 60 seconds) **and** FR-017 (location metadata absent by the time anyone can read the media, driven as a hostile client would)
+- [X] T067 [P] [US3] Write the D-3 runbook in `docs/verification/runbooks/d3-identity.md` covering token shape, claims, expiry and refresh
+- [X] T068 [P] [US3] Write the D-4 runbook in `docs/verification/runbooks/d4-media-delivery.md`, whose proof includes that an unauthorised viewer requesting media directly does not receive it (FR-019)
+- [X] T069 [US3] Implement `infra/scripts/verify-teardown.ts` listing resources by run tag and failing if any survive, invoked as its own command and never from a `finally` block (research R6)
+- [X] T070 [P] [US3] Implement `infra/scripts/spend-report.ts` recording actual spend per run against its approval ceiling
+- [X] T071 [P] [US3] Add `docs/verification/runs/TEMPLATE-verification-run.md` and the Approval Record format in `docs/verification/approvals.md`
+- [X] T072 [US3] Dry-run `verify:teardown --dry-run` and `pnpm --filter @sih/infra synth` and confirm both work with no account and no credentials
 
 ### Implementation — the production code that does not exist yet (no approval needed)
 
-- [ ] T073 [US3] Implement `MediaConvertMediaProcessor` in `apps/api/src/adapters/aws/mediaconvert-media-processor.ts`, replacing the three `NOT_PROVISIONED` throws, including `processImage` location-metadata stripping (FR-017) — unit-tested against a mocked SDK, since running it is gated
-- [ ] T074 [US3] Implement `CognitoIdentityProvider.verify()` in `apps/api/src/adapters/aws/cognito-identity-provider.ts`, replacing the `NOT_PROVISIONED` throw
-- [ ] T075 [P] [US3] Create the media-delivery adapter in `apps/api/src/adapters/aws/` for D-4 — no file exists today, so the CDN path has no implementation at all
-- [ ] T076 [US3] Add a port-parity test in `apps/api/tests/contract/` asserting every `aws` adapter implements every port method and that none throws `NOT_PROVISIONED` — this is what makes a missing production implementation fail a build instead of waiting for an analysis pass
+- [X] T073 [US3] Implement `MediaConvertMediaProcessor` in `apps/api/src/adapters/aws/mediaconvert-media-processor.ts`, replacing the three `NOT_PROVISIONED` throws, including `processImage` location-metadata stripping (FR-017) — unit-tested against a mocked SDK, since running it is gated
+- [X] T074 [US3] Implement `CognitoIdentityProvider.verify()` in `apps/api/src/adapters/aws/cognito-identity-provider.ts`, replacing the `NOT_PROVISIONED` throw
+- [X] T075 [P] [US3] Create the media-delivery adapter in `apps/api/src/adapters/aws/` for D-4 — no file exists today, so the CDN path has no implementation at all
+- [X] T076 [US3] Add a port-parity test in `apps/api/tests/contract/` asserting every `aws` adapter implements every port method and that none throws `NOT_PROVISIONED` — this is what makes a missing production implementation fail a build instead of waiting for an analysis pass
 
 ### The verifications themselves
 

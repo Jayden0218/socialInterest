@@ -26,12 +26,21 @@ importers:
 
   apps/api:
     dependencies:
+      '@aws-sdk/client-cognito-identity-provider':
+        specifier: ^3.1127.0
+        version: 3.1127.0
       '@aws-sdk/client-dynamodb':
         specifier: ^3.712.0
+        version: 3.1127.0
+      '@aws-sdk/client-mediaconvert':
+        specifier: ^3.1127.0
         version: 3.1127.0
       '@aws-sdk/client-s3':
         specifier: ^3.712.0
         version: 3.1127.0
+      '@aws-sdk/cloudfront-signer':
+        specifier: ^3.1125.0
+        version: 3.1125.0
       '@aws-sdk/lib-dynamodb':
         specifier: ^3.712.0
         version: 3.1127.0(@aws-sdk/client-dynamodb@3.1127.0)
@@ -50,6 +59,9 @@ importers:
       '@sih/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      aws-jwt-verify:
+        specifier: ^5.2.1
+        version: 5.2.1
       jsonwebtoken:
         specifier: ^9.0.2
         version: 9.0.3
@@ -280,12 +292,24 @@ packages:
     resolution: {integrity: sha512-Dtu0gr4dnATZAPwEYbpCsG+MpLM7OAliy2gTepEFQwl1vZ6DL3QMH2FveMa3HLvPsOdhJsPRB3KtxVhph9T75A==}
     engines: {node: '>=20.0.0'}
 
+  '@aws-sdk/client-cognito-identity-provider@3.1127.0':
+    resolution: {integrity: sha512-h0mINSImCeIbXxvr3b4e1ae5ZU5bedsyXUH13peYmhtjOW/fH/vZWwf01hnv371WAa/P4HlqaYJ3aF7yJ2BD3g==}
+    engines: {node: '>=20.0.0'}
+
   '@aws-sdk/client-dynamodb@3.1127.0':
     resolution: {integrity: sha512-rV9TC7gqtwekWR9jXBdzuvCG65fnv7jphnYdJmFBfLX1b0Q+ma3xijzZaGGeN+US2pKw/XaQiZapJX/nZqtBJw==}
     engines: {node: '>=20.0.0'}
 
+  '@aws-sdk/client-mediaconvert@3.1127.0':
+    resolution: {integrity: sha512-TvNE3if2Sevi0E7A3ai67hNg4QilANbValMo0rHO1lA5Ncnw2UInWE6DdptQy8dCVTJINocLOrKiOpCYx95mGg==}
+    engines: {node: '>=20.0.0'}
+
   '@aws-sdk/client-s3@3.1127.0':
     resolution: {integrity: sha512-0ZSAgmEda33xPqVPt+bx2KzrXV1cUCKRRVPGliLu+V7DzHPa04CqPSi1maGEM4O0LDP0iI6HRSW5ULloNwayNw==}
+    engines: {node: '>=20.0.0'}
+
+  '@aws-sdk/cloudfront-signer@3.1125.0':
+    resolution: {integrity: sha512-1RDqOyOMHTmDqu1JHsONNVKBVunrFgOcYJv9Un0ZIovLa8zW7ps/dQfezA28hjub7Z1ADhtubM8f50daBAMkQA==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/core@3.977.9':
@@ -1852,6 +1876,10 @@ packages:
 
   asynckit@0.4.0:
     resolution: {integrity: sha512-Oei9OH4tRh0YqU3GxhX79dM/mwVgvbZJaSNaRk+bshkj0S5cfHcgYakreBjrHwatXKbz+IoIdYLxrKim2MjW0Q==}
+
+  aws-jwt-verify@5.2.1:
+    resolution: {integrity: sha512-J+buA4M+qvQDk58WXFBLkDodkEX3DDL1ac5XFQPW3opxAsaLXYu5hYnlSHsaBRDBUXBAn695kE/cw/mdyJKwJg==}
+    engines: {node: '>=18.0.0'}
 
   babel-jest@29.7.0:
     resolution: {integrity: sha512-BrvGY3xZSwEcCzKvKsCi2GgHqDqsYkOP4/by5xCgIwGXQxIEh+8ew3gmrE1y7XRR6LHZIj6yLYnUi/mm2KXKBg==}
@@ -4579,12 +4607,34 @@ snapshots:
       '@smithy/types': 4.18.0
       tslib: 2.8.1
 
+  '@aws-sdk/client-cognito-identity-provider@3.1127.0':
+    dependencies:
+      '@aws-sdk/core': 3.977.9
+      '@aws-sdk/credential-provider-node': 3.972.82
+      '@aws-sdk/types': 3.974.5
+      '@smithy/core': 3.33.3
+      '@smithy/fetch-http-handler': 5.8.0
+      '@smithy/node-http-handler': 4.12.1
+      '@smithy/types': 4.18.0
+      tslib: 2.8.1
+
   '@aws-sdk/client-dynamodb@3.1127.0':
     dependencies:
       '@aws-sdk/core': 3.977.9
       '@aws-sdk/credential-provider-node': 3.972.82
       '@aws-sdk/dynamodb-codec': 3.973.44
       '@aws-sdk/middleware-endpoint-discovery': 3.972.30
+      '@aws-sdk/types': 3.974.5
+      '@smithy/core': 3.33.3
+      '@smithy/fetch-http-handler': 5.8.0
+      '@smithy/node-http-handler': 4.12.1
+      '@smithy/types': 4.18.0
+      tslib: 2.8.1
+
+  '@aws-sdk/client-mediaconvert@3.1127.0':
+    dependencies:
+      '@aws-sdk/core': 3.977.9
+      '@aws-sdk/credential-provider-node': 3.972.82
       '@aws-sdk/types': 3.974.5
       '@smithy/core': 3.33.3
       '@smithy/fetch-http-handler': 5.8.0
@@ -4604,6 +4654,11 @@ snapshots:
       '@smithy/fetch-http-handler': 5.8.0
       '@smithy/node-http-handler': 4.12.1
       '@smithy/types': 4.18.0
+      tslib: 2.8.1
+
+  '@aws-sdk/cloudfront-signer@3.1125.0':
+    dependencies:
+      '@smithy/core': 3.33.3
       tslib: 2.8.1
 
   '@aws-sdk/core@3.977.9':
@@ -6691,6 +6746,8 @@ snapshots:
   async-limiter@1.0.1: {}
 
   asynckit@0.4.0: {}
+
+  aws-jwt-verify@5.2.1: {}
 
   babel-jest@29.7.0(@babel/core@7.29.7):
     dependencies:

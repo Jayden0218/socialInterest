@@ -48,19 +48,20 @@ been made.
 - **Read-time feed assembly, not fan-out-on-write** (D1). Forced by FR-017 + SC-009: a
   visibility flip must land everywhere immediately, which materialised timelines cannot
   guarantee. Do not "optimise" this into precomputed timelines.
-  **Measured 2026-09-05**: fine at rest (p95 343ms at the 200-follow cap) but
-  **over budget under concurrency** (p95 11.8s at 100 concurrent, budget 2s) on
-  DynamoDB Local. **Do not cite that figure as evidence about the design.** The
-  harness calls `feed.homeFeed()` in-process, issues its concurrency as
-  `Promise.all` from one Node event loop, and hits single-process DynamoDB Local
-  — so it exercises no HTTP layer and cannot distinguish the architecture from
-  the emulator. Spec 002 (R1) reworks it over HTTP and adds `bench:ceiling` to
-  attribute the bottleneck first. The read-time fan-in coupling is real
-  arithmetic; whether it is the *observed* ceiling is not yet established.
-  If it turns out to be, the answer is the **hybrid** in D1 — materialise the
-  high-volume interests only, holding candidate references with
-  `VisibilityFilter` still running at read time — **not** full
-  fan-out-on-write, which FR-017 and SC-009 still forbid.
+  **Measured 2026-09-05, attributed (spec 002 R1)**: the ceiling is
+  **DynamoDB Local**, not the design. `bench:ceiling` measured the three limits
+  apart — generator 187,439 req/s, **emulator 827 req/s**, application shape with
+  a stubbed datastore 5,574 req/s. `bench:feed-load`, now driven over HTTP, shows
+  throughput **flat at 6-7 req/s** across concurrency 1→100 while p95 rises
+  368ms→6,463ms: a saturated dependency, not an algorithm out of headroom.
+  At rest the feed is comfortable — p50 183ms at the 200-follow cap over 100k
+  posts. **001's p95 11.8s figure measured the emulator and must not be cited as
+  evidence about D1**; neither may this run. `002/SC-002` (10,000 concurrent) is
+  **unverified** and only a provisioned-DynamoDB run can close it — gated on the
+  owner's approval. The D1 hybrid is **not warranted on this evidence**; if a
+  later run does implicate the design, the hybrid holds candidate references with
+  `VisibilityFilter` still at read time — **not** fan-out-on-write, which FR-017
+  and SC-009 still forbid.
 - **`VisibilityFilter` is a top-level module, not a helper in `posts/`** (D6). Six
   hand-written predicates is six silent leaks. Never inline a visibility check.
 - **DynamoDB has no adapter; every other managed service does** (D9). DynamoDB Local

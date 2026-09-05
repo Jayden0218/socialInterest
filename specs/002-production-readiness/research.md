@@ -34,6 +34,45 @@ multiply concurrency by follow count at the datastore; that is arithmetic. What 
 established is whether the *observed* ceiling is that arithmetic or the emulator. This is a
 measurement-validity problem (FR-012), and it is cheap to resolve.
 
+### Result (T051, measured 2026-09-05)
+
+**The emulator is the binding constraint. The feed design is not implicated.**
+
+`bench:ceiling` measured the three candidate limits separately:
+
+| Subject | Peak req/s |
+|---|---|
+| Load generator | 187,439 |
+| **DynamoDB Local** | **827** |
+| Application shape, datastore stubbed | 5,574 |
+
+`bench:feed-load`, now driven over HTTP against a booted API process with 100,000
+seeded posts, produced throughput that is **flat at 6–7 req/s at every concurrency
+level** (1, 10, 50, 100) while p95 rose from 368 ms to 6,463 ms in direct
+proportion. Flat throughput with proportional latency is the signature of a
+saturated dependency, not of an algorithm running out of headroom: a system
+limited by its own fan-in arithmetic would keep converting concurrency into
+throughput until CPU ran out.
+
+The arithmetic agrees. At ~7 feed requests per second with the 200-follow cap,
+the feed issues on the order of 1,400 datastore operations per second — past the
+827 req/s DynamoDB Local sustains, and its fan-in queries are heavier than the
+`DescribeTable` calls that ceiling was measured with.
+
+**Consequences.**
+
+1. Feature 001's headline figure (p95 11.8s at 100 concurrent) is not evidence
+   about read-time fan-in, and neither is this run. Both measure DynamoDB Local.
+2. The D1 hybrid is **not warranted on this evidence**. Tasks T053–T056 are
+   conditional on the application being the bottleneck; it is not, so they are
+   **not applicable** rather than done.
+3. `002/SC-002` stays **unverified**. Only T052 — a run against provisioned
+   DynamoDB, gated on approval — can close it.
+4. The feed is comfortable at rest: p50 183 ms at concurrency 1 with a
+   200-interest fan-in across 100,000 posts, zero errors at every level.
+
+Full record: `docs/verification/runs/2026-09-05-load.md`.
+
 **Alternatives considered**:
 
 - *Adopt the D1 hybrid immediately.* Rejected: it is a significant change to the read path,

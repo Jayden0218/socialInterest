@@ -25,7 +25,7 @@ export interface AppConfig {
     forcePathStyle: boolean;
     credentials?: { accessKeyId: string; secretAccessKey: string };
   };
-  identity: { jwtSecret: string; issuer: string };
+  identity: { jwtSecret: string; issuer: string; userPoolId?: string; clientId?: string };
   media: { ffmpegImage: string; dispatchOnCreate: boolean };
 }
 
@@ -60,6 +60,10 @@ export function loadConfig(): AppConfig {
     identity: {
       jwtSecret: str('LOCAL_JWT_SECRET', isLocal ? 'dev-only-not-a-real-secret' : ''),
       issuer: str('JWT_ISSUER', 'sih-local'),
+      // Required in the aws profile. Deliberately no default: selecting `aws`
+      // without a pool must fail at boot, not reject every request at runtime
+      // and look like a broken login.
+      ...(isLocal ? {} : { userPoolId: str('COGNITO_USER_POOL_ID'), clientId: str('COGNITO_CLIENT_ID') }),
     },
     media: {
       ffmpegImage: str('FFMPEG_IMAGE', 'linuxserver/ffmpeg:latest'),

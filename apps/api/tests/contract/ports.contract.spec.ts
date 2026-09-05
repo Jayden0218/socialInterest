@@ -63,22 +63,55 @@ describe('IdentityProvider port', () => {
     expect(await idp.verify('not-a-token')).toBeNull();
   });
 
-  it('CognitoIdentityProvider conforms to the port and fails loudly when unprovisioned', async () => {
-    // Deliberately throws rather than returning null: selecting the aws profile
-    // without provisioning must fail visibly, not silently reject every request.
-    const idp = new CognitoIdentityProvider();
+  it('CognitoIdentityProvider conforms to the port and rejects a token it cannot verify', async () => {
+    // Now a real implementation (002/T074). It has never run against a user pool -
+    // see the divergence register, D-3 - so this asserts the port shape and the
+    // refusal path only. An unverifiable token is "not a caller", i.e. null, the
+    // same answer the local issuer gives.
+    const idp = new CognitoIdentityProvider({ userPoolId: 'eu-west-1_test', clientId: 'test-client' });
     expect(typeof idp.verify).toBe('function');
-    await expect(idp.verify('x')).rejects.toThrow(/not provisioned/i);
+    await expect(idp.verify('not-a-token')).resolves.toBeNull();
+  });
+
+  it('selecting the aws profile without a user pool fails at boot, not per request', () => {
+    // A misconfigured deployment must be loud. Rejecting every request instead
+    // would look like every password being wrong.
+    const previous = { ...process.env };
+    process.env['RUNTIME_PROFILE'] = 'aws';
+    delete process.env['COGNITO_USER_POOL_ID'];
+    try {
+      expect(() => loadConfig()).toThrow(/COGNITO_USER_POOL_ID/);
+    } finally {
+      process.env = previous;
+    }
   });
 });
 
 describe('MediaProcessor port', () => {
-  it('MediaConvert adapter conforms and fails loudly when unprovisioned', async () => {
-    const mp = new MediaConvertMediaProcessor();
+  it('MediaConvert adapter conforms to the port', () => {
+    // A real implementation as of 002/T073, never executed against a queue - see
+    // the divergence register, D-2. Only the shape is asserted here; the
+    // behaviour is what d2-transcode.md verifies, and that is gated on approval.
+    const mp = new MediaConvertMediaProcessor({
+      region: 'eu-west-1',
+      role: 'arn:aws:iam::000000000000:role/test',
+      bucket: 'test-bucket',
+    });
     for (const m of ['submitVideoJob', 'getJob', 'processImage'] as const) {
       expect(typeof mp[m]).toBe('function');
     }
-    await expect(mp.submitVideoJob()).rejects.toThrow(/not provisioned/i);
+  });
+
+  it('MediaConvert refuses images rather than returning unstripped bytes (FR-010)', async () => {
+    // MediaConvert is a video service. An image arriving here means the wiring is
+    // wrong, and quietly passing the original through would break the
+    // server-side location strip.
+    const mp = new MediaConvertMediaProcessor({
+      region: 'eu-west-1',
+      role: 'arn:aws:iam::000000000000:role/test',
+      bucket: 'test-bucket',
+    });
+    await expect(mp.processImage()).rejects.toThrow(/does not process images/i);
   });
 });
 

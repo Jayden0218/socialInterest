@@ -35,14 +35,25 @@ const providers: Provider[] = [
     inject: [CONFIG, OBJECT_STORE],
     useFactory: (config: AppConfig, store: ObjectStore) =>
       config.profile === 'aws'
-        ? new MediaConvertMediaProcessor()
+        ? new MediaConvertMediaProcessor({
+            region: config.objectStore.region,
+            role: process.env['MEDIACONVERT_ROLE'] ?? '',
+            bucket: config.objectStore.bucket,
+            ...(process.env['MEDIACONVERT_QUEUE'] ? { queue: process.env['MEDIACONVERT_QUEUE'] } : {}),
+            ...(process.env['MEDIACONVERT_ENDPOINT'] ? { endpoint: process.env['MEDIACONVERT_ENDPOINT'] } : {}),
+          })
         : new FfmpegMediaProcessor(config, store),
   },
   {
     provide: IDENTITY_PROVIDER,
     inject: [CONFIG],
     useFactory: (config: AppConfig) =>
-      config.profile === 'aws' ? new CognitoIdentityProvider() : new LocalIdentityProvider(config),
+      config.profile === 'aws'
+        ? new CognitoIdentityProvider({
+            userPoolId: config.identity.userPoolId!,
+            clientId: config.identity.clientId!,
+          })
+        : new LocalIdentityProvider(config),
   },
   { provide: EVENT_BUS, useClass: InProcessEventBus },
 ];
