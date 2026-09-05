@@ -170,27 +170,27 @@ pnpm workspace monorepo per `plan.md § Project Structure`:
 
 ### Tests for User Story 2
 
-- [ ] T070 [P] [US2] Contract test for the `/interests` endpoints in `apps/api/tests/contract/interests.contract.spec.ts`
-- [ ] T071 [P] [US2] Integration test `us2-discover` covering the five acceptance scenarios in `apps/api/tests/integration/us2-discover.spec.ts`
-- [ ] T072 [P] [US2] Unit-test near-duplicate matching against the normalised name and parent scope in `apps/api/tests/unit/interest-similarity.spec.ts`
+- [x] T070 [P] [US2] Contract test for the `/interests` endpoints in `apps/api/tests/contract/interests.contract.spec.ts`
+- [x] T071 [P] [US2] Integration test `us2-discover` covering the five acceptance scenarios in `apps/api/tests/integration/us2-discover.spec.ts`
+- [x] T072 [P] [US2] Unit-test near-duplicate matching against the normalised name and parent scope in `apps/api/tests/unit/interest-similarity.spec.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T073 [US2] Implement two-level hierarchy validation rejecting deeper nesting and non-top-level parents in `apps/api/src/modules/interests/hierarchy.validator.ts` (FR-020)
-- [ ] T074 [US2] Implement prefix and fuzzy matching over the cached catalogue in `apps/api/src/modules/interests/catalogue.search.ts` (FR-023, FR-026 — research §D3)
-- [ ] T075 [US2] Implement content-policy screening of a proposed sub-interest name in `apps/api/src/modules/interests/name-policy.ts` (FR-031 — without this an abusive name goes live and stays live until someone happens to report it)
-- [ ] T076 [US2] Implement `InterestService.createSubInterest` with a conditional write on the GSI3 key in `apps/api/src/modules/interests/interest.service.ts` (FR-022, FR-023, FR-031 — rejects on a name-policy violation before the conditional write)
-- [ ] T077 [US2] Implement `GET /interests` browse and type-ahead search in `apps/api/src/modules/interests/interest.controller.ts` (FR-025, FR-026)
-- [ ] T078 [US2] Implement `GET /interests/similar` so the duplicate warning appears while typing, not as a rejection, in `apps/api/src/modules/interests/interest.controller.ts` (FR-023)
-- [ ] T079 [US2] Implement `POST /interests` returning 409 with candidates on near-duplicate in `apps/api/src/modules/interests/interest.controller.ts` (FR-022, FR-023)
-- [ ] T080 [US2] Implement `GET /interests/{interestId}` including sub-interests for top-level and a 301 for merged in `apps/api/src/modules/interests/interest.controller.ts` (FR-025, FR-030)
-- [ ] T081 [US2] Implement `GET /interests/{interestId}/posts` with parent roll-up, visibility filtering, and cursor paging in `apps/api/src/modules/interests/interest-posts.controller.ts` (FR-024, FR-025, FR-035)
-- [ ] T082 [US2] Enable the interest-search surface in the visibility matrix suite in `apps/api/tests/visibility/matrix.spec.ts` (post counts must not leak restricted posts)
-- [ ] T083 [P] [US2] Build the interest browse screen listing sub-interests and rolled-up posts in `apps/mobile/src/features/discover/InterestScreen.tsx`
-- [ ] T084 [P] [US2] Build interest type-ahead search showing each sub-interest's parent in `apps/mobile/src/features/discover/InterestSearchScreen.tsx` (FR-026)
-- [ ] T085 [P] [US2] Build the sub-interest creation flow surfacing near-duplicates before submission in `apps/mobile/src/features/discover/CreateInterestScreen.tsx`
-- [ ] T086 [P] [US2] Implement cursor-paged infinite scroll preserving position in `apps/mobile/src/components/PagedPostList.tsx` (FR-035)
-- [ ] T087 [P] [US2] Add the Maestro browse-journey flow in `apps/mobile/e2e/us2-discover.yaml`
+- [x] T073 [US2] Implement two-level hierarchy validation rejecting deeper nesting and non-top-level parents in `apps/api/src/modules/interests/hierarchy.validator.ts` (FR-020)
+- [x] T074 [US2] Implement prefix and fuzzy matching over the cached catalogue in `apps/api/src/modules/interests/catalogue.search.ts` (FR-023, FR-026 — research §D3)
+- [x] T075 [US2] Implement content-policy screening of a proposed sub-interest name in `apps/api/src/modules/interests/name-policy.ts` (FR-031 — without this an abusive name goes live and stays live until someone happens to report it)
+- [x] T076 [US2] Implement `InterestService.createSubInterest` with a conditional write on the GSI3 key in `apps/api/src/modules/interests/interest.service.ts` (FR-022, FR-023, FR-031 — rejects on a name-policy violation before the conditional write)
+- [x] T077 [US2] Implement `GET /interests` browse and type-ahead search in `apps/api/src/modules/interests/interest.controller.ts` (FR-025, FR-026)
+- [x] T078 [US2] Implement `GET /interests/similar` so the duplicate warning appears while typing, not as a rejection, in `apps/api/src/modules/interests/interest.controller.ts` (FR-023)
+- [x] T079 [US2] Implement `POST /interests` returning 409 with candidates on near-duplicate in `apps/api/src/modules/interests/interest.controller.ts` (FR-022, FR-023)
+- [x] T080 [US2] Implement `GET /interests/{interestId}` including sub-interests for top-level and a 301 for merged in `apps/api/src/modules/interests/interest.controller.ts` (FR-025, FR-030)
+- [x] T081 [US2] Implement `GET /interests/{interestId}/posts` with parent roll-up, visibility filtering, and cursor paging in `apps/api/src/modules/interests/interest-posts.controller.ts` (FR-024, FR-025, FR-035)
+- [x] T082 [US2] Enable the interest-search surface in the visibility matrix suite in `apps/api/tests/visibility/matrix.spec.ts` (post counts must not leak restricted posts)
+- [x] T083 [P] [US2] Build the interest browse screen listing sub-interests and rolled-up posts in `apps/mobile/src/features/discover/InterestScreen.tsx`
+- [x] T084 [P] [US2] Build interest type-ahead search showing each sub-interest's parent in `apps/mobile/src/features/discover/InterestSearchScreen.tsx` (FR-026)
+- [x] T085 [P] [US2] Build the sub-interest creation flow surfacing near-duplicates before submission in `apps/mobile/src/features/discover/CreateInterestScreen.tsx`
+- [x] T086 [P] [US2] Implement cursor-paged infinite scroll preserving position in `apps/mobile/src/components/PagedPostList.tsx` (FR-035)
+- [x] T087 [P] [US2] Add the Maestro browse-journey flow in `apps/mobile/e2e/us2-discover.yaml`
 
 **Checkpoint**: US1 and US2 both work independently.
 

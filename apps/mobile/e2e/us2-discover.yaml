@@ -1,0 +1,31 @@
+# Maestro flow for the US2 browse journey.
+appId: app.socialinterest
+name: US2 - discover content by interest
+---
+- launchApp:
+    clearState: true
+
+# FR-025: browse the curated top level without signing in.
+- tapOn: 'Discover'
+- assertVisible:
+    id: 'interest-list'
+
+# FR-024: a top-level interest lists its sub-interests and rolls up their posts.
+- tapOn:
+    id: 'interest-option-0'
+- assertVisible:
+    id: 'sub-interest-list'
+- assertVisible: 'Including posts from'
+
+# FR-035: scrolling loads older posts without losing position.
+- scroll
+- scroll
+- assertVisible:
+    id: 'post-card-0'
+
+# FR-026: type-ahead across both levels, each sub-interest showing its parent.
+- tapOn: 'Search interests'
+- inputText: 'phot'
+- assertVisible:
+    id: 'search-result-0'
+- assertVisible: '·'

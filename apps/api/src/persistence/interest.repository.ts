@@ -25,6 +25,25 @@ export class InterestRepository extends BaseRepository {
     return this.getItem<InterestItem>(keys.interest(interestId));
   }
 
+  /**
+   * FR-022 / FR-023. The catalogue cache is checked first for a friendly
+   * duplicate response, but the cache can be stale by microseconds under
+   * concurrent creation - so the write itself is conditional on the item not
+   * existing. The uniqueness that matters is enforced here, not in memory.
+   */
+  async createSubInterest(item: InterestItem): Promise<void> {
+    await this.putItem(
+      {
+        ...keys.interest(item.interestId),
+        ...keys.interestBySlug(item.slug),
+        ...keys.interestHierarchy(item.parentId ?? null, item.nameNormalised),
+        type: 'Interest',
+        ...item,
+      },
+      'attribute_not_exists(pk)',
+    );
+  }
+
   async findBySlug(slug: string): Promise<InterestItem | null> {
     const page = await this.query<InterestItem>(`ISLUG#${slug}`, { indexName: 'gsi1', limit: 1 });
     return page.items[0] ?? null;

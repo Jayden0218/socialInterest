@@ -58,7 +58,10 @@ const SURFACES = [
   // asserts the HTTP surfaces call them.
   { name: 'interest space',   built: true,  story: 'US1 (T063)' },
   { name: 'profile',          built: true,  story: 'US1 (T063)' },
-  { name: 'interest search',  built: false, story: 'US2 (T082)' },
+  // Built by US2: the interest listing goes through PostQueryService.listByInterest,
+  // and interest search returns no post content of its own - post counts come
+  // from the same filtered path. See tests/integration/us2-discover.spec.ts.
+  { name: 'interest search',  built: true,  story: 'US2 (T082)' },
   { name: 'home feed',        built: false, story: 'US3 (T098)' },
   { name: 'share link',       built: false, story: 'US5 (T122)' },
   { name: 'comments',         built: false, story: 'US5 (T122)' },

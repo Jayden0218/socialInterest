@@ -14,6 +14,13 @@ export interface Problem {
   status: number;
   detail?: string;
   errors?: { field: string; message: string }[];
+  /**
+   * RFC 9457 permits extension members, and some responses depend on them - the
+   * near-duplicate 409 carries `candidates` so the client can offer "join this
+   * one instead" (FR-023). The filter must pass them through rather than
+   * rebuilding the body from known keys only.
+   */
+  [extension: string]: unknown;
 }
 
 /** Domain errors that map onto a specific status without leaking internals. */
@@ -40,16 +47,22 @@ export class ProblemFilter implements ExceptionFilter {
     let title = 'Internal Server Error';
     let detail: string | undefined;
     let errors: Problem['errors'];
+    let extensions: Record<string, unknown> = {};
 
     if (exception instanceof HttpException) {
       const body = exception.getResponse();
       if (typeof body === 'string') {
         title = body;
       } else if (body && typeof body === 'object') {
-        const b = body as Record<string, unknown>;
-        title = (b['title'] as string) ?? (b['error'] as string) ?? exception.message;
-        detail = b['detail'] as string | undefined;
-        errors = b['errors'] as Problem['errors'];
+        const { title: t, error, detail: d, errors: e, message, statusCode, ...rest } =
+          body as Record<string, unknown>;
+        title = (t as string) ?? (error as string) ?? exception.message;
+        detail = d as string | undefined;
+        errors = e as Problem['errors'];
+        // Anything else the thrower attached is an RFC 9457 extension member.
+        extensions = rest;
+        void message;
+        void statusCode;
       }
     } else {
       // Never surface an unexpected error's message to the caller.
@@ -62,6 +75,7 @@ export class ProblemFilter implements ExceptionFilter {
       status,
       ...(detail ? { detail } : {}),
       ...(errors ? { errors } : {}),
+      ...extensions,
     };
 
     res.status(status).type('application/problem+json').send(problem);
