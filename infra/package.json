@@ -1,0 +1,27 @@
+{
+  "name": "@sih/infra",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "db:create-local": "tsx scripts/create-local-table.ts",
+    "s3:create-local": "tsx scripts/create-local-bucket.ts",
+    "seed:catalogue": "tsx scripts/seed-catalogue.ts",
+    "verify:local": "tsx scripts/verify-local.ts",
+    "synth": "echo 'cdk synth is validation only - deploying requires explicit approval (plan.md Cost Posture)'"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.712.0",
+    "@aws-sdk/client-s3": "^3.712.0",
+    "@aws-sdk/lib-dynamodb": "^3.712.0",
+    "@aws-sdk/s3-request-presigner": "^3.712.0",
+    "jsonwebtoken": "^9.0.2",
+    "ulid": "^2.3.0"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

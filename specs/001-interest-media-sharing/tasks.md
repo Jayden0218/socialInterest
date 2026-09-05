@@ -43,21 +43,21 @@ pnpm workspace monorepo per `plan.md § Project Structure`:
 
 **Purpose**: Workspace, tooling, and the local Docker profile everything else runs on.
 
-- [ ] T001 Create pnpm workspace root with `pnpm-workspace.yaml`, root `package.json`, and shared `tsconfig.base.json` at repository root
-- [ ] T002 [P] Configure ESLint and Prettier with a shared config in `packages/config/eslint.config.js` and `packages/config/prettier.config.js`
-- [ ] T003 [P] Create `.env.example` at repository root with `RUNTIME_PROFILE=local`, DynamoDB/MinIO endpoints, table name `sih-main`, and bucket name `sih-media`
-- [ ] T004 Create `docker-compose.yml` at repository root running DynamoDB Local on `:8000` and MinIO on `:9000`/`:9001`, per `quickstart.md § Setup`
-- [ ] T005 [P] Scaffold `packages/shared/` with `package.json`, `tsconfig.json`, and `src/index.ts`
-- [ ] T006 [P] Scaffold NestJS app in `apps/api/` with `package.json`, `nest-cli.json`, and `src/main.ts`
-- [ ] T007 [P] Scaffold Expo development-build app in `apps/mobile/` with `app.config.ts` and `src/App.tsx` (dev build, not Expo Go — research §D4)
-- [ ] T008 [P] Scaffold worker handlers package in `apps/workers/` with `package.json` and `src/index.ts`
-- [ ] T009 [P] Scaffold CDK app in `infra/` with `cdk.json` and `bin/infra.ts` — **synth only; no deploy, bootstrap, or credentials**
-- [ ] T010 [P] Configure Jest projects for unit, integration, contract, and visibility suites in `apps/api/jest.config.ts`
-- [ ] T011 Implement `db:create-local` creating the `sih-main` single table with GSI1–GSI4 in `infra/scripts/create-local-table.ts`, matching `data-model.md § Key schema`
-- [ ] T012 [P] Implement `s3:create-local` creating the `sih-media` bucket in `infra/scripts/create-local-bucket.ts`
-- [ ] T013 Implement `seed:catalogue` writing the starting top-level interests in `infra/scripts/seed-catalogue.ts` (FR-021; a launch prerequisite per `spec.md § Assumptions`)
-- [ ] T014 Implement `verify:local` asserting all four local-profile dependencies in `infra/scripts/verify-local.ts` — a `TransactWriteItems` (FR-017), a presigned PUT and readback (FR-004), an ffmpeg encode producing poster and HLS (FR-009), and a token the API accepts
-- [ ] T015 [P] Add CI workflow running lint, typecheck, and the full local-profile test suite in `.github/workflows/ci.yml` — no cloud credentials
+- [x] T001 Create pnpm workspace root with `pnpm-workspace.yaml`, root `package.json`, and shared `tsconfig.base.json` at repository root
+- [x] T002 [P] Configure ESLint and Prettier with a shared config in `packages/config/eslint.config.js` and `packages/config/prettier.config.js`
+- [x] T003 [P] Create `.env.example` at repository root with `RUNTIME_PROFILE=local`, DynamoDB/MinIO endpoints, table name `sih-main`, and bucket name `sih-media`
+- [x] T004 Create `docker-compose.yml` at repository root running DynamoDB Local on `:8000` and MinIO on `:9000`/`:9001`, per `quickstart.md § Setup`
+- [x] T005 [P] Scaffold `packages/shared/` with `package.json`, `tsconfig.json`, and `src/index.ts`
+- [x] T006 [P] Scaffold NestJS app in `apps/api/` with `package.json`, `nest-cli.json`, and `src/main.ts`
+- [x] T007 [P] Scaffold Expo development-build app in `apps/mobile/` with `app.config.ts` and `src/App.tsx` (dev build, not Expo Go — research §D4)
+- [x] T008 [P] Scaffold worker handlers package in `apps/workers/` with `package.json` and `src/index.ts`
+- [x] T009 [P] Scaffold CDK app in `infra/` with `cdk.json` and `bin/infra.ts` — **synth only; no deploy, bootstrap, or credentials**
+- [x] T010 [P] Configure Jest projects for unit, integration, contract, and visibility suites in `apps/api/jest.config.ts`
+- [x] T011 Implement `db:create-local` creating the `sih-main` single table with GSI1–GSI4 in `infra/scripts/create-local-table.ts`, matching `data-model.md § Key schema`
+- [x] T012 [P] Implement `s3:create-local` creating the `sih-media` bucket in `infra/scripts/create-local-bucket.ts`
+- [x] T013 Implement `seed:catalogue` writing the starting top-level interests in `infra/scripts/seed-catalogue.ts` (FR-021; a launch prerequisite per `spec.md § Assumptions`)
+- [x] T014 Implement `verify:local` asserting all four local-profile dependencies in `infra/scripts/verify-local.ts` — a `TransactWriteItems` (FR-017), a presigned PUT and readback (FR-004), an ffmpeg encode producing poster and HLS (FR-009), and a token the API accepts
+- [x] T015 [P] Add CI workflow running lint, typecheck, and the full local-profile test suite in `.github/workflows/ci.yml` — no cloud credentials
 
 ---
 
@@ -69,57 +69,57 @@ pnpm workspace monorepo per `plan.md § Project Structure`:
 
 ### Shared contract
 
-- [ ] T016 [P] Define shared zod schemas for `Visibility`, `ProcessingState`, and pagination in `packages/shared/src/schemas/common.ts` from `contracts/openapi.yaml`
-- [ ] T017 [P] Define shared entity types (Person, Post, Interest, MediaItem, Comment, Notification) in `packages/shared/src/types/entities.ts`
-- [ ] T018 Generate the typed API client from `contracts/openapi.yaml` into `packages/shared/src/client/` with a codegen script in `packages/shared/scripts/generate-client.ts`
+- [x] T016 [P] Define shared zod schemas for `Visibility`, `ProcessingState`, and pagination in `packages/shared/src/schemas/common.ts` from `contracts/openapi.yaml`
+- [x] T017 [P] Define shared entity types (Person, Post, Interest, MediaItem, Comment, Notification) in `packages/shared/src/types/entities.ts`
+- [x] T018 Generate the typed API client from `contracts/openapi.yaml` into `packages/shared/src/client/` with a codegen script in `packages/shared/scripts/generate-client.ts`
 
 ### Configuration and runtime profile
 
-- [ ] T019 Implement profile-aware configuration loading `RUNTIME_PROFILE` and endpoints in `apps/api/src/config/configuration.ts` (research §D9)
-- [ ] T020 Decide the video duration and size caps and express them as configuration in `apps/api/src/config/media.limits.ts` (FR-005 — carried as an open item from `plan.md § Risks`; **blocks the upload-validation task in Phase 3**, which cannot validate against an undecided number)
-- [ ] T021 [P] Implement RFC 9457 problem-detail error filter in `apps/api/src/common/errors/problem.filter.ts`
-- [ ] T022 [P] Implement structured request logging middleware in `apps/api/src/common/logging/logger.middleware.ts`
+- [x] T019 Implement profile-aware configuration loading `RUNTIME_PROFILE` and endpoints in `apps/api/src/config/configuration.ts` (research §D9)
+- [x] T020 Decide the video duration and size caps and express them as configuration in `apps/api/src/config/media.limits.ts` (FR-005 — carried as an open item from `plan.md § Risks`; **blocks the upload-validation task in Phase 3**, which cannot validate against an undecided number)
+- [x] T021 [P] Implement RFC 9457 problem-detail error filter in `apps/api/src/common/errors/problem.filter.ts`
+- [x] T022 [P] Implement structured request logging middleware in `apps/api/src/common/logging/logger.middleware.ts`
 
 ### Ports and adapters (research §D9)
 
-- [ ] T023 [P] Define the port interfaces in `apps/api/src/ports/object-store.port.ts`, `media-processor.port.ts`, `identity-provider.port.ts`, and `event-bus.port.ts`
-- [ ] T024 [P] Implement the MinIO `ObjectStore` adapter with presigned URL issuance in `apps/api/src/adapters/local/minio-object-store.ts`
-- [ ] T025 [P] Implement the ffmpeg `MediaProcessor` adapter (container-invoked) in `apps/api/src/adapters/local/ffmpeg-media-processor.ts`
-- [ ] T026 [P] Implement the local JWT `IdentityProvider` adapter with a seeded signing key in `apps/api/src/adapters/local/local-identity-provider.ts`
-- [ ] T027 [P] Implement the in-process `EventBus` adapter in `apps/api/src/adapters/local/in-process-event-bus.ts`
-- [ ] T028 [P] Implement the S3 `ObjectStore` adapter in `apps/api/src/adapters/aws/s3-object-store.ts` (written and unit-tested; never applied)
-- [ ] T029 [P] Implement the MediaConvert `MediaProcessor` adapter in `apps/api/src/adapters/aws/mediaconvert-media-processor.ts` — see the divergence warning in research §D9
-- [ ] T030 [P] Implement the Cognito `IdentityProvider` adapter in `apps/api/src/adapters/aws/cognito-identity-provider.ts`
-- [ ] T031 Write a shared port contract test both adapter sets must satisfy in `apps/api/tests/contract/ports.contract.spec.ts`
-- [ ] T032 Wire adapter selection by `RUNTIME_PROFILE` in `apps/api/src/adapters/adapters.module.ts`
+- [x] T023 [P] Define the port interfaces in `apps/api/src/ports/object-store.port.ts`, `media-processor.port.ts`, `identity-provider.port.ts`, and `event-bus.port.ts`
+- [x] T024 [P] Implement the MinIO `ObjectStore` adapter with presigned URL issuance in `apps/api/src/adapters/local/minio-object-store.ts`
+- [x] T025 [P] Implement the ffmpeg `MediaProcessor` adapter (container-invoked) in `apps/api/src/adapters/local/ffmpeg-media-processor.ts`
+- [x] T026 [P] Implement the local JWT `IdentityProvider` adapter with a seeded signing key in `apps/api/src/adapters/local/local-identity-provider.ts`
+- [x] T027 [P] Implement the in-process `EventBus` adapter in `apps/api/src/adapters/local/in-process-event-bus.ts`
+- [x] T028 [P] Implement the S3 `ObjectStore` adapter in `apps/api/src/adapters/aws/s3-object-store.ts` (written and unit-tested; never applied)
+- [x] T029 [P] Implement the MediaConvert `MediaProcessor` adapter in `apps/api/src/adapters/aws/mediaconvert-media-processor.ts` — see the divergence warning in research §D9
+- [x] T030 [P] Implement the Cognito `IdentityProvider` adapter in `apps/api/src/adapters/aws/cognito-identity-provider.ts`
+- [x] T031 Write a shared port contract test both adapter sets must satisfy in `apps/api/tests/contract/ports.contract.spec.ts`
+- [x] T032 Wire adapter selection by `RUNTIME_PROFILE` in `apps/api/src/adapters/adapters.module.ts`
 
 ### Persistence (no adapter — DynamoDB Local is the same API)
 
-- [ ] T033 Implement the DynamoDB document client factory in `apps/api/src/persistence/dynamo-client.ts`
-- [ ] T034 Implement key builders for every entity's `pk`/`sk`/GSI keys in `apps/api/src/persistence/keys.ts`, matching `data-model.md` exactly
-- [ ] T035 [P] Implement the base single-table repository with query, paging, and transaction helpers in `apps/api/src/persistence/base.repository.ts`
-- [ ] T036 [P] Implement opaque cursor encoding and decoding in `apps/api/src/persistence/cursor.ts` (FR-035 — position-preserving, never offsets)
-- [ ] T037 [P] Implement `PersonRepository` in `apps/api/src/persistence/person.repository.ts` (access patterns A1, A2)
-- [ ] T038 [P] Implement `InterestRepository` with hierarchy reads in `apps/api/src/persistence/interest.repository.ts` (A12, A13, A14)
-- [ ] T039 [P] Implement `PersonFollowRepository` in `apps/api/src/persistence/person-follow.repository.ts` (A10 — the authority for FR-015, needed by the visibility filter before US4 exists)
-- [ ] T040 [P] Implement `BlockRepository` in `apps/api/src/persistence/block.repository.ts` (A18 — the visibility filter consults blocks in both directions)
+- [x] T033 Implement the DynamoDB document client factory in `apps/api/src/persistence/dynamo-client.ts`
+- [x] T034 Implement key builders for every entity's `pk`/`sk`/GSI keys in `apps/api/src/persistence/keys.ts`, matching `data-model.md` exactly
+- [x] T035 [P] Implement the base single-table repository with query, paging, and transaction helpers in `apps/api/src/persistence/base.repository.ts`
+- [x] T036 [P] Implement opaque cursor encoding and decoding in `apps/api/src/persistence/cursor.ts` (FR-035 — position-preserving, never offsets)
+- [x] T037 [P] Implement `PersonRepository` in `apps/api/src/persistence/person.repository.ts` (access patterns A1, A2)
+- [x] T038 [P] Implement `InterestRepository` with hierarchy reads in `apps/api/src/persistence/interest.repository.ts` (A12, A13, A14)
+- [x] T039 [P] Implement `PersonFollowRepository` in `apps/api/src/persistence/person-follow.repository.ts` (A10 — the authority for FR-015, needed by the visibility filter before US4 exists)
+- [x] T040 [P] Implement `BlockRepository` in `apps/api/src/persistence/block.repository.ts` (A18 — the visibility filter consults blocks in both directions)
 
 ### Auth, rate limiting, catalogue
 
-- [ ] T041 Implement the authentication guard resolving the viewer from an `IdentityProvider` token in `apps/api/src/common/auth/auth.guard.ts` (FR-001)
-- [ ] T042 [P] Implement the per-person token-bucket rate limiter in `apps/api/src/common/rate-limit/rate-limit.guard.ts` (FR-046)
-- [ ] T043 Implement the in-process interest catalogue cache, refreshed from DynamoDB Streams, behind a `CatalogueSearch` interface in `apps/api/src/modules/interests/catalogue.cache.ts` (research §D3 — the seam OpenSearch replaces later)
+- [x] T041 Implement the authentication guard resolving the viewer from an `IdentityProvider` token in `apps/api/src/common/auth/auth.guard.ts` (FR-001)
+- [x] T042 [P] Implement the per-person token-bucket rate limiter in `apps/api/src/common/rate-limit/rate-limit.guard.ts` (FR-046)
+- [x] T043 Implement the in-process interest catalogue cache, refreshed from DynamoDB Streams, behind a `CatalogueSearch` interface in `apps/api/src/modules/interests/catalogue.cache.ts` (research §D3 — the seam OpenSearch replaces later)
 
 ### The visibility choke point (research §D6)
 
-- [ ] T044 Implement `VisibilityFilter` taking a viewer and a candidate set and returning only permitted posts in `apps/api/src/visibility/visibility.filter.ts` (FR-014, FR-015, FR-016, FR-044)
-- [ ] T045 Implement the per-request relationship cache for follow and block point reads in `apps/api/src/visibility/relationship.cache.ts` (keeps A10/A18 cheap on the feed hot path)
-- [ ] T046 Build the generated visibility matrix suite — 7 post states × 6 viewer relationships × 7 surfaces, derived from `contracts/visibility-matrix.md` — in `apps/api/tests/visibility/matrix.spec.ts` (**this suite is SC-009**; surfaces not yet built are skipped and enabled by their story)
-- [ ] T047 [P] Unit-test the visibility filter's block-in-both-directions and interest-follow-grants-nothing rules in `apps/api/tests/unit/visibility.filter.spec.ts` (the two easy mistakes named in the contract)
+- [x] T044 Implement `VisibilityFilter` taking a viewer and a candidate set and returning only permitted posts in `apps/api/src/visibility/visibility.filter.ts` (FR-014, FR-015, FR-016, FR-044)
+- [x] T045 Implement the per-request relationship cache for follow and block point reads in `apps/api/src/visibility/relationship.cache.ts` (keeps A10/A18 cheap on the feed hot path)
+- [x] T046 Build the generated visibility matrix suite — 7 post states × 6 viewer relationships × 7 surfaces, derived from `contracts/visibility-matrix.md` — in `apps/api/tests/visibility/matrix.spec.ts` (**this suite is SC-009**; surfaces not yet built are skipped and enabled by their story)
+- [x] T047 [P] Unit-test the visibility filter's block-in-both-directions and interest-follow-grants-nothing rules in `apps/api/tests/unit/visibility.filter.spec.ts` (the two easy mistakes named in the contract)
 
 ### Health
 
-- [ ] T048 Implement `GET /v1/health` reporting status, active profile, and catalogue size in `apps/api/src/modules/health/health.controller.ts`
+- [x] T048 Implement `GET /v1/health` reporting status, active profile, and catalogue size in `apps/api/src/modules/health/health.controller.ts`
 
 **Checkpoint**: Foundation ready. `pnpm --filter @sih/infra verify:local` passes and the visibility matrix runs (with story surfaces skipped). User story work can begin.
 

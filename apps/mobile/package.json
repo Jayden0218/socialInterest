@@ -1,0 +1,9 @@
+{
+  "name": "@sih/mobile",
+  "version": "0.0.0",
+  "private": true,
+  "main": "src/App.tsx",
+  "scripts": { "start": "expo start --dev-client", "typecheck": "tsc --noEmit" },
+  "dependencies": { "@sih/shared": "workspace:*" },
+  "devDependencies": { "typescript": "^5.7.2", "@types/node": "^22.10.2" }
+}

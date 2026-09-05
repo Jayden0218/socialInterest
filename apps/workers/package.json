@@ -1,0 +1,8 @@
+{
+  "name": "@sih/workers",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": { "dev": "tsx watch src/index.ts", "typecheck": "tsc --noEmit" },
+  "dependencies": { "@sih/shared": "workspace:*" },
+  "devDependencies": { "typescript": "^5.7.2", "tsx": "^4.19.2", "@types/node": "^22.10.2" }
+}

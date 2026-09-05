@@ -1,0 +1,5 @@
+{
+  "app": "npx tsx bin/infra.ts",
+  "//": "SYNTH ONLY. Deploying requires explicit approval - see plan.md Cost Posture. Do not run `cdk deploy` or `cdk bootstrap` as part of any task.",
+  "context": { "@aws-cdk/core:newStyleStackSynthesis": true }
+}
