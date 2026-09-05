@@ -27,6 +27,7 @@ stand-in and the production service are different implementations.
 | `production` | string | The service the `aws` profile targets |
 | `why_it_can_differ` | string | The specific behaviours that may not match. Not "it's a different service" |
 | `proof` | string | What observation would count as evidence the production path works |
+| `implementation` | enum | `real` \| `stub` \| `absent`. What production code exists today. An `absent` or `stub` entry cannot be verified, only implemented first (FR-031) |
 | `status` | enum | `unverified` \| `verified` \| `failed` \| `stale` |
 | `last_run` | reference | The Verification Run that set the current status, if any |
 
@@ -34,6 +35,11 @@ stand-in and the production service are different implementations.
 plus every production-only delivery path, MUST have a register entry. A capability whose local
 and production implementations speak the same API is explicitly excluded and MUST NOT be given
 an entry — DynamoDB is the standing example.
+
+**Implementation gates status**: an entry whose `implementation` is `stub` or `absent` MUST
+remain `unverified` and MUST NOT be scheduled for a Verification Run. Reporting such an entry as
+"unverified" without its implementation state hides the fact that there is nothing to verify —
+which is exactly the state three of the four entries were in when this feature was written.
 
 **Status transitions**: `unverified → verified | failed` by a Verification Run.
 `verified → stale` automatically when the verified version is no longer current — a

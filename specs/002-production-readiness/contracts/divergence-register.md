@@ -33,6 +33,17 @@ See [data-model.md](../data-model.md#divergence-record) for fields. Two rules ab
 - `proof` MUST be an observation, stated before the run. Deciding what would have counted as
   proof after seeing the result is not verification.
 
+## Implementation state is part of the entry
+
+Every entry records `implementation` as `real`, `stub`, or `absent` (FR-031). This exists because
+the register would otherwise report an entry as `unverified` whether the production code was
+written-and-untested or entirely missing — two very different situations that need different
+work. At the time this contract was written, D-1 was `real`, D-2 and D-3 were `stub`, and D-4
+was `absent`.
+
+A `stub` or `absent` entry MUST NOT be scheduled for a Verification Run. It needs an
+implementation first.
+
 ## Status honesty
 
 - A `verified` status is scoped to the version in its Verification Run. When that version is no

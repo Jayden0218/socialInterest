@@ -16,8 +16,13 @@ false claims into evidence:
    `bench:feed-load` calls `feed.homeFeed()` in-process from one Node event loop against
    single-process DynamoDB Local. It measures neither the HTTP layer nor a production
    datastore. Establish what is actually saturating before changing the design.
-3. **The `aws` adapters have never run.** Three files exist and have never executed. Build a
-   divergence register and a per-divergence runbook now; execute only under explicit approval.
+3. **The `aws` adapters mostly do not exist.** Checking the code rather than trusting the
+   file list: `s3-object-store.ts` is a real implementation that has never executed;
+   `mediaconvert-media-processor.ts` throws `NOT_PROVISIONED` from all three methods;
+   `cognito-identity-provider.ts` throws from `verify()`; and there is **no media-delivery
+   adapter at all**. So US3 is implementation *then* verification for three of its four
+   entries. Writing that code costs nothing and is not gated; only running it against real
+   infrastructure is.
 4. **Five outcomes are instrumented but unmeasurable.** Define population, window, and an
    aggregate report that states misses rather than omitting them.
 
@@ -160,13 +165,15 @@ container that produced them.
 | Phase | Stories | Needs approval? | Can run in CI? |
 |---|---|---|---|
 | A | US1 — end-to-end client ↔ service | No | Yes |
-| B | US2 — feed latency under concurrency | No | Yes |
+| B | US2 — feed latency under concurrency | No for local attribution; **yes** for the production-shaped run (FR-008) | Yes, except that run |
 | C | US3 — production-path verification | **Yes, per verification** | No, by design (see above) |
 | D | US4 — real-usage measurement | **Yes** (needs a deployment and participants) | Report generation only |
 
 Phases A and B are complete work in their own right: at the end of B the product is
-demonstrably functional end to end and either meets its latency budget or has a
-correctly-attributed reason why not. Nothing in C or D is started without a separate,
+demonstrably functional end to end and the feed's ceiling is correctly attributed. Note that
+B cannot *close* SC-002 without approval: FR-008 requires a production-shaped datastore, so the
+free part of B establishes attribution and the 10,000 figure stays unverified until that one
+gated run happens. Nothing in C or D is started without a separate,
 specific approval.
 
 ## Complexity Tracking

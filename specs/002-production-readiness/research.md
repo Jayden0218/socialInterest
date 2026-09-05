@@ -70,6 +70,13 @@ Tier A deliberately drives the **data layer**, not the rendered UI, because a UI
 second source of flakiness to a suite whose job is to detect contract drift. Screen behaviour
 is already covered by the 31 render tests.
 
+It must be the *app's* data layer, not the generated client directly. Both the client and the
+API's contract tests are generated from one OpenAPI document, so they agree with each other by
+construction — driving the client alone would produce a green suite that says nothing about the
+app's own request construction, which is the failure mode 001 already demonstrated. The negative
+journeys N-01 to N-04 are the deliberate exception: they bypass the data layer and issue raw
+requests, because their purpose is to exercise the path a hostile client would take.
+
 **Alternatives considered**:
 
 - *Detox / Maestro UI automation in CI.* Rejected for now: needs a simulator the sandbox cannot
@@ -100,14 +107,20 @@ builds depend on a code-generation step the app does not otherwise need.
 
 **Decision**: Maintain `docs/verification/divergence-register.md`. One entry per capability
 where the local stand-in and the production service are different implementations. Today that
-is exactly four, matching the three `adapters/aws/` files plus media delivery:
+is exactly four — and, checked against the code rather than the file list, only one of them has
+a production implementation to verify at all:
 
-| # | Capability | Local | Production | Why it can differ |
-|---|---|---|---|---|
-| D-1 | Object store | MinIO | S3 | Presign semantics, consistency, error taxonomy |
-| D-2 | Transcode | ffmpeg container | MediaConvert | Queueing and job latency — directly gates SC-005 |
-| D-3 | Identity | local JWT issuer | Cognito | Token shape, claims, expiry, refresh |
-| D-4 | Media delivery | direct MinIO read | CDN | Signed-URL scope and expiry, cache behaviour, whether an unauthorised viewer can fetch |
+| # | Capability | Local | Production | Implementation | Why it can differ |
+|---|---|---|---|---|---|
+| D-1 | Object store | MinIO | S3 | **real** — uses `@aws-sdk/client-s3`, never executed | Presign semantics, consistency, error taxonomy |
+| D-2 | Transcode | ffmpeg container | MediaConvert | **stub** — all three methods throw `NOT_PROVISIONED` | Queueing and job latency — directly gates 002/SC-005 |
+| D-3 | Identity | local JWT issuer | Cognito | **stub** — `verify()` throws | Token shape, claims, expiry, refresh |
+| D-4 | Media delivery | direct MinIO read | CDN | **absent** — no adapter file exists | Signed-URL scope and expiry, cache behaviour, whether an unauthorised viewer can fetch |
+
+This is why the register carries an `implementation` field (FR-031) and why US3 is
+implementation *then* verification. Reporting D-2, D-3 and D-4 as merely "unverified" would
+suggest code exists that could be run. It does not. Writing that code is unbudgeted work that
+needs no approval; only running it against real infrastructure is gated.
 
 DynamoDB is deliberately **absent**: DynamoDB Local speaks the same API, so per Principle V's
 second clause no divergence exists and no adapter should be invented. This is consistent with

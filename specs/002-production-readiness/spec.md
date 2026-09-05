@@ -201,7 +201,9 @@ report giving each outcome against its target.
   immediately, both at rest and under load. No approach that requires visibility to be
   re-applied to stored copies may be adopted.
 - **FR-008**: Concurrency behaviour MUST be measured against a data store configured as
-  production would be, not only against the development stand-in.
+  production would be, not only against the development stand-in. This measurement requires
+  provisioned infrastructure and is therefore gated on explicit approval (FR-020). Until it is
+  performed, SC-002 MUST be reported as unverified rather than inferred from local figures.
 - **FR-009**: The measurement MUST report latency at each concurrency level tested and identify
   the level at which the budget is first exceeded.
 - **FR-010**: Any change made to meet the budget MUST be re-verified against the complete
@@ -220,7 +222,9 @@ report giving each outcome against its target.
 - **FR-014**: The list MUST be complete. Adding a capability with such a divergence without
   adding it to the list MUST be treated as an incomplete change.
 - **FR-015**: Each entry on the list MUST have a completed verification on the production path,
-  with the result recorded, before any release to people outside the team.
+  with the result recorded, before any release to people outside the team. Where the production
+  implementation does not yet exist, the entry MUST record that fact; an entry with no
+  implementation MUST NOT be reported as merely "unverified".
 - **FR-016**: Video publishing MUST be verified to meet the playable-within-60-seconds outcome
   on the production path.
 - **FR-017**: Removal of location and other identifying metadata from media MUST be verified on
@@ -244,6 +248,10 @@ report giving each outcome against its target.
   amount approved.
 - **FR-023**: A verification result MUST record the date and the version verified, and MUST NOT
   be treated as evidence for a later version without being repeated.
+- **FR-031**: The register MUST record each entry's implementation state as `real`, `stub`, or
+  `absent`. An entry that is `stub` or `absent` MUST have its production implementation written
+  before a verification of it is attempted. Three of the four entries were `stub` or `absent`
+  when this feature was specified.
 
 **Real-usage measurement (US4)**
 
@@ -287,7 +295,9 @@ report giving each outcome against its target.
 - **SC-001**: Every core journey completes successfully from the app against a running service
   on every change, with zero journeys covered only by a stand-in.
 - **SC-002**: Feeds and interest spaces display first content within 2 seconds for 95% of
-  views while 10,000 people browse concurrently.
+  views while 10,000 people browse concurrently. Until a production-shaped measurement is
+  approved and performed, this criterion is reported as unverified; local runs establish
+  bottleneck attribution only, never the 10,000 figure.
 - **SC-003**: The visibility contract passes in full after every change made to reach SC-002,
   with no reduction in the surfaces or states covered.
 - **SC-004**: 100% of recorded divergences have a completed production-path verification, with

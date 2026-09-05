@@ -7,9 +7,16 @@ it exists before the implementations it governs.
 
 ## Rule
 
-Every journey below MUST be exercised against a **running API over HTTP**, using the real
-generated client and the mobile app's real data layer. A journey satisfied by a stand-in,
-a mock, or a fixture does not count as covered, and MUST NOT be recorded as passing.
+Every journey below MUST be exercised against a **running API over HTTP**, driven through
+**the mobile app's own data layer** (`apps/mobile/src/data/`), which in turn uses the generated
+client. Driving the generated client directly does not satisfy this contract: both sides are
+generated from one document and therefore agree with each other by construction, which proves
+nothing about the app's own request construction. A journey satisfied by a stand-in, a mock, or
+a fixture does not count as covered, and MUST NOT be recorded as passing.
+
+The negative journeys are the deliberate exception: N-01 to N-04 MUST bypass the app's data
+layer and issue raw requests, because their purpose is to exercise the path a hostile client
+would take (Principle III).
 
 A journey MUST NOT be removed from this set to make a build pass.
 
