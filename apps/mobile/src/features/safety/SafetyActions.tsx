@@ -1,3 +1,7 @@
+import { Pressable, Text, View } from 'react-native';
+import { theme } from '../../ui/theme';
+import { Banner, Button, Screen } from '../../ui/primitives';
+
 export type ReportSubject = 'post' | 'comment' | 'interest';
 
 export const REPORT_REASONS = [
@@ -10,7 +14,7 @@ export const REPORT_REASONS = [
 ] as const;
 
 /**
- * FR-043. Interest NAMES are reportable, not only posts and comments - an
+ * FR-043. Interest NAMES are reportable, not only posts and comments — an
  * interest name is content every visitor to that space sees. The action must be
  * reachable from the interest header, or the route to a human does not exist in
  * practice however well it works in the API.
@@ -34,6 +38,58 @@ export const BLOCK_CONFIRMATION =
   'You will not see each other’s posts, and any follow between you will be removed. ' +
   'Unblocking later does not restore the follow.';
 
-export function SafetyActions() {
-  return null;
+export function SafetyActions({
+  subject,
+  selectedReason,
+  onSelectReason,
+  onReport,
+  onBlock,
+}: {
+  subject: ReportSubject;
+  selectedReason: string | null;
+  onSelectReason: (reason: string) => void;
+  onReport: () => void;
+  onBlock?: () => void;
+}) {
+  return (
+    <Screen testID="safety-actions">
+      <Text style={{ fontSize: theme.font.lg, fontWeight: '600', color: theme.color.text }}>
+        {reportActionLabel(subject)}
+      </Text>
+
+      <View testID="report-reasons" style={{ gap: theme.space.sm }}>
+        {REPORT_REASONS.map((r, i) => (
+          <Pressable
+            key={r.value}
+            testID={`report-reason-${i}`}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: selectedReason === r.value }}
+            onPress={() => onSelectReason(r.value)}
+            style={{
+              padding: theme.space.md,
+              borderWidth: 1,
+              borderRadius: theme.radius.md,
+              borderColor: selectedReason === r.value ? theme.color.accent : theme.color.border,
+            }}
+          >
+            <Text style={{ fontSize: theme.font.md, color: theme.color.text }}>{r.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+
+      <Button
+        testID="submit-report"
+        label="Send report"
+        disabled={selectedReason === null}
+        onPress={onReport}
+      />
+
+      {onBlock ? (
+        <View style={{ gap: theme.space.sm }}>
+          <Banner tone="warning" testID="block-confirmation">{BLOCK_CONFIRMATION}</Banner>
+          <Button testID="block-person" label="Block this person" variant="danger" onPress={onBlock} />
+        </View>
+      ) : null}
+    </Screen>
+  );
 }

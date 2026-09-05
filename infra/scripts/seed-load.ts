@@ -1,5 +1,5 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, BatchWriteCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, BatchWriteCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { ulid } from 'ulid';
 import { env } from './env';
 
@@ -38,6 +38,33 @@ async function main(): Promise<void> {
   console.log(`seeding ${PEOPLE} people, ${INTERESTS} interests, ${POSTS} posts...`);
   const now = new Date().toISOString();
 
+  /**
+   * Bench interests must hang off a REAL top-level interest from the seeded
+   * catalogue.
+   *
+   * The first version parented them to interestIds[0], which was itself a
+   * bench sub-interest - so InterestRepository.loadAll(), which walks ROOT then
+   * each top-level interest's children, never found any of them. They were
+   * absent from the catalogue cache, FollowExpansion skipped every one, and
+   * bench:feed reported a fan-in of 0: it was timing an empty feed and
+   * reporting comfortable numbers for no work at all.
+   */
+  const topLevel = await doc.send(
+    new QueryCommand({
+      TableName: env.tableName,
+      IndexName: 'gsi3',
+      KeyConditionExpression: 'gsi3pk = :p',
+      ExpressionAttributeValues: { ':p': 'PARENT#ROOT' },
+      Limit: 1,
+    }),
+  );
+  const parentId = (topLevel.Items?.[0]?.['interestId'] as string | undefined) ?? undefined;
+  if (!parentId) {
+    console.error('No top-level interest found. Run seed:catalogue first.');
+    process.exit(1);
+  }
+  console.log(`attaching bench interests to top-level ${parentId}`);
+
   const interestIds = Array.from({ length: INTERESTS }, () => ulid());
   await writeAll(
     interestIds.map((id, i) => ({
@@ -49,7 +76,7 @@ async function main(): Promise<void> {
       nameNormalised: `bench ${i}`,
       slug: `bench-${i}`,
       level: 'sub',
-      parentId: interestIds[0],
+      parentId,
       createdBy: 'BENCH',
       postCount: 0,
       followerCount: 0,
@@ -57,7 +84,7 @@ async function main(): Promise<void> {
       createdAt: now,
       gsi1pk: `ISLUG#bench-${i}`,
       gsi1sk: '#META',
-      gsi3pk: `PARENT#${interestIds[0]}`,
+      gsi3pk: `PARENT#${parentId}`,
       gsi3sk: `NAME#bench ${i}`,
     })),
   );

@@ -1,3 +1,7 @@
+import { Pressable, Text } from 'react-native';
+import { theme } from '../../ui/theme';
+import { Row } from '../../ui/primitives';
+
 export interface EngagementState {
   reactionCount: number;
   commentCount: number;
@@ -19,6 +23,42 @@ export function reconcile(state: EngagementState, server: Partial<EngagementStat
   return { ...state, ...server };
 }
 
-export function EngagementBar() {
-  return null;
+export function EngagementBar({
+  state,
+  pending,
+  onReact,
+  onOpenComments,
+  onShare,
+}: {
+  state: EngagementState;
+  pending?: boolean;
+  onReact: () => void;
+  onOpenComments: () => void;
+  onShare: () => void;
+}) {
+  return (
+    <Row style={{ gap: theme.space.lg }}>
+      <Pressable
+        testID="react-button"
+        accessibilityRole="button"
+        accessibilityState={{ selected: state.viewerHasReacted }}
+        accessibilityLabel={state.viewerHasReacted ? 'Remove reaction' : 'React'}
+        onPress={onReact}
+      >
+        <Text style={{ color: state.viewerHasReacted ? theme.color.accent : theme.color.muted, fontSize: theme.font.md }}>
+          {state.viewerHasReacted ? '♥' : '♡'} {state.reactionCount}
+          {/* Queued offline actions show as pending, never as landed. */}
+          {pending ? ' ·' : ''}
+        </Text>
+      </Pressable>
+
+      <Pressable testID="comments-button" accessibilityRole="button" onPress={onOpenComments}>
+        <Text style={{ color: theme.color.muted, fontSize: theme.font.md }}>💬 {state.commentCount}</Text>
+      </Pressable>
+
+      <Pressable testID="share-button" accessibilityRole="button" accessibilityLabel="Share" onPress={onShare}>
+        <Text style={{ color: theme.color.muted, fontSize: theme.font.md }}>↗</Text>
+      </Pressable>
+    </Row>
+  );
 }

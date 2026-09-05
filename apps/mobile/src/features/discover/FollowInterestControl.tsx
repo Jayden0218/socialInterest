@@ -1,4 +1,7 @@
+import { Text, View } from 'react-native';
 import type { Interest } from '@sih/shared';
+import { theme } from '../../ui/theme';
+import { Button } from '../../ui/primitives';
 
 /** Mirrors MAX_FOLLOWED_INTERESTS on the server (research D1). */
 export const MAX_FOLLOWED_INTERESTS = 200;
@@ -18,11 +21,36 @@ export function limitMessage(followedCount: number): string | null {
   return `You follow ${MAX_FOLLOWED_INTERESTS} interests, the maximum. Unfollow one to make room.`;
 }
 
-/** Onboarding is complete once enough interests are chosen to fill a feed. */
 export function onboardingComplete(followedCount: number): boolean {
   return followedCount >= ONBOARDING_TARGET;
 }
 
-export function FollowInterestControl() {
-  return null;
+export function FollowInterestControl({
+  interest,
+  followedCount,
+  onToggle,
+}: {
+  interest: Interest;
+  followedCount: number;
+  onToggle: (next: boolean) => void;
+}) {
+  const state = followState(interest, followedCount);
+  const limit = limitMessage(followedCount);
+
+  return (
+    <View testID="follow-interest-control" style={{ gap: theme.space.xs }}>
+      <Button
+        testID="follow-toggle"
+        label={state === 'following' ? 'Following' : 'Follow'}
+        variant={state === 'following' ? 'secondary' : 'primary'}
+        disabled={state === 'at_limit'}
+        onPress={() => onToggle(state !== 'following')}
+      />
+      {state === 'at_limit' && limit ? (
+        <Text testID="follow-limit" style={{ fontSize: theme.font.sm, color: theme.color.muted }}>
+          {limit}
+        </Text>
+      ) : null}
+    </View>
+  );
 }

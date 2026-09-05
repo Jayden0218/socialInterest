@@ -1,4 +1,8 @@
-import type { InterestRef } from '@sih/shared';
+import { Text, View } from 'react-native';
+import type { InterestRef, Post } from '@sih/shared';
+import { theme } from '../../ui/theme';
+import { Button, Row, Screen } from '../../ui/primitives';
+import { PagedPostList, type PagedState } from '../../components/PagedPostList';
 
 export interface ProfileData {
   handle: string;
@@ -11,11 +15,11 @@ export interface ProfileData {
 }
 
 /**
- * FR-038. The follow button says what following actually does, because in this
- * product it does something narrower than people expect: it gives this person's
- * posts prominence inside interests the viewer already follows (FR-033), and it
- * grants access to their followers-only posts (FR-015). It does NOT add their
- * other interests to the feed.
+ * FR-038. The follow button explains what following actually does, because here
+ * it does something narrower than people expect: it gives this person's posts
+ * prominence inside interests the viewer ALREADY follows (FR-033), and grants
+ * access to their followers-only posts (FR-015). It does not add their other
+ * interests to the feed.
  */
 export function followHint(profile: ProfileData, viewerFollowsAnyOfTheirInterests: boolean): string {
   if (profile.viewerIsFollowing) {
@@ -26,6 +30,69 @@ export function followHint(profile: ProfileData, viewerFollowsAnyOfTheirInterest
   return 'Following shows their posts higher in interests you already follow.';
 }
 
-export function ProfileScreen() {
-  return null;
+export function ProfileScreen({
+  profile,
+  posts,
+  viewerFollowsAnyOfTheirInterests,
+  isSelf,
+  onToggleFollow,
+  onLoadMore,
+  renderPost,
+}: {
+  profile: ProfileData;
+  posts: PagedState<Post>;
+  viewerFollowsAnyOfTheirInterests: boolean;
+  isSelf: boolean;
+  onToggleFollow: (next: boolean) => void;
+  onLoadMore: () => void;
+  renderPost: (post: Post, index: number) => React.ReactElement;
+}) {
+  return (
+    <Screen testID="profile-screen">
+      <View style={{ gap: theme.space.sm }}>
+        <Text style={{ fontSize: theme.font.xl, fontWeight: '700', color: theme.color.text }}>
+          {profile.displayName}
+        </Text>
+        <Text style={{ fontSize: theme.font.sm, color: theme.color.muted }}>@{profile.handle}</Text>
+        {profile.bio ? <Text style={{ fontSize: theme.font.md, color: theme.color.text }}>{profile.bio}</Text> : null}
+
+        <Row>
+          <Text testID="follower-count" style={{ fontSize: theme.font.sm, color: theme.color.muted }}>
+            {profile.followerCount} followers
+          </Text>
+          <Text testID="following-count" style={{ fontSize: theme.font.sm, color: theme.color.muted }}>
+            {profile.followingCount} following
+          </Text>
+        </Row>
+
+        {profile.topInterests.length > 0 ? (
+          <Text testID="top-interests" style={{ fontSize: theme.font.sm, color: theme.color.accent }}>
+            {profile.topInterests.map((i) => i.name).join(' · ')}
+          </Text>
+        ) : null}
+
+        {!isSelf ? (
+          <View style={{ gap: theme.space.xs }}>
+            <Button
+              testID="follow-person-toggle"
+              label={profile.viewerIsFollowing ? 'Following' : 'Follow'}
+              variant={profile.viewerIsFollowing ? 'secondary' : 'primary'}
+              onPress={() => onToggleFollow(!profile.viewerIsFollowing)}
+            />
+            <Text testID="follow-hint" style={{ fontSize: theme.font.sm, color: theme.color.muted }}>
+              {followHint(profile, viewerFollowsAnyOfTheirInterests)}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+
+      <PagedPostList
+        state={posts}
+        keyOf={(p) => p.postId}
+        renderItem={renderPost}
+        onLoadMore={onLoadMore}
+        empty={{ title: 'No posts yet', body: isSelf ? 'Your posts will appear here.' : 'Nothing to show.' }}
+      />
+    </Screen>
+  );
 }

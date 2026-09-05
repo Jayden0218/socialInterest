@@ -32,7 +32,8 @@ jobs:
       - run: pnpm --filter @sih/infra db:create-local
       - run: pnpm --filter @sih/infra s3:create-local
       - run: pnpm --filter @sih/infra seed:catalogue
-      - run: pnpm test
+      - run: pnpm --filter @sih/api test
+      - run: pnpm --filter @sih/mobile test
       # Boots under the production runner (tsx), which does not emit decorator
       # metadata the way ts-jest does. Catches DI that works in tests and
       # returns 500 in production.
