@@ -30,8 +30,11 @@ jobs:
       - name: Wait for DynamoDB Local and MinIO
         run: |
           for _ in $(seq 1 60); do
+            # No -f on the DynamoDB probe: DynamoDB Local answers a bare GET /
+            # with 400 (it expects a signed POST), and -f would treat that as a
+            # failure forever. This matches ci.yml, which is the tested version.
             if curl -sf http://127.0.0.1:9000/minio/health/live \
-               && curl -sf -o /dev/null http://127.0.0.1:8000; then exit 0; fi
+               && curl -so /dev/null http://127.0.0.1:8000; then exit 0; fi
             sleep 2
           done
           echo "backing services never became ready"; docker compose logs; exit 1
@@ -81,7 +84,9 @@ jobs:
 
       - name: Collect evidence
         if: always()
-        run: cp /tmp/api.log artifacts/android-device-pass/api.log || true
+        run: |
+          mkdir -p artifacts/android-device-pass
+          cp /tmp/api.log artifacts/android-device-pass/api.log || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
