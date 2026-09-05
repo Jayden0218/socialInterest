@@ -62,7 +62,9 @@ const SURFACES = [
   // and interest search returns no post content of its own - post counts come
   // from the same filtered path. See tests/integration/us2-discover.spec.ts.
   { name: 'interest search',  built: true,  story: 'US2 (T082)' },
-  { name: 'home feed',        built: false, story: 'US3 (T098)' },
+  // Built by US3: FeedService.homeFeed applies VisibilityFilter to the merged
+  // fan-in result before returning a page. See us3-follow-interests.spec.ts.
+  { name: 'home feed',        built: true,  story: 'US3 (T098)' },
   { name: 'share link',       built: false, story: 'US5 (T122)' },
   { name: 'comments',         built: false, story: 'US5 (T122)' },
   { name: 'notifications',    built: false, story: 'T154 - closes SC-009' },

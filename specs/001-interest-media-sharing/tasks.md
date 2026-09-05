@@ -204,22 +204,22 @@ pnpm workspace monorepo per `plan.md § Project Structure`:
 
 ### Tests for User Story 3
 
-- [ ] T088 [P] [US3] Integration test `us3-follow-interests` covering the four acceptance scenarios in `apps/api/tests/integration/us3-follow-interests.spec.ts`
-- [ ] T089 [P] [US3] Integration test asserting a parent-interest follow covers a sub-interest **created after** the follow, in `apps/api/tests/integration/us3-late-subinterest.spec.ts` (the case read-time expansion exists to handle)
-- [ ] T090 [P] [US3] Unit-test read-time expansion of followed interests against the catalogue in `apps/api/tests/unit/follow-expansion.spec.ts`
+- [x] T088 [P] [US3] Integration test `us3-follow-interests` covering the four acceptance scenarios in `apps/api/tests/integration/us3-follow-interests.spec.ts`
+- [x] T089 [P] [US3] Integration test asserting a parent-interest follow covers a sub-interest **created after** the follow, in `apps/api/tests/integration/us3-late-subinterest.spec.ts` (the case read-time expansion exists to handle)
+- [x] T090 [P] [US3] Unit-test read-time expansion of followed interests against the catalogue in `apps/api/tests/unit/follow-expansion.spec.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T091 [P] [US3] Implement `InterestFollowRepository` in `apps/api/src/persistence/interest-follow.repository.ts` (A6, A7, A8)
-- [ ] T092 [US3] Implement follow and unfollow with the 200-interest cap as a conditional write in `apps/api/src/modules/interests/interest-follow.service.ts` (FR-027, research §D1)
-- [ ] T093 [US3] Implement read-time expansion of a parent follow to its sub-interests in `apps/api/src/modules/feed/follow-expansion.ts` (FR-028 — no follow row per sub-interest, so new ones need no back-fill)
-- [ ] T094 [US3] Implement `PUT`/`DELETE /interests/{interestId}/follow` in `apps/api/src/modules/interests/interest-follow.controller.ts` (FR-027)
-- [ ] T095 [US3] Implement read-time fan-in feed assembly — parallel query per followed interest, merge, visibility-filter, cache the page — in `apps/api/src/modules/feed/feed.service.ts` (FR-032, research §D1)
-- [ ] T096 [US3] Implement `GET /feed/home` with cursor paging and empty-state hints in `apps/api/src/modules/feed/feed.controller.ts` (FR-032, FR-035, FR-036)
-- [ ] T097 [US3] Implement `GET /interests/suggested` in `apps/api/src/modules/interests/interest.controller.ts` (FR-029, measured by SC-006)
-- [ ] T098 [US3] Enable the home-feed surface in the visibility matrix suite in `apps/api/tests/visibility/matrix.spec.ts`
-- [ ] T099 [P] [US3] Build the home feed screen with the no-followed-interests onboarding state in `apps/mobile/src/features/feed/HomeFeedScreen.tsx` (FR-036)
-- [ ] T100 [P] [US3] Build the follow/unfollow control and onboarding interest picker in `apps/mobile/src/features/discover/FollowInterestControl.tsx`
+- [x] T091 [P] [US3] Implement `InterestFollowRepository` in `apps/api/src/persistence/interest-follow.repository.ts` (A6, A7, A8)
+- [x] T092 [US3] Implement follow and unfollow with the 200-interest cap as a conditional write in `apps/api/src/modules/interests/interest-follow.service.ts` (FR-027, research §D1)
+- [x] T093 [US3] Implement read-time expansion of a parent follow to its sub-interests in `apps/api/src/modules/feed/follow-expansion.ts` (FR-028 — no follow row per sub-interest, so new ones need no back-fill)
+- [x] T094 [US3] Implement `PUT`/`DELETE /interests/{interestId}/follow` in `apps/api/src/modules/interests/interest-follow.controller.ts` (FR-027)
+- [x] T095 [US3] Implement read-time fan-in feed assembly — parallel query per followed interest, merge, visibility-filter, cache the page — in `apps/api/src/modules/feed/feed.service.ts` (FR-032, research §D1)
+- [x] T096 [US3] Implement `GET /feed/home` with cursor paging and empty-state hints in `apps/api/src/modules/feed/feed.controller.ts` (FR-032, FR-035, FR-036)
+- [x] T097 [US3] Implement `GET /interests/suggested` in `apps/api/src/modules/interests/interest.controller.ts` (FR-029, measured by SC-006)
+- [x] T098 [US3] Enable the home-feed surface in the visibility matrix suite in `apps/api/tests/visibility/matrix.spec.ts`
+- [x] T099 [P] [US3] Build the home feed screen with the no-followed-interests onboarding state in `apps/mobile/src/features/feed/HomeFeedScreen.tsx` (FR-036)
+- [x] T100 [P] [US3] Build the follow/unfollow control and onboarding interest picker in `apps/mobile/src/features/discover/FollowInterestControl.tsx`
 
 **Checkpoint**: The core loop works — publish, discover, follow, return to a personal feed.
 

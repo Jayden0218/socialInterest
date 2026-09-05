@@ -20,6 +20,7 @@ import { zodBody } from '../../common/http/validation';
 import { CATALOGUE_SEARCH, type CatalogueSearch } from './catalogue.cache';
 import { InterestSearch, type SearchResult } from './catalogue.search';
 import { DuplicateInterestError, InterestService } from './interest.service';
+import { InterestFollowService } from './interest-follow.service';
 
 const createInterestSchema = z.object({
   name: z.string().min(2).max(50),
@@ -52,7 +53,28 @@ export class InterestController {
     @Inject(InterestService) private readonly interests: InterestService,
     @Inject(InterestSearch) private readonly search: InterestSearch,
     @Inject(CATALOGUE_SEARCH) private readonly catalogue: CatalogueSearch,
+    @Inject(InterestFollowService) private readonly follows: InterestFollowService,
   ) {}
+
+  /**
+   * FR-029. The onboarding path SC-006 measures: someone new should find and
+   * follow three relevant interests within two minutes, so this must return
+   * interests worth following rather than an arbitrary slice of the catalogue.
+   *
+   * Declared before ':interestId' so the literal path wins the route match.
+   */
+  @Get('suggested')
+  async suggested(@Req() req: AppRequest) {
+    const ids = await this.follows.suggest(req.viewer!.userId);
+    const items = ids
+      .map((id) => this.catalogue.byId(id))
+      .filter((i): i is NonNullable<typeof i> => i !== undefined)
+      .map((interest) => toRef({ interest, parent: null, similarity: 1 }));
+    return {
+      items,
+      page: { nextCursor: null, emptyStateHint: items.length === 0 ? 'no_results' : null },
+    };
+  }
 
   /** FR-025 browse, FR-026 type-ahead. Readable signed out. */
   @Public()

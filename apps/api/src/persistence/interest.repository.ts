@@ -44,6 +44,15 @@ export class InterestRepository extends BaseRepository {
     );
   }
 
+  /** Atomic counter - no read-modify-write, so concurrent follows cannot race. */
+  async incrementFollowerCount(interestId: string, by: number): Promise<void> {
+    await this.increment(keys.interest(interestId), 'followerCount', by);
+  }
+
+  async incrementPostCount(interestId: string, by: number): Promise<void> {
+    await this.increment(keys.interest(interestId), 'postCount', by);
+  }
+
   async findBySlug(slug: string): Promise<InterestItem | null> {
     const page = await this.query<InterestItem>(`ISLUG#${slug}`, { indexName: 'gsi1', limit: 1 });
     return page.items[0] ?? null;
