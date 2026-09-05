@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import type { AppData } from '../data';
 import { DataProvider } from '../data-provider';
 import { Shell } from '../App';
@@ -87,20 +87,30 @@ describe('the shell reaches every screen', () => {
 
   it('offers sign in, and reaching compose while signed out routes there', async () => {
     renderShell();
-    fireEvent.press(screen.getByTestId('open-compose'));
-    await waitFor(() => expect(screen.getByTestId('sign-in-screen')).toBeTruthy());
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('open-compose'));
+    });
+    expect(screen.getByTestId('sign-in-screen')).toBeTruthy();
   });
 
   it('signs in through the screen and comes back', async () => {
     renderShell();
-    fireEvent.press(screen.getByTestId('open-sign-in'));
-    await waitFor(() => expect(screen.getByTestId('sign-in-screen')).toBeTruthy());
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('open-sign-in'));
+    });
+    expect(screen.getByTestId('sign-in-screen')).toBeTruthy();
 
     fireEvent.changeText(screen.getByTestId('sign-in-token'), 'a-token');
-    fireEvent.press(screen.getByTestId('sign-in-submit'));
+    // signIn resolves on a promise, and the state updates it causes land outside
+    // any act() boundary that fireEvent opened. Settling the chain inside act
+    // makes the result observable synchronously; a polling waitFor races it and
+    // fails about half the time under a loaded worker.
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('sign-in-submit'));
+    });
 
     // Back on the tabs, and now signed in - so the sign-in affordance is gone.
-    await waitFor(() => expect(screen.queryByTestId('sign-in-screen')).toBeNull());
+    expect(screen.queryByTestId('sign-in-screen')).toBeNull();
     expect(screen.queryByTestId('open-sign-in')).toBeNull();
   });
 
@@ -116,19 +126,25 @@ describe('the shell reaches every screen', () => {
     renderShell(data);
     fireEvent.press(screen.getByTestId('open-sign-in'));
     fireEvent.changeText(screen.getByTestId('sign-in-token'), 'bad');
-    fireEvent.press(screen.getByTestId('sign-in-submit'));
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('sign-in-submit'));
+    });
 
-    await waitFor(() => expect(screen.getByTestId('sign-in-error')).toBeTruthy());
+    expect(screen.getByTestId('sign-in-error')).toBeTruthy();
     // Still on the sign-in screen: a rejected token must not look like success.
     expect(screen.getByTestId('sign-in-screen')).toBeTruthy();
   });
 
   it('goes back from a pushed screen', async () => {
     renderShell();
-    fireEvent.press(screen.getByTestId('open-sign-in'));
-    await waitFor(() => expect(screen.getByTestId('sign-in-screen')).toBeTruthy());
-    fireEvent.press(screen.getByTestId('nav-back'));
-    await waitFor(() => expect(screen.getByTestId('home-feed-screen')).toBeTruthy());
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('open-sign-in'));
+    });
+    expect(screen.getByTestId('sign-in-screen')).toBeTruthy();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('nav-back'));
+    });
+    expect(screen.getByTestId('home-feed-screen')).toBeTruthy();
   });
 
   it('reaches compose, comments and safety once signed in', async () => {
@@ -140,7 +156,9 @@ describe('the shell reaches every screen', () => {
     renderShell(data);
     await waitFor(() => expect(screen.queryByTestId('open-sign-in')).toBeNull());
 
-    fireEvent.press(screen.getByTestId('open-compose'));
-    await waitFor(() => expect(screen.getByTestId('compose-screen')).toBeTruthy());
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('open-compose'));
+    });
+    expect(screen.getByTestId('compose-screen')).toBeTruthy();
   });
 });

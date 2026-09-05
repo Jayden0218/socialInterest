@@ -71,15 +71,24 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
           ls -l /dev/kvm
+          # Prove acceleration rather than assume it. The sandbox run failed
+          # because TCG cannot boot Android at all, so "is KVM actually in use"
+          # is the one thing worth asserting before blaming a timeout.
+          $ANDROID_HOME/emulator/emulator -accel-check
 
       - name: Boot the emulator and drive the app
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
-          target: google_apis
+          # API 30 `default`, not 34 `google_apis`: no Play services and far
+          # fewer system services to start. The first run booted for 11 minutes
+          # and hit the action's 10-minute limit on the heaviest image offered.
+          api-level: 30
+          target: default
           arch: x86_64
           profile: pixel_6
-          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -no-snapshot
+          emulator-boot-timeout: 1800
+          disable-animations: true
+          emulator-options: -no-window -noaudio -no-boot-anim -gpu swiftshader_indirect -no-snapshot-save
           script: ./scripts/android-device-pass.sh
 
       - name: Collect evidence
