@@ -39,6 +39,16 @@ jobs:
       - run: pnpm --filter @sih/infra seed:catalogue
       - run: pnpm --filter @sih/api test
       - run: pnpm --filter @sih/mobile test
+      - run: pnpm --filter @sih/workers test
+      # The contract between the app and the service. Regenerating the client and
+      # failing on a diff is what makes an OpenAPI change that nobody propagated a
+      # build failure instead of a runtime 400 (002/FR-003).
+      - run: pnpm --filter @sih/shared generate:client
+      - run: git diff --exit-code packages/shared/src/client/
+      # Journeys over real HTTP against a real API. --passWithNoTests keeps this
+      # green until Phase 3 fills it; an empty jest run otherwise exits non-zero.
+      - run: pnpm --filter @sih/e2e test
+      - run: pnpm --filter @sih/infra verify:register
       # Boots under the production runner (tsx), which does not emit decorator
       # metadata the way ts-jest does. Catches DI that works in tests and
       # returns 500 in production.

@@ -42,12 +42,12 @@ pnpm workspace monorepo: `apps/api`, `apps/mobile`, `apps/e2e` (new), `apps/work
 
 **Purpose**: Scaffolding that every later phase needs.
 
-- [ ] T001 Create the `apps/e2e` workspace package with `package.json`, `tsconfig.json` and a jest config in `apps/e2e/`, registered in `pnpm-workspace.yaml`
-- [ ] T002 [P] Add a `generate:client` script to `packages/shared/package.json` that regenerates `src/client/operations.generated.ts` from `specs/001-interest-media-sharing/contracts/openapi.yaml`
-- [ ] T003 [P] Create the evidence tree `docs/verification/` with `runs/`, an empty `approvals.md`, and a `README.md` stating that these are dated records, not design documents
-- [ ] T004 [P] Add `apps/e2e` to the root `typecheck` and `lint` sweeps and confirm both still pass
-- [ ] T005 [P] Add `report:outcomes` to `apps/workers/package.json` and `verify:register`, `verify:teardown`, `spend-report` to `infra/package.json`, each pointing at a file created later in its own phase
-- [ ] T006 Extend `.github/workflows/ci.yml` with the `apps/e2e` test step and the client-drift check, passing `--passWithNoTests` to the e2e step so CI stays green until Phase 3 populates it
+- [X] T001 Create the `apps/e2e` workspace package with `package.json`, `tsconfig.json` and a jest config in `apps/e2e/`, registered in `pnpm-workspace.yaml`
+- [X] T002 [P] Add a `generate:client` script to `packages/shared/package.json` that regenerates `src/client/operations.generated.ts` from `specs/001-interest-media-sharing/contracts/openapi.yaml`
+- [X] T003 [P] Create the evidence tree `docs/verification/` with `runs/`, an empty `approvals.md`, and a `README.md` stating that these are dated records, not design documents
+- [X] T004 [P] Add `apps/e2e` to the root `typecheck` and `lint` sweeps and confirm both still pass
+- [X] T005 [P] Add `report:outcomes` to `apps/workers/package.json` and `verify:register`, `verify:teardown`, `spend-report` to `infra/package.json`, each pointing at a file created later in its own phase
+- [X] T006 Extend `.github/workflows/ci.yml` with the `apps/e2e` test step and the client-drift check, passing `--passWithNoTests` to the e2e step so CI stays green until Phase 3 populates it
 
 ---
 
@@ -58,15 +58,15 @@ HTTP, and reset between runs.
 
 **⚠️ CRITICAL**: no user story work begins until this phase completes.
 
-- [ ] T007 Implement an API process fixture in `apps/e2e/support/api-process.ts` that boots the API under `tsx` (the production runner, matching `smoke:boot`), waits for readiness, and shuts down cleanly
-- [ ] T008 [P] Implement store reset in `apps/e2e/support/reset.ts` that recreates the `sih-main` table and the `sih-media` bucket between runs, reusing `infra/scripts/create-local-table.ts` and `create-local-bucket.ts` rather than duplicating them
-- [ ] T009 [P] Implement test-identity minting in `apps/e2e/support/identity.ts` that issues tokens through the same local JWT issuer the API validates against — never by constructing a token the API would not itself accept
-- [ ] T010 Implement a raw HTTP helper in `apps/e2e/support/http.ts` that issues unadorned requests, used by the walking skeleton and by the negative journeys, which must bypass the app's own guards to exercise the hostile-client path (Principle III)
-- [ ] T011 [P] Add a fixture-media helper in `apps/e2e/support/media.ts` producing a small real JPEG and a short real MP4, including one JPEG carrying GPS EXIF for the metadata-strip journey
-- [ ] T012 [P] Configure `apps/e2e/tsconfig.json` `rootDir` and path mappings so it can import from `apps/mobile/src/` — cross-package imports already broke the build once in feature 001, so settle it before any journey depends on it
-- [ ] T013 Verify `apps/e2e` can boot the API, mint a token, call `GET /health` via the raw helper, and tear down — the walking skeleton, before any journey is written
-- [ ] T014 [P] Add `docs/verification/runs/TEMPLATE-journey-run.md` matching the Journey Run shape in data-model.md
-- [ ] T015 [P] Add `docs/verification/runs/TEMPLATE-load-measurement.md` matching the Load Measurement shape, with `transport` and `bottleneck` as required fields
+- [X] T007 Implement an API process fixture in `apps/e2e/support/api-process.ts` that boots the API under `tsx` (the production runner, matching `smoke:boot`), waits for readiness, and shuts down cleanly
+- [X] T008 [P] Implement store reset in `apps/e2e/support/reset.ts` that recreates the `sih-main` table and the `sih-media` bucket between runs, reusing `infra/scripts/create-local-table.ts` and `create-local-bucket.ts` rather than duplicating them
+- [X] T009 [P] Implement test-identity minting in `apps/e2e/support/identity.ts` that issues tokens through the same local JWT issuer the API validates against — never by constructing a token the API would not itself accept
+- [X] T010 Implement a raw HTTP helper in `apps/e2e/support/http.ts` that issues unadorned requests, used by the walking skeleton and by the negative journeys, which must bypass the app's own guards to exercise the hostile-client path (Principle III)
+- [X] T011 [P] Add a fixture-media helper in `apps/e2e/support/media.ts` producing a small real JPEG and a short real MP4, including one JPEG carrying GPS EXIF for the metadata-strip journey
+- [X] T012 [P] Configure `apps/e2e/tsconfig.json` `rootDir` and path mappings so it can import from `apps/mobile/src/` — cross-package imports already broke the build once in feature 001, so settle it before any journey depends on it
+- [X] T013 Verify `apps/e2e` can boot the API, mint a token, call `GET /health` via the raw helper, and tear down — the walking skeleton, before any journey is written
+- [X] T014 [P] Add `docs/verification/runs/TEMPLATE-journey-run.md` matching the Journey Run shape in data-model.md
+- [X] T015 [P] Add `docs/verification/runs/TEMPLATE-load-measurement.md` matching the Load Measurement shape, with `transport` and `bottleneck` as required fields
 
 **Checkpoint**: the API can be driven over real HTTP from a test process with a clean store.
 

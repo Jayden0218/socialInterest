@@ -10,7 +10,10 @@
     "verify:local": "tsx scripts/verify-local.ts",
     "synth": "tsx bin/infra.ts",
     "seed:load": "tsx scripts/seed-load.ts",
-    "verify:stack": "tsx scripts/verify-stack.ts"
+    "verify:stack": "tsx scripts/verify-stack.ts",
+    "verify:register": "tsx scripts/verify-register.ts",
+    "verify:teardown": "tsx scripts/verify-teardown.ts",
+    "spend-report": "tsx scripts/spend-report.ts"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.712.0",

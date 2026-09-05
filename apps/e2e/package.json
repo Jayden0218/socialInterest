@@ -1,0 +1,25 @@
+{
+  "name": "@sih/e2e",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "jest --runInBand --passWithNoTests"
+  },
+  "dependencies": {
+    "@sih/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-dynamodb": "^3.712.0",
+    "@aws-sdk/client-s3": "^3.712.0",
+    "@aws-sdk/lib-dynamodb": "^3.712.0",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.10.2",
+    "jest": "^29.7.0",
+    "jsonwebtoken": "^9.0.2",
+    "@types/jsonwebtoken": "^9.0.7",
+    "ts-jest": "^29.2.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
