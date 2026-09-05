@@ -102,32 +102,40 @@ research §D3.
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-**Status: no gates defined — `.specify/memory/constitution.md` is still the unfilled
-template.** Its principle names and bodies remain as `[PRINCIPLE_1_NAME]` placeholders,
-so there is nothing to evaluate against. This is recorded rather than treated as a
-failure: an absent constitution is a missing gate, not a violated one.
+**Evaluated against constitution v1.0.0 (ratified 2026-09-05). Status: PASS — all five
+principles satisfied, no violations to justify.**
 
-**Consequence**: the design decisions in `research.md` were made against the spec's own
-requirements and success criteria, with no project-level principles constraining
-technical choice. Several decisions below are exactly the sort a constitution normally
-governs and which a later constitution could legitimately overturn:
+This section previously recorded "no gates defined", because the constitution was still
+the unfilled scaffold. It was re-evaluated on ratification, as the constitution's own
+governance rules require of any plan written before an amendment.
 
-| Decision | A principle that would change it |
-|---|---|
-| NestJS as the API framework | A simplicity or minimal-dependency principle might prefer plain Fastify |
-| Single-table DynamoDB design | A "prefer boring, queryable storage" principle would favour the PostgreSQL alternative in research §D3 |
-| Fargate for the API rather than all-Lambda | A serverless-first or cost-floor principle would invert this |
-| Read-time feed assembly | Would likely *survive* any principle — it is required by FR-017/SC-009, not chosen for taste |
-| Test-first discipline | Undecided here; a TDD principle would reorder the whole of `tasks.md` |
+| Principle | Verdict | Where this plan satisfies it |
+|---|---|---|
+| **I. Interest Is the Organising Principle** (NON-NEGOTIABLE) | PASS | FR-033 is an intersection evaluated at read time in the feed service, asserted by a dedicated negative test — a followed author's post in an unfollowed interest must not appear. The design cannot satisfy a person-follow by widening the feed, because the followed-interest set bounds the query. |
+| **II. Visibility Is Decided Once** (NON-NEGOTIABLE) | PASS | Research §D6 puts every read behind one `VisibilityFilter`, given its own top-level module rather than living inside `posts/`. `contracts/visibility-matrix.md` enumerates all seven surfaces and is implemented as a generated suite. The principle's prohibition on re-applying visibility to stored copies is precisely why §D1 chose read-time assembly over fan-out-on-write. |
+| **III. Privacy Guarantees Are Enforced Server-Side** | PASS | FR-010's EXIF strip runs in the image worker, and `exifStripped` gates a media item reaching `ready`, so an unprocessed original cannot reach a reader. The task list carries a test that uploads GPS-tagged media through a client that skips its own stripping. |
+| **IV. Safety Ships With the Product** | PASS | Reporting, blocking, and a human moderation path form a distinct phase preceding polish, with an append-only audit log that survives deletion of its subject. `tasks.md` states plainly that US1–US6 must not ship publicly without it. Sub-interest names are treated as content — screened at creation and reportable. |
+| **V. Emulation Is Not Evidence** | PASS | Research §D9 names the one genuine divergence — ffmpeg is a different implementation of the `MediaProcessor` port, not an emulation of MediaConvert — and carries a staging smoke-test procedure as the stated verification plan. Where the local tool speaks the same API (DynamoDB Local), no adapter was invented, as the principle instructs. |
 
-**Recommendation**: run `/speckit-constitution` before `/speckit-implement`. Doing it
-before `/speckit-tasks` is better still — a test-first principle in particular changes
-the shape of the task list, not just its contents. This plan is structured so that
-reconsidering any single row above is a contained change.
+**Cost and Environment Constraints**: satisfied — see [Cost Posture](#cost-posture)
+above, which the constitution now generalises from a per-feature note into a project-wide
+rule. Every functional task is completable on the `local` profile; IaC is written and
+validated with `cdk synth` only.
 
-**Post-Phase-1 re-check**: unchanged. No gate was introduced or violated during design,
-because none exists. No entry is needed in Complexity Tracking — that table records
-justified violations, and there is nothing here to violate.
+**Development Workflow and Quality Gates**: satisfied — spec preceded plan preceded tasks;
+the three clarifications with no safe default were put to the project owner rather than
+assumed; contract-defining tests are scheduled ahead of the implementations they govern;
+and every buildable success criterion gained a measurement task after the
+`/speckit-analyze` pass.
+
+**Post-Phase-1 re-check**: PASS, unchanged. No Phase 1 design decision conflicts with a
+principle. Notably the two decisions the constitution constrains most tightly — read-time
+feed assembly and the single visibility boundary — were made *before* the constitution
+existed, derived from FR-017 and SC-009. The constitution codified them rather than
+forcing a change, which is why this re-evaluation required no rework.
+
+**Complexity Tracking**: no entries. That table records justified violations; there are
+none.
 
 ## Project Structure
 
@@ -243,5 +251,5 @@ late. None of them blocks planning.
 
 > Fill ONLY if Constitution Check has violations that must be justified
 
-No violations to record — the Constitution Check above found no gates to violate, as
-`.specify/memory/constitution.md` is still the unfilled template.
+No violations to record. The Constitution Check above evaluates this plan against
+constitution v1.0.0 and finds all five principles satisfied.
