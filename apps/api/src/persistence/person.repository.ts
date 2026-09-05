@@ -40,6 +40,34 @@ export class PersonRepository extends BaseRepository {
     await this.increment(keys.person(userId), attribute, by);
   }
 
+  async updateProfile(
+    userId: string,
+    patch: Partial<Pick<PersonItem, 'displayName' | 'bio' | 'avatarKey' | 'notificationPrefs'>>,
+  ): Promise<void> {
+    const person = await this.findById(userId);
+    if (!person) throw new Error(`person ${userId} not found`);
+    await this.putItem({
+      ...keys.person(userId),
+      ...keys.personByHandle(person.handle.toLowerCase()),
+      type: 'Person',
+      ...person,
+      ...patch,
+    });
+  }
+
+  /** FR-003. A non-active author has no followers for visibility purposes. */
+  async setStatus(userId: string, status: PersonItem['status']): Promise<void> {
+    const person = await this.findById(userId);
+    if (!person) return;
+    await this.putItem({
+      ...keys.person(userId),
+      ...keys.personByHandle(person.handle.toLowerCase()),
+      type: 'Person',
+      ...person,
+      status,
+    });
+  }
+
   async create(person: PersonItem): Promise<void> {
     await this.putItem(
       {

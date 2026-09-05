@@ -291,19 +291,19 @@ pnpm workspace monorepo per `plan.md § Project Structure`:
 
 ### Tests for User Story 6
 
-- [ ] T127 [P] [US6] Integration test `us6-manage` covering the three acceptance scenarios in `apps/api/tests/integration/us6-manage.spec.ts`
-- [ ] T128 [P] [US6] Integration test asserting a public→private flip removes the post from every surface **and** invalidates outstanding share links, in `apps/api/tests/integration/us6-visibility-propagation.spec.ts` (FR-017 — the requirement that shaped the whole feed design)
+- [x] T127 [P] [US6] Integration test `us6-manage` covering the three acceptance scenarios in `apps/api/tests/integration/us6-manage.spec.ts`
+- [x] T128 [P] [US6] Integration test asserting a public→private flip removes the post from every surface **and** invalidates outstanding share links, in `apps/api/tests/integration/us6-visibility-propagation.spec.ts` (FR-017 — the requirement that shaped the whole feed design)
 
 ### Implementation for User Story 6
 
-- [ ] T129 [US6] Implement transactional post updates keeping the post item and its index items consistent in `apps/api/src/modules/posts/post-update.transaction.ts` (FR-011, FR-017)
-- [ ] T130 [US6] Implement re-filing, deleting old index items and writing new ones in the same transaction, in `apps/api/src/modules/posts/post.service.ts` (FR-011)
-- [ ] T131 [US6] Implement `PATCH /posts/{postId}` for caption, interests, and visibility in `apps/api/src/modules/posts/post.controller.ts` (FR-011, FR-017)
-- [ ] T132 [US6] Implement soft delete removing the post from every surface in `apps/api/src/modules/posts/post.service.ts` (FR-012)
-- [ ] T133 [US6] Implement `DELETE /posts/{postId}` in `apps/api/src/modules/posts/post.controller.ts` (FR-012)
-- [ ] T134 [US6] Implement `GET`/`PATCH /me` for profile and notification preferences in `apps/api/src/modules/people/me.controller.ts` (FR-002, FR-049)
-- [ ] T135 [P] [US6] Build the post edit screen covering caption, interest, and visibility in `apps/mobile/src/features/posts/EditPostScreen.tsx`
-- [ ] T136 [P] [US6] Build the profile edit screen in `apps/mobile/src/features/profile/EditProfileScreen.tsx`
+- [x] T129 [US6] Implement transactional post updates keeping the post item and its index items consistent in `apps/api/src/modules/posts/post-update.transaction.ts` (FR-011, FR-017)
+- [x] T130 [US6] Implement re-filing, deleting old index items and writing new ones in the same transaction, in `apps/api/src/modules/posts/post.service.ts` (FR-011)
+- [x] T131 [US6] Implement `PATCH /posts/{postId}` for caption, interests, and visibility in `apps/api/src/modules/posts/post.controller.ts` (FR-011, FR-017)
+- [x] T132 [US6] Implement soft delete removing the post from every surface in `apps/api/src/modules/posts/post.service.ts` (FR-012)
+- [x] T133 [US6] Implement `DELETE /posts/{postId}` in `apps/api/src/modules/posts/post.controller.ts` (FR-012)
+- [x] T134 [US6] Implement `GET`/`PATCH /me` for profile and notification preferences in `apps/api/src/modules/people/me.controller.ts` (FR-002, FR-049)
+- [x] T135 [P] [US6] Build the post edit screen covering caption, interest, and visibility in `apps/mobile/src/features/posts/EditPostScreen.tsx`
+- [x] T136 [P] [US6] Build the profile edit screen in `apps/mobile/src/features/profile/EditProfileScreen.tsx`
 
 **Checkpoint**: All six user stories are independently functional.
 

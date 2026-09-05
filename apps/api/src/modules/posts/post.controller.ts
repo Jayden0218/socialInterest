@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpStatus, Inject, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Inject, Param, Patch, Post, Req } from '@nestjs/common';
 import { z } from 'zod';
 import { visibilitySchema } from '@sih/shared';
 import { DomainError } from '../../common/errors/problem.filter';
@@ -8,6 +8,15 @@ import { Public } from '../../common/auth/auth.guard';
 import { RateLimit } from '../../common/rate-limit/rate-limit.guard';
 import { PostService } from './post.service';
 import { PostQueryService } from './post-query.service';
+
+const updatePostSchema = z
+  .object({
+    caption: z.string().max(2000),
+    interestIds: z.array(z.string().min(1)).min(1),
+    visibility: visibilitySchema,
+  })
+  .partial()
+  .refine((v) => Object.keys(v).length > 0, { message: 'Provide at least one field to change' });
 
 const createPostSchema = z.object({
   uploads: z
@@ -71,5 +80,23 @@ export class PostController {
         : new DomainError(HttpStatus.FORBIDDEN, 'Not available to you');
     }
     return { ...result.post, media: result.media };
+  }
+
+  /**
+   * FR-011, FR-017. A visibility change takes effect on every surface
+   * immediately, and outstanding share links resolve against the new value -
+   * see post-update.transaction.ts for why that is one transaction.
+   */
+  @Patch(':postId')
+  async update(@Req() req: AppRequest, @Param('postId') postId: string, @Body() body: unknown) {
+    const patch = zodBody(updatePostSchema, body);
+    return this.posts.update(postId, req.viewer!.userId, patch);
+  }
+
+  /** FR-012. */
+  @Delete(':postId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async remove(@Req() req: AppRequest, @Param('postId') postId: string): Promise<void> {
+    await this.posts.remove(postId, req.viewer!.userId);
   }
 }
