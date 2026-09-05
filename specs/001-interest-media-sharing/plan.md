@@ -66,6 +66,32 @@ interest hierarchy exactly two levels deep; a person may follow at most 200 inte
 viewers, low hundreds of top-level interests, thousands to low tens of thousands of
 sub-interests.
 
+## Cost Posture
+
+**Decided 2026-09-05: no billable cloud resources until explicitly approved.**
+
+All development and testing runs on the `local` runtime profile (research §D9) —
+DynamoDB Local, MinIO, ffmpeg, a local JWT issuer, all in Docker. No AWS account, no
+credentials, no bill. This covers every test in `quickstart.md`, including the SC-009
+visibility matrix and all six user-story suites.
+
+The AWS production target above is a **deferred placeholder, not a commitment**. It is
+what the design assumes so that the adapters have a concrete other side; the decision
+to actually deploy there has not been made.
+
+**Constraint on `/speckit-tasks` and `/speckit-implement`**: do not generate or execute
+tasks that provision billable cloud resources — no CDK deploy, no account bootstrap, no
+managed service creation. Infrastructure-as-code may be *written* and validated with
+`cdk synth` (which is free and needs no account); applying it is a separate, explicitly
+approved step. Every functional task must be completable on the `local` profile.
+
+**If the production target changes later**, the ports in `api/src/ports/` contain the
+change — a new adapter set, not a rewrite. The one exception is a move away from
+DynamoDB: it exists only as a managed AWS service (DynamoDB Local is a development
+tool with no durability or replication story and cannot be shipped on), so self-hosting
+means changing the database, which would mean rewriting `data-model.md` and revisiting
+research §D3.
+
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
