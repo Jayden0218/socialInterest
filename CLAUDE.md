@@ -103,9 +103,30 @@ setsid nohup dockerd > /var/log/dockerd.log 2>&1 < /dev/null &
 Verified working: `docker compose` with DynamoDB Local + MinIO, presigned S3 upload,
 `TransactWriteItems`, and ffmpeg producing H.264 + poster frame + HLS.
 
-**Two limits nothing fixes**: no public inbound route (a React Native client on a phone
-or simulator cannot reach an API running here), and the container is ephemeral. Build and
-test the backend here; do not try to host one.
+**One real limit**: the container is ephemeral. Commit and push, or lose it.
+
+**The inbound-route limit is NOT absolute — I got this wrong once, don't repeat it.**
+Nothing can connect *in* to the sandbox directly, but a reverse tunnel is an *outbound*
+connection and would work. Tested 2026-09-05: `cloudflared tunnel --url ...` downloads and
+runs fine here and fails at exactly one point —
+
+```
+ERR Host not in allowlist: api.trycloudflare.com.
+    Add this host to your network egress settings to allow access.
+```
+
+That is the environment's **network access level**, not the architecture. The default is
+`Trusted` (package registries plus a fixed allowlist); a `Custom` level takes your own
+domain list. Allowlist `api.trycloudflare.com` and the argotunnel edge and a phone on any
+network could reach an API running here. Likely needs `--protocol http2` so the edge
+connection goes over TCP/443 rather than QUIC, through the proxy. **Untested past the
+first hop** — I could not change the allowlist myself.
+
+Same story for an Android emulator: `dl.google.com` is blocked by the same allowlist, so
+the SDK will not even download. If it were allowed, the emulator would still have no
+`/dev/kvm` and the kernel has `CONFIG_ANDROID_BINDER_IPC` unset, so redroid is out and
+only slow software emulation (`-no-accel -gpu swiftshader_indirect`) remains. iOS is
+impossible regardless — the Simulator is macOS-only.
 
 ### Known dead ends — already tried, don't repeat
 

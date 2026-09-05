@@ -1,8 +1,21 @@
 # Tier B — core journeys on a physical device
 
-**This cannot be run in the cloud sandbox.** There is no public inbound route, so a
-phone or simulator cannot reach an API hosted there. It is a property of the
-environment, not a setup problem. Run this on a developer machine.
+**This does not run in the cloud sandbox as configured** — but the reason is narrower
+than first recorded here, and worth knowing.
+
+Nothing connects *in* to the sandbox directly. A reverse tunnel is an *outbound*
+connection though, and `cloudflared` runs there fine; it fails only because
+`api.trycloudflare.com` is outside the environment's network allowlist. Raising the
+environment to `Custom` network access with the tunnel hosts allowed would let a phone
+on any network reach an API running in the sandbox.
+
+Two easier routes exist, and either is preferable:
+
+- **`claude --teleport <session-id>`** pulls the session onto your own machine, where the
+  device already is. No tunnel, no configuration.
+- **Same LAN**, as below.
+
+Whichever route, the pass itself must happen on real hardware.
 
 Tier A (`pnpm --filter @sih/e2e test`) already drives the app's data layer over
 real HTTP on every change. Tier B exists for what only hardware exercises:
