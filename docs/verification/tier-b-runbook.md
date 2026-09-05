@@ -57,3 +57,22 @@ Copy `runs/TEMPLATE-journey-run.md` to `runs/<date>-tier-b-<platform>.md`, fill 
 the device and the commit, and mark every journey pass, fail, or **not run**.
 Never leave a row blank, and never record a simulator pass as tier B - the
 permissions and hardware paths are the entire reason this tier exists.
+
+## What the browser journeys cover, and what they do not
+
+`apps/e2e/browser/` renders the app's real screens in Chromium against a running
+API (002/T102). It closes one specific gap: the UI had never rendered against a
+live server, so a container binding the wrong field - or showing an empty state
+for a failed load - passed both the 31 render tests and the 22 HTTP journeys.
+
+**It is not a device test and must never be recorded as this tier.** Absent from a
+browser entirely:
+
+- permission prompts, including refusing them
+- the camera and the photo library
+- backgrounding mid-upload and returning
+- real network conditions on a real radio
+- anything platform-specific about how the OS treats the app
+
+Those are the whole reason Tier B exists. A green browser suite says the UI and
+the service agree; it says nothing about any of the above.

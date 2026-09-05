@@ -10,7 +10,7 @@ import type { Config } from 'jest';
 const config: Config = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  testMatch: ['<rootDir>/journeys/**/*.spec.ts'],
+  testMatch: ['<rootDir>/journeys/**/*.spec.ts', '<rootDir>/browser/**/*.spec.ts'],
   testTimeout: 120_000,
   globalSetup: '<rootDir>/support/global-setup.ts',
   globalTeardown: '<rootDir>/support/global-teardown.ts',

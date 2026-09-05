@@ -32,7 +32,22 @@ export class ApiClient {
     for (const [k, v] of Object.entries(init.params ?? {})) {
       path = path.replace(`{${k}}`, encodeURIComponent(v));
     }
-    const url = new URL(this.opts.baseUrl.replace(/\/$/, '') + path);
+    /**
+     * A relative base such as `/v1` is resolved against the page origin. The
+     * client used to require an absolute base, so any browser deployment - or a
+     * same-origin proxy, which is how the browser journeys avoid needing CORS on
+     * the API - threw "Failed to construct 'URL'" before a request was ever made.
+     */
+    const base = this.opts.baseUrl.replace(/\/$/, '');
+    const origin = (globalThis as { location?: { origin?: string } }).location?.origin;
+    const absolute = /^[a-z][a-z0-9+.-]*:/i.test(base);
+    if (!absolute && origin === undefined) {
+      throw new Error(
+        `baseUrl "${this.opts.baseUrl}" is relative and there is no page origin to resolve it against. ` +
+          'Pass an absolute base URL outside a browser.',
+      );
+    }
+    const url = absolute ? new URL(base + path) : new URL(base + path, origin);
     for (const [k, v] of Object.entries(init.query ?? {})) {
       if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
     }

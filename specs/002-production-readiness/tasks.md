@@ -227,6 +227,32 @@ unmeasured.
 
 ---
 
+## Phase 8: Browser journeys (added 2026-09-05)
+
+**Why this exists.** T045 is unreachable from here: every route to a device —
+EAS Build, a local Android SDK, or a tunnel to a device farm — is blocked by the
+environment's network allowlist, which this session cannot change. But T045 was
+covering two different risks, and only one of them needs hardware.
+
+| Risk | Covered by |
+|---|---|
+| Permissions, camera, photo library, backgrounding, real network | Hardware only — stays open as T045 |
+| **The UI has never rendered against a live server** | Closable here |
+
+The second is real and untested: the data layer is exercised by 22 journeys over
+HTTP, and the components by 31 render tests, but the two have never run together.
+Chromium and Playwright are preinstalled, so the app's own screens can be driven
+in a browser against the running API.
+
+This is **not** a substitute for T045 and must never be recorded as one.
+
+- [X] T101 Add web support to `apps/mobile` (`react-native-web`) so the real screens render in a browser
+- [X] T102 Drive the core journeys through the rendered UI against a live API with Playwright, in `apps/e2e/browser/`
+- [X] T103 Wire the browser journeys into CI
+- [X] T104 Record in the Tier B runbook what browser journeys do and do not cover
+
+---
+
 ## Phase 7: Polish & Cross-Cutting Concerns
 
 - [X] T095 [P] Update `CLAUDE.md` with what this feature established: the corrected `001/SC-011` framing, the `apps/e2e` package, the divergence register, and the fact that the `aws` adapters were stubs

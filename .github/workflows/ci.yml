@@ -48,6 +48,9 @@ jobs:
       - run: git diff --exit-code packages/shared/src/client/operations.generated.ts
       # Journeys over real HTTP against a real API. --passWithNoTests keeps this
       # green until Phase 3 fills it; an empty jest run otherwise exits non-zero.
+      # The sandbox ships a pinned Chromium; a CI runner does not, so fetch one.
+      # apps/e2e/support/browser.ts prefers a preinstalled build when present.
+      - run: pnpm --filter @sih/e2e exec playwright install --with-deps chromium
       - run: pnpm --filter @sih/e2e test
       # Boots under the production runner (tsx), which does not emit decorator
       # metadata the way ts-jest does. Catches DI that works in tests and

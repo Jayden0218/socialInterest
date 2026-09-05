@@ -5,3 +5,4 @@ dist/
 *.log
 infra/cdk.out/
 .expo/
+apps/mobile/web/dist/
