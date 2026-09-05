@@ -1,8 +1,13 @@
 /**
- * Profile-aware configuration. Research D9: the API depends on ports for every
- * managed service except DynamoDB, and RUNTIME_PROFILE selects the adapter set.
+ * Configuration.
+ *
+ * There used to be a second `aws` profile selecting a different adapter set.
+ * Spec 002 removed it: AWS is not the deployment target, and none of those
+ * adapters had ever been executed. `RuntimeProfile` is kept as a single-valued
+ * type rather than deleted so that adding a second profile later is a visible,
+ * deliberate change rather than a string appearing in a condition.
  */
-export type RuntimeProfile = 'local' | 'aws';
+export type RuntimeProfile = 'local';
 
 const str = (k: string, fallback?: string): string => {
   const v = process.env[k] ?? fallback;
@@ -25,16 +30,19 @@ export interface AppConfig {
     forcePathStyle: boolean;
     credentials?: { accessKeyId: string; secretAccessKey: string };
   };
-  identity: { jwtSecret: string; issuer: string; userPoolId?: string; clientId?: string };
+  identity: { jwtSecret: string; issuer: string };
   media: { ffmpegImage: string; dispatchOnCreate: boolean };
 }
 
 export function loadConfig(): AppConfig {
   const profile = (process.env['RUNTIME_PROFILE'] ?? 'local') as RuntimeProfile;
-  if (profile !== 'local' && profile !== 'aws') {
-    throw new Error(`RUNTIME_PROFILE must be 'local' or 'aws', got '${profile}'`);
+  if (profile !== 'local') {
+    throw new Error(
+      `RUNTIME_PROFILE must be 'local', got '${profile}'. The aws profile was removed ` +
+        'in spec 002; adding one back means registering and verifying the divergence first.',
+    );
   }
-  const isLocal = profile === 'local';
+  const isLocal = true;
 
   return {
     profile,
@@ -60,10 +68,6 @@ export function loadConfig(): AppConfig {
     identity: {
       jwtSecret: str('LOCAL_JWT_SECRET', isLocal ? 'dev-only-not-a-real-secret' : ''),
       issuer: str('JWT_ISSUER', 'sih-local'),
-      // Required in the aws profile. Deliberately no default: selecting `aws`
-      // without a pool must fail at boot, not reject every request at runtime
-      // and look like a broken login.
-      ...(isLocal ? {} : { userPoolId: str('COGNITO_USER_POOL_ID'), clientId: str('COGNITO_CLIENT_ID') }),
     },
     media: {
       ffmpegImage: str('FFMPEG_IMAGE', 'linuxserver/ffmpeg:latest'),

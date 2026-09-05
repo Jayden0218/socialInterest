@@ -147,7 +147,7 @@ requires a production-shaped datastore. Until T052 runs, the criterion is report
 - [X] T049 [P] [US2] Make both benches emit the Load Measurement shape from data-model.md, with `bottleneck` and `bottleneck_evidence` as required fields and `undetermined` permitted *(bench:feed-load emits the full shape via `reportMeasurement`; bench:ceiling produces the three-way attribution that populates its `bottleneck` field rather than a Load Measurement of its own — they are different measurements, not the same one twice)*
 - [X] T050 [US2] Run `seed:load`, then `bench:ceiling` and `bench:feed-load`, and record the result as a Load Measurement in `docs/verification/runs/`
 - [X] T051 [US2] Write the attribution conclusion into `specs/002-production-readiness/research.md` under R1, stating plainly which of the three is the binding ceiling, or that it is undetermined
-- [ ] T052 [US2] ⛔ **GATED** — obtain approval, then re-run `bench:feed-load` against provisioned DynamoDB at the target concurrency and record a Load Measurement with `transport: http` and the real datastore. This is the only task that can close `002/SC-002` (FR-008)
+- [ ] T052 [US2] ⛔ **GATED — DEFERRED by decision 2026-09-05.** `002/SC-002` is reported as unverified, not met and not failed. Obtain approval, then re-run `bench:feed-load` against provisioned DynamoDB at the target concurrency and record a Load Measurement with `transport: http` and the real datastore. This is the only task that can close `002/SC-002` (FR-008)
 
 ### Conditional — only if T051 attributes the ceiling to the application
 
@@ -173,51 +173,27 @@ open would suggest work still owed.
 
 ---
 
-## Phase 5: User Story 3 — Guarantees are proven where real people will use them (Priority: P3)
+## ~~Phase 5: User Story 3~~ — REMOVED 2026-09-05
 
-**Goal**: Every divergence is registered with its implementation state, the missing production
-code is written, and — once approved — each is verified.
+**T062–T082 are withdrawn.** The project owner decided AWS is not the deployment
+target, so the four adapters those tasks existed to register, runbook and verify
+were deleted rather than left in the tree unexecuted.
 
-**Independent Test**: `verify:register` passes, the port-parity test shows no `aws` adapter
-throws `NOT_PROVISIONED`, and `verify:teardown --dry-run` reports correctly. The runs are gated.
+What went, and why it is not a loss:
+| Removed | Reason |
+|---|---|
+| `apps/api/src/adapters/aws/*` (4 adapters) | Never executed once. Keeping them meant four untested implementations behind a profile switch |
+| The `aws` runtime profile | Nothing selects it any more; `RUNTIME_PROFILE` now accepts `local` only, and says so if given anything else |
+| The divergence register, its four runbooks, `verify:register` | There is no divergence to register — one implementation per port |
+| T077–T082 (the gated verifications) | Nothing left to verify |
 
-**Read this first.** Checked against the code rather than the file list: D-1 is a real
-implementation that has never executed, D-2 and D-3 are stubs that throw, and D-4 has no adapter
-file at all. Three of four entries need code written before verification is even possible.
-Writing it costs nothing and is **not** gated.
+Kept: `verify:teardown` and `spend-report`, because SC-002's deferred measurement
+would still create billable resources if it is ever approved.
 
-### Preparation — no approval needed, no spend
-
-- [X] T062 [P] [US3] Write the live register `docs/verification/divergence-register.md` with D-1 object store, D-2 transcode, D-3 identity, D-4 media delivery, each carrying its `implementation` state (FR-031), per `contracts/divergence-register.md`
-- [X] T063 [US3] Implement `infra/scripts/verify-register.ts` checking the register against the set of **capabilities** that have a production path — not against the file list in `apps/api/src/adapters/aws/`, since D-4 legitimately has no file yet — and wire it into CI as `verify:register`
-- [X] T064 [P] [US3] Add a test asserting DynamoDB is **absent** from the register, so a future contributor cannot add a spurious entry and make completeness unfalsifiable (research R4, 001/D9)
-- [X] T065 [P] [US3] Write the D-1 runbook in `docs/verification/runbooks/d1-object-store.md`, stating the proof before the run: presign semantics, consistency, and error taxonomy behave as the local path does
-- [X] T066 [P] [US3] Write the D-2 runbook in `docs/verification/runbooks/d2-transcode.md`, whose proof is both `002/SC-005` (95% of videos playable within 60 seconds) **and** FR-017 (location metadata absent by the time anyone can read the media, driven as a hostile client would)
-- [X] T067 [P] [US3] Write the D-3 runbook in `docs/verification/runbooks/d3-identity.md` covering token shape, claims, expiry and refresh
-- [X] T068 [P] [US3] Write the D-4 runbook in `docs/verification/runbooks/d4-media-delivery.md`, whose proof includes that an unauthorised viewer requesting media directly does not receive it (FR-019)
-- [~] T069 [US3] **PARTIAL** — `infra/scripts/verify-teardown.ts` exists with the right shape (own command, never a `finally` block, fails safe, refuses to report an all-clear it did not verify), but the resource-tagging query itself is NOT written: with an account configured it throws rather than listing. Writing it untested would risk the one outcome it exists to prevent — a false all-clear over resources that are still billing — so it is finished alongside T077-T082, against a real account. Implement `infra/scripts/verify-teardown.ts` listing resources by run tag and failing if any survive, invoked as its own command and never from a `finally` block (research R6)
-- [X] T070 [P] [US3] Implement `infra/scripts/spend-report.ts` recording actual spend per run against its approval ceiling
-- [X] T071 [P] [US3] Add `docs/verification/runs/TEMPLATE-verification-run.md` and the Approval Record format in `docs/verification/approvals.md`
-- [X] T072 [US3] Dry-run `verify:teardown --dry-run` and `pnpm --filter @sih/infra synth` and confirm both work with no account and no credentials
-
-### Implementation — the production code that does not exist yet (no approval needed)
-
-- [X] T073 [US3] Implement `MediaConvertMediaProcessor` in `apps/api/src/adapters/aws/mediaconvert-media-processor.ts`, replacing the three `NOT_PROVISIONED` throws, including `processImage` location-metadata stripping (FR-017) — unit-tested against a mocked SDK, since running it is gated
-- [X] T074 [US3] Implement `CognitoIdentityProvider.verify()` in `apps/api/src/adapters/aws/cognito-identity-provider.ts`, replacing the `NOT_PROVISIONED` throw
-- [X] T075 [P] [US3] Create the media-delivery adapter in `apps/api/src/adapters/aws/` for D-4 — no file exists today, so the CDN path has no implementation at all
-- [X] T076 [US3] Add a port-parity test in `apps/api/tests/contract/` asserting every `aws` adapter implements every port method and that none throws `NOT_PROVISIONED` — this is what makes a missing production implementation fail a build instead of waiting for an analysis pass
-
-### The verifications themselves
-
-- [ ] T077 [US3] ⛔ **GATED** — obtain and record an Approval Record with a spend ceiling before any environment is created. Nothing below may start without it
-- [ ] T078 [US3] ⛔ **GATED** — execute the D-1 runbook, record a Verification Run, confirm teardown independently
-- [ ] T079 [US3] ⛔ **GATED** — execute the D-2 runbook and record whether `002/SC-005` and FR-017 hold on the production path
-- [ ] T080 [US3] ⛔ **GATED** — execute the D-3 runbook and record the result
-- [ ] T081 [US3] ⛔ **GATED** — execute the D-4 runbook, including the unauthorised-direct-fetch check
-- [ ] T082 [US3] ⛔ **GATED** — run `verify:teardown` and `spend-report` for every run and confirm zero surviving resources within 24 hours
-
-**Checkpoint**: Principle V is discharged for every registered divergence, or the register
-truthfully says which are unimplemented and which are unverified.
+**This does not repeal Principle V.** The moment a second implementation of any
+port is introduced, the divergence must be registered and verified on the
+production path before release. The rule is in the constitution; only the
+instance is gone.
 
 ---
 
@@ -242,9 +218,9 @@ with its target, misses included and small cells suppressed.
 
 ### The measurement itself
 
-- [ ] T092 [US4] ⛔ **GATED** — obtain approval for a deployment and a participant group
-- [ ] T093 [US4] ⛔ **GATED** — open the declared window and let it run to its stated end without adjusting it after seeing data
-- [ ] T094 [US4] ⛔ **GATED** — produce and publish the report, stating every miss
+- [ ] T092 [US4] ⛔ **GATED — DEFERRED by decision 2026-09-05.** obtain approval for a deployment and a participant group
+- [ ] T093 [US4] ⛔ **GATED — DEFERRED by decision 2026-09-05.** open the declared window and let it run to its stated end without adjusting it after seeing data
+- [ ] T094 [US4] ⛔ **GATED — DEFERRED by decision 2026-09-05.** produce and publish the report, stating every miss
 
 **Checkpoint**: the five criteria are answered with real numbers, or honestly reported as
 unmeasured.
@@ -283,7 +259,6 @@ unmeasured.
   is the only genuine cross-story dependency
 
 ### Single-owner files — two agents editing these will overwrite each other
-
 | File | Tasks |
 |---|---|
 | `apps/api/src/modules/feed/feed.service.ts` | T054, T055 |
@@ -368,7 +343,6 @@ Added after the `/speckit-analyze` re-run at T099, which found the work complete
 but the mapping implicit. The constitution requires each task to trace to a
 requirement; naming the FR inside a task description covered only some of them,
 so the map is stated once here instead.
-
 | Requirement | Tasks | State |
 |---|---|---|
 | FR-001 core journeys through the app's data layer | T026, T035–T042 | done |
@@ -376,24 +350,13 @@ so the map is stated once here instead.
 | FR-003 contract drift fails the build | T017, T006 | done |
 | FR-004 no cloud account needed | T043 | done |
 | FR-005 physical-device pass | T044, **T045** | runbook done; pass needs hardware |
-| FR-006 latency budget under concurrency | T046–T050, **T052** | measured locally; budget unverified |
+| FR-006 latency budget under concurrency | T046–T050, **T052** | measured locally; budget **deferred/unverified** |
 | FR-007 visibility immediate under load | T058 | done |
-| FR-008 production-shaped datastore | **T052** | gated |
+| FR-008 production-shaped datastore | **T052** | **deferred** — SC-002 reported unverified |
 | FR-009 latency per level, first breach | T047, T049 | done |
 | FR-010 re-verify the visibility contract | T057 | done, 294/294 |
 | FR-011 escalate rather than weaken | T060 | no conflict arose |
 | FR-012 generator is not the limit | T045–T047 | done — `bench:ceiling` |
-| FR-013 maintain the register | T062 | done |
-| FR-014 register completeness | T063, T064, T076 | done, enforced in CI |
-| FR-015 verified before release | **T077–T081** | gated |
-| FR-016 video 60s on production | **T079** | gated |
-| FR-017 metadata strip on production | T066 (proof stated), **T079** | gated |
-| FR-018 sign-in on production identity | **T080** | gated |
-| FR-019 media delivery unauthorised fetch | T068, **T081** | gated |
-| FR-020 approval recorded | T071, **T077** | format done; approval gated |
-| FR-021 teardown confirmed independently | T069, **T082** | script done; run gated |
-| FR-022 cost recorded | T070, **T082** | script done; run gated |
-| FR-023 run records date and version | T071 | done — template |
 | FR-024 windows declared in advance | T083 | done |
 | FR-025 unmeasurable, never estimated | T089 | done |
 | FR-026 misses reported | T084, T090 | done |
@@ -401,19 +364,17 @@ so the map is stated once here instead.
 | FR-028 aggregates only, suppression floor | T088, T090 | done |
 | FR-029 purpose limit | T090 | done — asserted structurally |
 | FR-030 too-small window says so | T089 | done |
-| FR-031 register records implementation state | T062, T063, T064 | done |
-
 | Success criterion | Tasks | State |
 |---|---|---|
 | 002/SC-001 journeys on every change, none stand-in-only | T026, T035–T043 | **met** — 22 assertions green |
-| 002/SC-002 2s p95 at 10,000 concurrent | T046–T050, **T052** | **unverified** — ceiling was the emulator |
+| 002/SC-002 2s p95 at 10,000 concurrent | T046–T050, **T052** | **deferred, unverified** — ceiling was the emulator, not the design |
 | 002/SC-003 visibility contract passes in full | T057, T058 | **met** — 294/294, 7/7 surfaces |
-| 002/SC-004 every divergence verified before release | **T077–T081** | gated |
-| 002/SC-005 video playable in 60s on production | **T079** | gated |
+| 002/SC-004 every divergence verified before release | — | **withdrawn** — no divergences remain |
+| 002/SC-005 video playable in 60s | 001 `bench:transcode` | **met** — ffmpeg is now the only implementation, so the local measurement is the production one |
 | 002/SC-006 journeys on a physical device | **T045** | needs hardware |
-| 002/SC-007 outcome reported within a cycle | T084, **T092–T094** | job built; window gated |
-| 002/SC-008 environments confirmed destroyed | T069, **T082** | check built; run gated |
-| 002/SC-009 spend within approval | T070, **T082** | report built; run gated |
+| 002/SC-007 outcome reported within a cycle | T084, **T092–T094** | job built; window **deferred** |
+| 002/SC-008 environments confirmed destroyed | T069 (partial) | applies only if SC-002's deferred run is approved |
+| 002/SC-009 spend within approval | T070 | **zero spend, zero approvals** to date |
 
 **Bold** task ids are gated on the project owner's approval, or on hardware this
 environment does not have.

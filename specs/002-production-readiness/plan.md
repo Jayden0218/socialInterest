@@ -6,6 +6,15 @@
 
 ## Summary
 
+> **Superseded 2026-09-05.** The project owner decided AWS is not the deployment
+> target. The four `aws` adapters, the `aws` runtime profile, the divergence
+> register and its runbooks were deleted rather than left unexecuted, and User
+> Story 3 was withdrawn with them. Sections below that describe divergence
+> verification are kept as the record of why the work existed and what was
+> decided — they no longer describe the codebase. Principle V is unaffected: it
+> applies again the moment a second implementation of any port is introduced.
+
+
 Feature 001 shipped 172 tasks and a green suite. This feature converts four unproven or
 false claims into evidence:
 
@@ -165,8 +174,8 @@ container that produced them.
 | Phase | Stories | Needs approval? | Can run in CI? |
 |---|---|---|---|
 | A | US1 — end-to-end client ↔ service | No | Yes |
-| B | US2 — feed latency under concurrency | No for local attribution; **yes** for the production-shaped run (FR-008) | Yes, except that run |
-| C | US3 — production-path verification | **Yes, per verification** | No, by design (see above) |
+| B | US2 — feed latency under concurrency | No for local attribution; the production-shaped run is **deferred** | Yes, except that run |
+| ~~C~~ | ~~US3 — production-path verification~~ | **WITHDRAWN** — AWS dropped, no divergence remains | n/a |
 | D | US4 — real-usage measurement | **Yes** (needs a deployment and participants) | Report generation only |
 
 Phases A and B are complete work in their own right: at the end of B the product is

@@ -57,6 +57,3 @@ jobs:
       # requires explicit approval (plan.md Cost Posture), so CI can never do it.
       - run: pnpm --filter @sih/infra verify:stack
       - run: pnpm --filter @sih/infra synth
-      # The divergence register must stay complete: a production implementation
-      # added without an entry is an incomplete change (002/FR-014).
-      - run: pnpm --filter @sih/infra verify:register

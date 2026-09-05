@@ -26,9 +26,21 @@ for the next. Everything runs on the `local` profile: DynamoDB Local, MinIO, ffm
 local JWT issuer, all in Docker, no AWS account. IaC may be written and `cdk synth`'d
 (free, no credentials); **applying it is never an implicit part of a task.**
 
-**AWS names in `plan.md` are a deferred placeholder, not a commitment.** ECS Fargate,
-MediaConvert, CloudFront, Cognito are what the adapters target; no deploy decision has
-been made.
+**AWS was dropped as the deployment target on 2026-09-05.** The four `aws` adapters
+(S3, MediaConvert, Cognito, CloudFront) had never been executed once, so they were
+deleted rather than left behind a profile switch — four untested implementations
+selected by an env var is how a defect hides. There is now **one implementation per
+port**, and it is the one every test exercises. `RUNTIME_PROFILE` accepts `local`
+only and says so if given anything else.
+
+The ports stay. They keep the media pipeline and identity check out of the modules
+that use them, and they are where a second implementation would go. **If one is ever
+added, Principle V applies again**: register the divergence and verify the production
+path before release. Deleting the adapters removed an instance, not the rule.
+
+Consequence worth naming: there is no production hosting story now. DynamoDB Local
+is a dev tool, not a production datastore, and `infra/` still describes an AWS stack
+that nothing targets. Both are open questions, not settled ones.
 
 **Constitution, in brief** (read the file for the binding text):
 
@@ -121,6 +133,10 @@ Constitution Check in particular goes stale when the constitution changes.
 Feature 001 was complete and green and the product did not work. Five defects,
 none visible to any test that existed, all found the moment `apps/e2e` drove the
 app's own data layer over HTTP against a running API:
+
+**Deferred, not met** (decision 2026-09-05): `002/SC-002` (10,000 concurrent) and the
+five real-usage criteria. Both need spend; neither is evidence of a defect. Report
+them as *unverified* and *unmeasured*, never as met.
 
 1. **The contract and the API disagreed about publishing.** OpenAPI said
    `uploadIds: string[]`; the server wanted `uploads: [{uploadId, key, kind}]`.

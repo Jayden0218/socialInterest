@@ -87,38 +87,25 @@ while the visibility guarantee still passes in full.
 
 ---
 
-### User Story 3 - Guarantees are proven where real people will use them (Priority: P3)
+### ~~User Story 3 - Guarantees are proven where real people will use them~~ (REMOVED)
 
-Before anyone outside the team touches the product, each capability whose development
-stand-in is a *different implementation* from the production service has been exercised on
-the production path, and the result recorded. Video really does become playable in time.
-Location metadata really is stripped. Sign-in really works. Media really is unreachable by
-someone not permitted to see it.
+**Removed 2026-09-05 at the project owner's decision: AWS is not the deployment
+target.**
 
-**Why this priority**: These are the guarantees most likely to be wrong and least likely to
-look wrong — a green suite against a different implementation reads exactly like a green
-suite against the real one. It ranks here because, unlike US1 and US2, it cannot start
-without the project owner authorising spend.
+This story existed because four capabilities had a production implementation
+that differed from its local stand-in — S3, MediaConvert, Cognito and a CDN — and
+Principle V requires such divergences to be verified before launch. Rather than
+leave four never-executed adapters behind a profile switch with the verification
+deferred indefinitely, the adapters themselves were deleted.
 
-**Independent Test**: For each recorded divergence, run the verification on the production
-path and record the outcome; confirm the list of divergences is complete.
+That is the honest resolution: there is now **one implementation per port**, the
+one that is tested on every change. Nothing is unverified because nothing
+production-divergent remains.
 
-**Acceptance Scenarios**:
-
-1. **Given** the list of divergences between development and production implementations,
-   **When** a release outside the team is proposed, **Then** every entry has a completed
-   verification with a recorded result.
-2. **Given** a video published on the production path, **When** its time to playable is
-   measured, **Then** 95% are playable within 60 seconds.
-3. **Given** a client that skips every client-side protection, **When** it uploads media
-   carrying location metadata on the production path, **Then** the metadata is absent by the
-   time anyone can read that media.
-4. **Given** a viewer not permitted to see a piece of media, **When** they request it directly
-   through the production delivery path, **Then** they do not receive it.
-5. **Given** a new capability is added whose implementations diverge, **When** it is not added
-   to the divergence list, **Then** the change is treated as incomplete.
-6. **Given** a verification has finished, **When** its environment is checked, **Then** it has
-   been destroyed and the destruction confirmed.
+**If a managed service is ever adopted, this story comes back with it.** The
+moment a second implementation exists, Principle V applies again: it must be
+registered as a divergence and verified on the production path before any release
+to people outside the team. Removing the story does not remove that rule.
 
 ---
 
@@ -215,43 +202,17 @@ report giving each outcome against its target.
 - **FR-012**: The measurement MUST establish that the load generator is not itself the limiting
   factor, and MUST report how that was established.
 
-**Production-path verification (US3)**
+**Production-path verification (US3) — REMOVED**
 
-- **FR-013**: A list MUST be maintained of every capability where the development stand-in and
-  the production service are different implementations rather than emulations of one another.
-- **FR-014**: The list MUST be complete. Adding a capability with such a divergence without
-  adding it to the list MUST be treated as an incomplete change.
-- **FR-015**: Each entry on the list MUST have a completed verification on the production path,
-  with the result recorded, before any release to people outside the team. Where the production
-  implementation does not yet exist, the entry MUST record that fact; an entry with no
-  implementation MUST NOT be reported as merely "unverified".
-- **FR-016**: Video publishing MUST be verified to meet the playable-within-60-seconds outcome
-  on the production path.
-- **FR-017**: Removal of location and other identifying metadata from media MUST be verified on
-  the production path, exercised through the path a modified or hostile client would take.
-- **FR-018**: Sign-in MUST be verified on the production identity path.
-- **FR-019**: Media delivery MUST be verified on the production delivery path, including that a
-  viewer who is not permitted to see a piece of media cannot retrieve it by requesting it
-  directly.
-- **FR-020**: No production-path verification may begin without explicit, specific approval
-  from the project owner for that verification, and the approval MUST be recorded. Approval for
-  one verification is not approval for another.
-  **Scope resolution** (see [research.md](./research.md#resolved-the-open-clarification-from-specmd-fr-020)):
-  this feature delivers US1 and US2 with zero spend, and takes US3 and US4 to the point of
-  being executable — register, runbooks, teardown and spend checks built and dry-runnable — then
-  stops. Starting US3 or US4 still requires the project owner's specific approval; this staging
-  is how the feature stays ready for either answer, not a substitute for the decision.
-- **FR-021**: Every environment created for a verification MUST be destroyed when that
-  verification completes, and the destruction MUST be confirmed by a check that does not depend
-  on the process that created it.
-- **FR-022**: The cost incurred by each verification MUST be recorded and reported against the
-  amount approved.
-- **FR-023**: A verification result MUST record the date and the version verified, and MUST NOT
-  be treated as evidence for a later version without being repeated.
-- **FR-031**: The register MUST record each entry's implementation state as `real`, `stub`, or
-  `absent`. An entry that is `stub` or `absent` MUST have its production implementation written
-  before a verification of it is attempted. Three of the four entries were `stub` or `absent`
-  when this feature was specified.
+FR-013 to FR-023 and FR-031 covered the divergence register, its runbooks,
+approval records, teardown confirmation and spend reporting. All are withdrawn
+with User Story 3: with AWS dropped there is no local/production divergence to
+register, and requirements about verifying one would be requirements about
+nothing.
+
+The rule they encoded is not withdrawn — it lives in the constitution
+(Principle V), and applies again the moment a second implementation of any port
+is introduced.
 
 **Real-usage measurement (US4)**
 
@@ -295,23 +256,27 @@ report giving each outcome against its target.
 - **SC-001**: Every core journey completes successfully from the app against a running service
   on every change, with zero journeys covered only by a stand-in.
 - **SC-002**: Feeds and interest spaces display first content within 2 seconds for 95% of
-  views while 10,000 people browse concurrently. Until a production-shaped measurement is
-  approved and performed, this criterion is reported as unverified; local runs establish
-  bottleneck attribution only, never the 10,000 figure.
+  views while 10,000 people browse concurrently. **DEFERRED and reported as unverified.**
+  Measured over HTTP on 2026-09-05: the binding constraint was DynamoDB Local (827 req/s)
+  rather than the design (5,574 req/s for the application shape with the datastore stubbed),
+  so no local run can settle this. Closing it needs provisioned DynamoDB, which needs
+  approval to spend. It is not met, not failed, and must not be reported as either.
 - **SC-003**: The visibility contract passes in full after every change made to reach SC-002,
   with no reduction in the surfaces or states covered.
-- **SC-004**: 100% of recorded divergences have a completed production-path verification, with
-  a recorded result, before any release to people outside the team.
-- **SC-005**: A published video is playable within 60 seconds for 95% of uploads, measured on
-  the production path.
+- **SC-004**: ~~100% of recorded divergences verified before release.~~ **WITHDRAWN** with
+  User Story 3 — there are no divergences left to verify.
+- **SC-005**: A published video is playable within 60 seconds for 95% of uploads. With
+  ffmpeg now the only transcode implementation, the local measurement **is** the production
+  measurement — the caveat that made this a separate criterion has gone with the divergence.
 - **SC-006**: Every core journey passes on a physical device of each supported mobile platform
   at least once before any release outside the team.
 - **SC-007**: Each real-usage outcome has a reported figure against its target within one
   reporting cycle of its observation window closing.
-- **SC-008**: 100% of environments created for verification are confirmed destroyed within 24
-  hours of that verification completing, with none left running.
-- **SC-009**: Spend is reported for every verification and stays within the approved amount,
-  with zero unapproved charges.
+- **SC-008**: 100% of environments created for any approved paid run are confirmed destroyed
+  within 24 hours, with none left running. Retained because SC-002's deferred measurement
+  would create one; the check that enforces it is partial (see T069).
+- **SC-009**: Spend is reported for every approved paid run and stays within the approved
+  amount, with zero unapproved charges. To date: **zero spend, zero approvals**.
 
 ## Assumptions
 

@@ -14,6 +14,20 @@ evidence with a conflict of interest.
 
 ## Repository-held records
 
+> **Superseded 2026-09-05.** The project owner decided AWS is not the deployment
+> target. The four `aws` adapters, the `aws` runtime profile, the divergence
+> register and its runbooks were deleted rather than left unexecuted, and User
+> Story 3 was withdrawn with them. Sections below that describe divergence
+> verification are kept as the record of why the work existed and what was
+> decided — they no longer describe the codebase. Principle V is unaffected: it
+> applies again the moment a second implementation of any port is introduced.
+
+The **Divergence Record** and **Verification Run** below no longer exist in the
+tree. The **Approval Record** and **Load Measurement** do — the former because
+SC-002's deferred run would need one, the latter because it holds the measurement
+that was taken.
+
+
 ### Divergence Record
 
 Lives in `docs/verification/divergence-register.md`. One row per capability where the local

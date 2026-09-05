@@ -142,7 +142,13 @@ builds depend on a code-generation step the app does not otherwise need.
 
 ---
 
-## R4 — The divergence register is the Principle V artifact, and completeness is its only hard property
+## R4 — The divergence register is the Principle V artifact ~~and completeness is its only hard property~~
+
+> **Superseded 2026-09-05.** AWS was dropped as the deployment target, the four
+> adapters were deleted, and with one implementation per port there is no
+> divergence to register. Kept as the record of the reasoning: if a managed
+> service is ever adopted, this decision is the one to re-apply, and the register
+> is the artifact to rebuild.
 
 **Decision**: Maintain `docs/verification/divergence-register.md`. One entry per capability
 where the local stand-in and the production service are different implementations. Today that
@@ -199,6 +205,10 @@ every future question a privacy decision instead of settling it once.
 ---
 
 ## R6 — Cost control: approval per run, tagging, and teardown confirmed from outside
+
+> **Still live**, though no longer for divergence verification: SC-002's deferred
+> measurement would create billable resources if approved, and this is what would
+> guard it. `verify:teardown`'s tagging query remains unwritten (T069, partial).
 
 **Decision**: Every Verification Run records the approval it ran under, a spend ceiling, and a
 resource tag. `infra/scripts/verify-teardown.ts` lists resources by that tag and fails if any

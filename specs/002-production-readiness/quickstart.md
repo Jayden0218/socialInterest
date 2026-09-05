@@ -89,35 +89,11 @@ regardless of the latency it achieves.
 
 ---
 
-## Phase C — production-path verification (US3) — **APPROVAL REQUIRED**
+## ~~Phase C — production-path verification~~ — REMOVED
 
-**Do not run any of this without explicit, specific approval from the project owner recorded as
-an Approval Record.** Approval for one verification is not approval for another.
-
-Check the register first:
-
-```bash
-cat docs/verification/divergence-register.md
-pnpm --filter @sih/infra verify:register        # fails if the register and adapters/aws/ disagree
-```
-
-Dry runs — safe, no resources created, no spend:
-
-```bash
-pnpm --filter @sih/infra synth                  # no account, no credentials
-pnpm --filter @sih/infra verify:teardown --dry-run
-```
-
-Each verification, once approved, follows its runbook and ends with:
-
-```bash
-pnpm --filter @sih/infra verify:teardown --tag <run-tag>    # separate invocation, by design
-pnpm --filter @sih/infra spend-report --run <run-id>
-```
-
-**Expected**: `verify:teardown` reports zero surviving resources. It is run as its own command,
-not in a `finally` block, because the failure being guarded against is the creating process
-dying before teardown (see [research.md](./research.md#r6)).
+AWS is not the deployment target. The adapters, register and runbooks this phase
+described were deleted on 2026-09-05; there is one implementation per port and it
+is exercised on every change.
 
 ---
 
@@ -144,7 +120,6 @@ pnpm --filter @sih/mobile test
 pnpm --filter @sih/e2e test
 pnpm --filter @sih/api smoke:boot
 pnpm --filter @sih/infra verify:local
-pnpm --filter @sih/infra verify:register
 pnpm --filter @sih/infra verify:stack
 pnpm --filter @sih/infra synth
 ```

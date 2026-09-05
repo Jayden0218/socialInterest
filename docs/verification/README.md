@@ -9,9 +9,7 @@ two in different trees is the fix.
 
 | Path | Holds |
 |---|---|
-| `divergence-register.md` | Current state of every local/production implementation divergence |
 | `approvals.md` | The project owner's explicit, scoped permissions to incur cost |
-| `runbooks/` | What would count as proof for each divergence, written **before** the run |
 | `runs/` | One append-only record per verification, load measurement, or journey run |
 
 Rules that apply to everything in here:
@@ -20,3 +18,13 @@ Rules that apply to everything in here:
 - A result is scoped to the version it was taken on. It is not evidence for a later version.
 - "Unverified" and "not implemented" are different states and must not be reported as one.
 - An honest negative result is a successful outcome. A missing record is not a passing one.
+
+## Scope note, 2026-09-05
+
+The divergence register and its runbooks were removed when AWS was dropped as the
+deployment target: with one implementation per port there is nothing to verify
+against a production path. What remains is the approval record (empty), the
+templates, and the load measurement that was actually taken.
+
+If a managed service is ever adopted, Principle V applies again and the register
+comes back with it.
