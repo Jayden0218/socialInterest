@@ -159,6 +159,30 @@ export class PostQueryService {
       createdAt: p.createdAt,
     }));
     const visible = await this.visibility.filter(viewer, candidates, cache);
-    return { items: visible, nextCursor: page.nextCursor };
+
+    /**
+     * HYDRATE. The filter's output is a set of visibility CANDIDATES - postId,
+     * visibility, processingState, timestamps - and returning it as the
+     * response handed clients a post with no caption, no media, no counts and
+     * no author. A person's own profile showed rows with nothing in them, and
+     * `caption: null` for a post published with a caption.
+     *
+     * This is the fifth instance of the same defect in this codebase: the feed,
+     * post detail, both comment paths and notifications all returned
+     * persistence or index rows as responses before this. The filter decides
+     * WHAT is visible; it was never the shape of what to send.
+     */
+    const byId = new Map(page.items.map((p) => [p.postId, p]));
+    const items = await Promise.all(
+      visible.map(async (v) => {
+        const post = byId.get(v.postId);
+        if (!post) return v;
+        return this.toResponse(post, await this.posts.listMedia(v.postId));
+      }),
+    );
+    return { items, nextCursor: page.nextCursor } as unknown as {
+      items: PostSummary[];
+      nextCursor: string | null;
+    };
   }
 }

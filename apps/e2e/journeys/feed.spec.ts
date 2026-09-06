@@ -90,4 +90,34 @@ describe('core journeys - feed', () => {
     await reader.data.people.unfollow(author.handle);
     expect((await reader.data.people.get(author.handle)).viewerIsFollowing).toBe(false);
   });
+  /**
+   * A person's own posts must come back as POSTS, not as visibility candidates.
+   *
+   * `listByAuthor` ran its rows through VisibilityFilter and returned the
+   * FILTER'S OUTPUT - postId, visibility, processingState, timestamps - so
+   * `GET /people/{handle}/posts` answered 200 with `caption: null`, no media,
+   * no counts and no author, for a post published with all of them. A person's
+   * own profile listed rows containing nothing.
+   *
+   * Fifth instance of this defect in this codebase: the feed, post detail, both
+   * comment paths and notifications each returned persistence or index rows as
+   * responses before it. The filter decides WHAT is visible; it was never the
+   * shape of what to send. Asserting on the caption is asserting the difference.
+   */
+  it("returns a person's own posts hydrated, not as visibility rows", async () => {
+    const author = await actor('ownposts');
+    const tops = await author.data.interests.listTop({ limit: 1 });
+    const interestId = tops.items[0]!.interestId;
+    await publishReadyImage(author, [interestId], { caption: 'on my own profile' });
+
+    const page = await author.data.posts.byHandle(author.handle, {});
+    expect(page.items.length).toBeGreaterThan(0);
+
+    const mine = page.items.find((p) => p.caption === 'on my own profile');
+    expect(mine).toBeDefined();
+    // The fields a candidate row does not carry.
+    expect(mine!.author.handle).toBe(author.handle);
+    expect(mine!.interests.map((i) => i.interestId)).toContain(interestId);
+    expect(mine!.media?.length ?? 0).toBeGreaterThan(0);
+  });
 });
