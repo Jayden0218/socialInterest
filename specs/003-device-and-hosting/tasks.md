@@ -76,8 +76,21 @@ app's own interface and one result per journey.
 - [X] T011 [US1] Assert in `scripts/android-device-pass.sh` that the service's own request log shows a request that arrived from the app — a blank screen renders tabs too, so this is what separates a working app from a shell
 - [X] T012 [P] [US1] Verify the `.maestro/` flows resolve against the app as built: every `id:` used must exist in `apps/mobile/src` (six were wrong when first written; check, do not assume)
 - [ ] T013 [US1] Run the Maestro journeys on the emulator from `scripts/android-device-pass.sh`, asserting each journey's effect **through the service** rather than the view hierarchy, per contract `android-journey-run.md`
+
+  **Partly done, and blocked.** The journeys DO run on the emulator: run 16 executed all ten,
+  4 passed, and `POST /v1/posts` returned 201 — the service-side assertion this task asks for.
+  Five flows have fixes pushed that no run has executed, and one (flow 11's refusal path) is
+  recorded as not producible on this device. **Blocked on the account's Actions allowance**,
+  which stops every workflow on this repository; see `CLAUDE.md`. One run answers it.
 - [X] T014 [US1] Add the FR-033 negative case as `.maestro/12-interest-follow-does-not-widen.yaml`: a followed person's post in an unfollowed interest MUST be absent from the feed (Principle I, non-negotiable)
-- [ ] T015 [US1] Record a Journey Run in `docs/verification/runs/` with `runtime: android-emulator`, one result per journey, `not run` where a journey was not attempted, and the non-blank capture attached
+- [X] T015 [US1] Record a Journey Run in `docs/verification/runs/` with `runtime: android-emulator`, one result per journey, `not run` where a journey was not attempted, and the non-blank capture attached
+
+  **Done.** `docs/verification/runs/2026-09-06-journey-run-android.md`, covering runs 11 and
+  16, `runtime: android-emulator`, one row per journey with `not run` where one was not
+  attempted, and the capture recorded with the verdict that passed it — 320x640, 515 distinct
+  colours, commonest 88.48%, checked by `scripts/assert-screen-not-blank.mjs`. This task is
+  about the RECORD existing and being honest, which it is; it is not a claim that every
+  journey passes. That is T013, and it stays open.
 
 ### If it does not boot
 
@@ -170,7 +183,15 @@ permission and see an explanation.
 - [X] T040 [US4] Place a test image in the emulator's library from `scripts/android-device-pass.sh`: `adb push` **followed by a media-scan broadcast** — a pushed file is invisible to the picker without it (research R4)
 - [X] T041 [P] [US4] Add `.maestro/10-publish-from-library.yaml` driving pick-and-publish with the permission granted
 - [X] T042 [P] [US4] Add `.maestro/11-permission-refused.yaml` using Maestro's `setPermissions` to deny, asserting the app explains what it needs rather than appearing broken (FR-012)
-- [ ] T043 [US4] Record the two permission paths in the Journey Run under `docs/verification/runs/`
+- [X] T043 [US4] Record the two permission paths in the Journey Run under `docs/verification/runs/`
+
+  **Done, and the recorded answer is not the one the task expected.** Granted: verified — the
+  compose flow hands off to the device's own media library. Refused: **not producible on this
+  device**, because on API 30 the picker hands off to `com.android.documentsui`, which needs
+  no storage permission, so denying one produces no refusal and the banner correctly never
+  appears. Evidenced by run 16's own screen dump, not inferred. The refusal branch is covered
+  where it can be, by a container test. Recording that honestly is what this task asked for;
+  recording a pass would have been a false record.
 
 **Checkpoint**: publishing starts where a person would start it.
 
