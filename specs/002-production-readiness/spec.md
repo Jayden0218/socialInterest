@@ -8,6 +8,62 @@
 
 **Input**: User description: "Close the evidence and scale gaps left open by feature 001: (1) SC-011 — read-time feed assembly is over budget under concurrency (p95 11.8s at 100 concurrent vs a 2s budget), so the feed read path needs to meet its latency budget under load without violating FR-017/SC-009; (2) Principle V — the aws-profile adapters (object store, transcode, identity, CDN) have never been exercised, so a green local suite is not evidence the production path works, including SC-003 video-playable-in-60s which is only ffmpeg-verified; (3) the React Native client has never talked to the running API — it is verified only by render tests against a generated client; (4) SC-001, SC-004, SC-007, SC-008 and SC-010 depend on real usage data that no test can produce, so they need a defined measurement and reporting path rather than an instrumented dead end."
 
+## Outcome — CONCLUDED 2026-09-06
+
+This feature is closed. 77 tasks done, 0 open, 7 withdrawn. Full CI green.
+
+**What it set out to fix, and what happened to each:**
+
+| Gap 001 left open | Outcome |
+|---|---|
+| SC-011 feed over budget under load | **Attributed, not the design.** Measured apart: generator 187,439 req/s, DynamoDB Local **827 req/s**, application shape 5,574 req/s. 001's p95 11.8s measured the emulator. The D1 hybrid was correctly **not** built |
+| Principle V — untested aws adapters | **Dissolved.** AWS was dropped as a target and the four adapters deleted rather than left behind a profile switch. One implementation per port, and every test exercises it |
+| The client had never talked to the API | **Closed, and it mattered more than expected** — see below |
+| Real-usage criteria with no population | **Withdrawn honestly** rather than faked. No containerised run can produce a usage figure |
+
+**The finding that justifies this feature.** Feature 001 was complete and green and the
+product did not work. Driving the app's own screens against a running service found
+**eighteen defects across two sessions**, none of which any existing test could see:
+
+- The contract and the API disagreed about publishing
+- The server trusted a client-supplied media key
+- No token was sent on optional-auth endpoints
+- Nothing subscribed to `post.created`, so no post ever left `pending`
+- `interestFollowCount` was never incremented
+- The feed returned index rows, not posts
+- **The app had no navigation at all** — three of six containers mounted, no sign-in screen, so on a device it was a read-only three-tab shell
+- Posts were not tappable, so post detail, comments, report and block were unreachable
+- Reacting had no control anywhere (FR-039)
+- Sharing and its "a link grants nothing" warning were unreachable (FR-041/042)
+- Proposing a sub-interest was unreachable (FR-031)
+- Blocking was silently disabled by a missing author handle (FR-044)
+- Notifications routed on the notification's id, so every one was a 404
+- Editing a post and a profile were unreachable (FR-011/012, FR-002)
+- The shared-post screen was unreachable *by construction*
+- `updateProfile` could not express `notificationPrefs` (FR-049); there was no delete-account call (FR-048)
+- **Post detail, comments (both paths) and notifications each returned the persistence row** instead of the contract shape
+
+The last group is one defect in four places, and it is the lesson worth carrying:
+**both sides generated from one document agree with each other by construction.** Contract
+tests and a generated client cannot catch it. Only a request plus a render.
+
+**What this feature did NOT establish**, carried forward to feature 003 rather than closed:
+
+1. **The app has never run on Android.** Six CI emulator runs, zero devices; the sandbox
+   crashlooped `system_server` under TCG. The only Android screenshot in existence is black.
+   All UI verification is `react-native-web` in a browser — same components, DOM primitives,
+   so native layout, touch, fonts, safe areas and native modules are unverified.
+2. **iOS, entirely.** No journey has ever run.
+3. **There is nowhere to run the product.** DynamoDB Local is a testing tool; `infra/`
+   describes a table, not a deployable stack; no adapter exists for any hosted service.
+4. **Nobody has used it.** Every real-usage outcome is unanswered.
+5. **Behaviour on a production datastore at any concurrency** is unknown.
+6. `MediaPickerScreen` is unmounted — choosing media from a device library is untested.
+7. `verify:teardown`'s resource-tagging query is unwritten (T069).
+8. **D3 is worth revisiting**: PostgreSQL was recorded as the better fit and DynamoDB was
+   the owner's instruction — an instruction that pointed at AWS, which is gone. D9 gave the
+   datastore no adapter, so this choice is welded into every repository.
+
 ## Why This Feature Exists
 
 Feature 001 completed every task it defined, and its test suite passes. That is not the same
