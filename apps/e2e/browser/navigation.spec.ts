@@ -122,8 +122,8 @@ describe('browser journeys - the screens the shell could not reach', () => {
     await page.waitForSelector(id(`post-${postId}`), { timeout: 30_000 });
     await page.click(id(`post-${postId}`));
 
-    await page.waitForSelector(id('open-comments'), { timeout: 20_000 });
-    await page.click(id('open-comments'));
+    await page.waitForSelector(id('comments-button'), { timeout: 20_000 });
+    await page.click(id('comments-button'));
     await page.waitForSelector(id('comments-screen'), { timeout: 20_000 });
     await page.fill(id('comment-input'), 'left from a browser');
     await page.click(id('comment-submit'));
@@ -132,6 +132,59 @@ describe('browser journeys - the screens the shell could not reach', () => {
     await page.waitForTimeout(1_500);
     const comments = await reader.data.engagement.comments(postId, {});
     expect(comments.items.map((c) => c.body)).toContain('left from a browser');
+  });
+
+  it('reacting reaches the server - the control had no mount point at all', async () => {
+    const author = await actor('webreactauthor');
+    const reader = await actor('webreactreader');
+    const catalogue = await author.data.interests.listTop({ limit: 1 });
+    const interestId = catalogue.items[0]!.interestId;
+    await author.data.interests.follow(interestId);
+    await reader.data.interests.follow(interestId);
+    const postId = await publishReadyImage(author, [interestId], { caption: 'react to me' });
+
+    await signInThroughTheScreen(reader.token);
+    await page.click(id('tab-feed'));
+    await page.waitForSelector(id(`post-${postId}`), { timeout: 30_000 });
+    await page.click(id(`post-${postId}`));
+
+    // EngagementBar existed and was render-tested, and was never mounted
+    // anywhere - so FR-039 had no control on any screen.
+    await page.waitForSelector(id('react-button'), { timeout: 20_000 });
+    await page.click(id('react-button'));
+
+    // The server owns the count, so read it back rather than trusting the DOM.
+    await page.waitForTimeout(1_500);
+    const post = await reader.data.posts.get(postId);
+    expect(post.reactionCount).toBe(1);
+    expect(post.viewerHasReacted).toBe(true);
+  });
+
+  it('a notification opens its post, not a dead end', async () => {
+    const author = await actor('webnotifauthor');
+    const reader = await actor('webnotifreader');
+    const catalogue = await author.data.interests.listTop({ limit: 1 });
+    const interestId = catalogue.items[0]!.interestId;
+    await author.data.interests.follow(interestId);
+    await reader.data.interests.follow(interestId);
+    const postId = await publishReadyImage(author, [interestId], { caption: 'notify me' });
+    // The author gets a notification for the reader's comment.
+    await reader.data.engagement.comment(postId, 'nice');
+    for (let i = 0; i < 20; i++) {
+      const page1 = await author.data.notifications.list();
+      if (page1.items.length > 0) break;
+      await new Promise((r) => setTimeout(r, 500));
+    }
+
+    await signInThroughTheScreen(author.token);
+    await page.click(id('tab-notifications'));
+    await page.waitForSelector(id('notification-0'), { timeout: 30_000 });
+    await page.click(id('notification-0'));
+
+    // The shell used to push the NOTIFICATION's id as a post id, so this
+    // resolved to 404 "No longer available" every time.
+    await page.waitForSelector(id('post-detail-screen'), { timeout: 20_000 });
+    expect(await page.$(id('load-error'))).toBeNull();
   });
 
   it('J-09/J-10 report and block are reachable, and Block knows whose post it is', async () => {

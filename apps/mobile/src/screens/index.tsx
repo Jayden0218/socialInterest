@@ -78,14 +78,21 @@ export function DiscoverContainer({ onSelect }: { onSelect: (interestId: string)
   );
 }
 
-export function NotificationsContainer({ onOpen }: { onOpen: (id: string) => void }) {
+export function NotificationsContainer({ onOpen }: { onOpen: (postId: string) => void }) {
   const { state, error } = useNotifications();
   if (error) return <Failed message={error} />;
   return (
     <NotificationsScreen
       notifications={state.items}
       prefs={{ reaction: true, comment: true, follow: true }}
-      onOpen={(n) => onOpen(n.notificationId)}
+      // The notification's postId, not its notificationId. Passing the latter
+      // opened a post route with a notification's id, and the API answered 404
+      // "No longer available" - so every notification was a dead end. A follow
+      // notification has no post at all (the field is nullable), and must not
+      // navigate rather than navigate to nothing.
+      onOpen={(n) => {
+        if (n.postId) onOpen(n.postId);
+      }}
       onEditPrefs={() => undefined}
     />
   );
@@ -97,6 +104,7 @@ import { useCallback, useEffect } from 'react';
 import type { Post } from '@sih/shared';
 import { PostDetailScreen } from '../features/posts/PostDetailScreen';
 import { CommentsScreen } from '../features/engagement/CommentsScreen';
+import { EngagementBar, type EngagementState } from '../features/engagement/EngagementBar';
 import { SafetyActions, type ReportSubject } from '../features/safety/SafetyActions';
 import { useData } from '../data-provider';
 import { DataError } from '../data';
@@ -105,6 +113,7 @@ export function PostDetailContainer({
   postId,
   onOpenComments,
   onReport,
+  onShare,
 }: {
   postId: string;
   onOpenComments: (postId: string) => void;
@@ -115,34 +124,70 @@ export function PostDetailContainer({
    * though the screen and the data call both existed.
    */
   onReport: (postId: string, authorHandle: string) => void;
+  onShare: (postId: string) => void;
 }) {
   const data = useData();
   const [post, setPost] = useState<Post | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [engagement, setEngagement] = useState<EngagementState>({
+    reactionCount: 0,
+    commentCount: 0,
+    viewerHasReacted: false,
+  });
 
   useEffect(() => {
     let live = true;
     data.posts
       .get(postId)
-      .then((p) => live && setPost(p))
+      .then((p) => {
+        if (!live) return;
+        setPost(p);
+        setEngagement({
+          reactionCount: p.reactionCount,
+          commentCount: p.commentCount,
+          viewerHasReacted: p.viewerHasReacted === true,
+        });
+      })
       .catch((e: unknown) => live && setError(e instanceof DataError ? e.message : String(e)));
     return () => {
       live = false;
     };
   }, [data, postId]);
 
+  const react = useCallback(() => {
+    if (!post) return;
+    // Optimistic, reconciled by the failure path: the server owns the count and
+    // react/unreact are idempotent (FR-039), so a double tap cannot inflate it.
+    const next = !engagement.viewerHasReacted;
+    setEngagement((e) => ({
+      ...e,
+      viewerHasReacted: next,
+      reactionCount: e.reactionCount + (next ? 1 : -1),
+    }));
+    const call = next ? data.engagement.react(postId) : data.engagement.unreact(postId);
+    void call.catch(() => {
+      setEngagement((e) => ({
+        ...e,
+        viewerHasReacted: !next,
+        reactionCount: e.reactionCount + (next ? -1 : 1),
+      }));
+    });
+  }, [data, post, postId, engagement.viewerHasReacted]);
+
   if (error) return <Failed message={error} />;
   if (!post) return <View testID="post-loading" />;
   return (
     <View style={{ flex: 1 }}>
       <PostDetailScreen post={post} />
+      {/* Reacting had no control anywhere in the app: EngagementBar existed,
+          was render-tested, and was never mounted. FR-039 was unreachable. */}
+      <EngagementBar
+        state={engagement}
+        onReact={react}
+        onOpenComments={() => onOpenComments(postId)}
+        onShare={() => onShare(postId)}
+      />
       <Row style={{ padding: theme.space.sm, gap: theme.space.sm }}>
-        <Button
-          testID="open-comments"
-          label="Comments"
-          variant="secondary"
-          onPress={() => onOpenComments(postId)}
-        />
         <Button
           testID="open-safety"
           label="Report"
@@ -237,6 +282,13 @@ export function SafetyContainer({
 
 import { SignInScreen, SignedOutNotice } from '../features/auth/SignInScreen';
 import { InterestScreen, type InterestScreenData } from '../features/discover/InterestScreen';
+import { ShareAction } from '../features/engagement/ShareAction';
+import {
+  CreateInterestScreen,
+  stateForCandidates,
+  SIMILARITY_CHECK_DEBOUNCE_MS,
+  type CreateState,
+} from '../features/discover/CreateInterestScreen';
 import { ProfileScreen, type ProfileData } from '../features/profile/ProfileScreen';
 import { ComposeScreen, newSlot, runUpload, type UploadSlot } from '../features/publish/ComposeScreen';
 import type { PickedMedia } from '../features/publish/MediaPickerScreen';
@@ -483,6 +535,125 @@ export function ComposeContainer({
       onVisibilityChange={setVisibility}
       onRetry={upload}
       onPublish={() => void publish()}
+    />
+  );
+}
+
+
+/**
+ * Share a post.
+ *
+ * ShareAction existed, carried the FR-041/FR-042 warning that a link grants
+ * nothing, and was never mounted - so sharing was unreachable and the warning
+ * was never shown to anyone.
+ */
+export function ShareContainer({ postId, onDone }: { postId: string; onDone: () => void }) {
+  const data = useData();
+  const [post, setPost] = useState<Post | null>(null);
+  const [url, setUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    data.posts
+      .get(postId)
+      .then(async (p) => {
+        if (!live) return;
+        setPost(p);
+        const link = await data.posts.shareLink(postId);
+        if (live) setUrl(link.url);
+      })
+      .catch((e: unknown) => live && setError(e instanceof DataError ? e.message : String(e)));
+    return () => {
+      live = false;
+    };
+  }, [data, postId]);
+
+  if (error) return <Failed message={error} />;
+  if (!post || url === null) return <View testID="share-loading" />;
+  return (
+    <ShareAction
+      visibility={post.visibility}
+      url={url}
+      onCopy={onDone}
+      onShare={onDone}
+    />
+  );
+}
+
+/**
+ * Propose a sub-interest (FR-030, FR-031).
+ *
+ * CreateInterestScreen was written, tested, and unreachable. The name policy it
+ * surfaces - a rejected name, or a near-duplicate offered to join instead - had
+ * no way of ever being seen by a person.
+ */
+export function CreateInterestContainer({
+  parentId,
+  parentName,
+  onCreated,
+}: {
+  parentId: string;
+  parentName: string;
+  onCreated: (interestId: string) => void;
+}) {
+  const data = useData();
+  const [name, setName] = useState('');
+  const [state, setState] = useState<CreateState>({ kind: 'editing' });
+
+  // FR-031: near-duplicates are surfaced BEFORE submitting, and a name too
+  // similar to an existing interest blocks rather than warns. The server is the
+  // authority; this asks it as the person types, debounced.
+  useEffect(() => {
+    const trimmed = name.trim();
+    if (trimmed.length < 2) {
+      setState({ kind: 'editing' });
+      return;
+    }
+    let live = true;
+    const t = setTimeout(() => {
+      void data.interests
+        .search(trimmed)
+        .then((page) => {
+          if (!live) return;
+          setState(
+            stateForCandidates(
+              page.items.map((interest) => ({
+                interest,
+                similarity: interest.name.toLowerCase() === trimmed.toLowerCase() ? 1 : 0.5,
+              })),
+            ),
+          );
+        })
+        .catch(() => undefined);
+    }, SIMILARITY_CHECK_DEBOUNCE_MS);
+    return () => {
+      live = false;
+      clearTimeout(t);
+    };
+  }, [data, name]);
+
+  const submit = useCallback(async () => {
+    setState({ kind: 'submitting' });
+    try {
+      const created = await data.interests.create({ name: name.trim(), parentId });
+      onCreated(created.interestId);
+    } catch (e: unknown) {
+      setState({
+        kind: 'rejected',
+        title: e instanceof DataError ? e.message : String(e),
+      });
+    }
+  }, [data, name, parentId, onCreated]);
+
+  return (
+    <CreateInterestScreen
+      name={name}
+      parentName={parentName}
+      state={state}
+      onNameChange={setName}
+      onSubmit={() => void submit()}
+      onJoinExisting={onCreated}
     />
   );
 }

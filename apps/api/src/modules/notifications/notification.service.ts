@@ -67,7 +67,7 @@ export class NotificationService implements OnModuleInit {
   async listVisible(
     viewerId: string,
     opts: { limit?: number; cursor?: string | null } = {},
-  ): Promise<{ items: NotificationItem[]; nextCursor: string | null }> {
+  ): Promise<{ items: Record<string, unknown>[]; nextCursor: string | null }> {
     const page = await this.notifications.list(viewerId, opts);
     const kept: NotificationItem[] = [];
     for (const n of page.items) {
@@ -75,6 +75,40 @@ export class NotificationService implements OnModuleInit {
       // post being deleted or restricted afterwards.
       if (!n.postId || (await this.canOpen(viewerId, n.postId))) kept.push(n);
     }
-    return { items: kept, nextCursor: page.nextCursor };
+    return { items: await this.withActors(kept), nextCursor: page.nextCursor };
+  }
+
+  /**
+   * The contract's Notification carries an `actor` profile; the stored row
+   * carries an `actorId`. Returning the row meant every client crashed reading
+   * `actor.displayName`, so the notifications tab rendered nothing.
+   *
+   * Fifth instance of the same defect in this codebase - the feed, post detail,
+   * comments, and now this - all a persistence shape escaping as a response.
+   * Resolved once per distinct actor, not once per notification.
+   */
+  private async withActors(items: NotificationItem[]): Promise<Record<string, unknown>[]> {
+    const ids = [...new Set(items.map((n) => n.actorId))];
+    const profiles = new Map(
+      (await Promise.all(ids.map((id) => this.people.findById(id)))).map((p, i) => [
+        ids[i] as string,
+        p,
+      ]),
+    );
+    return items.map((n) => {
+      const p = profiles.get(n.actorId);
+      return {
+        notificationId: n.notificationId,
+        kind: n.kind,
+        actor: {
+          userId: n.actorId,
+          handle: p?.handle ?? 'unknown',
+          displayName: p?.displayName ?? 'Unknown',
+        },
+        postId: n.postId ?? null,
+        createdAt: n.createdAt,
+        readAt: n.readAt ?? null,
+      };
+    });
   }
 }

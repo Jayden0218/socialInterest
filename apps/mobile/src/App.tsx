@@ -15,6 +15,8 @@ import {
   InterestContainer,
   ProfileContainer,
   ComposeContainer,
+  ShareContainer,
+  CreateInterestContainer,
 } from './screens';
 import { SAMPLE_MEDIA } from './features/publish/sampleMedia';
 import { API_BASE_URL } from './config';
@@ -45,6 +47,8 @@ export type Route =
   | { name: 'comments'; postId: string }
   | { name: 'interest'; interestId: string }
   | { name: 'compose' }
+  | { name: 'share'; postId: string }
+  | { name: 'create-interest'; parentId: string; parentName: string }
   | { name: 'safety'; subject: 'post' | 'comment' | 'interest'; subjectId: string; authorHandle?: string };
 
 function Header({ title, onBack }: { title: string; onBack: () => void }) {
@@ -110,6 +114,7 @@ export function Shell() {
               onReport={(subjectId, authorHandle) =>
                 requireSignIn({ name: 'safety', subject: 'post', subjectId, authorHandle })
               }
+              onShare={(shareId) => push({ name: 'share', postId: shareId })}
             />
           );
         case 'comments':
@@ -120,15 +125,43 @@ export function Shell() {
           );
         case 'interest':
           return (
-            <InterestContainer
-              interestId={top.interestId}
-              onOpenSubInterest={(id) => push({ name: 'interest', interestId: id })}
-              onOpenPost={(postId) => push({ name: 'post', postId })}
-            />
+            <View style={{ flex: 1 }}>
+              <InterestContainer
+                interestId={top.interestId}
+                onOpenSubInterest={(id) => push({ name: 'interest', interestId: id })}
+                onOpenPost={(postId) => push({ name: 'post', postId })}
+              />
+              <Row style={{ padding: theme.space.sm }}>
+                <Button
+                  testID="open-create-interest"
+                  label="Propose a sub-interest"
+                  variant="secondary"
+                  onPress={() =>
+                    requireSignIn({
+                      name: 'create-interest',
+                      parentId: top.interestId,
+                      parentName: '',
+                    })
+                  }
+                />
+              </Row>
+            </View>
           );
         case 'compose':
           return signedIn ? (
             <ComposeContainer media={SAMPLE_MEDIA} onPublished={() => pop()} />
+          ) : (
+            <SignedOutNotice onSignIn={() => push({ name: 'sign-in' })} />
+          );
+        case 'share':
+          return <ShareContainer postId={top.postId} onDone={pop} />;
+        case 'create-interest':
+          return signedIn ? (
+            <CreateInterestContainer
+              parentId={top.parentId}
+              parentName={top.parentName}
+              onCreated={(interestId) => setStack([{ name: 'interest', interestId }])}
+            />
           ) : (
             <SignedOutNotice onSignIn={() => push({ name: 'sign-in' })} />
           );
