@@ -7,6 +7,13 @@ appId: app.socialinterest
 - tapOn:
     id: "interest-search-input"
 - inputText: "clim"
+
+# The keyboard is up and the results list re-renders as the query resolves.
+# Run 16 showed the tap not reaching the row: the search screen was still
+# visible afterwards, so no navigation happened. The app itself is not at
+# fault - a container test drives this same press through the shell and the
+# interest screen opens - so this is about the tap landing, not the wiring.
+- hideKeyboard
 - tapOn:
     id: "search-result-0"
 

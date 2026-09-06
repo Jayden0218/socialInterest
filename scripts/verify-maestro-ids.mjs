@@ -45,14 +45,35 @@ for (const m of source.matchAll(/testID=\{[^}]*\}/g)) {
 const ids = new Set();
 for (const file of readdirSync(FLOWS).filter((f) => f.endsWith('.yaml'))) {
   const text = readFileSync(join(FLOWS, file), 'utf8');
-  for (const m of text.matchAll(/\bid:\s*"?([A-Za-z0-9_.${}-]+)"?/g)) {
+  // `:` and `/` are in the class so a fully-qualified foreign id survives
+  // intact - without them `com.android.documentsui:id/dir_list` was truncated at
+  // the colon and then reported as a missing testID, which is a confusing way to
+  // be told the check does not understand the value.
+  for (const m of text.matchAll(/\bid:\s*"?([A-Za-z0-9_.:/${}-]+)"?/g)) {
     ids.add(`${file}\t${m[1]}`);
   }
 }
 
+/**
+ * An id belonging to ANOTHER app is not ours to declare.
+ *
+ * `10-publish-from-library.yaml` asserts on `com.android.documentsui:id/dir_list`
+ * to prove the app hands off to the device's own file picker. That id is
+ * Android's, so it will never appear in apps/mobile/src, and this check was
+ * right to flag it - the answer is to recognise the shape, not to weaken the
+ * check. A fully-qualified `package:id/name` is deliberately external; a bare
+ * name still has to exist in our source.
+ */
+const isForeignResourceId = (id) => /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+:id\//.test(id);
+
 const missing = [];
+const foreign = [];
 for (const entry of ids) {
   const [file, id] = entry.split('\t');
+  if (isForeignResourceId(id)) {
+    foreign.push(`${file}: ${id}`);
+    continue;
+  }
   // Maestro ids are regexes. `post-.` is a pattern, so match it against the
   // static prefixes the app builds dynamically.
   const bare = id.replace(/[.*+?^${}()|[\]\\]+$/, '');
@@ -66,6 +87,10 @@ for (const entry of ids) {
 
 console.log(`checked ${ids.size} selector(s) across ${readdirSync(FLOWS).filter((f) => f.endsWith('.yaml')).length} flow(s)`);
 console.log(`app declares ${known.size} testID literal(s) and ${prefixes.size} dynamic prefix(es)`);
+if (foreign.length) {
+  console.log(`${foreign.length} selector(s) target another app deliberately:`);
+  for (const f of foreign) console.log('  ' + f);
+}
 if (missing.length) {
   console.error('FAIL: these Maestro selectors match nothing in ' + SRC + ':');
   for (const m of missing) console.error('  ' + m);

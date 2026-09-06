@@ -286,4 +286,52 @@ describe('the shell reaches every screen', () => {
     // changed local state would pass an appearance check and fail this.
     expect(followed).toBe('someone');
   });
+  /**
+   * Tapping a search result must open that interest.
+   *
+   * Nothing exercised this press anywhere: `screens.test.tsx` renders
+   * InterestSearchScreen with `onSelect={() => undefined}` and asserts the row's
+   * TEXT. That proves the row renders and says nothing about what pressing it
+   * does - the same gap that hid ProfileContainer's dead follow button and left
+   * MediaPickerScreen unreachable.
+   *
+   * On a device (run 16) the search screen was still visible after the tap, so
+   * the app had not navigated. This drives the same press through the shell.
+   */
+  it('opens an interest from a search result (03-follow-interest)', async () => {
+    const found = {
+      interestId: 'i-climbing', name: 'Climbing', slug: 'climbing',
+      level: 'top', postCount: 0, followerCount: 0, state: 'active',
+    };
+    const data = fakeData({
+      interests: {
+        search: async () => ({ items: [found], nextCursor: null }),
+        suggested: async () => ({ items: [], nextCursor: null }),
+        listTop: async () => ({ items: [found], nextCursor: null }),
+        listChildren: async () => ({ items: [], nextCursor: null }),
+        get: async () => found,
+        posts: async () => ({ items: [], nextCursor: null }),
+        follow: async () => undefined,
+        unfollow: async () => undefined,
+      },
+    });
+    renderShell(data);
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('tab-discover'));
+    });
+    await act(async () => {
+      fireEvent.changeText(screen.getByTestId('interest-search-input'), 'clim');
+    });
+    await waitFor(() => expect(screen.getByTestId('search-result-0')).toBeTruthy());
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('search-result-0'));
+    });
+
+    // Navigation replaces the tab content entirely - the shell returns early
+    // when a route is pushed - so the search screen must be gone.
+    expect(screen.queryByTestId('interest-search-screen')).toBeNull();
+    await waitFor(() => expect(screen.getByTestId('interest-screen')).toBeTruthy());
+  });
 });
