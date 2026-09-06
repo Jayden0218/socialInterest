@@ -19,10 +19,9 @@
  * .maestro/12-interest-follow-does-not-widen.yaml.
  *
  * Usage: npx tsx apps/e2e/scripts/seed-fr033-fixture.ts <device-token>
- * Prints two lines: `PRESENT=<caption>` and `ABSENT=<caption>`.
+ * Prints `PRESENT=<caption>`, `ABSENT=<caption>` and `AUTHOR=<handle>`.
  */
 import { createAppData, MemoryTokenStore } from '@sih/mobile/data';
-import { operations } from '@sih/shared';
 import { actor } from '../support/client';
 import { publishReadyImage } from '../support/publish';
 import { baseUrl } from '../support/base-url';
@@ -37,27 +36,18 @@ if (!argToken) {
 const token: string = argToken;
 
 /**
- * The person-follow is issued directly rather than through the app's data
- * layer, because THE APP HAS NO WAY TO FOLLOW A PERSON. `ProfileContainer`
- * loads only the signed-in person's own profile, hardcodes
- * `viewerIsFollowing: false`, and its follow button calls `() => undefined`;
- * `apps/mobile/src/data` exposes no person-follow method at all, though the
- * contract and the generated client both have one.
+ * The fixture no longer performs the person-follow at all.
  *
- * That gap is tracked separately. It does not weaken this fixture: FR-033 is a
- * requirement about what the FEED shows, and the person-follow is its
- * precondition. Establishing the precondition server-side is the honest way to
- * test the requirement while the app cannot establish it itself.
+ * It used to, with a raw fetch, because THE APP HAD NO WAY TO FOLLOW A PERSON:
+ * `ProfileContainer` loaded only your own profile, hardcoded
+ * `viewerIsFollowing: false`, and its follow button was a no-op. That gap was
+ * found while writing this fixture and is fixed (003/T053), so the device
+ * journey now establishes its own precondition by tapping Follow - which is
+ * strictly better evidence, since the requirement is about what happens after
+ * a person follows someone, and now a person does.
+ *
+ * What is left here is only what one device cannot do: be a second person.
  */
-async function followPerson(handle: string): Promise<void> {
-  const op = operations.putPeopleByHandleFollow;
-  const res = await fetch(`${baseUrl()}/v1${op.path.replace('{handle}', handle)}`, {
-    method: op.method,
-    headers: { authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error(`follow ${handle} failed: ${res.status} ${await res.text()}`);
-}
-
 async function main(): Promise<void> {
   const author = await actor('fr033author');
   const tops = await author.data.interests.listTop({ limit: 2 });
@@ -83,12 +73,11 @@ async function main(): Promise<void> {
     })(),
   });
   await deviceData.interests.follow(followed.interestId);
-  await followPerson(author.handle);
 
   process.stderr.write(
     `seeded: author=@${author.handle} followed=${followed.name} unfollowed=${other.name}\n`,
   );
-  process.stdout.write(`PRESENT=${present}\nABSENT=${absent}\n`);
+  process.stdout.write(`PRESENT=${present}\nABSENT=${absent}\nAUTHOR=${author.handle}\n`);
 }
 
 main().catch((err: unknown) => {

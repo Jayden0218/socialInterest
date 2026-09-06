@@ -118,6 +118,7 @@ export function PostDetailContainer({
   onReport,
   onShare,
   onEdit,
+  onOpenAuthor,
 }: {
   postId: string;
   onOpenComments: (postId: string) => void;
@@ -130,6 +131,13 @@ export function PostDetailContainer({
   onReport: (postId: string, authorHandle: string) => void;
   onShare: (postId: string) => void;
   onEdit: (postId: string) => void;
+  /**
+   * T053. Without a route here, ProfileContainer could only ever be reached
+   * for your own profile from the "You" tab - so even a working follow control
+   * had nothing to follow. This is the only place in the app where another
+   * person is named.
+   */
+  onOpenAuthor?: (handle: string) => void;
 }) {
   const data = useData();
   const [post, setPost] = useState<Post | null>(null);
@@ -208,6 +216,14 @@ export function PostDetailContainer({
         onShare={() => onShare(postId)}
       />
       <Row style={{ padding: theme.space.sm, gap: theme.space.sm }}>
+        {onOpenAuthor ? (
+          <Button
+            testID="open-author"
+            label={`@${post.author.handle}`}
+            variant="secondary"
+            onPress={() => onOpenAuthor(post.author.handle)}
+          />
+        ) : null}
         <Button
           testID="open-safety"
           label="Report"
@@ -438,29 +454,91 @@ export function ProfileContainer({
   const data = useData();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const [myInterests, setMyInterests] = useState<string[]>([]);
   const { state, loadMore } = useProfilePosts(handle);
 
+  /**
+   * T053. This used to call `session.me()` regardless of whose profile was
+   * asked for, so every profile in the app was your own - opening someone
+   * else's showed you yourself - and `viewerIsFollowing` was hardcoded false.
+   */
   useEffect(() => {
     let live = true;
-    data.session
-      .me()
-      .then((me) => {
-        if (!live) return;
-        setProfile({
+    const load = isSelf
+      ? data.session.me().then((me) => ({
           handle: me.handle,
           displayName: me.displayName,
           bio: me.bio ?? null,
           followerCount: me.followerCount ?? 0,
           followingCount: me.followingCount ?? 0,
           topInterests: me.topInterests ?? [],
+          // You do not follow yourself, and ProfileScreen hides the control
+          // when isSelf anyway.
           viewerIsFollowing: false,
-        });
-      })
+        }))
+      : data.people.get(handle).then((p) => ({
+          handle: p.handle,
+          displayName: p.displayName,
+          bio: p.bio ?? null,
+          followerCount: p.followerCount ?? 0,
+          followingCount: p.followingCount ?? 0,
+          topInterests: p.topInterests ?? [],
+          // The SERVER's answer, computed per viewer. A client-side guess here
+          // would show the wrong state to anyone who followed from elsewhere.
+          viewerIsFollowing: p.viewerIsFollowing === true,
+        }));
+
+    load
+      .then((next) => live && setProfile(next))
       .catch((e: unknown) => live && setError(e instanceof DataError ? e.message : String(e)));
     return () => {
       live = false;
     };
-  }, [data, handle]);
+  }, [data, handle, isSelf]);
+
+  /**
+   * FR-038 wants the follow hint to say whether this person's posts will
+   * actually appear, which depends on whether the viewer follows any interest
+   * they post in. That needs the viewer's own interests, so it is fetched
+   * rather than assumed false - which is what made the hint always say
+   * "follow one of their interests" even when you already did.
+   */
+  useEffect(() => {
+    if (isSelf) return;
+    let live = true;
+    data.session
+      .me()
+      .then((me) => live && setMyInterests((me.topInterests ?? []).map((i) => i.interestId)))
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [data, isSelf]);
+
+  const toggleFollow = useCallback(
+    async (next: boolean) => {
+      if (!profile) return;
+      setPending(true);
+      // Optimistic, then reconciled against the server's own answer below. The
+      // server owns this - FR-034's follow cap means a request can be refused,
+      // and a control that stayed switched would be lying about it.
+      setProfile((p) => (p ? { ...p, viewerIsFollowing: next } : p));
+      try {
+        if (next) await data.people.follow(profile.handle);
+        else await data.people.unfollow(profile.handle);
+        const fresh = await data.people.get(profile.handle);
+        setProfile((p) => (p ? { ...p, viewerIsFollowing: fresh.viewerIsFollowing === true,
+          followerCount: fresh.followerCount ?? p.followerCount } : p));
+      } catch (e: unknown) {
+        setProfile((p) => (p ? { ...p, viewerIsFollowing: !next } : p));
+        setError(e instanceof DataError ? e.message : String(e));
+      } finally {
+        setPending(false);
+      }
+    },
+    [data, profile],
+  );
 
   if (error) return <Failed message={error} />;
   if (!profile) return <View testID="profile-loading" />;
@@ -468,9 +546,12 @@ export function ProfileContainer({
     <ProfileScreen
       profile={profile}
       posts={state}
-      viewerFollowsAnyOfTheirInterests={false}
+      viewerFollowsAnyOfTheirInterests={profile.topInterests.some((i) =>
+        myInterests.includes(i.interestId),
+      )}
       isSelf={isSelf}
-      onToggleFollow={() => undefined}
+      followPending={pending}
+      onToggleFollow={(next) => void toggleFollow(next)}
       onLoadMore={loadMore}
       renderPost={(post) => (
         <PostRow postId={post.postId} caption={post.caption ?? ''} onOpen={onOpenPost} />

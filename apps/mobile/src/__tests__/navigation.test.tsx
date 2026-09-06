@@ -59,7 +59,14 @@ function fakeData(over: Partial<Record<string, unknown>> = {}): AppData {
       follow: async () => undefined,
       unfollow: async () => undefined,
     },
-    posts: { get: async () => null, publish: async () => ({ postId: 'p1' }) },
+    posts: { get: async () => null, publish: async () => ({ postId: 'p1' }), byHandle: async () => page },
+    people: {
+      get: async () => ({ userId: 'u2', handle: 'someone', displayName: 'Someone', bio: null,
+        followerCount: 3, followingCount: 1, topInterests: [], viewerIsFollowing: false }),
+      posts: async () => page,
+      follow: async () => undefined,
+      unfollow: async () => undefined,
+    },
     feed: { home: async () => page },
     engagement: { comments: async () => page, comment: async () => undefined },
     safety: { report: async () => undefined, block: async () => undefined },
@@ -197,5 +204,81 @@ describe('the shell reaches every screen', () => {
     });
     expect(screen.getByTestId('library-unavailable')).toBeTruthy();
     expect(screen.queryByTestId('compose-screen')).toBeNull();
+  });
+  /**
+   * T053. Following a person did NOTHING: ProfileContainer called
+   * `session.me()` whatever handle it was given, hardcoded
+   * `viewerIsFollowing: false`, and passed `onToggleFollow={() => undefined}`.
+   * The data layer had no person-follow method at all.
+   *
+   * Nothing caught it, because every existing test rendered ProfileScreen
+   * directly with props - which proved the SCREEN worked and said nothing
+   * about whether anything called it. This drives the container.
+   */
+  it('follows another person, and calls the service to do it (T053)', async () => {
+    let followed: string | null = null;
+    let viewerIsFollowing = false;
+    const data = fakeData({
+      session: { isSignedIn: async () => true, me: async () => ({
+        userId: 'u1', handle: 'me', displayName: 'Me', bio: null, interestFollowCount: 0,
+        followerCount: 0, followingCount: 0, topInterests: [],
+        notificationPrefs: { reaction: true, comment: true, follow: true },
+      }) },
+      posts: {
+        byHandle: async () => ({ items: [], nextCursor: null }),
+        get: async () => ({
+          postId: 'p1', caption: 'hello', interests: [], media: [],
+          reactionCount: 0, commentCount: 0, viewerHasReacted: false,
+          processingState: 'ready', visibility: 'public',
+          author: { userId: 'u2', handle: 'someone', displayName: 'Someone' },
+        }),
+        publish: async () => ({ postId: 'p1' }),
+      },
+      feed: {
+        home: async () => ({
+          items: [{ postId: 'p1', caption: 'hello', interests: [], media: [],
+            reactionCount: 0, commentCount: 0, processingState: 'ready', visibility: 'public',
+            author: { userId: 'u2', handle: 'someone', displayName: 'Someone' } }],
+          nextCursor: null,
+        }),
+      },
+      people: {
+        get: async () => ({
+          userId: 'u2', handle: 'someone', displayName: 'Someone', bio: null,
+          followerCount: 3, followingCount: 1, topInterests: [], viewerIsFollowing,
+        }),
+        posts: async () => ({ items: [], nextCursor: null }),
+        follow: async (h: string) => {
+          followed = h;
+          viewerIsFollowing = true;
+        },
+        unfollow: async () => undefined,
+      },
+    });
+    renderShell(data);
+    await waitFor(() => expect(screen.queryByTestId('open-sign-in')).toBeNull());
+
+    // Reach a post, then its author. Before T053 there was no route to another
+    // person at all, so a working control would still have been unreachable.
+    await waitFor(() => expect(screen.getByTestId('post-p1')).toBeTruthy());
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('post-p1'));
+    });
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('open-author'));
+    });
+
+    // Someone else's profile, not yours. This is the assertion the old
+    // container failed: it showed you yourself whatever handle it was given.
+    await waitFor(() => expect(screen.getByTestId('follow-person-toggle')).toBeTruthy());
+    expect(screen.getByTestId('follow-person-toggle').props.children).not.toBe('Following');
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('follow-person-toggle'));
+    });
+
+    // The service was called, with the right handle. A button that only
+    // changed local state would pass an appearance check and fail this.
+    expect(followed).toBe('someone');
   });
 });

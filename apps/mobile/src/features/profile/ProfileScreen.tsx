@@ -35,6 +35,7 @@ export function ProfileScreen({
   posts,
   viewerFollowsAnyOfTheirInterests,
   isSelf,
+  followPending = false,
   onToggleFollow,
   onLoadMore,
   renderPost,
@@ -43,6 +44,8 @@ export function ProfileScreen({
   posts: PagedState<Post>;
   viewerFollowsAnyOfTheirInterests: boolean;
   isSelf: boolean;
+  /** Disables the control while the server decides. FR-034 can refuse. */
+  followPending?: boolean;
   onToggleFollow: (next: boolean) => void;
   onLoadMore: () => void;
   renderPost: (post: Post, index: number) => React.ReactElement;
@@ -77,6 +80,7 @@ export function ProfileScreen({
               testID="follow-person-toggle"
               label={profile.viewerIsFollowing ? 'Following' : 'Follow'}
               variant={profile.viewerIsFollowing ? 'secondary' : 'primary'}
+              disabled={followPending}
               onPress={() => onToggleFollow(!profile.viewerIsFollowing)}
             />
             <Text testID="follow-hint" style={{ fontSize: theme.font.sm, color: theme.color.muted }}>

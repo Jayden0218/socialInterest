@@ -212,7 +212,15 @@ Phase 2 (T004-T006, blocking) ──> US1 (Phase 3) ──> US4 (Phase 6)
 
 ## Found while implementing — not in the original breakdown
 
-- [ ] T053 [US1] Wire following a PERSON in the app. `ProfileContainer`
+- [X] T053 [US1] Wire following a PERSON in the app. **Done 2026-09-06.** `PeopleData`
+  (`apps/mobile/src/data/people.ts`) adds `get`, `posts`, `follow` and `unfollow`;
+  `ProfileContainer` loads the requested person rather than always yourself, reads
+  `viewerIsFollowing` from the server and reconciles against it after a toggle; a route to
+  another person's profile exists from a post's author. Covered by a container test that
+  fails against the old no-op, an e2e journey over HTTP, and `.maestro/12`, which now
+  performs the follow by tapping rather than having it seeded.
+
+  Original finding: `ProfileContainer`
   (`apps/mobile/src/screens/index.tsx`) loads only the signed-in person's own profile via
   `data.session.me()`, hardcodes `viewerIsFollowing: false`, and passes
   `onToggleFollow={() => undefined}` — so `follow-person-toggle` does nothing and another

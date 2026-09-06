@@ -228,9 +228,6 @@ on a device**.
 - **A public deployment.** Durability is delivered; a public address is not. DynamoDB Local is
   still a dev tool, and the datastore decision (`003/datastore-decision.md`) is the owner's and
   is recorded as pending.
-- **Following a person does nothing in the app** (003/T053). The service enforces FR-033, but
-  `ProfileContainer` loads only your own profile and its follow button is a no-op — so the app
-  cannot demonstrate the premise of its own non-negotiable principle.
 
 **Established:**
 
@@ -240,6 +237,12 @@ on a device**.
   from `onModuleInit` and Nest fires that *before* subscribers register, so the record was
   cleared with nothing having handled it.
 - `LOCAL_JWT_SECRET` has no default. The old one was a constant in this repository.
+- **Following a person now works** (003/T053). It did not: `ProfileContainer` loaded only your
+  own profile whatever handle it was given, hardcoded `viewerIsFollowing: false`, and its
+  follow button was `() => undefined` — so the app could not demonstrate the premise of its
+  own non-negotiable Principle I. Nothing caught it because every test rendered `ProfileScreen`
+  directly with props, which proves the screen works and says nothing about whether anything
+  calls it. **A screen test is not a container test.**
 
 ## Spec-kit workflow
 

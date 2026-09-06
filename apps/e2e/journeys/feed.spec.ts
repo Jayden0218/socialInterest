@@ -46,4 +46,48 @@ describe('core journeys - feed', () => {
     const theirs = await reader.data.interests.posts(interest.interestId, { limit: 50 });
     expect(theirs.items.map((p) => p.postId)).not.toContain(postId);
   });
+  /**
+   * 003/T053. Following a person, through the app's own data layer.
+   *
+   * There was no coverage of this anywhere, at any level, because the app had
+   * no way to do it: `apps/mobile/src/data` exposed no person-follow method,
+   * so a journey that drives the app's data layer - which is the whole point of
+   * this suite - could not have called one. The API's own tests covered the
+   * endpoint; nothing covered the app reaching it.
+   *
+   * The FR-033 assertion below is the one that matters and already existed.
+   * What is new is that the follow which is supposed not to widen the feed is
+   * now performed the way a person performs it.
+   */
+  it('follows a person through the app, and the follow does not widen the feed (FR-033)', async () => {
+    const author = await actor('t053author');
+    const reader = await actor('t053reader');
+    const tops = await reader.data.interests.listTop({ limit: 2 });
+    const followed = tops.items[0]!;
+    const other = tops.items[1]!;
+
+    await publishReadyImage(author, [followed.interestId], { caption: 't053 in a followed interest' });
+    await publishReadyImage(author, [other.interestId], { caption: 't053 must not appear' });
+    await reader.data.interests.follow(followed.interestId);
+
+    // Before, this line could not be written.
+    await reader.data.people.follow(author.handle);
+
+    // The server's own answer, read back through the app: a control that showed
+    // "Following" from local state alone would pass an appearance check and be
+    // wrong for anyone who followed from another device.
+    const profile = await reader.data.people.get(author.handle);
+    expect(profile.viewerIsFollowing).toBe(true);
+    expect(profile.handle).toBe(author.handle);
+
+    const feed = await reader.data.feed.home({ limit: 50 });
+    const captions = feed.items.map((p) => p.caption);
+    expect(captions).toContain('t053 in a followed interest');
+    // Principle I, non-negotiable. The person-follow must not have added the
+    // other interest.
+    expect(captions).not.toContain('t053 must not appear');
+
+    await reader.data.people.unfollow(author.handle);
+    expect((await reader.data.people.get(author.handle)).viewerIsFollowing).toBe(false);
+  });
 });

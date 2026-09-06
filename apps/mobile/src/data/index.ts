@@ -16,10 +16,12 @@ import { EngagementData } from './engagement';
 import { SafetyData } from './safety';
 import { NotificationsData } from './notifications';
 import { SessionData } from './session';
+import { PeopleData } from './people';
 
 export interface AppData {
   client: DataClient;
   session: SessionData;
+  people: PeopleData;
   interests: InterestsData;
   posts: PostsData;
   feed: FeedData;
@@ -33,6 +35,7 @@ export function createAppData(opts: DataClientOptions): AppData {
   return {
     client,
     session: new SessionData(client),
+    people: new PeopleData(client),
     interests: new InterestsData(client),
     posts: new PostsData(client),
     feed: new FeedData(client),
@@ -42,7 +45,7 @@ export function createAppData(opts: DataClientOptions): AppData {
   };
 }
 
-export { DataClient, MemoryTokenStore, SessionData, InterestsData, PostsData, FeedData, EngagementData, SafetyData, NotificationsData };
+export { DataClient, MemoryTokenStore, SessionData, PeopleData, InterestsData, PostsData, FeedData, EngagementData, SafetyData, NotificationsData };
 export type { DataClientOptions, TokenStore };
 export * from './errors';
 export { PersistentTokenStore, browserKeyValueStore } from './token-store';

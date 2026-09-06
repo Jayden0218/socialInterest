@@ -52,6 +52,7 @@ export type Route =
   | { name: 'share'; postId: string }
   | { name: 'edit-post'; postId: string }
   | { name: 'edit-profile' }
+  | { name: 'person'; handle: string }
   | { name: 'shared-post'; postId: string }
   | { name: 'create-interest'; parentId: string; parentName: string }
   | { name: 'safety'; subject: 'post' | 'comment' | 'interest'; subjectId: string; authorHandle?: string };
@@ -134,6 +135,7 @@ export function Shell() {
               onReport={(subjectId, authorHandle) =>
                 requireSignIn({ name: 'safety', subject: 'post', subjectId, authorHandle })
               }
+              onOpenAuthor={(personHandle) => push({ name: 'person', handle: personHandle })}
               onShare={(shareId) => push({ name: 'share', postId: shareId })}
               onEdit={(editId) => push({ name: 'edit-post', postId: editId })}
             />
@@ -180,6 +182,15 @@ export function Shell() {
           return <EditPostContainer postId={top.postId} onDone={pop} />;
         case 'edit-profile':
           return <EditProfileContainer onDone={pop} />;
+        case 'person':
+          // T053. Another person's profile, with a follow control that works.
+          return (
+            <ProfileContainer
+              handle={top.handle}
+              isSelf={false}
+              onOpenPost={(postId) => push({ name: 'post', postId })}
+            />
+          );
         case 'shared-post':
           // Landed here from a share link, so Back would go nowhere: the action
           // is to enter the app, not to return to a screen that was never open.

@@ -320,10 +320,13 @@ Written at the end of implementation. Every criterion is reported as met, partia
 
 - **T013, T015, T043 need an emulator run**, which spends the account's Actions allowance on a
   private repository. That is a decision for the owner, not an implicit part of a task.
-- **T053** (found during implementation): following a person does nothing in the app.
-  `ProfileContainer` loads only the signed-in person's own profile, hardcodes
-  `viewerIsFollowing: false`, and its follow button is a no-op. So the app cannot demonstrate
-  the premise of its own non-negotiable Principle I, though the service enforces it.
+- **T053 is fixed** (2026-09-06). It was found during implementation: following a person did
+  nothing in the app — `ProfileContainer` loaded only your own profile whatever handle it was
+  given, hardcoded `viewerIsFollowing: false`, and its follow button was a no-op, so the app
+  could not demonstrate the premise of its own non-negotiable Principle I. `PeopleData` now
+  exposes the person endpoints the API always had, another person's profile is reachable from
+  a post, and the control reads its state back from the server. `.maestro/12` performs the
+  follow by tapping rather than having it seeded, which is the stronger claim.
 - **iOS and real usage stay out of scope** and unanswered, as below.
 
 ## Assumptions

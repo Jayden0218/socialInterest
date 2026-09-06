@@ -151,7 +151,9 @@ FIXTURE="$(cd apps/e2e && E2E_BASE_URL=http://127.0.0.1:3000 npx tsx scripts/see
 echo "$FIXTURE"
 PRESENT="$(echo "$FIXTURE" | sed -n 's/^PRESENT=//p')"
 ABSENT="$(echo "$FIXTURE" | sed -n 's/^ABSENT=//p')"
-[ -n "$PRESENT" ] && [ -n "$ABSENT" ] || { echo "FAIL: the FR-033 fixture printed no captions"; exit 1; }
+AUTHOR="$(echo "$FIXTURE" | sed -n 's/^AUTHOR=//p')"
+[ -n "$PRESENT" ] && [ -n "$ABSENT" ] && [ -n "$AUTHOR" ] \
+  || { echo "FAIL: the FR-033 fixture did not print what the flow needs"; exit 1; }
 
 # T040. Put a real image in the emulator's gallery.
 #
@@ -189,6 +191,7 @@ fi
 
 echo "== journeys =="
 maestro test .maestro/ -e TOKEN="$TOKEN" -e PRESENT="$PRESENT" -e ABSENT="$ABSENT" \
+  -e AUTHOR="$AUTHOR" \
   --format junit --output "$OUT/maestro-junit.xml" || {
     echo "FAIL: a journey did not pass"
     cp -r ~/.maestro/tests "$OUT/maestro-debug" 2>/dev/null || true
