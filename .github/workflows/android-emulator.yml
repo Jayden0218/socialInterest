@@ -140,6 +140,8 @@ jobs:
           df -h / | tail -1 > artifacts/android-device-pass/disk-free.txt || true
           echo "=============== API request log (tail) ==============="
           tail -60 /tmp/api.log || echo "(no api log)"
+          echo "=============== activity launch result ==============="
+          cat artifacts/android-device-pass/launch.txt || echo "(no launch record)"
           echo "=============== logcat: fatal entries ==============="
           grep -iE "AndroidRuntime|FATAL EXCEPTION|beginning of crash|Force finishing" \
             artifacts/android-device-pass/logcat.txt | tail -60 || echo "(none)"

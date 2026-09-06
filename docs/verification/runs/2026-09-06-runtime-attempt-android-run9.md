@@ -86,3 +86,45 @@ manifest rather than trusting the field is what caught that.
 **Android remains unverified.** The runtime boots; the app has never rendered a frame on it.
 T013, T015 and T043 stay open. The next run will say why the app dies, whatever the reason —
 which is more than any run so far could have done.
+
+## Addendum — what the published record says, and what it ruled out
+
+Searched rather than guessed, then checked the claims against this project's own artefacts
+instead of adopting them.
+
+**The two most commonly cited causes do not apply here**, and both were eliminated for free by
+unzipping the release APK rather than spending a run:
+
+| Commonly cited cause | Check | Result |
+|---|---|---|
+| The JS bundle is missing from a release APK — `Unable to load script from assets 'index.android.bundle'`, the single most reported RN release-only crash | `unzip -l app-release.apk` | **Present**, 1,178,984 bytes. Not this |
+| ABI mismatch — a release APK built for the wrong architecture | `unzip -l` | `lib/x86_64/` with 13 `.so` files, matching the emulator. Not this |
+
+That is two plausible, symptom-matching explanations discarded before they could become a
+seventh confident wrong answer. The published advice was right in general and wrong about this
+project, which is the reason to check rather than adopt.
+
+**One piece of published guidance did apply, and changes the harness.** Android's own tooling
+documentation recommends `am start -W` for scripted launches; `monkey` is a pseudo-random
+stress tester. `monkey` reports `Events injected: 1` whether the activity started, failed to
+start, or started and immediately finished — which is precisely what run 9 printed and
+precisely why it could not say which of those happened. `am start -W` blocks until the launch
+completes and prints `Status:` / `Activity:` / `Error:`. The launch step now distinguishes
+"never started" from "started and died".
+
+Also from the same reading: crash entries land in logcat's `crash` buffer, which the default
+buffer set can omit. Captures are `-b all` now, so a run cannot produce a clean-looking log
+with the crash sitting in a buffer nobody read.
+
+**Still not claimed: why the app dies.** The cleartext fix is a plausible candidate and is
+deliberately not offered as the answer. The next run will report the launch status and the
+crash buffer whatever happens, and the conclusion will be drawn from that.
+
+### Sources
+
+- <https://github.com/expo/expo/issues/22394> — Expo APK crashes on startup
+- <https://docs.expo.dev/build-reference/troubleshooting/> — Expo build troubleshooting
+- <https://github.com/facebook/react-native/issues/22076> — `index.android.bundle` missing in release
+- <https://github.com/facebook/react-native/issues/28489> — release APK crash by CPU architecture
+- <https://developer.android.com/studio/test/other-testing-tools/monkey> — Monkey is a pseudo-random stress tester
+- <https://medium.com/androiddevelopers/testing-app-startup-performance-36169c27ee55> — `am start -W` for deterministic scripted launches

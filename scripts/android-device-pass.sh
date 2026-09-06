@@ -75,13 +75,36 @@ adb shell pm list packages | grep -q "$PKG"
 
 echo "== launch =="
 adb logcat -c
-adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1
+
+# `am start -W`, not `monkey`.
+#
+# monkey injects a pseudo-random event stream and is a stress tester; it reports
+# "Events injected: 1" whether the activity started, failed to start, or started
+# and immediately finished. Run 9 printed exactly that and told us nothing. The
+# Android tooling docs recommend `am start -W` for scripted launches precisely
+# because -W blocks until the launch completes and prints a status block:
+#
+#   Status: ok            <- the activity actually started
+#   Activity: app.socialinterest/.MainActivity
+#   Error: ...            <- or it says why it did not
+#
+# So this distinguishes "never started" from "started and died", which is the
+# exact question run 9 could not answer.
+adb shell am start -W -n "$PKG/.MainActivity" 2>&1 | tee "$OUT/launch.txt"
+if grep -qiE '^Error:|Error type' "$OUT/launch.txt"; then
+  echo "FAIL: the launcher activity did not start"
+  adb logcat -b all -d | tail -80
+  exit 1
+fi
 sleep 25
 
 # Captured BEFORE anything is asserted, so the evidence exists whatever happens
 # next. Run 9 died on the liveness check below and produced no log at all: the
 # dump lived inside the failure branch, and the script never reached it.
-adb logcat -d > "$OUT/logcat.txt" 2>&1 || true
+# `-b all`, not the default. The default buffer set can omit `crash`, which is
+# exactly where FATAL EXCEPTION lands - so a run could capture a logcat that
+# looked clean while the crash sat in a buffer nobody read.
+adb logcat -b all -d > "$OUT/logcat.txt" 2>&1 || true
 
 echo "== the process must still be alive: a crash on launch exits here =="
 # `|| true` is load-bearing. `pidof` exits 1 when nothing matches, and under
@@ -115,7 +138,7 @@ adb shell uiautomator dump /sdcard/ui.xml >/dev/null
 adb pull /sdcard/ui.xml "$OUT/ui.xml" >/dev/null
 # Refreshed: the earlier capture covers a crash on launch, this one covers
 # anything the app logged while rendering.
-adb logcat -d > "$OUT/logcat.txt"
+adb logcat -b all -d > "$OUT/logcat.txt"
 
 visible() { grep -oE 'text="[^"]+"' "$OUT/ui.xml" | sed 's/text="//;s/"$//' | grep -v '^$'; }
 echo "-- visible text --"; visible | sed 's/^/   /'
