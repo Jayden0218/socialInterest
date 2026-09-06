@@ -14,6 +14,23 @@ export default {
   // about on the grant side just as the explanation is on the refusal side.
   plugins: [
     [
+      // The device pass points the app at http://10.0.2.2:3000 - the emulator's
+      // alias for the host loopback, where the API runs on the same runner.
+      // Since Android 9 cleartext HTTP is blocked by default, and the generated
+      // release manifest carried neither this attribute nor a network security
+      // config, so every request the app made would have been refused by the
+      // platform before reaching the network.
+      //
+      // NOT `android.usesCleartextTraffic` in this config: that field is
+      // accepted silently and does nothing here. Checked against the generated
+      // manifest rather than assumed.
+      //
+      // This serves the emulator journeys, which have no TLS to offer. A hosted
+      // deployment must serve HTTPS, and this should go when it does.
+      'expo-build-properties',
+      { android: { usesCleartextTraffic: true } },
+    ],
+    [
       'expo-image-picker',
       {
         photosPermission:

@@ -126,12 +126,26 @@ jobs:
             exit $rc
           }
 
+      # The artifact is uploaded too, but it CANNOT BE READ from the agent
+      # sandbox: artifact downloads are served from an Azure blob host the
+      # environment's egress policy denies. So the evidence that matters is
+      # printed into the job log, which is retrievable. Otherwise a failure here
+      # is once again a failure nobody can observe - which is the whole reason
+      # runs 1-6 were wasted.
       - name: Collect evidence
         if: always()
         run: |
           mkdir -p artifacts/android-device-pass
           cp /tmp/api.log artifacts/android-device-pass/api.log || true
           df -h / | tail -1 > artifacts/android-device-pass/disk-free.txt || true
+          echo "=============== API request log (tail) ==============="
+          tail -60 /tmp/api.log || echo "(no api log)"
+          echo "=============== logcat: fatal entries ==============="
+          grep -iE "AndroidRuntime|FATAL EXCEPTION|beginning of crash|Force finishing" \
+            artifacts/android-device-pass/logcat.txt | tail -60 || echo "(none)"
+          echo "=============== logcat (tail) ==============="
+          tail -80 artifacts/android-device-pass/logcat.txt || echo "(no logcat)"
+          echo "====================================================="
       # if: always() - the emulator's output is the deliverable when it fails,
       # so it must survive the failure.
       - uses: actions/upload-artifact@v4

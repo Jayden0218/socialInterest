@@ -54,10 +54,20 @@ echo "== acceleration =="
 "${ANDROID_HOME:-$ANDROID_SDK_ROOT}/emulator/emulator" -accel-check || true
 
 echo "== the emulator must be able to reach the API on the host =="
-# 10.0.2.2 is the emulator's alias for the host loopback. If this fails the app
-# cannot possibly work, and we want to know that before blaming the app.
-adb shell 'ping -c 1 -W 5 10.0.2.2' > "$OUT/ping.txt" 2>&1 || true
-cat "$OUT/ping.txt"
+# 10.0.2.2 is the emulator's alias for the host loopback.
+#
+# NOT ping. The emulator's shell user cannot open a raw socket, so ICMP answers
+# "connect: Network is unreachable" whether or not the host is reachable - run 9
+# printed exactly that against an API that was up and serving. A probe that says
+# the same thing on success and failure is worse than none: it invites blaming
+# the network for an unrelated fault.
+#
+# A TCP connect to the port that matters is the question actually being asked.
+{
+  echo "-- TCP 10.0.2.2:3000 --"
+  adb shell 'echo > /dev/tcp/10.0.2.2/3000 && echo REACHABLE || echo UNREACHABLE' 2>&1
+} > "$OUT/reachability.txt" 2>&1 || true
+cat "$OUT/reachability.txt"
 
 echo "== install =="
 adb install -r -g "$APK"
@@ -68,11 +78,25 @@ adb logcat -c
 adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1
 sleep 25
 
+# Captured BEFORE anything is asserted, so the evidence exists whatever happens
+# next. Run 9 died on the liveness check below and produced no log at all: the
+# dump lived inside the failure branch, and the script never reached it.
+adb logcat -d > "$OUT/logcat.txt" 2>&1 || true
+
 echo "== the process must still be alive: a crash on launch exits here =="
-pid=$(adb shell pidof "$PKG" | tr -d '\r')
+# `|| true` is load-bearing. `pidof` exits 1 when nothing matches, and under
+# `set -e` that aborted the script AT THIS ASSIGNMENT - before the diagnostic
+# below could run. So the one run that got this far reported "FAILED at line 72"
+# and nothing about why the app was gone. The check that was supposed to explain
+# the failure was unreachable because of how the failure was detected.
+pid=$(adb shell pidof "$PKG" 2>/dev/null | tr -d '\r' || true)
 if [ -z "$pid" ]; then
   echo "FAIL: $PKG is not running after launch"
-  adb logcat -d | grep -iE "AndroidRuntime|FATAL" | tail -40 | tee "$OUT/crash.txt"
+  echo "-- fatal entries in logcat --"
+  grep -iE "AndroidRuntime|FATAL EXCEPTION|Force finishing|died|beginning of crash" \
+    "$OUT/logcat.txt" | tail -60 | tee "$OUT/crash.txt" || echo "(none matched)"
+  echo "-- last 60 lines of logcat, whatever they are --"
+  tail -60 "$OUT/logcat.txt" || true
   exit 1
 fi
 echo "running as pid $pid"
@@ -89,6 +113,8 @@ adb exec-out screencap -p > "$OUT/home.png"
 node scripts/assert-screen-not-blank.mjs "$OUT/home.png"
 adb shell uiautomator dump /sdcard/ui.xml >/dev/null
 adb pull /sdcard/ui.xml "$OUT/ui.xml" >/dev/null
+# Refreshed: the earlier capture covers a crash on launch, this one covers
+# anything the app logged while rendering.
 adb logcat -d > "$OUT/logcat.txt"
 
 visible() { grep -oE 'text="[^"]+"' "$OUT/ui.xml" | sed 's/text="//;s/"$//' | grep -v '^$'; }

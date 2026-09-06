@@ -205,14 +205,29 @@ same execution as the first observation — a local run of
 **make it visible before changing anything**, and prefer the free observation to
 the expensive guess.
 
-**Still open: the app has never rendered a frame on Android.** Run 7 died a
-second after booting, on `adb: command not found` — `platform-tools` is not on
-the runner's PATH. Fixed, but not yet re-run. Run 8 was cancelled after hanging
-an hour on the DynamoDB volume-ownership bug (see the compose file) and says
-nothing about Android. The Maestro journeys are written and their selectors are
-checked against the app on every CI run by `scripts/verify-maestro-ids.mjs` —
-which immediately found one that matched nothing — but **none has been executed
-on a device**.
+**Still open: the app has never rendered a frame on Android.** Run 9 got
+furthest — emulator booted, APK installed, app launched — and 25 seconds later
+`app.socialinterest` was not running. **Why is unknown**, and that is a harness
+defect, not a property of the app: `pidof` exits 1 when nothing matches, so
+under `set -e` the script aborted AT THE ASSIGNMENT, before the branch that
+dumps logcat. The diagnostic written to explain this exact failure was made
+unreachable by the way the failure was detected. Fixed — logcat is captured
+unconditionally now, and the evidence is printed into the JOB LOG, because
+artifact downloads come from an Azure blob host this sandbox's egress policy
+denies, and an unreadable artifact is not evidence.
+
+Two real defects came out of run 9 regardless. `adb` is resolved from the SDK
+rather than PATH (run 7's failure). And the release manifest had no
+`usesCleartextTraffic`, so **every** request to `http://10.0.2.2:3000` would
+have been refused by the platform before reaching the network — the journeys
+could not have passed even with the app running. Note `android.usesCleartextTraffic`
+in the Expo app config is accepted silently and does nothing; it takes
+`expo-build-properties`, and the difference was found by checking the generated
+manifest instead of trusting the field.
+
+The Maestro journeys are written and their selectors are checked against the app
+on every CI run by `scripts/verify-maestro-ids.mjs` — which immediately found
+one that matched nothing — but **none has been executed on a device**.
 
 ## What spec 003 established (2026-09-06)
 
