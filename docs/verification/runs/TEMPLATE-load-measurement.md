@@ -5,12 +5,18 @@ Copy this file, fill it in, never edit it after the run.
 | Field | Value | Required? |
 |---|---|---|
 | transport | `http` or `in-process` | **Yes** |
-| datastore | What the reads actually hit | **Yes** |
+| datastore | What the reads actually hit, **and whether it is the same software a deployment would run** | **Yes** |
 | version | Commit measured | **Yes** |
 | date | | **Yes** |
 
 `transport` is mandatory because feature 001's headline figure was taken
 in-process and read as though it were not.
+
+`datastore` must say whether it was the real thing or a stand-in. A measurement whose
+binding constraint is a development stand-in is a measurement **of that stand-in** and must
+be reported as such — never as a statement about the product (003/FR-013). 001 reported an
+emulator's p95 as a property of the design, and it drove a proposal to build a hybrid that
+turned out to be unwarranted.
 
 ## Latency by concurrency
 

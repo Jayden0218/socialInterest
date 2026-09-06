@@ -2,43 +2,33 @@ name: Android device pass (emulator)
 
 # Manual only. The repository is private, so Actions minutes come out of the
 # account's monthly allowance, and the cost posture in plan.md says nothing
-# spends without a deliberate decision. This job costs ~25 minutes a run, so it
-# does not belong on every push.
+# spends without a deliberate decision.
 on:
   workflow_dispatch:
 
 jobs:
   android:
-    # NOT ubuntu-latest. That is now Ubuntu 24.04, where the Android emulator is
-    # known broken: avdmanager writes the AVD under ~/.config/.android while the
-    # emulator looks in ~/.android, so it finds no AVD and exits immediately.
-    # Nothing ever binds port 5554, which is why two runs sat for thirty minutes
-    # on `adb: device 'emulator-5554' not found` and then `Connection refused`.
-    # See actions/runner-images#11482 and android-emulator-runner#400.
+    # NOT ubuntu-latest. That is Ubuntu 24.04, where the emulator has known AVD
+    # path problems. This pin was NOT the cause of the six failures in feature
+    # 002 - see below - but it is still the tested configuration.
     runs-on: ubuntu-22.04
-    timeout-minutes: 60
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
-      # Gradle needs 17. The runner defaults to a newer JDK, exactly as the
-      # sandbox does; pinning it here is the same fix as in the Tier B runbook.
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 17 }
       - run: pnpm install --frozen-lockfile
 
-      # The whole reason this job exists: the emulator and the API run on ONE
-      # machine, so the app reaches the server at 10.0.2.2 with no inbound
-      # route, no tunnel and no allowlist. That is what the cloud sandbox
-      # cannot offer and what a physical phone would need a public API for.
+      # The emulator and the API run on ONE machine, so the app reaches the
+      # server at 10.0.2.2 with no inbound route, no tunnel and no allowlist.
       - run: docker compose up -d
       - name: Wait for DynamoDB Local and MinIO
         run: |
           for _ in $(seq 1 60); do
-            # No -f on the DynamoDB probe: DynamoDB Local answers a bare GET /
-            # with 400 (it expects a signed POST), and -f would treat that as a
-            # failure forever. This matches ci.yml, which is the tested version.
+            # No -f on the DynamoDB probe: it answers a bare GET / with 400.
             if curl -sf http://127.0.0.1:9000/minio/health/live \
                && curl -so /dev/null http://127.0.0.1:8000; then exit 0; fi
             sleep 2
@@ -58,8 +48,7 @@ jobs:
           done
           echo "API never became ready"; cat /tmp/api.log; exit 1
 
-      # EXPO_PUBLIC_API_BASE_URL is inlined into the JS bundle at build time, so
-      # the address has to be right here - it cannot be changed on the device.
+      # EXPO_PUBLIC_API_BASE_URL is inlined into the JS bundle at build time.
       - name: Build the APK against the runner's API
         run: |
           pnpm --filter @sih/mobile exec expo prebuild --platform android --no-install
@@ -67,46 +56,65 @@ jobs:
           EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:3000/v1 \
             ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=x86_64
 
-      # /dev/kvm exists on the standard ubuntu runner but is not world-writable,
-      # so without this the emulator silently falls back to TCG - which is what
-      # crashloops system_server on its watchdog and never finishes booting.
+      # THIS IS THE FIX FOR THE SIX FAILURES IN FEATURE 002.
+      #
+      # The emulator needs ~7.4 GB free to create its userdata partition, and it
+      # checks AFTER the SDK install, the Gradle build and the Docker images have
+      # taken their share. When the check fails it exits FATALLY:
+      #
+      #   FATAL | Not enough space to create userdata partition.
+      #           Available: 6278.66 MB, need 7372.80 MB.
+      #
+      # It is not launched in the foreground, so that fatal error surfaced only
+      # as "Timeout waiting for emulator to boot" with no device ever appearing -
+      # which is exactly what all six attempts showed. Found by running
+      # scripts/emulator-launch.sh locally, which captures the emulator's own
+      # output; six CI runs never did.
+      - name: Free disk for the emulator
+        run: |
+          echo "before:"; df -h / | tail -1
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android/sdk/ndk \
+                      /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL \
+                      /usr/local/share/boost /usr/share/swift || true
+          docker image prune -af || true
+          echo "after:"; df -h / | tail -1
+
+      # /dev/kvm exists on the runner but is not world-writable by default.
+      # Without it the emulator refuses outright:
+      #   ERROR | x86_64 emulation currently requires hardware acceleration!
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
             | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-          # The device node and its permissions are all that can be checked
-          # here. `emulator -accel-check` belongs in the device-pass script:
-          # the emulator package is installed by the runner action below, so
-          # calling it at this point exits 127 and kills the job before the
-          # emulator ever starts.
           ls -l /dev/kvm
 
-      - name: Boot the emulator and drive the app
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          # API 30 `default`, not 34 `google_apis`: no Play services and far
-          # fewer system services to start. The first run booted for 11 minutes
-          # and hit the action's 10-minute limit on the heaviest image offered.
-          api-level: 30
-          target: default
-          # Must match the APK's ABI; the app is built -PreactNativeArchitectures=x86_64.
-          arch: x86_64
-          emulator-boot-timeout: 1800
-          # Deliberately NOT overriding emulator-options or profile. The action's
-          # default is the configuration it is tested against:
-          #   -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
-          # The previous run overrode it and swapped -no-snapshot for
-          # -no-snapshot-save, which is a different flag - it still tries to LOAD
-          # a snapshot - and the emulator never appeared in adb at all.
-          script: ./scripts/android-device-pass.sh
+      # Launched by our own script, not by an action, for one reason: the script
+      # captures the emulator's own stdout and stderr on every path. That is the
+      # whole difference between this attempt and the six before it.
+      - name: Boot the emulator
+        env:
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+          EMULATOR_API: '30'
+          EMULATOR_TARGET: default
+          EMULATOR_ABI: x86_64
+          EMULATOR_BOOT_TIMEOUT: '900'
+        run: ./scripts/emulator-launch.sh
+
+      - name: Drive the app
+        env:
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+        run: ./scripts/android-device-pass.sh
 
       - name: Collect evidence
         if: always()
         run: |
           mkdir -p artifacts/android-device-pass
           cp /tmp/api.log artifacts/android-device-pass/api.log || true
+          df -h / | tail -1 > artifacts/android-device-pass/disk-free.txt || true
+      # if: always() - the emulator's output is the deliverable when it fails,
+      # so it must survive the failure.
       - uses: actions/upload-artifact@v4
         if: always()
         with:

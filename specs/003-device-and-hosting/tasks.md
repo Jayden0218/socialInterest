@@ -35,9 +35,9 @@ runs alongside.
 
 **Purpose**: The record formats this feature's evidence is written into.
 
-- [ ] T001 [P] Add the Runtime Attempt record template at `docs/verification/runs/TEMPLATE-runtime-attempt.md`, with `date`, `configuration`, `outcome`, `runtime_output` and `conclusion` per `data-model.md` — and a line stating that a record with an empty `runtime_output` is invalid
-- [ ] T002 [P] Add `runtime` and `evidence` to the Journey Run template at `docs/verification/runs/TEMPLATE-journey-run.md`, restricting `runtime` to `android-emulator` or `browser` and noting that `android-device` and `ios` are not producible by this feature
-- [ ] T003 [P] Add the required `datastore` field to the Load Measurement template at `docs/verification/runs/TEMPLATE-load-measurement.md`, recording what the datastore actually was and whether it was the same software a deployment would run
+- [X] T001 [P] Add the Runtime Attempt record template at `docs/verification/runs/TEMPLATE-runtime-attempt.md`, with `date`, `configuration`, `outcome`, `runtime_output` and `conclusion` per `data-model.md` — and a line stating that a record with an empty `runtime_output` is invalid
+- [X] T002 [P] Add `runtime` and `evidence` to the Journey Run template at `docs/verification/runs/TEMPLATE-journey-run.md`, restricting `runtime` to `android-emulator` or `browser` and noting that `android-device` and `ios` are not producible by this feature
+- [X] T003 [P] Add the required `datastore` field to the Load Measurement template at `docs/verification/runs/TEMPLATE-load-measurement.md`, recording what the datastore actually was and whether it was the same software a deployment would run
 
 ---
 
@@ -48,9 +48,9 @@ runs alongside.
 **⚠️ CRITICAL**: T004 blocks every Android task. Its whole point is that attempt seven is
 informative whatever it returns.
 
-- [ ] T004 Write `scripts/emulator-launch.sh`: install the SDK packages, create the AVD, launch the emulator **directly** with `> "$OUT/runtime-output.log" 2>&1`, poll `adb` for `sys.boot_completed` on a bounded wait, and on timeout `cat` the log before exiting non-zero. It MUST write `runtime-output.log` on every path, including success
-- [ ] T005 Rewrite `.github/workflows/android-emulator.yml` to call `scripts/emulator-launch.sh` instead of `reactivecircus/android-emulator-runner`, keeping the KVM udev step, and upload the artifact with `if: always()` so the output survives a failure
-- [ ] T006 Verify locally before spending a run: execute `scripts/emulator-launch.sh` in the sandbox, confirm it produces a non-empty `runtime-output.log` **and** that the log contains the emulator's own messages rather than only the script's. The sandbox has no `/dev/kvm`, so this is a test of the capture, not of booting
+- [X] T004 Write `scripts/emulator-launch.sh`: install the SDK packages, create the AVD, launch the emulator **directly** with `> "$OUT/runtime-output.log" 2>&1`, poll `adb` for `sys.boot_completed` on a bounded wait, and on timeout `cat` the log before exiting non-zero. It MUST write `runtime-output.log` on every path, including success
+- [X] T005 Rewrite `.github/workflows/android-emulator.yml` to call `scripts/emulator-launch.sh` instead of `reactivecircus/android-emulator-runner`, keeping the KVM udev step, and upload the artifact with `if: always()` so the output survives a failure
+- [X] T006 Verify locally before spending a run: execute `scripts/emulator-launch.sh` in the sandbox, confirm it produces a non-empty `runtime-output.log` **and** that the log contains the emulator's own messages rather than only the script's. The sandbox has no `/dev/kvm`, so this is a test of the capture, not of booting
 
 **Checkpoint**: the emulator can no longer fail silently.
 
