@@ -2,6 +2,8 @@ import 'reflect-metadata';
 import { execSync } from 'node:child_process';
 import { spawn } from 'node:child_process';
 import { resolve } from 'node:path';
+import { tmpdir } from 'node:os';
+import { writeFileSync, openSync, readFileSync } from 'node:fs';
 import { ScanCommand, DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import jwt from 'jsonwebtoken';
@@ -42,26 +44,82 @@ const env = {
   },
 };
 
+const API_LOG = resolve(tmpdir(), 'sih-bench-api.log');
+
 async function bootApi(): Promise<{ baseUrl: string; stop: () => void }> {
+  /**
+   * Output goes to a FILE, never to a pipe.
+   *
+   * This was `stdio: ['ignore', 'ignore', 'pipe']` with nothing reading the
+   * pipe. A pipe holds about 64 KB; once Nest had written that much to stderr
+   * the API BLOCKED on its next write and stopped answering. The bench then sat
+   * on a fetch that would never return - 22 minutes and counting, with no
+   * output, because the report is printed at the end.
+   *
+   * apps/e2e/support/api-process.ts already carries this lesson in a comment
+   * and this file did not. A file also means a failed bench can say what the
+   * server was doing, which a discarded pipe never could.
+   */
+  /**
+   * Refuse to adopt a process this bench did not start.
+   *
+   * A previous run left an API on this port with a DIFFERENT LOCAL_JWT_SECRET.
+   * The health probe below cheerfully accepted it, the bench never started its
+   * own, and every request came back 401 - so the run recorded 160 errors, zero
+   * samples, and still printed an attribution. It measured a server it did not
+   * configure and reported the result as a property of the datastore.
+   *
+   * Not killed: a process this bench did not start is not its to kill. It says
+   * what is wrong and stops.
+   */
+  try {
+    const stale = await fetch(`http://127.0.0.1:${PORT}/v1/health`);
+    if (stale.ok) {
+      throw new Error(
+        `Something is already listening on ${PORT}. This bench did not start it, so its ` +
+          'JWT secret will not match the tokens minted here and every request will 401. ' +
+          'Stop it and run again.',
+      );
+    }
+  } catch (e: unknown) {
+    if (e instanceof Error && e.message.startsWith('Something is already listening')) throw e;
+    // Connection refused is the expected case: the port is free.
+  }
+
+  writeFileSync(API_LOG, '');
+  const logFd = openSync(API_LOG, 'a');
+  // `detached` so the whole tree can be signalled: npx spawns tsx spawns node,
+  // and `child.kill()` reaches only npx. That is not a tidiness point - the
+  // orphaned node server kept the port, the NEXT run adopted it, and because its
+  // secret differed every request 401'd. The guard above now catches that, and
+  // this stops causing it.
   const child = spawn('npx', ['tsx', 'src/main.ts'], {
     cwd: resolve(__dirname, '..'),
     env: { ...process.env, API_PORT: String(PORT), RUNTIME_PROFILE: 'local' },
-    stdio: ['ignore', 'ignore', 'pipe'],
+    stdio: ['ignore', logFd, logFd],
+    detached: true,
   });
+  const killTree = (): void => {
+    try {
+      process.kill(-child.pid!, 'SIGKILL');
+    } catch {
+      /* already gone */
+    }
+  };
   const baseUrl = `http://127.0.0.1:${PORT}`;
   const deadline = Date.now() + 90_000;
   while (Date.now() < deadline) {
     try {
       if ((await fetch(`${baseUrl}/v1/health`)).ok) {
-        return { baseUrl, stop: () => child.kill('SIGKILL') };
+        return { baseUrl, stop: killTree };
       }
     } catch {
       /* not up yet */
     }
     await new Promise((r) => setTimeout(r, 250));
   }
-  child.kill('SIGKILL');
-  throw new Error('API did not start');
+  killTree();
+  throw new Error(`API did not start. Its output:\n${readFileSync(API_LOG, 'utf8')}`);
 }
 
 async function main(): Promise<void> {
@@ -146,13 +204,18 @@ function attribute(rows: { throughputPerSec: number; p95: number }[]): {
       evidence: 'throughput still rising at the highest level tested; no ceiling reached',
     };
   }
+  // The attribution names ONLY what this run observed, plus a pointer to the
+  // run that separates the limits. It used to recite "~827 req/s versus ~5,574"
+  // from a previous session as though it had just been measured; those figures
+  // then went stale (the same check on 2026-09-06 gave 882 and 9,475) while the
+  // sentence went on stating them with the authority of a measurement.
   return {
     bottleneck: 'datastore',
     evidence:
-      `throughput flattened at ~${peak} req/s while p95 rose to ${last.p95}ms; ` +
-      'bench:ceiling measured DynamoDB Local at ~827 req/s versus ~5,574 req/s for the ' +
-      'application shape with a stubbed datastore, so the emulator is the binding ' +
-      'constraint and this run does not measure read-time fan-in',
+      `throughput flattened at ~${peak} req/s while p95 rose to ${last.p95}ms - ` +
+      'a saturated dependency, not an algorithm out of headroom. Which dependency is ' +
+      'established by bench:ceiling, which measures the generator, the datastore and the ' +
+      'application shape apart; run it alongside this and cite ITS figures, not these',
   };
 }
 

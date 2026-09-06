@@ -168,9 +168,9 @@ permission and see an explanation.
 **Independent test**: The report names the binding component and what the datastore was.
 
 - [X] T044 [US5] Add the required `datastore` field to `reportMeasurement` in `apps/api/bench/harness.ts`, and make a measurement without it fail rather than default
-- [ ] T045 [US5] Run `bench:ceiling` against the durable stack and record in `docs/verification/runs/` the three-way attribution — generator, datastore, application shape
-- [ ] T046 [US5] Run `bench:feed-load` against the durable stack and record in `docs/verification/runs/` a Load Measurement with `transport`, `datastore`, concurrency reached, latencies and binding constraint
-- [ ] T047 [US5] If the datastore is a stand-in, report the result **as a measurement of the stand-in** — never as a statement about the product (FR-013). 001 reported an emulator's p95 as a property of the design and it drove a proposal to build a hybrid that was not warranted
+- [X] T045 [US5] Run `bench:ceiling` against the durable stack and record in `docs/verification/runs/` the three-way attribution — generator, datastore, application shape
+- [X] T046 [US5] Run `bench:feed-load` against the durable stack and record in `docs/verification/runs/` a Load Measurement with `transport`, `datastore`, concurrency reached, latencies and binding constraint
+- [X] T047 [US5] If the datastore is a stand-in, report the result **as a measurement of the stand-in** — never as a statement about the product (FR-013). 001 reported an emulator's p95 as a property of the design and it drove a proposal to build a hybrid that was not warranted
 
 **Checkpoint**: the load number says what it is a number about.
 
@@ -178,11 +178,11 @@ permission and see an explanation.
 
 ## Phase 8: Polish & Cross-Cutting
 
-- [ ] T048 [P] Update `CLAUDE.md` with what the emulator output actually showed, replacing the current entry which records only that it fails
-- [ ] T049 [P] Update `docs/verification/tier-b-runbook.md`: the route is proven or disproven, not "unproven"
-- [ ] T050 [P] Update `specs/003-device-and-hosting/spec.md` status to reflect the delivered state, with every unreached outcome reported unverified rather than dropped
-- [ ] T051 Confirm the Out of Scope items are still reported honestly in `specs/003-device-and-hosting/spec.md`, `CLAUDE.md` and `docs/verification/`: real usage unanswered, iOS unverified, no public deployment
-- [ ] T052 Run the full CI step list from `.github/workflows/ci.yml` before the final push — the actual list, not a proxy for it. Two red builds in 002 came from checking a subset and assuming it covered CI
+- [X] T048 [P] Update `CLAUDE.md` with what the emulator output actually showed, replacing the current entry which records only that it fails
+- [X] T049 [P] Update `docs/verification/tier-b-runbook.md`: the route is proven or disproven, not "unproven"
+- [X] T050 [P] Update `specs/003-device-and-hosting/spec.md` status to reflect the delivered state, with every unreached outcome reported unverified rather than dropped
+- [X] T051 Confirm the Out of Scope items are still reported honestly in `specs/003-device-and-hosting/spec.md`, `CLAUDE.md` and `docs/verification/`: real usage unanswered, iOS unverified, no public deployment
+- [X] T052 Run the full CI step list from `.github/workflows/ci.yml` before the final push — the actual list, not a proxy for it. Two red builds in 002 came from checking a subset and assuming it covered CI
 
 ---
 

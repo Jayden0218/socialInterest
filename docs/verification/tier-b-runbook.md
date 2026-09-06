@@ -132,19 +132,38 @@ a physical phone would need a hosted API first.
 
 ### The two things that are easy to get wrong
 
-**The emulator does not currently boot on a GitHub runner, and this route is
-therefore NOT yet usable.** Runs 4, 5 and 6 all ended with no device ever
-appearing: `adb: device 'emulator-5554' not found` for the full boot budget,
-then `Connection refused`. `/dev/kvm` is present and world-writable, and the
-1800s timeout is honoured, so neither acceleration nor patience is the problem.
-The Ubuntu 24.04 AVD-path bug (`actions/runner-images#11482`,
-`ReactiveCircus/android-emulator-runner#400`) matches the symptom exactly but is
-not the cause: pinning `runs-on: ubuntu-22.04` changed nothing.
+**The emulator BOOTS. Run 7 (2026-09-06) booted it in 77 seconds**, with
+hardware acceleration confirmed by the emulator itself — `KVM (version 12) is
+installed and usable` — rather than inferred from the udev step exiting 0. The
+Runtime Attempt with its output is
+`docs/verification/runs/2026-09-06-runtime-attempt-android.md`.
 
-The blocker is that the emulator's own stderr has never been captured — the
-action does not surface it. Before spending another run, launch the emulator in
-a plain `run:` step with its output redirected to a file and `cat` it on
-failure. Everything below this line is written and reviewed but **unproven**.
+Six earlier runs failed, and none of the five explanations offered for them was
+right. The cause was **disk space**:
+
+```
+FATAL | Not enough space to create userdata partition.
+        Available: 6278.66 MB, need 7372.80 MB.
+```
+
+The emulator wants ~7.4 GB for userdata and checks *after* the SDK install, the
+Gradle build and the Docker images have taken theirs. It is not launched in the
+foreground, so that fatal exit surfaced only as a boot timeout with no device —
+which is exactly what every one of those six runs looked like. The workflow now
+frees ~7 GB first and `scripts/emulator-launch.sh` caps the partition at 2048M.
+
+What actually found it was capturing the emulator's own output and reading it.
+Nothing else had. One of the discarded hypotheses (the Ubuntu 24.04 AVD-path
+bug, `actions/runner-images#11482`) had been written into project documentation
+as established fact and had to be retracted.
+
+**The app has still never rendered a frame on Android.** Run 7 failed one
+second later, in `Drive the app`, and said why: `adb: command not found` —
+`platform-tools` is not on the runner's PATH, and the driver script called
+`adb` bare while `emulator-launch.sh` had always used the SDK path. Fixed. The
+journeys below are written, their selectors are checked against the app by
+`scripts/verify-maestro-ids.mjs` on every CI run, and **they have not yet been
+executed on a device**.
 
 **The identity has to be provisioned, not just signed.** The local profile has
 no signup endpoint. A correctly signed token whose profile row does not exist
@@ -172,8 +191,11 @@ provider would do this.
   this is not evidence about a production path, and it cannot see anything that
   only real hardware exposes - camera capture, real network conditions, vendor
   OS behaviour, battery or thermal effects.
-- **J-05 publish a video is not covered.** The compose flow is driven from a
-  bundled sample image; there is no video fixture and no native picker
-  dependency in this build. Record it `not run`, never `pass`.
+- **J-05 publish a video is not covered.** There is a native picker now
+  (003/T037) and the gallery is seeded with a real image, but no video fixture
+  is pushed. Record J-05 `not run`, never `pass`.
+- **No journey has been run on a device yet.** Everything from "What the pass
+  actually asserts" onward is written and statically checked, not executed.
+  Record it that way until a run says otherwise.
 - **iOS is not covered at all.** The Simulator is macOS-only and there is no
   macOS runner in this workflow.

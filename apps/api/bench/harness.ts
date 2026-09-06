@@ -166,6 +166,30 @@ export function reportMeasurement(m: LoadMeasurement, budgetMs: number): void {
         'the design. Name the datastore exactly (e.g. "dynamodb-local").',
     );
   }
+  /**
+   * A run in which nothing succeeded is not a slow run, it is not a run.
+   *
+   * A feed-load bench once recorded 160 errors and zero samples - every request
+   * 401'd against a stale server on the port - and printed p50/p95/p99 of 0 with
+   * `bottleneck: datastore` underneath, because the attribution was derived from
+   * figures baked into the code rather than from what had just been measured.
+   * Zeros read as "fast".
+   */
+  const observed = m.levels.reduce((n, l) => n + l.n, 0);
+  const failed = m.levels.reduce((n, l) => n + l.errors, 0);
+  if (observed === 0) {
+    throw new Error(
+      `Every request failed (${failed} errors, 0 successful). There is nothing here to ` +
+        'measure. Fix the run before reporting it - a table of zeros reads as a fast system.',
+    );
+  }
+  if (failed > observed) {
+    throw new Error(
+      `More requests failed (${failed}) than succeeded (${observed}). A measurement taken ` +
+        'from the minority that got through is not a measurement of the system.',
+    );
+  }
+
   if (m.bottleneck !== 'undetermined' && m.bottleneckEvidence.trim() === '') {
     throw new Error(
       `bottleneck is "${m.bottleneck}" with no evidence. An attribution without ` +

@@ -296,6 +296,36 @@ scope, not this one.
 - **SC-012**: Zero outcomes are reported as met on the basis of a measurement of the test
   harness rather than the product.
 
+## Delivered state — 2026-09-06
+
+Written at the end of implementation. Every criterion is reported as met, partially met, or
+**unverified**; nothing that was not reached has been dropped or quietly restated.
+
+| Criterion | State | On what evidence |
+|---|---|---|
+| SC-001 | **Unverified** | No journey has run on an Android runtime. The runtime boots (77s, run 7); the app has never rendered a frame on it. The flows exist and their selectors are checked against the app on every CI run |
+| SC-002 | **Unverified** | No capture exists. `scripts/assert-screen-not-blank.mjs` is in place so that a blank one cannot be filed as evidence, which is what happened before |
+| SC-003 | **Met** | Runs 7 and 8 both recorded in `docs/verification/runs/2026-09-06-runtime-attempt-android.md`, run 7 with the emulator's own output. Run 8's record says it has none and that no Android conclusion may be drawn from it |
+| SC-004 | **Met** | `pnpm --filter @sih/e2e test:durability` — a person, a followed interest, a post with media, a comment and a reaction, read back after the containers are destroyed and the API restarted. The named volume did not work when first added; it does now, verified by destroying the container and reading the item back |
+| SC-005 | **Met** | The service refuses to boot with the published secret; N-05 asserts a token signed with it is refused indistinguishably from any other bad token |
+| SC-006 | **Met** | 294/294 assertions, 7/7 surfaces, against the durable stack. No reduction |
+| SC-007 | **Met** | `datastore-decision.md`, with the migration surface counted from the classes rather than estimated. The decision itself is the owner's and is recorded as pending |
+| SC-008 | **Partially met** | The picker is mounted and is the first step of compose; a refused permission is explained rather than silently replaced. Both paths are covered by unit tests and by two Maestro flows, and **neither flow has run on a device** |
+| SC-009 | **Met** | `bench:ceiling` attributes the three limits apart; `reportMeasurement` now refuses to print a measurement that cannot say what it measured, and labels a stand-in as one |
+| SC-010 | **Met** | Retained; nothing in this feature reports an absence without looking |
+| SC-011 | **Met** | Nothing billable was provisioned. Run 8 was cancelled to stop it consuming its timeout |
+| SC-012 | **Met** | The load figures are reported as measurements of DynamoDB Local. 002/SC-002 stays unverified |
+
+**What remains, and why:**
+
+- **T013, T015, T043 need an emulator run**, which spends the account's Actions allowance on a
+  private repository. That is a decision for the owner, not an implicit part of a task.
+- **T053** (found during implementation): following a person does nothing in the app.
+  `ProfileContainer` loads only the signed-in person's own profile, hardcodes
+  `viewerIsFollowing: false`, and its follow button is a no-op. So the app cannot demonstrate
+  the premise of its own non-negotiable Principle I, though the service enforces it.
+- **iOS and real usage stay out of scope** and unanswered, as below.
+
 ## Assumptions
 
 - **Everything is performable by the agent, in the cloud, at no cost.** No physical device, no

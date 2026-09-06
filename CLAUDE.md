@@ -63,7 +63,10 @@ that nothing targets. Both are open questions, not settled ones.
   **Measured 2026-09-05, attributed (spec 002 R1)**: the ceiling is
   **DynamoDB Local**, not the design. `bench:ceiling` measured the three limits
   apart — generator 187,439 req/s, **emulator 827 req/s**, application shape with
-  a stubbed datastore 5,574 req/s. `bench:feed-load`, now driven over HTTP, shows
+  a stubbed datastore 5,574 req/s. **Re-measured 2026-09-06 against the durable
+  (disk-backed) stack**: generator 356,276, **datastore 882**, application 9,475.
+  The datastore is still the lowest ceiling by an order of magnitude, so the
+  conclusion is unchanged and neither figure says anything about D1. `bench:feed-load`, now driven over HTTP, shows
   throughput **flat at 6-7 req/s** across concurrency 1→100 while p95 rises
   368ms→6,463ms: a saturated dependency, not an algorithm out of headroom.
   At rest the feed is comfortable — p50 183ms at the 200-follow cap over 100k
@@ -151,8 +154,9 @@ impossible regardless — the Simulator is macOS-only.
 | `apt-get install ffmpeg` | Fails, Debian repos blocked. Use the `linuxserver/ffmpeg` container |
 | MinIO binary from `dl.min.io` | 403. Use the `minio/minio` image |
 | `quay.io` | Unreachable. `public.ecr.aws`, `ghcr.io`, `mirror.gcr.io` all work |
+| DynamoDB Local with `-dbPath` on a named volume | **Needs `user: root`.** The image runs as uid 1000; Docker creates a named volume's mountpoint owned by root; the process cannot open its SQLite file: `SQLiteException: [14] unable to open database file`. It does NOT exit — it answers 400 to a bare `GET /`, so the compose health probe passes, and then hangs every real request forever. Cost an hour of a CI run and looked like a wedged container |
 | Android emulator **in this sandbox** | Boots, then crashloops. No `/dev/kvm`, no `vmx`/`svm`, so pure TCG: `system_server` is killed by its own watchdog *inside* `systemReady()` — `Blocked in handler on main thread for 94s`, limit 60s — restarts, and hits the same wall forever. Happens on a bare emulator with nothing installed. `pm.dexopt.install=skip` does not help (dexopt was never the problem) and `debug.disable_watchdog` is accepted by `setprop` but not honoured; the timeout is a compile-time constant. An `arm64` image is refused outright on an x86_64 host |
-| Android emulator on a GitHub runner | **Unresolved — never starts, on either image.** Three runs (4, 5, 6) ended the same way: no device ever appears, `adb: device 'emulator-5554' not found` for the whole boot budget, then `emu kill` → `Connection refused`. `/dev/kvm` is present and world-writable after the udev rule, and `emulator-boot-timeout: 1800` is honoured, so it is neither missing acceleration nor an impatient timeout. The Ubuntu 24.04 AVD-path bug (`actions/runner-images#11482`, `android-emulator-runner#400`) matches the symptom exactly and is **not** the cause here: pinning `runs-on: ubuntu-22.04` changed nothing. **Nobody has yet seen the emulator's own stderr** — the action does not surface it and only log tails are reachable — so every explanation so far has been a guess about an unobservable failure. Do not spend another run without first capturing that output (launch the emulator in a plain `run:` step, redirect to a file, `cat` it on failure) |
+| Android emulator on a GitHub runner | **Solved 2026-09-06, run 7: boots in 77s.** The cause of the six failures was DISK SPACE, not the runner image, the system image, the timeout or the options. The emulator wants ~7.4 GB for its userdata partition and checks *after* the SDK install, the Gradle build and the Docker images have taken theirs: `FATAL | Not enough space to create userdata partition. Available: 6278.66 MB, need 7372.80 MB`. It is not launched in the foreground, so that fatal exit surfaced only as a boot timeout with no device — the exact symptom of all six. The workflow frees ~7 GB first and `scripts/emulator-launch.sh` caps the partition at 2048M and captures the emulator's own output on every path. `KVM (version 12) is installed and usable`, reported by the emulator itself |
 
 ## Running the app on a device: what actually works
 
@@ -177,22 +181,65 @@ Two traps, both of which cost real runs:
   `apps/api/scripts/mint-device-token.ts` writes the row through the API's own
   `PersonRepository`, the same thing `apps/e2e/support/people.ts` does.
 
-**Six runs, and the emulator has never once booted.** Three failures were mine,
-every one the same shape — writing a step from memory instead of from the thing
-that already worked: `curl -sf` where the tested probe was `curl -so` (DynamoDB
-Local answers a bare `GET /` with 400, and `-f` turns that into failure), the
-heaviest system image against a default 10-minute limit, and `-accel-check`
-before the SDK existed. The other three are unexplained, and the two
-"explanations" offered for them — an `emulator-options` override, then the
-Ubuntu 24.04 AVD-path bug — were both plausible, both matched the symptom, and
-neither fixed anything.
+**Six runs failed, and none of the six explanations was right. Run 7 booted in
+77 seconds.** Three of the failures were mine, every one the same shape —
+writing a step from memory instead of from the thing that already worked:
+`curl -sf` where the tested probe was `curl -so` (DynamoDB Local answers a bare
+`GET /` with 400, and `-f` turns that into failure), the heaviest system image
+against a default 10-minute limit, and `-accel-check` before the SDK existed.
 
-**The real lesson is not "check your config".** It is that six runs were spent
-iterating on a failure nobody could observe. The emulator's stderr has never
-been read; the action swallows it. Capturing it once is worth more than any
-number of further hypotheses, and the same reasoning applies anywhere else in
-this project: **when the failure is invisible, make it visible before changing
-anything.**
+The other three got two confident explanations — an `emulator-options`
+override, then the Ubuntu 24.04 AVD-path bug. Both were plausible, both matched
+the symptom exactly, both were wrong, and **the second was written into this
+file as established fact and had to be retracted**.
+
+The actual cause, found the first time anyone captured the emulator's own
+output, was that the runner did not have enough free disk for the userdata
+partition. Nothing about the readiness probe, the system image, the acceleration
+check, the emulator options or the runner image was ever the problem.
+
+**The lesson is not "check your config".** It is that six runs were spent
+iterating on a failure nobody could observe, and that the fix arrived in the
+same execution as the first observation — a local run of
+`scripts/emulator-launch.sh`, costing nothing. When the failure is invisible,
+**make it visible before changing anything**, and prefer the free observation to
+the expensive guess.
+
+**Still open: the app has never rendered a frame on Android.** Run 7 died a
+second after booting, on `adb: command not found` — `platform-tools` is not on
+the runner's PATH. Fixed, but not yet re-run. Run 8 was cancelled after hanging
+an hour on the DynamoDB volume-ownership bug (see the compose file) and says
+nothing about Android. The Maestro journeys are written and their selectors are
+checked against the app on every CI run by `scripts/verify-maestro-ids.mjs` —
+which immediately found one that matched nothing — but **none has been executed
+on a device**.
+
+## What spec 003 established (2026-09-06)
+
+**Still unverified, and must be reported that way:**
+
+- **Android journeys.** The runtime boots; the app has never rendered a frame on it.
+  T013/T015/T043 need an emulator run, which spends the account's Actions allowance on a
+  private repository — the owner's call, never an implicit part of a task.
+- **iOS.** Nothing has ever run. The Simulator is macOS-only and macOS runner minutes bill at
+  ten times the rate. Unverified, not "probably fine".
+- **Real usage.** Nobody has used the product. Retention, second-post rate and onboarding
+  success stay unanswered; a script exercising those paths measures the script.
+- **A public deployment.** Durability is delivered; a public address is not. DynamoDB Local is
+  still a dev tool, and the datastore decision (`003/datastore-decision.md`) is the owner's and
+  is recorded as pending.
+- **Following a person does nothing in the app** (003/T053). The service enforces FR-033, but
+  `ProfileContainer` loads only your own profile and its follow button is a no-op — so the app
+  cannot demonstrate the premise of its own non-negotiable principle.
+
+**Established:**
+
+- The emulator's six failures were disk space, found by capturing its output once (above).
+- The durable stack keeps what it is given across a full restart, and the event bus replays
+  work a crash interrupted — a defect the durability test itself found, because the replay ran
+  from `onModuleInit` and Nest fires that *before* subscribers register, so the record was
+  cleared with nothing having handled it.
+- `LOCAL_JWT_SECRET` has no default. The old one was a constant in this repository.
 
 ## Spec-kit workflow
 
