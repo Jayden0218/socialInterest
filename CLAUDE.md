@@ -205,41 +205,49 @@ same execution as the first observation — a local run of
 **make it visible before changing anything**, and prefer the free observation to
 the expensive guess.
 
-**Still open: the app has never rendered a frame on Android — but run 10 found
-why it does not.** The activity starts (`Status: ok`, 520ms) and the app then
-dies in React Native module registration:
+**The app runs on Android and all ten journeys pass.** Run 25, 2026-09-06:
+`10/10 Flows Passed in 8m 4s`. Each journey's effect is asserted through the
+SERVICE, not the view hierarchy - `POST /v1/posts` 201, comments 201, reports
+201, follow 204, and the published caption read back from
+`GET /v1/people/{handle}/posts`. Record:
+`docs/verification/runs/2026-09-06-journey-run-android-PASS.md`.
 
-```
-FATAL EXCEPTION: java.lang.NoClassDefFoundError:
-  Lexpo/modules/kotlin/types/AnyTypeCache;
-  at expo.modules.imagepicker.ImagePickerModule.definition(ImagePickerModule.kt:330)
-Caused by: ClassNotFoundException: expo.modules.kotlin.types.AnyTypeCache
-```
+**Seven product defects were found by running it, and only by running it.**
+Every one was invisible to a green test suite:
 
-**Install Expo native modules with `expo install`, never `pnpm add`/`npm i`.**
-`pnpm add expo-image-picker` took the latest published version (57.0.16), built
-against a far newer `expo-modules-core` than SDK 54 ships, so the module called
-a class that does not exist and killed the app at startup. SDK 54 wants
-`~17.0.11`. Same for `expo-build-properties`: wanted `~1.0.10`, got `57.0.17`.
+1. **Install Expo native modules with `expo install`, never `pnpm add`.** The
+   latter took `expo-image-picker@57` against SDK 54's `expo-modules-core@3`;
+   `NoClassDefFoundError: AnyTypeCache` killed the app during module
+   registration. `expo install` cannot reach its API from this sandbox - read
+   `node_modules/.../expo/bundledNativeModules.json`, which is authoritative.
+2. **`usesCleartextTraffic`** must be set via `expo-build-properties`; the
+   `android.usesCleartextTraffic` app-config field is accepted silently and does
+   nothing. Without it every request to `http://10.0.2.2:3000` is refused by the
+   platform before reaching the network.
+3. **Presigned URLs need a PUBLIC endpoint.** The API signed against its own
+   `127.0.0.1:9000`, which inside the emulator is the DEVICE's loopback.
+   `S3_PUBLIC_ENDPOINT` signs for the client's address; a signature covers the
+   host, so the URL cannot be rewritten afterwards. The runner also needs
+   `ip addr add 10.0.2.2/32 dev lo` so the host-side fixture resolves the same
+   name (an /etc/hosts entry cannot work - resolvers short-circuit IP literals).
+4. **Never read a `data:` URI with `fetch(...).blob()` in React Native.**
+   Browsers resolve it, RN does not. The upload never completed, so the publish
+   button stayed disabled and tapping it was a silent no-op.
+5. `sampleMedia.ts` declared `sizeBytes: 68` for 70 bytes.
+6. The self profile tab passed the literal `"me"` as a handle, so
+   `GET /v1/people/me/posts` 404'd and your own posts never loaded on your own
+   profile.
+7. `PostQueryService.listByAuthor` returned VisibilityFilter's CANDIDATE rows as
+   the response - `caption: null`, no media, no counts, no author. The **fifth**
+   instance of that defect here; the filter decides what is visible, never the
+   shape of what to send.
 
-`expo install` cannot run in this sandbox — it needs Expo's API, which egress
-blocks — so read the version map that ships inside the installed package:
-`node_modules/.../expo/bundledNativeModules.json`. It is authoritative for the
-SDK in use.
-
-Two harness fixes made this findable, both from run 9: `am start -W` instead of
-`monkey` (which reports "Events injected: 1" whether the activity started,
-failed to start, or started and died), and `adb logcat -b all` printed into the
-JOB LOG, since artifact downloads come from a host this sandbox's egress denies.
-
-Also still true from run 9: the release manifest needed `usesCleartextTraffic`
-(via `expo-build-properties`; the `android.usesCleartextTraffic` app-config
-field is accepted silently and does nothing), or every request to
-`http://10.0.2.2:3000` is refused by the platform before reaching the network.
-
-The Maestro journeys are written and their selectors are checked against the app
-on every CI run by `scripts/verify-maestro-ids.mjs` — which immediately found
-one that matched nothing — but **none has been executed on a device**.
+**Still not verified:** J-05 (no video fixture) and J-10 (a block hides content
+from later flows in the same suite; covered over HTTP by N-03) are recorded
+`not run`. An image chosen from a POPULATED gallery is not covered - flow 10
+verifies the hand-off to `com.android.documentsui` and deliberately does not
+drive Google's own UI. FR-012's refusal path is not producible on API 30, where
+the picker needs no storage permission.
 
 ## What spec 003 established (2026-09-06)
 

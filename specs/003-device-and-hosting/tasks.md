@@ -75,13 +75,15 @@ app's own interface and one result per journey.
 - [X] T010 [US1] Capture `home.png` in `scripts/android-device-pass.sh` and **assert it is not blank** (the only Android capture in this project's history is entirely black; a blank capture MUST fail the run, per contract `android-journey-run.md`)
 - [X] T011 [US1] Assert in `scripts/android-device-pass.sh` that the service's own request log shows a request that arrived from the app — a blank screen renders tabs too, so this is what separates a working app from a shell
 - [X] T012 [P] [US1] Verify the `.maestro/` flows resolve against the app as built: every `id:` used must exist in `apps/mobile/src` (six were wrong when first written; check, do not assume)
-- [ ] T013 [US1] Run the Maestro journeys on the emulator from `scripts/android-device-pass.sh`, asserting each journey's effect **through the service** rather than the view hierarchy, per contract `android-journey-run.md`
+- [X] T013 [US1] Run the Maestro journeys on the emulator from `scripts/android-device-pass.sh`, asserting each journey's effect **through the service** rather than the view hierarchy, per contract `android-journey-run.md`
 
-  **Partly done, and blocked.** The journeys DO run on the emulator: run 16 executed all ten,
-  4 passed, and `POST /v1/posts` returned 201 — the service-side assertion this task asks for.
-  Five flows have fixes pushed that no run has executed, and one (flow 11's refusal path) is
-  recorded as not producible on this device. **Blocked on the account's Actions allowance**,
-  which stops every workflow on this repository; see `CLAUDE.md`. One run answers it.
+  **Done — run 25, `10/10 Flows Passed in 8m 4s`.** Every journey's effect is asserted through
+  the service, not the view hierarchy: `POST /v1/posts` 201, `POST /v1/posts/:postId/comments`
+  201, `POST /v1/reports` 201, `PUT /v1/people/:handle/follow` 204, and the published caption
+  read back from `GET /v1/people/:handle/posts`. Recorded in
+  `docs/verification/runs/2026-09-06-journey-run-android-PASS.md`. J-05 (no video fixture) and
+  J-10 (a block would hide content from later flows in the same suite; covered over HTTP by
+  N-03) are recorded `not run`, not implied.
 - [X] T014 [US1] Add the FR-033 negative case as `.maestro/12-interest-follow-does-not-widen.yaml`: a followed person's post in an unfollowed interest MUST be absent from the feed (Principle I, non-negotiable)
 - [X] T015 [US1] Record a Journey Run in `docs/verification/runs/` with `runtime: android-emulator`, one result per journey, `not run` where a journey was not attempted, and the non-blank capture attached
 
