@@ -43,10 +43,10 @@ Two agents editing any of these overwrite each other. Assign one owner each.
 | File | Tasks touching it |
 |---|---|
 | `apps/api/tests/visibility/matrix.spec.ts` | T010, T011, T040, T071, T096, T122, T128 |
-| `apps/mobile/src/App.tsx` | T026, T053, T084, T111, T125 |
-| `apps/mobile/src/screens/index.tsx` | T052, T084, T100, T111, T125 |
+| `apps/mobile/src/App.tsx` | T026, T053, T084, T125 |
+| `apps/mobile/src/screens/index.tsx` | T052, T084, T100, T125 |
 | `apps/api/src/persistence/post.repository.ts` | T066, T067, T068 |
-| `apps/mobile/src/data/index.ts` | T048, T078, T110, T123 |
+| `apps/mobile/src/data/index.ts` | T048, T078, T123 |
 | `docs/verification/divergence-register.md` | T005, T134 |
 
 ---
@@ -56,15 +56,15 @@ Two agents editing any of these overwrite each other. Assign one owner each.
 **Purpose**: the table, the keys, and the fixtures every story needs. Nothing here is
 story-specific and nothing here provisions anything.
 
-- [ ] T001 Add **GSI5 (Inbox)** — `gsi5pk` / `gsi5sk`, projection `KEYS_ONLY` plus `conversationId`, `otherPersonId`, `state`, `lastMessageAt`, `lastReadAt`, `unreadCount`, `lastMessagePreview` — to the local table definition in `infra/scripts/create-local-table.ts`
-- [ ] T002 [P] Mirror GSI5 into the CDK table in `infra/lib/infra-stack.ts`. **`cdk synth` only — never `cdk deploy`.** Applying IaC is a separately approved action and is not part of this task
-- [ ] T003 [P] Add key builders for `CONV#`, `MSG#`, `PLACE#`, `PLACEFOLLOW#`, `SAVE#`, `SAVEDBY#`, `PLACES#<locality>`, `PLACESLUG#<locality>#<slug>` in `apps/api/src/persistence/keys.ts`
-- [ ] T004 [P] Add the item-type discriminators (`conversation`, `conversation-participant`, `message`, `place`, `place-post-index`, `place-follow`, `saved-post`) alongside the existing ones in `apps/api/src/persistence/keys.ts`
-- [ ] T005 Register the long-poll divergence (research R1 — a hosted deployment will not hold HTTP connections; a green local chat suite is not evidence for a hosted transport) in `docs/verification/divergence-register.md` 🔒
-- [ ] T006 [P] Add a script that produces a real, short H.264 test video at `apps/e2e/fixtures/sample.mp4` via the `linuxserver/ffmpeg` container, in `apps/e2e/scripts/make-video-fixture.mjs`. `apt-get install ffmpeg` does not work here
-- [ ] T007 [P] Add a script that writes a JPEG carrying real EXIF GPS tags to `apps/e2e/fixtures/with-gps.jpg`, in `apps/e2e/scripts/make-exif-fixture.mjs`. SC-008 is worthless without a file that actually has coordinates in it
-- [ ] T008 [P] Add a place fixture set with near-duplicate names in one locality and identical names across localities, in `apps/e2e/support/places.ts` — SC-007 measures against this set
-- [ ] T009 Verify the table recreates cleanly from empty: `docker compose down -v && docker compose up -d && pnpm verify:local`. DynamoDB Local needs `user: root` on its volume or it answers 400 to a bare GET, passes the health probe, and hangs every real request forever
+- [X] T001 Add **GSI5 (Inbox)** — `gsi5pk` / `gsi5sk`, projection `KEYS_ONLY` plus `conversationId`, `otherPersonId`, `state`, `lastMessageAt`, `lastReadAt`, `unreadCount`, `lastMessagePreview` — to the local table definition in `infra/scripts/create-local-table.ts`
+- [X] T002 [P] Mirror GSI5 into the CDK table in `infra/lib/infra-stack.ts`. **`cdk synth` only — never `cdk deploy`.** Applying IaC is a separately approved action and is not part of this task
+- [X] T003 [P] Add key builders for `CONV#`, `MSG#`, `PLACE#`, `PLACEFOLLOW#`, `SAVE#`, `SAVEDBY#`, `PLACES#<locality>`, `PLACESLUG#<locality>#<slug>` in `apps/api/src/persistence/keys.ts`
+- [X] T004 [P] Add the item-type discriminators (`conversation`, `conversation-participant`, `message`, `place`, `place-post-index`, `place-follow`, `saved-post`) alongside the existing ones in `apps/api/src/persistence/keys.ts`
+- [X] T005 Register the long-poll divergence (research R1 — a hosted deployment will not hold HTTP connections; a green local chat suite is not evidence for a hosted transport) in `docs/verification/divergence-register.md` 🔒
+- [X] T006 [P] Add a script that produces a real, short H.264 test video at `apps/e2e/fixtures/sample.mp4` via the `linuxserver/ffmpeg` container, in `apps/e2e/scripts/make-video-fixture.mjs`. `apt-get install ffmpeg` does not work here
+- [X] T007 [P] Add a script that writes a JPEG carrying real EXIF GPS tags to `apps/e2e/fixtures/with-gps.jpg`, in `apps/e2e/scripts/make-exif-fixture.mjs`. SC-008 is worthless without a file that actually has coordinates in it
+- [X] T008 [P] Add a place fixture set with near-duplicate names in one locality and identical names across localities, in `apps/e2e/support/places.ts` — SC-007 measures against this set
+- [X] T009 Verify the table recreates cleanly from empty: `docker compose down -v && docker compose up -d && pnpm verify:local`. DynamoDB Local needs `user: root` on its volume or it answers 400 to a bare GET, passes the health probe, and hangs every real request forever
 
 **Checkpoint**: the table has five indexes, the keys compile, and the fixtures exist.
 
@@ -255,25 +255,32 @@ interest fixtures. No dependency on US1 or US2.
 
 ## Phase 6: User Story 4 — Close the holes in what already shipped (Priority: P2)
 
-**Goal**: deliver 001/FR-049, which has no implementation at all; make people searchable;
-and exercise the video path for the first time.
+**Goal**: make people searchable, exercise the video path for the first time, and add one
+notification category.
+
+**Correction (2026-09-06)**: an earlier version of this phase claimed 001/FR-049 was
+entirely unimplemented and budgeted four tasks to build it. It is implemented end to end —
+`notificationPrefs` on the Person item, `PATCH /me`, refusal at creation in
+`notification.service.ts:53`, and switches in `EditProfileScreen`. The grep that produced
+the claim searched for `notificationPreferences`; the code says `notificationPrefs`. What is
+actually owed is the **new `message` category**, which is two small tasks, not four.
 
 **Independent test**: three independent verifications, none depending on another story.
 
 ### Tests for User Story 4
 
-- [ ] T103 [P] [US4] Write the notification-preference test asserting **zero rows are written** for a suppressed category and that other categories are unaffected, in `apps/api/tests/integration/notification-preferences.spec.ts`. "Filtered from the list" is not what FR-031 says and is not what this asserts. **Must fail**
+- [ ] T103 [P] [US4] Extend `apps/api/tests/integration/us6-manage.spec.ts` (which already covers reaction) to assert **zero rows are written** for each of the four categories independently, `message` included. The three existing ones must pass immediately — if any fails, the regression is the finding. **Only the `message` case may fail**
 - [ ] T104 [P] [US4] Write the people-search journeys, including blocks in both directions and non-active people, in `apps/e2e/journeys/people-search.spec.ts`. **Must fail**
 
 ### Implementation for User Story 4
 
-- [ ] T105 [US4] Implement `PUT /me/notification-preferences` in `apps/api/src/modules/people/me.controller.ts` and return the current preferences from `GET /me`
-- [ ] T106 [US4] Enforce preferences **at creation** in `apps/api/src/modules/notifications/notification.service.ts` — the suppressed notification is never written, so no other reader (a digest, a badge count, a push sender, an export) can surface it (research R10)
-- [ ] T107 [US4] Wire the `message` category to the conversation notifications from T042 in `apps/api/src/modules/notifications/notification.service.ts`
+- [ ] T105 [US4] Add `message` to the `notificationPrefs` zod schema in `apps/api/src/modules/people/me.controller.ts` and to `PersonItem`'s default in `apps/api/src/persistence/person.repository.ts`. **Absent means on**, so there is no backfill — do not write one
+- [ ] T106 [US4] Route the conversation notification from T042 through the existing creation-time refusal in `apps/api/src/modules/notifications/notification.service.ts`. Reuse `recipient.notificationPrefs[kind] === false`; do not add a second check beside it
+- [ ] T107 [US4] Add the `message` switch to the existing preferences block in `apps/mobile/src/features/profile/EditProfileScreen.tsx` and widen the `NotificationPrefs` type in `apps/mobile/src/data/session.ts`
 - [ ] T108 [US4] Implement `GET /people?q=` over a GSI1 handle/display-name prefix query in `apps/api/src/modules/people/person.controller.ts`
 - [ ] T109 [US4] Exclude people blocked in **either** direction and any non-active person, server-side, and test it through the path a modified client would take, in `apps/api/src/modules/people/person-search.service.ts`
-- [ ] T110 [P] [US4] Extend `apps/mobile/src/data/notifications.ts` with preference read and write, and add `PeopleData.search` to `apps/mobile/src/data/people.ts`; register any new module in `apps/mobile/src/data/index.ts` 🔒
-- [ ] T111 [US4] Build `NotificationSettingsScreen` in `apps/mobile/src/features/notifications/NotificationSettingsScreen.tsx`, add its container in `apps/mobile/src/screens/index.tsx`, and mount its route from the profile tab in `apps/mobile/src/App.tsx` 🔒
+- [ ] T110 [P] [US4] Add `PeopleData.search` to `apps/mobile/src/data/people.ts`
+- [ ] T111 [US4] Reuse the existing edit-profile route for preferences rather than building a `NotificationSettingsScreen`. **Deleted task** — the screen it would have built already exists as the `notification-prefs` block in `apps/mobile/src/features/profile/EditProfileScreen.tsx`. Verify it renders four switches and leave it alone
 - [ ] T112 [US4] Add people results to Discover search in `apps/mobile/src/features/discover/InterestSearchScreen.tsx`
 
 ### Video — the first time this path has ever run
@@ -281,7 +288,7 @@ and exercise the video path for the first time.
 - [ ] T113 [US4] Point `apps/e2e/journeys/publish-video.spec.ts` at the real `apps/e2e/fixtures/sample.mp4` from T006 and assert transcode completion and a poster frame, rather than a stubbed media record
 - [ ] T114 [US4] Assert the poster frame is a real decoded image using the PNG/JPEG decoder in `scripts/assert-screen-not-blank.mjs`, in `apps/e2e/journeys/publish-video.spec.ts`
 - [ ] T115 [P] [US4] Write `.maestro/19-publish-video.yaml`: publish a video and assert playback started, for **SC-011**
-- [ ] T116 [P] [US4] Write `.maestro/18-notification-settings.yaml`: turn reactions off, have another identity react, assert no notification arrives
+- [ ] T116 [P] [US4] Write `.maestro/18-notification-settings.yaml`: profile → edit profile → turn **message** notifications off → have another identity send a message → assert no notification arrives. Drives the existing switches, which have never been driven on a device
 - [ ] T117 [US4] Checkpoint: SC-010 and SC-012 measured. **SC-011 remains unverified until an emulator run exists** and must be reported that way — 001/FR-005 and 001/FR-009 have been claimed once already without a run behind them
 
 ---
@@ -406,10 +413,9 @@ Setup + Foundational → US1 (chat, MVP) → US2 (places) → US3 (interest dept
 US4 (the shipped-scope holes) → US5 (saved). Each adds value without breaking the last, and
 each closes its own success criteria.
 
-**If you want the cheapest visible win first**, US4's notification preferences (T103, T105,
-T106, T111) is roughly four tasks and closes a promise the product currently breaks by
-omission. It is P2 because chat and places are what the owner asked for, not because it is
-hard.
+**If you want the cheapest visible win first**, US5 (saved posts) is ten tasks end to end and
+is the smallest thing here a person would notice. US4's preference work is now two tasks
+(T105, T107) because the control it was going to build already exists.
 
 ### Parallel team strategy
 

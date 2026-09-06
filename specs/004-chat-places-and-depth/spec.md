@@ -34,7 +34,7 @@ Android journey record `docs/verification/runs/2026-09-06-journey-run-android-PA
 | Person profile, person posts, person follow/unfollow | Present |
 | Report post/comment/interest, block, moderation queue, interest admin | Present |
 | Notification list | Present |
-| **Notification preferences (001/FR-049)** | **ABSENT.** No endpoint, no field, no screen. Declared complete; is not. |
+| Notification preferences (001/FR-049) | Present, end to end — `notificationPrefs` on the Person item, accepted by `PATCH /me`, enforced at creation in `notification.service.ts:53`, with switches in `EditProfileScreen`. **An earlier draft of this spec said it was absent. That was wrong** — the check grepped for `notificationPreferences` and the code says `notificationPrefs`. Three categories exist: reaction, comment, follow. |
 | **Video publish and playback (001/FR-005, FR-009)** | Code path exists; never once exercised — no video fixture. Unverified. |
 | **Searching for a person** | Absent. Only interests are searchable. |
 | Direct messages | Absent |
@@ -161,19 +161,26 @@ switch New/Top; search within it; all against the existing interest fixtures.
 
 ### User Story 4 - Close the holes in what already shipped (Priority: P2)
 
-Three things were declared done and are not.
+Two things were declared done and are not, plus one new category on a control that already
+works.
 
-**Why this priority**: FR-049 is a privacy-adjacent promise the product currently breaks
-by omission — a person cannot turn any notification off. Cheap, and a correctness matter
-rather than a feature.
+**Why this priority**: the video path carries two 001 requirements (FR-005, FR-009) that
+have been reported complete twice without ever running. That is a correctness matter rather
+than a feature.
+
+**Correction, recorded rather than quietly fixed**: an earlier draft of this story claimed
+notification preferences (001/FR-049) had no implementation at all. They are implemented
+end to end. The check searched for the wrong identifier. What this story actually owes
+FR-049 is one **new** category — `message` — for the notifications US1 introduces.
 
 **Independent test**: each is independently verifiable against the existing suites.
 
 **Acceptance scenarios**
 
-1. **Given** a person who has turned off reaction notifications, **When** somebody reacts
-   to their post, **Then** no notification is created for them, and comment and follow
-   notifications still are. *(001/FR-049)*
+1. **Given** a person who has turned off **message** notifications, **When** somebody sends
+   them a message in an accepted conversation, **Then** no notification is created, and
+   reaction, comment and follow notifications still are. *(Extends the existing 001/FR-049
+   control, which already works for the other three.)*
 2. **Given** a real video file, **When** it is published, **Then** it is transcoded, a
    poster frame is shown before playback, and it plays on the Android runtime.
    *(001/FR-005, FR-009 — currently unverified for want of a fixture.)*
@@ -293,11 +300,12 @@ here because it is the cheapest thing on this list that a person would notice mi
 
 ### Functional Requirements — closing shipped gaps (US4)
 
-- **FR-031**: System MUST let a person turn each category of notification (reaction,
-  comment, follow, message) off and on independently, and MUST NOT create a notification in
-  a category the recipient has turned off. *(Delivers 001/FR-049.)*
-- **FR-032**: System MUST expose a person's notification preferences to them and persist
-  changes across sessions and devices.
+- **FR-031**: System MUST add `message` to the notification categories a person can turn off
+  independently, and MUST NOT create a message notification for a recipient who has turned it
+  off. *(Extends 001/FR-049, which already covers reaction, comment and follow. The
+  enforcement point — refuse at creation, not at read — already exists and is reused.)*
+- **FR-032**: The existing preference control MUST expose the new category alongside the
+  other three, on the surface that already presents them.
 - **FR-033**: System MUST demonstrate the video path end to end — upload, transcode, poster
   frame, playback on the Android runtime — against a real video file.
   *(Verifies 001/FR-005 and 001/FR-009, which have never been exercised.)*
@@ -368,8 +376,9 @@ here because it is the cheapest thing on this list that a person would notice mi
   asserted by publishing media carrying EXIF GPS and observing no place on the result.
 - **SC-009**: Switching an interest space between orderings changes order only; the set of
   post ids returned is **identical**.
-- **SC-010**: With a notification category turned off, **zero** notifications in that
-  category are created, and other categories are unaffected.
+- **SC-010**: With **message** notifications turned off, **zero** message notifications are
+  created, and reaction, comment and follow are unaffected — asserted for all four
+  categories, so this doubles as a regression test on the three that already worked.
 - **SC-011**: A real video file completes upload → transcode → poster → playback on the
   Android runtime, evidenced by a run record. *(Closes a 001 criterion never met.)*
 - **SC-012**: People search excludes blocked people in both directions in **100%** of cases

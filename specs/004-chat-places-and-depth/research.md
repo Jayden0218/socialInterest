@@ -182,9 +182,9 @@ uniqueness transaction and no race.
 Storage on the existing single table:
 
 - Messages: `pk = CONV#{conversationId}`, `sk = MSG#{ulid}` — one query, naturally ordered.
-- Participant/inbox rows: `pk = PERSON#{personId}`, `sk = CONV#{conversationId}`, carrying
+- Participant/inbox rows: `pk = USER#{personId}`, `sk = CONV#{conversationId}`, carrying
   `state`, `lastMessageAt`, `lastReadAt`, `unreadCount`, and projected into a new GSI5
-  keyed `PERSON#{personId}#{state}` / `{lastMessageAt}`, so the accepted inbox and the
+  keyed `USER#{personId}#{state}` / `{lastMessageAt}`, so the accepted inbox and the
   requests inbox are each one query already in the right order (FR-003).
 
 **Rationale**: the alternative — a generated conversation id plus a uniqueness item — needs a
@@ -215,10 +215,14 @@ one-row change rather than a new class of test.
 
 ## R10 — Notification preferences are enforced at creation, not at read
 
-**Decision**: the notification is **not created** when the recipient has that category off.
-The list endpoint does no preference filtering.
+**Decision**: nothing to decide — **this is already how the product works**, and the new
+`message` category reuses it. `notification.service.ts` refuses at creation
+(`if (recipient.notificationPrefs[kind] === false) return`); the list endpoint does no
+preference filtering. Recorded here because an earlier draft of this feature proposed it as
+a new decision, having wrongly concluded the control did not exist.
 
-**Rationale**: FR-031 says "MUST NOT create". Filtering at read leaves the row in the table,
+**Rationale** (why the existing choice is the right one, and must not be "simplified"):
+filtering at read would leave the row in the table,
 where it leaks through every other reader — a future digest, an unread badge count, a push
 sender, an export. That is the same class of mistake as a read path constructing its own
 visibility predicate, and it is cheaper to not make it than to find it later. The cost is
@@ -226,7 +230,8 @@ that turning a category back on does not retroactively produce the notifications
 while it was off, which is the correct behaviour anyway.
 
 **Alternatives considered**: filter in the list endpoint (rejected as above); create and mark
-suppressed (rejected: stores content the person asked not to receive, for no reader).
+suppressed (rejected: stores content the person asked not to receive, for no reader). Both
+would also be a regression, not a choice — the shipped behaviour is already the right one.
 
 ---
 

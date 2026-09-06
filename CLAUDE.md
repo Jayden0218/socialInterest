@@ -300,7 +300,7 @@ check, and no run has executed it.
 
 `specs/004-chat-places-and-depth/` holds spec, plan, research (R1-R11), data-model,
 contracts and quickstart for the owner's next ask: a **chat page**, a **restaurant page**,
-deeper interest pages, three holes 001 left open, and saved posts. **No code exists for it**
+deeper interest pages, two holes 001 left open, and saved posts. **No code exists for it**
 and `tasks.md` has not been generated.
 
 Four things in there that will otherwise be rediscovered the expensive way:
@@ -319,6 +319,12 @@ Four things in there that will otherwise be rediscovered the expensive way:
   in-interest search) take the generated visibility matrix from 294 to 462 assertions.
   Conversation membership gets its own single boundary, `ConversationAccess`, for the same
   reason `VisibilityFilter` is top-level.
+- **001/FR-049 (notification preferences) IS implemented** - `notificationPrefs` on the
+  Person item, `PATCH /me`, refusal at creation in `notification.service.ts:53`, switches in
+  `EditProfileScreen`. 004's first draft claimed it was absent, in the spec, the plan and the
+  task list, because the check grepped `notificationPreferences` and the code says
+  `notificationPrefs`. **Grep for the identifier the code would use, not the one the
+  requirement is worded with.** What 004 actually owes it is one new `message` category.
 - **The datastore decision is a gate on this work, not a dependency.** Five new
   repositories on top of thirteen is ~40% more migration if `003/datastore-decision.md`
   later picks PostgreSQL, and proximity place search is nearly free on one candidate and a

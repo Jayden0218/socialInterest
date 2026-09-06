@@ -7,7 +7,7 @@
 ## Summary
 
 Five stories, in the owner's stated priority: **conversations** (the chat page),
-**places** (the restaurant page), **interest pages with depth**, **three holes in scope that
+**places** (the restaurant page), **interest pages with depth**, **two holes in scope that
 001 declared complete and did not deliver**, and **saved posts**.
 
 The technical approach is deliberately conservative, because the product's short history is

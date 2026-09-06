@@ -13,7 +13,8 @@ const client = new DynamoDBClient({
   credentials: env.creds,
 });
 
-// data-model.md § Key schema. GSI1 Lookup, GSI2 ByAuthor, GSI3 Hierarchy, GSI4 Inverted.
+// data-model.md § Key schema. GSI1 Lookup, GSI2 ByAuthor, GSI3 Hierarchy, GSI4 Inverted,
+// GSI5 Inbox (004: a person's conversations, partitioned by state, ordered by last message).
 const gsi = (n: number): GlobalSecondaryIndex => ({
   IndexName: `gsi${n}`,
   KeySchema: [
@@ -49,15 +50,15 @@ async function main(): Promise<void> {
       AttributeDefinitions: [
         { AttributeName: 'pk', AttributeType: 'S' },
         { AttributeName: 'sk', AttributeType: 'S' },
-        ...[1, 2, 3, 4].flatMap((n) => [
+        ...[1, 2, 3, 4, 5].flatMap((n) => [
           { AttributeName: `gsi${n}pk`, AttributeType: 'S' as const },
           { AttributeName: `gsi${n}sk`, AttributeType: 'S' as const },
         ]),
       ],
-      GlobalSecondaryIndexes: [gsi(1), gsi(2), gsi(3), gsi(4)],
+      GlobalSecondaryIndexes: [gsi(1), gsi(2), gsi(3), gsi(4), gsi(5)],
     }),
   );
-  console.log(`created ${env.tableName} with gsi1-gsi4`);
+  console.log(`created ${env.tableName} with gsi1-gsi5`);
 }
 
 main().catch((e) => {

@@ -13,7 +13,8 @@
     "test:contract": "pnpm --filter @sih/api test:contract",
     "test:visibility": "pnpm --filter @sih/api test:visibility",
     "test:integration": "pnpm --filter @sih/api test:integration",
-    "verify:local": "pnpm --filter @sih/infra verify:local"
+    "verify:local": "pnpm --filter @sih/infra verify:local && pnpm verify:register",
+    "verify:register": "node scripts/verify-divergence-register.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

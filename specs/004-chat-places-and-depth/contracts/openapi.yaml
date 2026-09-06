@@ -363,23 +363,32 @@ paths:
 
   # ------------------------------------------------------ Shipped-scope gaps (US4)
 
-  /me/notification-preferences:
-    put:
+  /me:
+    patch:
       tags: [Notifications]
-      summary: Turn notification categories on and off
+      summary: Notification preferences — CHANGED, gains a fourth category
       description: >
-        Delivers 001/FR-049, which has no implementation today. Serves FR-031, FR-032.
-        Enforcement is at CREATION, not at read (research R10): a suppressed notification is
-        never written, so no other reader can surface it.
+        **No new endpoint.** 001 already implements FR-049: `PATCH /me` accepts
+        `notificationPrefs`, and `notification.service.ts` refuses to CREATE a notification
+        in a category the recipient turned off. An earlier draft of this contract added
+        `PUT /me/notification-preferences` on the belief that none of that existed; it does,
+        and a second endpoint for the same field would be the kind of duplication that makes
+        one of the two wrong.
+
+        The only change is a fourth category, `message` (FR-031), for the notifications US1
+        introduces. Absent still means on, so no backfill and no migration.
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/NotificationPreferences' }
+            schema:
+              type: object
+              description: 001's profile patch body. Only `notificationPrefs.message` is new.
+              properties:
+                notificationPrefs: { $ref: '#/components/schemas/NotificationPreferences' }
       responses:
         '200':
-          description: Updated preferences
-          content: { application/json: { schema: { $ref: '#/components/schemas/NotificationPreferences' } } }
+          description: Updated profile, including preferences
         '401': { $ref: '#/components/responses/Unauthorized' }
 
   /people:
@@ -605,7 +614,9 @@ components:
 
     NotificationPreferences:
       type: object
-      description: Absent is on. Serves 001/FR-049.
+      description: >
+        Absent is on. `reaction`, `comment` and `follow` ship in 001; `message` is added by
+        004/FR-031.
       properties:
         reaction: { type: boolean }
         comment: { type: boolean }

@@ -40,15 +40,17 @@ One new index. Everything else reuses what exists.
 |---|---|
 | `gsi5pk` / `gsi5sk` | **GSI5 — Inbox**: a person's conversations, split by state, ordered by last message |
 
-`gsi5pk = PERSON#<personId>#<state>` and `gsi5sk = <lastMessageAt>`. Putting `state` in the
+`gsi5pk = USER#<personId>#<state>` and `gsi5sk = <lastMessageAt>`. Putting `state` in the
 partition key is what makes A21 and A22 one query each instead of one query and a filter.
 `lastMessageAt` is a GSI sort key, so it is updated by **writing the attribute** — no
 delete-and-reinsert, which is the trap in the more obvious `sk = CONV#<lastMessageAt>#...`
 layout on the base table (research R8).
 
-Projection: `KEYS_ONLY` plus `conversationId`, `otherPersonId`, `state`, `lastMessageAt`,
-`lastReadAt`, `unreadCount`, `lastMessagePreview` — so an inbox renders without a
-follow-up fetch per row, matching 001's rule for the other four indexes.
+Projection: `ALL`, matching gsi1–gsi4 as they are actually created in
+`infra/scripts/create-local-table.ts` — so an inbox renders without a follow-up fetch per
+row. (001's data-model says `KEYS_ONLY` plus named attributes; the code has always used
+`ALL`. Following the code, not the doc, and recording the discrepancy here rather than
+introducing a fifth index that behaves unlike the other four.)
 
 ---
 
@@ -80,7 +82,7 @@ never a participant row (research R2).
 ### Conversation participant (inbox row)
 
 ```
-pk  = PERSON#<personId>
+pk  = USER#<personId>
 sk  = CONV#<conversationId>
 ```
 
@@ -177,11 +179,11 @@ lanes at once.
 ### Place Follow
 
 ```
-pk  = PERSON#<personId>
+pk  = USER#<personId>
 sk  = PLACEFOLLOW#<placeId>
 ```
 
-`gsi4pk = PLACE#<placeId>`, `gsi4sk = PERSON#<personId>` — GSI4 is 001's **Inverted** index
+`gsi4pk = PLACE#<placeId>`, `gsi4sk = USER#<personId>` — GSI4 is 001's **Inverted** index
 and serves A31 unchanged.
 
 | Field | Type | Notes |
@@ -196,7 +198,7 @@ existing is exactly what would tempt a later change to consult it.
 ### Saved Post
 
 ```
-pk  = PERSON#<personId>
+pk  = USER#<personId>
 sk  = SAVE#<savedAt>#<postId>
 ```
 

@@ -11,6 +11,7 @@ two in different trees is the fix.
 |---|---|
 | `approvals.md` | The project owner's explicit, scoped permissions to incur cost |
 | `runs/` | One append-only record per verification, load measurement, or journey run |
+| `divergence-register.md` | Where the local implementation and a hosted one would differ, and what a green local suite therefore does not prove |
 
 Rules that apply to everything in here:
 
@@ -28,3 +29,11 @@ templates, and the load measurement that was actually taken.
 
 If a managed service is ever adopted, Principle V applies again and the register
 comes back with it.
+
+## Reinstated, 2026-09-06
+
+It came back, for a different reason than anticipated. Feature 004 delivers chat by holding
+an HTTP request open, which is not how a hosted deployment would do it — so a green local
+chat suite is not evidence about hosted chat. Not a managed-service adapter, but the same
+hazard the principle exists to name. One open entry, verified `no`, and it cannot be
+verified until somewhere to host exists.

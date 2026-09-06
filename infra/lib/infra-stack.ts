@@ -54,6 +54,9 @@ export const stack: StackDescription = {
       { name: 'gsi2', partitionKey: 'gsi2pk', sortKey: 'gsi2sk', projection: 'ALL' },
       { name: 'gsi3', partitionKey: 'gsi3pk', sortKey: 'gsi3sk', projection: 'ALL' },
       { name: 'gsi4', partitionKey: 'gsi4pk', sortKey: 'gsi4sk', projection: 'ALL' },
+      // 004 Inbox. Written and synthesised only - applying this stack is a separately
+      // approved action and is not part of any task.
+      { name: 'gsi5', partitionKey: 'gsi5pk', sortKey: 'gsi5sk', projection: 'ALL' },
     ],
   },
   buckets: [
