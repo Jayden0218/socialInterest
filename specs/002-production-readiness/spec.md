@@ -251,16 +251,48 @@ is introduced.
 
 ## Success Criteria *(mandatory)*
 
+### Risks this spec no longer covers
+
+**Added 2026-09-06**, on the owner's instruction that nothing in this spec may require a real
+person or paid cloud resources. Everything now runs against the containerised stack —
+DynamoDB Local, MinIO, ffmpeg and a local JWT issuer, all in Docker, with `RUNTIME_PROFILE`
+accepting `local` only.
+
+That instruction is followed in full. It does not make the following risks smaller; it means
+this spec stops claiming to cover them. They are recorded here so that a reader of a green
+run knows exactly what the green does **not** say. Each becomes a live question again the
+moment a release outside the team is contemplated.
+
+| Risk | Why no containerised run can answer it |
+|---|---|
+| Behaviour at 10,000 concurrent | DynamoDB Local saturates at 827 req/s. Any figure from it measures the emulator, as the 2026-09-05 run demonstrated |
+| Production datastore behaviour at all | DynamoDB Local is a testing tool. Throttling, hot partitions, and consistency under load do not reproduce |
+| Physical device behaviour | Camera and photo-library permissions, backgrounding, real network conditions, vendor OS differences, battery and thermal effects |
+| iOS, entirely | The Simulator is macOS-only; there is no macOS runner here and no iOS journey has ever run |
+| Whether anyone wants this | Retention, second-post rate, onboarding success — every outcome that needs people using a deployed product |
+| Production hosting | There is none. `infra/` describes a table, not a deployable stack, and no adapter exists for any hosted service |
+
+Two of these are load-bearing for a public release and neither is a coding task: **there is
+nowhere to run the product**, and **nobody has used it**. Principle IV already forbids
+shipping US1–US6 without the safety work; this table is the equivalent list for evidence.
+
 ### Measurable Outcomes
 
 - **SC-001**: Every core journey completes successfully from the app against a running service
   on every change, with zero journeys covered only by a stand-in.
-- **SC-002**: Feeds and interest spaces display first content within 2 seconds for 95% of
-  views while 10,000 people browse concurrently. **DEFERRED and reported as unverified.**
-  Measured over HTTP on 2026-09-05: the binding constraint was DynamoDB Local (827 req/s)
-  rather than the design (5,574 req/s for the application shape with the datastore stubbed),
-  so no local run can settle this. Closing it needs provisioned DynamoDB, which needs
-  approval to spend. It is not met, not failed, and must not be reported as either.
+- **SC-002**: **RESTATED 2026-09-06** (owner decision: nothing in this spec may require paid
+  cloud resources). The original wording — first content within 2 seconds for 95% of views
+  while 10,000 people browse concurrently — cannot be answered by any containerised run, and
+  is therefore **withdrawn as an acceptance criterion and retained as an open risk** (see
+  *Risks this spec no longer covers*). What replaces it, and what CI now enforces:
+  the feed read path is measured over HTTP against the container stack, and the run must
+  **attribute** its ceiling — generator, datastore, and application shape measured apart, as
+  `bench:ceiling` already does. It passes when the application shape's own ceiling meets the
+  2-second budget at the measured concurrency **and** the report names which of the three was
+  binding. The 2026-09-05 figures stand as the baseline: generator 187,439 req/s, DynamoDB
+  Local 827 req/s, application shape with the datastore stubbed 5,574 req/s.
+  **This does not establish behaviour at 10,000 concurrent on a production datastore, and no
+  report may imply that it does.**
 - **SC-003**: The visibility contract passes in full after every change made to reach SC-002,
   with no reduction in the surfaces or states covered.
 - **SC-004**: ~~100% of recorded divergences verified before release.~~ **WITHDRAWN** with
@@ -268,13 +300,21 @@ is introduced.
 - **SC-005**: A published video is playable within 60 seconds for 95% of uploads. With
   ffmpeg now the only transcode implementation, the local measurement **is** the production
   measurement — the caveat that made this a separate criterion has gone with the divergence.
-- **SC-006**: Every core journey passes on a physical device of each supported mobile platform
-  at least once before any release outside the team.
-- **SC-007**: Each real-usage outcome has a reported figure against its target within one
-  reporting cycle of its observation window closing.
+- **SC-006**: **RESTATED 2026-09-06.** Every core journey passes against a running service
+  through the app's own screens, driven in a browser on CI, on every change. Physical-device
+  and simulator coverage are **withdrawn as acceptance** — the former needs hardware, the
+  latter has never booted here in six attempts — and both are retained as open risks below.
+- **SC-007**: ~~Each real-usage outcome has a reported figure against its target within one
+  reporting cycle of its observation window closing.~~ **WITHDRAWN 2026-09-06.** A real-usage
+  outcome needs real people using a deployed product; no containerised run can produce one,
+  and a synthetic substitute would be a number about the test harness, not about anyone's
+  behaviour. Recorded as an open risk rather than replaced with something that looks like
+  evidence and is not.
 - **SC-008**: 100% of environments created for any approved paid run are confirmed destroyed
-  within 24 hours, with none left running. Retained because SC-002's deferred measurement
-  would create one; the check that enforces it is partial (see T069).
+  within 24 hours, with none left running. **Vacuously true as of 2026-09-06**: no task in
+  this spec creates a paid environment, so there is nothing to destroy. Retained rather than
+  withdrawn, because the day someone does approve a paid run this is the criterion that
+  applies, and the partial check (T069) is the thing that would need finishing first.
 - **SC-009**: Spend is reported for every approved paid run and stays within the approved
   amount, with zero unapproved charges. To date: **zero spend, zero approvals**.
 
