@@ -8,6 +8,22 @@ appId: app.socialinterest
 - runFlow: 01-sign-in.yaml
 - tapOn:
     id: "open-compose"
+
+# Compose starts at the media picker since 003/T038 - MediaPickerScreen existed
+# and nothing reached it, so publishing began one step in. This flow was written
+# before that and tapped straight through to compose; run 11 failed it, and
+# 08-comment and 09-report-and-block with it, since both runFlow this one.
+#
+# The jest navigation test was updated for the new first step and these flows
+# were not. Same regression, two places, one of them not exercised until a
+# device existed to exercise it.
+- assertVisible:
+    id: "media-picker-screen"
+- tapOn:
+    id: "media-item-0"
+- tapOn:
+    id: "media-continue"
+
 - assertVisible:
     id: "compose-screen"
 - tapOn:

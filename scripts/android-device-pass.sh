@@ -243,6 +243,14 @@ maestro test .maestro/ -e TOKEN="$TOKEN" -e PRESENT="$PRESENT" -e ABSENT="$ABSEN
   -e AUTHOR="$AUTHOR" \
   --format junit --output "$OUT/maestro-junit.xml" || {
     echo "FAIL: a journey did not pass"
+    # Maestro's summary names the flow and the failed assertion but not the STEP
+    # it reached. The junit report does, and it is the difference between "this
+    # journey failed" and "it failed at step 7 of 12, here is what preceded it".
+    # Printed, not merely uploaded: artifacts are served from a host the agent
+    # sandbox's egress denies, so an uploaded report is unreadable.
+    echo "=============== maestro junit report ==============="
+    cat "$OUT/maestro-junit.xml" 2>/dev/null || echo "(no junit report)"
+    echo "==================================================="
     cp -r ~/.maestro/tests "$OUT/maestro-debug" 2>/dev/null || true
     exit 1
   }
