@@ -47,6 +47,24 @@ jobs:
       - run: pnpm --filter @sih/infra s3:create-local
       - run: pnpm --filter @sih/infra seed:catalogue
 
+      # ONE address that both clients can reach.
+      #
+      # A presigned signature covers the Host header, so the URL must be signed
+      # against the address the client will send - it cannot be rewritten after
+      # signing. But there are TWO clients here: the app, inside the emulator,
+      # where 10.0.2.2 is the host alias; and the FR-033 fixture, which runs on
+      # this runner, where 10.0.2.2 means nothing at all. Run 14 died exactly
+      # there: `fixture failed: TypeError: fetch failed`.
+      #
+      # Mapping 10.0.2.2 to loopback on the runner gives both clients the same
+      # name for MinIO. Both then send `Host: 10.0.2.2:9000`, both signatures
+      # validate, and neither needs to know how the other resolves it. The
+      # emulator resolves 10.0.2.2 internally and is unaffected by this file.
+      - name: Make the emulator's host alias resolvable on the runner too
+        run: |
+          echo "127.0.0.1 10.0.2.2" | sudo tee -a /etc/hosts
+          getent hosts 10.0.2.2
+
       - name: Start the API on the runner
         run: |
           cd apps/api

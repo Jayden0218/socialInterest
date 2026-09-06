@@ -53,21 +53,21 @@ adb version | head -1
 echo "== acceleration =="
 "${ANDROID_HOME:-$ANDROID_SDK_ROOT}/emulator/emulator" -accel-check || true
 
-echo "== the emulator must be able to reach the API on the host =="
-# 10.0.2.2 is the emulator's alias for the host loopback.
+# There is deliberately NO reachability probe here any more.
 #
-# NOT ping. The emulator's shell user cannot open a raw socket, so ICMP answers
-# "connect: Network is unreachable" whether or not the host is reachable - run 9
-# printed exactly that against an API that was up and serving. A probe that says
-# the same thing on success and failure is worse than none: it invites blaming
-# the network for an unrelated fault.
+# Two were tried and both were worthless. `ping` reports
+# "connect: Network is unreachable" because the emulator's shell user cannot
+# open a raw socket - it says that whether or not the host is reachable. Its
+# replacement, a /dev/tcp connect, reports
+# "can't create /dev/tcp/10.0.2.2/3000: No such file or directory" because
+# Android's shell has no /dev/tcp at all. Both printed failure against an API
+# that was up and serving, which is worse than silence: it invites blaming the
+# network for an unrelated fault.
 #
-# A TCP connect to the port that matters is the question actually being asked.
-{
-  echo "-- TCP 10.0.2.2:3000 --"
-  adb shell 'echo > /dev/tcp/10.0.2.2/3000 && echo REACHABLE || echo UNREACHABLE' 2>&1
-} > "$OUT/reachability.txt" 2>&1 || true
-cat "$OUT/reachability.txt"
+# The real reachability assertion is further down and is stronger than any
+# probe: the API's OWN request log must show a request that arrived from the
+# app. That is the question actually being asked, answered by the thing that
+# would have to work anyway.
 
 echo "== install =="
 adb install -r -g "$APK"
