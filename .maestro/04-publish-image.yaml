@@ -97,11 +97,27 @@ appId: app.socialinterest
 - assertNotVisible:
     id: "load-error"
 
-# 3. Only then is a missing feed screen actually a missing feed screen.
+# 3. Back on the tabs.
 - extendedWaitUntil:
     visible:
       id: "home-feed-screen"
     timeout: 30000
+
+# The post is asserted on the AUTHOR'S OWN PROFILE, not in the home feed.
+#
+# Run 21 published successfully - three POST /v1/posts 201 - and then failed
+# here, because the home feed is composed ONLY from followed interests
+# (FR-032, and feed.service.ts says so in as many words). Compose offers
+# SUGGESTED interests, which are by definition ones the person does not follow,
+# so their own post correctly never reaches their own feed.
+#
+# The flow was asserting something constitution Principle I forbids. The
+# product was right and the assertion was wrong. A person's own posts are on
+# their profile whatever they follow, which is where this belongs - and it is
+# still the service's answer, via GET /v1/people/{handle}/posts, not the
+# screen's.
+- tapOn:
+    id: "tab-profile"
 - extendedWaitUntil:
     visible: "published from a cloud device"
     timeout: 30000
