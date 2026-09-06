@@ -45,7 +45,6 @@ describe('browser journeys - the screens the shell could not reach', () => {
     // which is how the unhydrated post response hid: every selector simply
     // timed out. Surfacing page errors makes the next one say what it was.
     page.on('pageerror', (err) => {
-      // eslint-disable-next-line no-console
       console.log('page error:', err.message);
     });
   });

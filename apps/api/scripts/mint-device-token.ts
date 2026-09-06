@@ -24,7 +24,15 @@ import jwt from 'jsonwebtoken';
 import { randomUUID } from 'node:crypto';
 import { PersonRepository } from '../src/persistence/person.repository';
 
-const secret = process.env['LOCAL_JWT_SECRET'] ?? 'dev-only-not-a-real-secret';
+const secret = process.env['LOCAL_JWT_SECRET'];
+if (!secret) {
+  process.stderr.write(
+    'LOCAL_JWT_SECRET is not set. It has no default any more - the old one was a\n' +
+      'constant published in this repository (003/FR-007). Use the same value the\n' +
+      'API was started with, or it will reject every token this mints.\n',
+  );
+  process.exit(2);
+}
 const issuer = process.env['JWT_ISSUER'] ?? 'sih-local';
 const tableName = process.env['TABLE_NAME'] ?? 'sih-main';
 const endpoint = process.env['DYNAMO_ENDPOINT'] ?? 'http://127.0.0.1:8000';

@@ -9,6 +9,12 @@ export const e2eEnv = {
     accessKeyId: process.env['S3_ACCESS_KEY_ID'] ?? 'localkey',
     secretAccessKey: process.env['S3_SECRET_ACCESS_KEY'] ?? 'localsecret',
   },
-  jwtSecret: process.env['LOCAL_JWT_SECRET'] ?? 'dev-only-not-a-real-secret',
+  get jwtSecret(): string {
+    // A getter, not a snapshot: global-setup generates this, and a value read at
+    // module load would be captured before that runs.
+    const s = process.env['LOCAL_JWT_SECRET'];
+    if (!s) throw new Error('LOCAL_JWT_SECRET is not set - global setup did not run');
+    return s;
+  },
   jwtIssuer: process.env['JWT_ISSUER'] ?? 'sih-local',
 };

@@ -15,11 +15,13 @@ const base = {
 } satisfies Config;
 
 const config: Config = {
+  // The API will not boot without a JWT secret, so every project sets one.
+  setupFiles: ['<rootDir>/tests/jest.env.ts'],
   projects: [
-    { ...base, displayName: 'unit', testMatch: ['<rootDir>/tests/unit/**/*.spec.ts'] },
-    { ...base, displayName: 'contract', testMatch: ['<rootDir>/tests/contract/**/*.spec.ts'] },
-    { ...base, displayName: 'visibility', testMatch: ['<rootDir>/tests/visibility/**/*.spec.ts'] },
-    { ...base, displayName: 'integration', testMatch: ['<rootDir>/tests/integration/**/*.spec.ts'] },
+    { ...base, setupFiles: ['<rootDir>/tests/jest.env.ts'], displayName: 'unit', testMatch: ['<rootDir>/tests/unit/**/*.spec.ts'] },
+    { ...base, setupFiles: ['<rootDir>/tests/jest.env.ts'], displayName: 'contract', testMatch: ['<rootDir>/tests/contract/**/*.spec.ts'] },
+    { ...base, setupFiles: ['<rootDir>/tests/jest.env.ts'], displayName: 'visibility', testMatch: ['<rootDir>/tests/visibility/**/*.spec.ts'] },
+    { ...base, setupFiles: ['<rootDir>/tests/jest.env.ts'], displayName: 'integration', testMatch: ['<rootDir>/tests/integration/**/*.spec.ts'] },
   ],
 };
 export default config;

@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "jest --runInBand --passWithNoTests"
+    "test": "jest --runInBand --passWithNoTests",
+    "test:durability": "jest --config jest.durability.config.ts --runInBand"
   },
   "dependencies": {
     "@sih/shared": "workspace:*"

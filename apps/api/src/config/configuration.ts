@@ -34,6 +34,39 @@ export interface AppConfig {
   media: { ffmpegImage: string; dispatchOnCreate: boolean };
 }
 
+/**
+ * FR-007 (003), Principle III. The secret must be supplied, and must not be the
+ * published development value.
+ *
+ * `dev-only-not-a-real-secret` was the built-in default and appears in this
+ * repository, so anyone who has read it could mint a token the service would
+ * accept. A default that is also a published constant is not a default, it is a
+ * shared password.
+ *
+ * Refusing at BOOT rather than per-request is deliberate: a service that starts
+ * and then rejects everyone is a worse failure than one that says why it will
+ * not start.
+ */
+export const PUBLISHED_DEV_SECRET = 'dev-only-not-a-real-secret';
+
+function requireJwtSecret(): string {
+  const secret = process.env['LOCAL_JWT_SECRET'];
+  if (!secret) {
+    throw new Error(
+      'LOCAL_JWT_SECRET is not set. It has no default: the previous default was a ' +
+        'constant published in this repository, so anyone could mint a valid token. ' +
+        'Generate one, e.g. `export LOCAL_JWT_SECRET=$(openssl rand -hex 32)`.',
+    );
+  }
+  if (secret === PUBLISHED_DEV_SECRET) {
+    throw new Error(
+      'LOCAL_JWT_SECRET is the published development value, which is in this ' +
+        'repository and therefore known to anyone who has read it. Generate a real one.',
+    );
+  }
+  return secret;
+}
+
 export function loadConfig(): AppConfig {
   const profile = (process.env['RUNTIME_PROFILE'] ?? 'local') as RuntimeProfile;
   if (profile !== 'local') {
@@ -66,7 +99,7 @@ export function loadConfig(): AppConfig {
         : undefined,
     },
     identity: {
-      jwtSecret: str('LOCAL_JWT_SECRET', isLocal ? 'dev-only-not-a-real-secret' : ''),
+      jwtSecret: requireJwtSecret(),
       issuer: str('JWT_ISSUER', 'sih-local'),
     },
     media: {

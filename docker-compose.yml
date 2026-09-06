@@ -3,11 +3,24 @@
 # object storage wrote into the container's writable layer and lost every upload
 # when the container was recreated.
 #
-# Verified 2026-09-06: an item written with -dbPath survives the container being
-# destroyed entirely, not merely restarted.
+# Verified 2026-09-06, after the ownership fix below: an item written through the
+# DynamoDB API, then `docker compose rm -sf dynamodb` (destroyed, not restarted),
+# then `up -d`, reads back with its value intact. The same check before the fix
+# could not even write.
 services:
   dynamodb:
     image: amazon/dynamodb-local:latest
+    # `user: root` is not decoration. The image runs as uid 1000
+    # (dynamodblocal), but Docker creates a named volume's mountpoint owned by
+    # root, so DynamoDB Local cannot open its SQLite file at /data:
+    #
+    #   SQLiteException: [14] unable to open database file
+    #   SQLiteQueue[shared-local-instance.db]: stopped abnormally, reincarnating
+    #
+    # It does not exit. It answers 400 to a bare GET - so a health probe passes -
+    # and then HANGS every real request forever. That is how this looked healthy
+    # while `db:create-local` sat for 180s and the durability run never returned.
+    user: root
     command: ["-jar", "DynamoDBLocal.jar", "-dbPath", "/data", "-sharedDb"]
     volumes: ["sih-dynamodb:/data"]
     ports: ["8000:8000"]

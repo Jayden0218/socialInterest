@@ -22,6 +22,15 @@ jobs:
         with: { distribution: temurin, java-version: 17 }
       - run: pnpm install --frozen-lockfile
 
+      # LOCAL_JWT_SECRET has no default any more (003/FR-007): the old one was a
+      # constant in this repository, so anyone who read it could mint a token the
+      # service accepted. Every step that BOOTS the API needs one, so it is
+      # generated once here rather than repeated per step. It is a per-run value
+      # and never leaves the runner - not a GitHub secret, which would be a
+      # long-lived shared credential doing the same job worse.
+      - name: Generate a per-run JWT secret
+        run: echo "LOCAL_JWT_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+
       # The emulator and the API run on ONE machine, so the app reaches the
       # server at 10.0.2.2 with no inbound route, no tunnel and no allowlist.
       - run: docker compose up -d

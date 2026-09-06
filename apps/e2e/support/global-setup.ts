@@ -8,7 +8,10 @@ import { resetStore } from './reset';
  * cost several seconds each and, sharing one table, would race. jest runs this
  * suite with --runInBand for the same reason.
  */
+import { ensureJwtSecret } from './secret';
+
 export default async function globalSetup(): Promise<void> {
+  ensureJwtSecret();
   resetStore();
 
   /**

@@ -27,7 +27,7 @@ export const env = {
     accessKeyId: process.env.S3_ACCESS_KEY_ID ?? 'localkey',
     secretAccessKey: process.env.S3_SECRET_ACCESS_KEY ?? 'localsecret',
   },
-  jwtSecret: process.env.LOCAL_JWT_SECRET ?? 'dev-only-not-a-real-secret',
+  jwtSecret: process.env.LOCAL_JWT_SECRET ?? '',
   jwtIssuer: process.env.JWT_ISSUER ?? 'sih-local',
   ffmpegImage: process.env.FFMPEG_IMAGE ?? 'linuxserver/ffmpeg:latest',
 };

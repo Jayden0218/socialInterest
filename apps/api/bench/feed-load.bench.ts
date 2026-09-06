@@ -33,7 +33,8 @@ const env = {
   endpoint: process.env['DYNAMO_ENDPOINT'] ?? 'http://127.0.0.1:8000',
   region: process.env['DYNAMO_REGION'] ?? 'local',
   table: process.env['TABLE_NAME'] ?? 'sih-main',
-  secret: process.env['LOCAL_JWT_SECRET'] ?? 'dev-only-not-a-real-secret',
+  // No default: it must match what the API under measurement was started with.
+  secret: process.env['LOCAL_JWT_SECRET'] ?? '',
   issuer: process.env['JWT_ISSUER'] ?? 'sih-local',
   creds: {
     accessKeyId: process.env['S3_ACCESS_KEY_ID'] ?? 'localkey',
