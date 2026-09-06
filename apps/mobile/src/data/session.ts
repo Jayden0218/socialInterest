@@ -42,8 +42,28 @@ export class SessionData {
     return this.client.call<MyProfile>('getMe');
   }
 
-  updateProfile(patch: { displayName?: string; bio?: string }): Promise<MyProfile> {
+  /**
+   * FR-002, FR-049. notificationPrefs is part of the patch because the server
+   * accepts it and merges it - the type here used to omit it, so toggling a
+   * notification category was not expressible from the app at all, whatever the
+   * screen offered.
+   */
+  updateProfile(patch: {
+    displayName?: string;
+    bio?: string;
+    notificationPrefs?: Partial<{ reaction: boolean; comment: boolean; follow: boolean }>;
+  }): Promise<MyProfile> {
     return this.client.call<MyProfile>('patchMe', { body: patch });
+  }
+
+  /**
+   * FR-048. Irreversible, and the screen that calls it says so. Signs out
+   * afterwards so the app is not left holding a token for a person who no
+   * longer exists.
+   */
+  async deleteAccount(): Promise<void> {
+    await this.client.call<void>('deleteMe');
+    await this.tokens.set(null);
   }
 
   async signOut(): Promise<void> {

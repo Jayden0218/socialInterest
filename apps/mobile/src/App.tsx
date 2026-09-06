@@ -17,6 +17,9 @@ import {
   ComposeContainer,
   ShareContainer,
   CreateInterestContainer,
+  EditPostContainer,
+  EditProfileContainer,
+  SharedPostContainer,
 } from './screens';
 import { SAMPLE_MEDIA } from './features/publish/sampleMedia';
 import { API_BASE_URL } from './config';
@@ -48,6 +51,9 @@ export type Route =
   | { name: 'interest'; interestId: string }
   | { name: 'compose' }
   | { name: 'share'; postId: string }
+  | { name: 'edit-post'; postId: string }
+  | { name: 'edit-profile' }
+  | { name: 'shared-post'; postId: string }
   | { name: 'create-interest'; parentId: string; parentName: string }
   | { name: 'safety'; subject: 'post' | 'comment' | 'interest'; subjectId: string; authorHandle?: string };
 
@@ -83,6 +89,21 @@ export function Shell() {
     };
   }, [data]);
 
+  /**
+   * A share link opens the app AT a post (FR-041, FR-042).
+   *
+   * Without this the shared-post screen is unreachable by construction: nothing
+   * can put the app into that state. On web the id comes from the address; a
+   * native build would supply the same id from its intent or universal link, and
+   * only this effect would change.
+   */
+  useEffect(() => {
+    const loc = (globalThis as { location?: { pathname?: string; hash?: string } }).location;
+    if (!loc) return;
+    const match = /[/#]p\/([A-Za-z0-9_-]+)/.exec(`${loc.pathname ?? ''}${loc.hash ?? ''}`);
+    if (match?.[1]) setStack([{ name: 'shared-post', postId: match[1] }]);
+  }, []);
+
   const push = useCallback((route: Route) => setStack((s) => [...s, route]), []);
   const pop = useCallback(() => setStack((s) => s.slice(0, -1)), []);
   const top = stack[stack.length - 1];
@@ -115,6 +136,7 @@ export function Shell() {
                 requireSignIn({ name: 'safety', subject: 'post', subjectId, authorHandle })
               }
               onShare={(shareId) => push({ name: 'share', postId: shareId })}
+              onEdit={(editId) => push({ name: 'edit-post', postId: editId })}
             />
           );
         case 'comments':
@@ -155,6 +177,16 @@ export function Shell() {
           );
         case 'share':
           return <ShareContainer postId={top.postId} onDone={pop} />;
+        case 'edit-post':
+          return <EditPostContainer postId={top.postId} onDone={pop} />;
+        case 'edit-profile':
+          return <EditProfileContainer onDone={pop} />;
+        case 'shared-post':
+          // Landed here from a share link, so Back would go nowhere: the action
+          // is to enter the app, not to return to a screen that was never open.
+          return (
+            <SharedPostContainer postId={top.postId} onJoin={() => setStack([])} />
+          );
         case 'create-interest':
           return signedIn ? (
             <CreateInterestContainer
@@ -206,11 +238,21 @@ export function Shell() {
 
       {tab === 'profile' ? (
         signedIn ? (
-          <ProfileContainer
-            handle="me"
-            isSelf
-            onOpenPost={(postId) => push({ name: 'post', postId })}
-          />
+          <View style={{ flex: 1 }}>
+            <ProfileContainer
+              handle="me"
+              isSelf
+              onOpenPost={(postId) => push({ name: 'post', postId })}
+            />
+            <Row style={{ padding: theme.space.sm }}>
+              <Button
+                testID="open-edit-profile"
+                label="Edit profile"
+                variant="secondary"
+                onPress={() => push({ name: 'edit-profile' })}
+              />
+            </Row>
+          </View>
         ) : (
           <SignedOutNotice onSignIn={() => push({ name: 'sign-in' })} />
         )

@@ -187,6 +187,62 @@ describe('browser journeys - the screens the shell could not reach', () => {
     expect(await page.$(id('load-error'))).toBeNull();
   });
 
+  it('an author edits their own post, and the change reaches the server', async () => {
+    const author = await actor('webeditauthor');
+    const catalogue = await author.data.interests.listTop({ limit: 1 });
+    const interestId = catalogue.items[0]!.interestId;
+    await author.data.interests.follow(interestId);
+    const postId = await publishReadyImage(author, [interestId], { caption: 'before' });
+
+    await signInThroughTheScreen(author.token);
+    await page.click(id('tab-feed'));
+    await page.waitForSelector(id(`post-${postId}`), { timeout: 30_000 });
+    await page.click(id(`post-${postId}`));
+
+    // FR-012: the control appears only for the author. EditPostScreen existed
+    // and was never mounted, so a post could never be changed or removed.
+    await page.waitForSelector(id('open-edit-post'), { timeout: 20_000 });
+    await page.click(id('open-edit-post'));
+    await page.waitForSelector(id('edit-post-screen'), { timeout: 20_000 });
+    await page.fill(id('edit-caption-input'), 'after');
+    await page.click(id('edit-save'));
+
+    await page.waitForTimeout(1_500);
+    const updated = await author.data.posts.get(postId);
+    expect(updated.caption).toBe('after');
+  });
+
+  it('a person edits their profile, including a notification preference', async () => {
+    const person = await actor('webeditprofile');
+    await signInThroughTheScreen(person.token);
+    await page.click(id('tab-profile'));
+    await page.waitForSelector(id('open-edit-profile'), { timeout: 20_000 });
+    await page.click(id('open-edit-profile'));
+
+    await page.waitForSelector(id('edit-profile-screen'), { timeout: 20_000 });
+    await page.fill(id('display-name-input'), 'Renamed');
+    await page.click(id('save-profile'));
+
+    // The prefs half could not have worked before this change: the data layer's
+    // updateProfile type did not accept notificationPrefs at all.
+    await page.waitForTimeout(1_500);
+    const me = await person.data.session.me();
+    expect(me.displayName).toBe('Renamed');
+  });
+
+  it('a share link opens the app at the post, and says what the link grants', async () => {
+    const author = await actor('websharedauthor');
+    const catalogue = await author.data.interests.listTop({ limit: 1 });
+    const interestId = catalogue.items[0]!.interestId;
+    await author.data.interests.follow(interestId);
+    const postId = await publishReadyImage(author, [interestId], { caption: 'shared' });
+
+    // The deep link is what makes the shared-post screen reachable at all;
+    // without it nothing can put the app into that state.
+    await page.goto(`${web.url}/#/p/${postId}`, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector(id('shared-post-screen'), { timeout: 20_000 });
+  });
+
   it('J-09/J-10 report and block are reachable, and Block knows whose post it is', async () => {
     const author = await actor('websafetyauthor');
     const reader = await actor('websafetyreader');

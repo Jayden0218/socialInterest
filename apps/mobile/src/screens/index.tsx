@@ -103,6 +103,9 @@ export function NotificationsContainer({ onOpen }: { onOpen: (postId: string) =>
 import { useCallback, useEffect } from 'react';
 import type { Post } from '@sih/shared';
 import { PostDetailScreen } from '../features/posts/PostDetailScreen';
+import { EditPostScreen, type EditPostDraft } from '../features/posts/EditPostScreen';
+import { SharedPostScreen } from '../features/posts/SharedPostScreen';
+import { EditProfileScreen, type ProfileDraft } from '../features/profile/EditProfileScreen';
 import { CommentsScreen } from '../features/engagement/CommentsScreen';
 import { EngagementBar, type EngagementState } from '../features/engagement/EngagementBar';
 import { SafetyActions, type ReportSubject } from '../features/safety/SafetyActions';
@@ -114,6 +117,7 @@ export function PostDetailContainer({
   onOpenComments,
   onReport,
   onShare,
+  onEdit,
 }: {
   postId: string;
   onOpenComments: (postId: string) => void;
@@ -125,6 +129,7 @@ export function PostDetailContainer({
    */
   onReport: (postId: string, authorHandle: string) => void;
   onShare: (postId: string) => void;
+  onEdit: (postId: string) => void;
 }) {
   const data = useData();
   const [post, setPost] = useState<Post | null>(null);
@@ -134,6 +139,21 @@ export function PostDetailContainer({
     commentCount: 0,
     viewerHasReacted: false,
   });
+  // FR-012: only the author edits. The check is a convenience here - the server
+  // refuses anyone else regardless - but showing the control to a person who
+  // cannot use it is its own defect.
+  const [isAuthor, setIsAuthor] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    void data.session
+      .me()
+      .then((me) => live && post && setIsAuthor(me.userId === post.author.userId))
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [data, post]);
 
   useEffect(() => {
     let live = true;
@@ -194,6 +214,14 @@ export function PostDetailContainer({
           variant="secondary"
           onPress={() => onReport(postId, post.author.handle)}
         />
+        {isAuthor ? (
+          <Button
+            testID="open-edit-post"
+            label="Edit"
+            variant="secondary"
+            onPress={() => onEdit(postId)}
+          />
+        ) : null}
       </Row>
     </View>
   );
@@ -656,4 +684,205 @@ export function CreateInterestContainer({
       onJoinExisting={onCreated}
     />
   );
+}
+
+
+/**
+ * Edit or delete your own post (FR-011, FR-012).
+ *
+ * EditPostScreen was written and render-tested and never mounted, so a person
+ * could publish a post and then never change or remove it - including narrowing
+ * its visibility, which is the one edit FR-017 says must take effect everywhere
+ * immediately.
+ */
+export function EditPostContainer({
+  postId,
+  onDone,
+}: {
+  postId: string;
+  onDone: () => void;
+}) {
+  const data = useData();
+  const [original, setOriginal] = useState<EditPostDraft | null>(null);
+  const [draft, setDraft] = useState<EditPostDraft | null>(null);
+  const [options, setOptions] = useState<InterestRef[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    Promise.all([data.posts.get(postId), data.interests.suggested().catch(() => null)])
+      .then(([post, suggested]) => {
+        if (!live) return;
+        const d: EditPostDraft = {
+          caption: post.caption ?? '',
+          interests: post.interests,
+          visibility: post.visibility,
+        };
+        setOriginal(d);
+        setDraft(d);
+        setOptions(suggested ? suggested.items : post.interests);
+      })
+      .catch((e: unknown) => live && setError(e instanceof DataError ? e.message : String(e)));
+    return () => {
+      live = false;
+    };
+  }, [data, postId]);
+
+  const save = useCallback(async () => {
+    if (!draft) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await data.posts.update(postId, {
+        caption: draft.caption,
+        interestIds: draft.interests.map((i) => i.interestId),
+        visibility: draft.visibility,
+      });
+      onDone();
+    } catch (e: unknown) {
+      setError(e instanceof DataError ? e.message : String(e));
+    } finally {
+      setSaving(false);
+    }
+  }, [data, draft, postId, onDone]);
+
+  const remove = useCallback(async () => {
+    setSaving(true);
+    try {
+      await data.posts.remove(postId);
+      onDone();
+    } catch (e: unknown) {
+      setError(e instanceof DataError ? e.message : String(e));
+      setSaving(false);
+    }
+  }, [data, postId, onDone]);
+
+  if (error) return <Failed message={error} />;
+  if (!draft || !original) return <View testID="edit-post-loading" />;
+  return (
+    <EditPostScreen
+      draft={draft}
+      original={original}
+      interestOptions={options}
+      saving={saving}
+      onChange={setDraft}
+      onSave={() => void save()}
+      onDelete={() => void remove()}
+    />
+  );
+}
+
+/**
+ * Edit your profile and notification preferences (FR-002, FR-049), and delete
+ * your account (FR-048).
+ *
+ * Also never mounted. The preferences half could not have worked even if it had
+ * been: the data layer's updateProfile did not accept notificationPrefs until
+ * this change, so a toggle had nowhere to go.
+ */
+export function EditProfileContainer({ onDone }: { onDone: () => void }) {
+  const data = useData();
+  const [draft, setDraft] = useState<ProfileDraft | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    data.session
+      .me()
+      .then((me) => {
+        if (!live) return;
+        setDraft({
+          displayName: me.displayName,
+          bio: me.bio ?? '',
+          notificationPrefs: me.notificationPrefs,
+        });
+      })
+      .catch((e: unknown) => live && setError(e instanceof DataError ? e.message : String(e)));
+    return () => {
+      live = false;
+    };
+  }, [data]);
+
+  const save = useCallback(async () => {
+    if (!draft) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await data.session.updateProfile({
+        displayName: draft.displayName,
+        bio: draft.bio,
+        notificationPrefs: draft.notificationPrefs,
+      });
+      onDone();
+    } catch (e: unknown) {
+      setError(e instanceof DataError ? e.message : String(e));
+    } finally {
+      setSaving(false);
+    }
+  }, [data, draft, onDone]);
+
+  const deleteAccount = useCallback(async () => {
+    setSaving(true);
+    try {
+      await data.session.deleteAccount();
+      onDone();
+    } catch (e: unknown) {
+      setError(e instanceof DataError ? e.message : String(e));
+      setSaving(false);
+    }
+  }, [data, onDone]);
+
+  if (error) return <Failed message={error} />;
+  if (!draft) return <View testID="edit-profile-loading" />;
+  return (
+    <EditProfileScreen
+      draft={draft}
+      saving={saving}
+      onChange={setDraft}
+      onSave={() => void save()}
+      onDeleteAccount={() => void deleteAccount()}
+    />
+  );
+}
+
+/**
+ * The screen someone lands on from a share link (FR-042).
+ *
+ * A share link grants nothing: resolution re-checks visibility every time, so
+ * the same URL can open for one person and not another, and can stop opening
+ * after the author narrows the post. That is exactly what this screen exists to
+ * say - and it had no way of ever being reached, because the app had no concept
+ * of being opened at a post.
+ *
+ * `status` is the HTTP status the resolution produced, so the screen can tell
+ * "not for you" from "no longer there" rather than collapsing both into an
+ * error (FR-042).
+ */
+export function SharedPostContainer({ postId, onJoin }: { postId: string; onJoin: () => void }) {
+  const data = useData();
+  const [status, setStatus] = useState<number | null>(null);
+  const [post, setPost] = useState<Post | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    data.posts
+      .get(postId)
+      .then((p) => {
+        if (!live) return;
+        setPost(p);
+        setStatus(200);
+      })
+      .catch((e: unknown) => {
+        if (!live) return;
+        setStatus(e instanceof DataError ? e.status : 0);
+      });
+    return () => {
+      live = false;
+    };
+  }, [data, postId]);
+
+  if (status === null) return <View testID="shared-post-loading" />;
+  return <SharedPostScreen status={status} {...(post ? { post } : {})} onJoin={onJoin} />;
 }
