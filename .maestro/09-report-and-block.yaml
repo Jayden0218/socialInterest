@@ -1,31 +1,59 @@
-# J-09 report, and J-10 block.
+# J-09 report a post.
 #
-# Both live behind the same screen. Block only renders when the author's handle
-# reached SafetyActions (FR-044), so this flow failing on the Block control is a
-# real defect, not a missing fixture.
+# TWO things were wrong with this flow, and run 24 exposed both once everything
+# ahead of it started passing.
+#
+# 1. It reported the person's OWN post, published moments earlier by
+#    04-publish-image. Reporting yourself is not the journey; FR-044 is about
+#    someone else's content. It now uses the post the FR-033 fixture publishes
+#    from a second person, which is in this person's feed because the fixture
+#    also makes them follow that interest - the same mechanism
+#    12-interest-follow-does-not-widen relies on.
+#
+# 2. It asserted `block-person` AFTER submitting the report. Submitting calls
+#    `onReport`, which is `report(...).then(onDone)` - the sheet closes. The
+#    control was never missing; the flow was looking for it on a screen that had
+#    already dismissed. Both controls live on the sheet together, so the block
+#    affordance is asserted while the sheet is open.
+#
+# J-10 (actually blocking) is deliberately NOT driven here. A block severs
+# follows and hides content for every later flow in the same suite, and
+# 12-interest-follow-does-not-widen depends on that exact author remaining
+# visible. Blocking is covered over HTTP by apps/e2e's N-03, which asserts a
+# blocked person's post is absent from every surface. The Journey Run records
+# J-10 as `not run` on device with this reason rather than implying it passed.
 appId: app.socialinterest
 ---
-- runFlow: 04-publish-image.yaml
+- runFlow: 01-sign-in.yaml
+- tapOn:
+    id: "tab-feed"
+- assertVisible:
+    id: "home-feed-screen"
 
-# The post is opened from the author's own profile, not the home feed. The feed
-# is composed only from FOLLOWED interests (FR-032), and compose offers
-# suggested ones - so a freshly published post is correctly absent from its own
-# author's feed. 04-publish-image leaves the app on this tab already.
-- tapOn:
-    id: "tab-profile"
+# Someone else's post, seeded by the fixture.
 - extendedWaitUntil:
-    visible:
-      id: "post-.*"
+    visible: "${PRESENT}"
     timeout: 30000
-- tapOn:
-    id: "post-.*"
+- tapOn: "${PRESENT}"
+
 - tapOn:
     id: "open-safety"
 - assertVisible:
     id: "report-reasons"
+
+# The block affordance is reachable from the same sheet (FR-044). Asserted
+# here, while the sheet is open, because sending the report closes it.
+- assertVisible:
+    id: "block-person"
+
 - tapOn:
     id: "report-reason-0"
 - tapOn:
     id: "submit-report"
-- assertVisible:
-    id: "block-person"
+
+# The report was accepted and the sheet dismissed - which is the app's own
+# signal that the request returned, since onReport only calls onDone on success.
+- extendedWaitUntil:
+    notVisible:
+      id: "report-reasons"
+    timeout: 30000
