@@ -102,10 +102,20 @@ jobs:
           EMULATOR_BOOT_TIMEOUT: '900'
         run: ./scripts/emulator-launch.sh
 
+      # A failure here must say what failed. The script tees to
+      # artifacts/android-device-pass/device-pass.log and its ERR trap names the
+      # line, so this step can no longer fail identically for every reason.
       - name: Drive the app
         env:
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
-        run: ./scripts/android-device-pass.sh
+        run: |
+          ./scripts/android-device-pass.sh || {
+            rc=$?
+            echo "=============== device-pass log ==============="
+            cat artifacts/android-device-pass/device-pass.log || true
+            echo "=============================================="
+            exit $rc
+          }
 
       - name: Collect evidence
         if: always()

@@ -88,6 +88,25 @@ events, DynamoDB Streams, EventBridge, and SQS.
 
 ## D3. Database: DynamoDB single-table, with the honest caveats
 
+> **Revisited 2026-09-06 (003/US3). Decision pending with the owner — the original reasoning
+> below is preserved unchanged.**
+>
+> Two of this decision's premises have moved. DynamoDB was the owner's instruction and that
+> instruction pointed at AWS, which was dropped as a deployment target on 2026-09-05. And D9
+> gave the datastore no adapter because DynamoDB Local speaks the same API — sound at the time,
+> but it means the choice now sits inside the persistence layer rather than behind a port.
+>
+> The migration cost was counted rather than estimated and is **smaller than it looks**: the
+> repositories are thin, so it is ~265 lines of core persistence (`base.repository.ts`,
+> `keys.ts`, `cursor.ts`) plus four transaction call sites, not fourteen rewritten classes.
+>
+> The deciding consideration is new: **DynamoDB's local form is an emulator, PostgreSQL's local
+> form is PostgreSQL.** That is why 002/SC-002 had to be withdrawn — every local load figure
+> measures DynamoDB Local's 827 req/s ceiling rather than the product — and it means the load
+> question can never be answered without spending while DynamoDB stands.
+>
+> Full analysis and recommendation: `specs/003-device-and-hosting/datastore-decision.md`.
+
 **Decision**: DynamoDB (user-specified), modelled as a **single table** with overloaded
 partition/sort keys and four GSIs. Details in `data-model.md`.
 

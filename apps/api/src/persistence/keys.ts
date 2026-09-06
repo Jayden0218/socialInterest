@@ -15,6 +15,16 @@ export const keys = {
    */
   upload: (uploadId: string) => ({ pk: `UPLOAD#${uploadId}`, sk: '#META' }),
 
+  /**
+   * A pending domain event, awaiting its handlers.
+   *
+   * One partition so unhandled events can be found on startup without a scan.
+   * The item is DELETED once every handler has run - the store holds only what
+   * is still outstanding, so the partition stays small and "what is unhandled"
+   * needs no flag to interpret.
+   */
+  pendingEvent: (eventId: string) => ({ pk: 'EVENTS#PENDING', sk: `EVENT#${eventId}` }),
+
   post: (postId: string) => ({ pk: `POST#${postId}`, sk: '#META' }),
   postByAuthor: (authorId: string, createdAt: string, postId: string) => ({
     gsi2pk: `USER#${authorId}`,

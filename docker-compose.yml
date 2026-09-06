@@ -1,7 +1,15 @@
+# The local runtime profile. Both services keep their data on a named volume:
+# without one the datastore ran `-inMemory` and lost every post on restart, and
+# object storage wrote into the container's writable layer and lost every upload
+# when the container was recreated.
+#
+# Verified 2026-09-06: an item written with -dbPath survives the container being
+# destroyed entirely, not merely restarted.
 services:
   dynamodb:
     image: amazon/dynamodb-local:latest
-    command: ["-jar", "DynamoDBLocal.jar", "-inMemory", "-sharedDb"]
+    command: ["-jar", "DynamoDBLocal.jar", "-dbPath", "/data", "-sharedDb"]
+    volumes: ["sih-dynamodb:/data"]
     ports: ["8000:8000"]
 
   s3:
@@ -10,4 +18,9 @@ services:
     environment:
       MINIO_ROOT_USER: localkey
       MINIO_ROOT_PASSWORD: localsecret
+    volumes: ["sih-minio:/data"]
     ports: ["9000:9000", "9001:9001"]
+
+volumes:
+  sih-dynamodb:
+  sih-minio:

@@ -15,6 +15,7 @@ import { ReportRepository } from './report.repository';
 import { ModerationLogRepository } from './moderation-log.repository';
 import { NotificationRepository } from './notification.repository';
 import { UploadRepository } from './upload.repository';
+import { EventRepository } from './event.repository';
 
 const repo = <T>(
   cls: new (doc: DynamoDBDocumentClient, table: string) => T,
@@ -40,6 +41,7 @@ const providers: Provider[] = [
   repo(ModerationLogRepository),
   repo(NotificationRepository),
   repo(UploadRepository),
+  repo(EventRepository),
 ];
 
 @Global()
@@ -60,6 +62,7 @@ const providers: Provider[] = [
     ModerationLogRepository,
     NotificationRepository,
     UploadRepository,
+    EventRepository,
   ],
 })
 export class PersistenceModule {}

@@ -1,7 +1,8 @@
 import { loadConfig } from '../../src/config/configuration';
 import { MinioObjectStore } from '../../src/adapters/local/minio-object-store';
 import { LocalIdentityProvider } from '../../src/adapters/local/local-identity-provider';
-import { InProcessEventBus } from '../../src/adapters/local/in-process-event-bus';
+import { DurableEventBus } from '../../src/adapters/local/durable-event-bus';
+import type { EventRepository } from '../../src/persistence/event.repository';
 import type { ObjectStore } from '../../src/ports';
 
 /**
@@ -59,9 +60,22 @@ describe('IdentityProvider port', () => {
 });
 
 
+/**
+ * The bus is durable now, so it takes an event store. These cases are about the
+ * PORT's behaviour - delivery, fan-out, error containment - so the store is a
+ * stub that records nothing. Durability itself is proved end to end against a
+ * real datastore in apps/e2e, because an in-memory stub could not show it.
+ */
+const noStore = () =>
+  ({
+    put: async () => undefined,
+    remove: async () => undefined,
+    listPending: async () => [],
+  }) as unknown as EventRepository;
+
 describe('EventBus port', () => {
   it('delivers the event to every subscriber for its type, and only those', async () => {
-    const bus = new InProcessEventBus();
+    const bus = new DurableEventBus(noStore());
     const seen: string[] = [];
     bus.subscribe('post.published', (e) => { seen.push(`a:${e.type}`); });
     bus.subscribe('post.published', (e) => { seen.push(`b:${e.type}`); });
@@ -72,7 +86,7 @@ describe('EventBus port', () => {
   });
 
   it('stamps occurredAt on delivery', async () => {
-    const bus = new InProcessEventBus();
+    const bus = new DurableEventBus(noStore());
     let occurredAt: string | undefined;
     bus.subscribe('t', (e) => { occurredAt = e.occurredAt; });
     await bus.publish({ type: 't', payload: {} });
@@ -83,21 +97,21 @@ describe('EventBus port', () => {
   it('a handler that throws SYNCHRONOUSLY does not escape', async () => {
     // Regression: `Promise.resolve(handler(e)).catch(...)` cannot catch this -
     // the throw happens while evaluating the argument, before a promise exists.
-    const bus = new InProcessEventBus();
+    const bus = new DurableEventBus(noStore());
     bus.subscribe('x', () => { throw new Error('sync boom'); });
     await expect(bus.publish({ type: 'x', payload: {} })).resolves.toBeUndefined();
     await new Promise((r) => setImmediate(r));
   });
 
   it('a handler that rejects ASYNCHRONOUSLY does not escape', async () => {
-    const bus = new InProcessEventBus();
+    const bus = new DurableEventBus(noStore());
     bus.subscribe('y', async () => { await Promise.reject(new Error('async boom')); });
     await expect(bus.publish({ type: 'y', payload: {} })).resolves.toBeUndefined();
     await new Promise((r) => setImmediate(r));
   });
 
   it('one failing handler does not stop the others', async () => {
-    const bus = new InProcessEventBus();
+    const bus = new DurableEventBus(noStore());
     const seen: string[] = [];
     bus.subscribe('z', () => { throw new Error('boom'); });
     bus.subscribe('z', () => { seen.push('survivor'); });

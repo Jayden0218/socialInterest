@@ -10,7 +10,7 @@ import {
 import { MinioObjectStore } from './local/minio-object-store';
 import { FfmpegMediaProcessor } from './local/ffmpeg-media-processor';
 import { LocalIdentityProvider } from './local/local-identity-provider';
-import { InProcessEventBus } from './local/in-process-event-bus';
+import { DurableEventBus } from './local/durable-event-bus';
 
 /**
  * One implementation per port.
@@ -47,7 +47,9 @@ const providers: Provider[] = [
     inject: [CONFIG],
     useFactory: (config: AppConfig) => new LocalIdentityProvider(config),
   },
-  { provide: EVENT_BUS, useClass: InProcessEventBus },
+  // Durable, not in-process: the previous bus delivered on the next tick and
+  // kept no record, so an event published before a crash was lost silently.
+  { provide: EVENT_BUS, useClass: DurableEventBus },
 ];
 
 @Global()

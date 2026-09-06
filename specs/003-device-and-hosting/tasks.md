@@ -95,11 +95,11 @@ outcome is a guess.
 **Independent test**: A Datastore Decision record exists with each option's migration cost
 counted from real classes.
 
-- [ ] T017 [US3] Count the migration surface: enumerate every repository class under `apps/api/src/persistence/*.repository.ts` (14 at time of writing) and, for each, what changes under the alternative — key construction, query shape, transaction use
-- [ ] T018 [US3] Establish for each option whether it **runs as itself outside a deployment** or only as a stand-in. This is what decides whether US5 has an answer at all (research R3)
-- [ ] T019 [US3] Write the Datastore Decision record per `data-model.md` — options, migration cost per option, `runs_as_itself_locally` per option, the decision, and who made it. A record without the counted cost is a preference, not a decision
-- [ ] T020 [US3] Update D3 in `specs/001-interest-media-sharing/research.md` with the revisit outcome, preserving the original reasoning rather than overwriting it
-- [ ] T021 [US3] If the decision differs from what is implemented, size the migration as its own feature and **stop** — do not begin it inside 003, and do not let US2 harden the superseded choice
+- [X] T017 [US3] Count the migration surface: enumerate every repository class under `apps/api/src/persistence/*.repository.ts` (14 at time of writing) and, for each, what changes under the alternative — key construction, query shape, transaction use
+- [X] T018 [US3] Establish for each option whether it **runs as itself outside a deployment** or only as a stand-in. This is what decides whether US5 has an answer at all (research R3)
+- [X] T019 [US3] Write the Datastore Decision record per `data-model.md` — options, migration cost per option, `runs_as_itself_locally` per option, the decision, and who made it. A record without the counted cost is a preference, not a decision
+- [X] T020 [US3] Update D3 in `specs/001-interest-media-sharing/research.md` with the revisit outcome, preserving the original reasoning rather than overwriting it
+- [X] T021 [US3] If the decision differs from what is implemented, size the migration as its own feature and **stop** — do not begin it inside 003, and do not let US2 harden the superseded choice
 
 **Checkpoint**: the datastore question is answered, and US2 knows what it is making durable.
 

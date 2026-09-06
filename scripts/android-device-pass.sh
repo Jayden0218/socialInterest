@@ -8,10 +8,21 @@
 # through in feature 001 - so every check below asserts on content, not shape.
 set -euo pipefail
 
+# Everything this script prints goes to a file that is uploaded with the run.
+# The emulator taught this the hard way: a step whose output is not captured
+# fails identically for every possible reason, and six runs were spent guessing
+# at one. The ERR trap names the line, so a failure here says where it was.
+OUT="${OUT:-artifacts/android-device-pass}"
+mkdir -p "$OUT"
+exec > >(tee -a "$OUT/device-pass.log") 2>&1
+trap 'rc=$?; echo "[device-pass] FAILED at line $LINENO (exit $rc): ${BASH_COMMAND}"; exit $rc' ERR
+echo "[device-pass] starting $(date -u +%FT%TZ)"
+echo "[device-pass] ANDROID_HOME=${ANDROID_HOME:-unset} ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-unset}"
+echo "[device-pass] adb: $(command -v adb || echo 'NOT ON PATH')"
+echo "[device-pass] apk: $(ls -l apps/mobile/android/app/build/outputs/apk/release/app-release.apk 2>&1 | tail -1)"
+
 PKG=app.socialinterest
 APK=apps/mobile/android/app/build/outputs/apk/release/app-release.apk
-OUT=artifacts/android-device-pass
-mkdir -p "$OUT"
 
 # How did this boot? The sandbox proved TCG cannot run Android at all, so if a
 # run is slow or unstable the first question is whether acceleration engaged.
