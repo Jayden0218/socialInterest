@@ -104,23 +104,13 @@ export function Shell() {
           );
         case 'post':
           return (
-            <View style={{ flex: 1 }}>
-              <PostDetailContainer postId={top.postId} />
-              <Row style={{ padding: theme.space.sm, gap: theme.space.sm }}>
-                <Button
-                  testID="open-comments"
-                  label="Comments"
-                  variant="secondary"
-                  onPress={() => requireSignIn({ name: 'comments', postId: top.postId })}
-                />
-                <Button
-                  testID="open-safety"
-                  label="Report"
-                  variant="secondary"
-                  onPress={() => requireSignIn({ name: 'safety', subject: 'post', subjectId: top.postId })}
-                />
-              </Row>
-            </View>
+            <PostDetailContainer
+              postId={top.postId}
+              onOpenComments={(postId) => requireSignIn({ name: 'comments', postId })}
+              onReport={(subjectId, authorHandle) =>
+                requireSignIn({ name: 'safety', subject: 'post', subjectId, authorHandle })
+              }
+            />
           );
         case 'comments':
           return signedIn ? (

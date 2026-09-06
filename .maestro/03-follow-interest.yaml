@@ -1,0 +1,18 @@
+# J-03 follow an interest, and J-07 the interest space it opens.
+appId: app.socialinterest
+---
+- runFlow: 01-sign-in.yaml
+- tapOn:
+    id: "tab-discover"
+- tapOn:
+    id: "interest-search-input"
+- inputText: "clim"
+- tapOn:
+    id: "search-result-0"
+- assertVisible:
+    id: "interest-screen"
+- tapOn:
+    id: "follow-toggle"
+# FR-034: the server owns the 200-interest cap, so the control reverts if the
+# follow was refused. Asserting the followed state is asserting the API agreed.
+- assertVisible: "Following"

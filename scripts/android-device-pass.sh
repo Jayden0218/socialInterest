@@ -75,4 +75,30 @@ if grep -iE "FATAL EXCEPTION|Unhandled (JS )?Exception|ReferenceError|TypeError"
   exit 1
 fi
 
-echo "PASS: the real APK ran on Android and exercised the real API."
+# ---------------------------------------------------------------------------
+# The smoke checks above prove the app runs and talks to the API. They do not
+# prove a person can do anything, which is what a Tier B pass is for. The
+# journeys below drive the real UI: sign in, follow, publish, comment, report,
+# block - the ones that were unreachable until the shell was wired.
+# ---------------------------------------------------------------------------
+echo "== install Maestro =="
+curl -Ls https://get.maestro.mobile.dev | bash
+export PATH="$PATH:$HOME/.maestro/bin"
+maestro --version
+
+echo "== mint a token the API will actually accept =="
+# Same secret and issuer the API validates against. A journey that signed in
+# with a token the API would reject, or that bypassed sign-in, would turn an
+# auth defect into a green run.
+TOKEN="$(npx tsx apps/api/scripts/mint-device-token.ts)"
+[ -n "$TOKEN" ] || { echo "FAIL: could not mint a token"; exit 1; }
+
+echo "== journeys =="
+maestro test .maestro/ -e TOKEN="$TOKEN" \
+  --format junit --output "$OUT/maestro-junit.xml" || {
+    echo "FAIL: a journey did not pass"
+    cp -r ~/.maestro/tests "$OUT/maestro-debug" 2>/dev/null || true
+    exit 1
+  }
+
+echo "PASS: the real APK ran on Android, exercised the real API, and completed the journeys."

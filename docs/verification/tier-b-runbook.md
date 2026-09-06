@@ -114,3 +114,60 @@ EXPO_PUBLIC_API_BASE_URL=http://<reachable-host>:3000/v1 \
 time, so an APK built with one address cannot be repointed. Build it with an
 address the device can actually reach: a LAN address for a phone on your network,
 or a public URL for a cloud device farm.
+
+
+---
+
+## Tier B on a cloud device (added 2026-09-06)
+
+The owner's decision on 2026-09-06 is that a **cloud device is acceptable** for
+T045 in place of a phone in someone's hand. What follows is that route. Read the
+limits at the end before recording a pass from it.
+
+`.github/workflows/android-emulator.yml`, `workflow_dispatch` only. One runner
+holds the emulator *and* the API, so the app reaches the server on `10.0.2.2` -
+the emulator's alias for the host loopback. No inbound route, no tunnel, no
+allowlist entry, no public deployment. That is the whole reason this works where
+a physical phone would need a hosted API first.
+
+### The two things that are easy to get wrong
+
+**`runs-on` must be `ubuntu-22.04`.** On `ubuntu-latest`, now Ubuntu 24.04, the
+emulator never starts: `avdmanager` writes the AVD under `~/.config/.android`
+while the emulator reads `~/.android`, so it finds nothing and exits. Because it
+is not launched in the foreground the only symptom is a boot timeout with
+`adb: device 'emulator-5554' not found`. Two runs were lost to this before it
+was searched for rather than guessed at.
+See `actions/runner-images#11482` and `ReactiveCircus/android-emulator-runner#400`.
+
+**The identity has to be provisioned, not just signed.** The local profile has
+no signup endpoint. A correctly signed token whose profile row does not exist
+gets `404 No such person` from `GET /v1/me`, so sign-in fails on the device.
+`apps/api/scripts/mint-device-token.ts` writes the row through the API's own
+`PersonRepository` and prints the token. In a hosted profile an identity
+provider would do this.
+
+### What the pass actually asserts
+
+`scripts/android-device-pass.sh` fails unless all of it holds:
+
+- the app process is alive after launch,
+- the three tabs are really on screen,
+- **the API's own request log shows a request that arrived from the app** - a
+  blank screen renders three tabs too, so this is the assertion that separates a
+  working app from a shell,
+- logcat carries no fatal error,
+- and the Maestro flows in `.maestro/` complete: sign in, browse the catalogue,
+  follow an interest, publish, comment, report and block.
+
+### Limits - state these on any run recorded from this route
+
+- It is an **emulator**, not hardware. Constitution Principle V still applies:
+  this is not evidence about a production path, and it cannot see anything that
+  only real hardware exposes - camera capture, real network conditions, vendor
+  OS behaviour, battery or thermal effects.
+- **J-05 publish a video is not covered.** The compose flow is driven from a
+  bundled sample image; there is no video fixture and no native picker
+  dependency in this build. Record it `not run`, never `pass`.
+- **iOS is not covered at all.** The Simulator is macOS-only and there is no
+  macOS runner in this workflow.

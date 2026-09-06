@@ -5,6 +5,7 @@ import { InterestSearchScreen } from '../features/discover/InterestSearchScreen'
 import { NotificationsScreen } from '../features/notifications/NotificationsScreen';
 import { useHomeFeed, useInterestSearch, useNotifications, usePaged } from '../containers';
 import { theme } from '../ui/theme';
+import { Button, Row } from '../ui/primitives';
 
 /**
  * Containers: they fetch, the screens render.
@@ -74,7 +75,21 @@ import { SafetyActions, type ReportSubject } from '../features/safety/SafetyActi
 import { useData } from '../data-provider';
 import { DataError } from '../data';
 
-export function PostDetailContainer({ postId }: { postId: string }) {
+export function PostDetailContainer({
+  postId,
+  onOpenComments,
+  onReport,
+}: {
+  postId: string;
+  onOpenComments: (postId: string) => void;
+  /**
+   * The author's handle comes from here rather than from the caller, because
+   * this is where the post is. Without it SafetyActions renders no Block
+   * control at all (FR-044) - so blocking was unreachable on a device even
+   * though the screen and the data call both existed.
+   */
+  onReport: (postId: string, authorHandle: string) => void;
+}) {
   const data = useData();
   const [post, setPost] = useState<Post | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -92,7 +107,25 @@ export function PostDetailContainer({ postId }: { postId: string }) {
 
   if (error) return <Failed message={error} />;
   if (!post) return <View testID="post-loading" />;
-  return <PostDetailScreen post={post} />;
+  return (
+    <View style={{ flex: 1 }}>
+      <PostDetailScreen post={post} />
+      <Row style={{ padding: theme.space.sm, gap: theme.space.sm }}>
+        <Button
+          testID="open-comments"
+          label="Comments"
+          variant="secondary"
+          onPress={() => onOpenComments(postId)}
+        />
+        <Button
+          testID="open-safety"
+          label="Report"
+          variant="secondary"
+          onPress={() => onReport(postId, post.author.handle)}
+        />
+      </Row>
+    </View>
+  );
 }
 
 export function CommentsContainer({ postId }: { postId: string }) {

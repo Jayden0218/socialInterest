@@ -1,0 +1,23 @@
+# J-08 comment on a post.
+appId: app.socialinterest
+---
+- runFlow: 04-publish-image.yaml
+- tapOn:
+    id: "tab-feed"
+- assertVisible:
+    id: "home-feed-screen"
+- tapOn:
+    id: "post-.*"
+- assertVisible:
+    id: "open-comments"
+- tapOn:
+    id: "open-comments"
+- assertVisible:
+    id: "comments-screen"
+- tapOn:
+    id: "comment-input"
+- inputText: "a comment from a cloud device"
+- tapOn:
+    id: "comment-submit"
+- assertVisible:
+    id: "comment-list"

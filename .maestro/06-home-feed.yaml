@@ -1,0 +1,8 @@
+# J-06 the home feed.
+appId: app.socialinterest
+---
+- runFlow: 01-sign-in.yaml
+- tapOn:
+    id: "tab-feed"
+- assertVisible:
+    id: "home-feed-screen"

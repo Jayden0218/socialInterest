@@ -1,0 +1,22 @@
+# J-09 report, and J-10 block.
+#
+# Both live behind the same screen. Block only renders when the author's handle
+# reached SafetyActions (FR-044), so this flow failing on the Block control is a
+# real defect, not a missing fixture.
+appId: app.socialinterest
+---
+- runFlow: 04-publish-image.yaml
+- tapOn:
+    id: "tab-feed"
+- tapOn:
+    id: "post-.*"
+- tapOn:
+    id: "open-safety"
+- assertVisible:
+    id: "report-reasons"
+- tapOn:
+    id: "report-reason-0"
+- tapOn:
+    id: "submit-report"
+- assertVisible:
+    id: "block-person"

@@ -151,6 +151,41 @@ impossible regardless — the Simulator is macOS-only.
 | `apt-get install ffmpeg` | Fails, Debian repos blocked. Use the `linuxserver/ffmpeg` container |
 | MinIO binary from `dl.min.io` | 403. Use the `minio/minio` image |
 | `quay.io` | Unreachable. `public.ecr.aws`, `ghcr.io`, `mirror.gcr.io` all work |
+| Android emulator **in this sandbox** | Boots, then crashloops. No `/dev/kvm`, no `vmx`/`svm`, so pure TCG: `system_server` is killed by its own watchdog *inside* `systemReady()` — `Blocked in handler on main thread for 94s`, limit 60s — restarts, and hits the same wall forever. Happens on a bare emulator with nothing installed. `pm.dexopt.install=skip` does not help (dexopt was never the problem) and `debug.disable_watchdog` is accepted by `setprop` but not honoured; the timeout is a compile-time constant. An `arm64` image is refused outright on an x86_64 host |
+| Android emulator on `ubuntu-latest` (24.04) | **Never starts.** `avdmanager` writes the AVD to `~/.config/.android`, the emulator reads `~/.android`. It is not launched in the foreground, so the only symptom is a boot timeout and `adb: device 'emulator-5554' not found`. Pin `runs-on: ubuntu-22.04` — `actions/runner-images#11482`, `android-emulator-runner#400` |
+
+## Running the app on a device: what actually works
+
+**The emulator belongs in CI, not in this sandbox** (see the table above). The
+job is `.github/workflows/android-emulator.yml`, `workflow_dispatch` only
+because the repository is private and each run costs ~20 minutes of the
+account's Actions allowance.
+
+Why CI and not here: one runner holds **both** the emulator and the API, so the
+app reaches the server at `10.0.2.2` — the emulator's alias for the host
+loopback. That removes the inbound-route problem entirely: no tunnel, no
+allowlist entry, no public deployment. A *physical* phone gets none of this and
+still needs a hosted API, which is why T045-on-hardware is gated on the hosting
+decision rather than on tooling.
+
+Two traps, both of which cost real runs:
+
+- **`runs-on: ubuntu-22.04`**, per the table above.
+- **A signed token is not an identity.** The local profile has no signup
+  endpoint, so a correctly signed JWT whose profile row does not exist gets
+  `404 No such person` from `GET /v1/me` and sign-in fails on the device.
+  `apps/api/scripts/mint-device-token.ts` writes the row through the API's own
+  `PersonRepository`, the same thing `apps/e2e/support/people.ts` does.
+
+**Six runs were spent getting there and four of the failures were mine**, every
+one the same shape: writing a step from memory instead of from the thing that
+already worked — `curl -sf` where the tested probe was `curl -so` (DynamoDB
+Local answers a bare `GET /` with 400, and `-f` turns that into failure), the
+heaviest system image against a default 10-minute limit, `-accel-check` before
+the SDK existed, and an `emulator-options` override that swapped `-no-snapshot`
+for `-no-snapshot-save`. The other two were the Ubuntu 24.04 defect, which five
+minutes of searching would have found before spending two runs guessing at it.
+**When a failure is unobservable, search before you iterate.**
 
 ## Spec-kit workflow
 

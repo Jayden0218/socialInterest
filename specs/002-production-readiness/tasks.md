@@ -120,7 +120,9 @@ against a live API. Delivers the first evidence the product works at all.
 - [X] T042 [US1] Implement negative journeys N-01 to N-04 in `apps/e2e/journeys/negative.spec.ts` using the **raw HTTP helper** from T010, deliberately bypassing the data layer so each drives the path a hostile client would take (Principle III)
 - [X] T043 [US1] Wire `pnpm --filter @sih/e2e test` into CI and confirm the whole suite passes on a runner with no cloud credentials
 - [X] T044 [US1] Write the Tier B device runbook in `docs/verification/tier-b-runbook.md`, recording that the cloud sandbox has no public inbound route and this tier must run on a developer machine
-- [ ] T045 [US1] ⛔ **Requires physical hardware** — perform one Tier B pass on an iOS and an Android device and record two Journey Runs in `docs/verification/runs/`. Not completable in the cloud sandbox; do not tick from a simulator
+- [ ] T045 [US1] **Owner decision 2026-09-06: a cloud device is acceptable in place of physical hardware.** Perform one Tier B pass on Android via the cloud-device route in `docs/verification/tier-b-runbook.md` (`android-emulator.yml`, `workflow_dispatch`) and record a Journey Run in `docs/verification/runs/` marked `tier B / cloud device (emulator)`. The run must state, on its face, that it is emulator-based and not hardware — Principle V is not repealed by this decision, it is knowingly accepted, and a run that reads as a hardware pass would be a false record. **Superseded wording:** "Requires physical hardware … do not tick from a simulator."
+  - **Not closed by this task, and to be recorded `not run` rather than `pass`:** J-05 publish a video (no video fixture and no native picker in this build), and every iOS journey (the Simulator is macOS-only). iOS remains genuinely unverified.
+  - **What a cloud device still cannot show:** camera capture, real network conditions, vendor OS behaviour, battery and thermal effects. If any of those matter before a public release, this task is not a substitute for a hardware pass.
 
 **Checkpoint**: the product is demonstrably functional end to end for the first time.
 
@@ -229,15 +231,26 @@ unmeasured.
 
 ## Phase 8: Browser journeys (added 2026-09-05)
 
-**Why this exists.** T045 is unreachable from here: every route to a device —
-EAS Build, a local Android SDK, or a tunnel to a device farm — is blocked by the
-environment's network allowlist, which this session cannot change. But T045 was
-covering two different risks, and only one of them needs hardware.
+**Why this exists.** Written when T045 looked unreachable from here — every
+route to a device appeared blocked by the environment's network allowlist. Two
+of those three claims have since turned out to be wrong, and the correction is
+worth keeping because the same mistake was made three times in one session:
+
+- **A local Android SDK is not blocked.** The owner widened the allowlist on
+  2026-09-05 and an APK now builds end to end here (`tier-b-runbook.md`).
+- **A device farm still needs a hosted API**, so that route is gated on the
+  hosting decision, not on the allowlist.
+- **The emulator route needs neither**, because the emulator and the API sit on
+  one CI runner and talk over `10.0.2.2`.
+
+What has *not* changed is the split below: T045 was covering two different
+risks, and only one of them needs hardware.
 
 | Risk | Covered by |
 |---|---|
-| Permissions, camera, photo library, backgrounding, real network | Hardware only — stays open as T045 |
-| **The UI has never rendered against a live server** | Closable here |
+| Permissions, camera, photo library, backgrounding, real network | Hardware only — **still open**, and a cloud device does not close it |
+| The UI has never rendered against a live server | Closed by the browser journeys (T046–T048) |
+| **A person cannot actually reach most of the product** | Found 2026-09-06: the shell mounted three of six containers and had no sign-in screen, so publish, comments, report and block were unreachable on any device. Closed by wiring the navigation |
 
 The second is real and untested: the data layer is exercised by 22 journeys over
 HTTP, and the components by 31 render tests, but the two have never run together.

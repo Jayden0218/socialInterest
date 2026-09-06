@@ -1,0 +1,23 @@
+# J-04 publish an image.
+#
+# Exercises the real path: presign, PUT the bytes, then publish referencing the
+# upload the server itself issued. FR-006 keeps publish disabled until an
+# interest is chosen, so choosing one is part of the journey, not setup.
+appId: app.socialinterest
+---
+- runFlow: 01-sign-in.yaml
+- tapOn:
+    id: "open-compose"
+- assertVisible:
+    id: "compose-screen"
+- tapOn:
+    id: "interest-option-0"
+- tapOn:
+    id: "caption-input"
+- inputText: "published from a cloud device"
+- assertVisible:
+    id: "publish-button"
+- tapOn:
+    id: "publish-button"
+- assertNotVisible:
+    id: "compose-error"
