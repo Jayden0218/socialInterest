@@ -264,4 +264,70 @@ describe('browser journeys - the screens the shell could not reach', () => {
     // every surface - this assertion is the regression guard for that.
     expect(await page.$(id('block-person'))).not.toBeNull();
   });
+
+  /**
+   * 004/US1 on the running app, not on the data layer.
+   *
+   * The journeys prove the SERVICE. They say nothing about whether anything in
+   * the app calls it, which is the defect this codebase produces most often -
+   * four times so far, every one passing its own render test. So this drives the
+   * real entry point: a profile, the Message button, the composer, and the
+   * message read back through the service.
+   */
+  it('004/J-13 a conversation is reachable from a profile, and a message reaches the server', async () => {
+    const me = await actor('webchatme');
+    const them = await actor('webchatthem');
+
+    await signInThroughTheScreen(me.token);
+
+    // Seeded server-side so this case is about the INBOX route specifically;
+    // the profile route into a conversation is the next case.
+    const conversation = await me.data.conversations.open(them.handle);
+    await page.click(id('tab-chats'));
+    await page.waitForSelector(id('inbox-screen'), { timeout: 20_000 });
+    await page.click(id('inbox-requested'));
+    await page.waitForSelector(id(`open-conversation-${conversation.conversationId}`), {
+      timeout: 20_000,
+    });
+    await page.click(id(`open-conversation-${conversation.conversationId}`));
+
+    await page.waitForSelector(id('message-input'), { timeout: 20_000 });
+    await page.fill(id('message-input'), 'typed into the real composer');
+    await page.click(id('send-message'));
+
+    // Asserted through the SERVICE, not the view hierarchy. A message rendered
+    // optimistically in the list would satisfy a DOM assertion and prove nothing.
+    await page.waitForSelector(id('message-list'), { timeout: 20_000 });
+    const delivered = await them.data.conversations.messages(conversation.conversationId, {
+      limit: 20,
+    });
+    expect(delivered.items.map((m) => m.body)).toContain('typed into the real composer');
+  }, 120_000);
+
+  it('004/J-14 the Message button on a profile is present and wired', async () => {
+    const me = await actor('webmsgbtnme');
+    const them = await actor('webmsgbtnthem');
+    const catalogue = await me.data.interests.listTop({ limit: 1 });
+    const interestId = catalogue.items[0]!.interestId;
+    await me.data.interests.follow(interestId);
+    const postId = await publishReadyImage(them, [interestId], { caption: 'find the author' });
+
+    await signInThroughTheScreen(me.token);
+    await page.click(id('tab-feed'));
+    await page.waitForSelector(id(`post-${postId}`), { timeout: 30_000 });
+    await page.click(id(`post-${postId}`));
+    await page.waitForSelector(id('open-author'), { timeout: 20_000 });
+    await page.click(id('open-author'));
+
+    // The button rendering at all is the assertion. `ProfileContainer` passed
+    // `() => undefined` for its follow callback for an entire feature, so the
+    // control existed and did nothing; a present-and-wired check is the guard.
+    await page.waitForSelector(id('message-person'), { timeout: 20_000 });
+    await page.click(id('message-person'));
+    await page.waitForSelector(id('conversation-screen'), { timeout: 20_000 });
+
+    // And it reached the RIGHT conversation, not merely a conversation.
+    const conversation = await me.data.conversations.open(them.handle);
+    expect(conversation.other.handle).toBe(them.handle);
+  }, 120_000);
 });

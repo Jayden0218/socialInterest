@@ -142,21 +142,21 @@ the request inbox, and block severance. They are tasks in this phase, not a late
 
 ### Mobile for User Story 1
 
-- [ ] T047 [P] [US1] Create the conversations data layer — inbox, open, messages with `wait`, send, accept, decline, read — in `apps/mobile/src/data/conversations.ts`. **No react-native imports below this file**; `apps/e2e` drives these exact modules in Node
-- [ ] T048 [US1] Register `ConversationsData` on `AppData` in `apps/mobile/src/data/index.ts` 🔒
-- [ ] T049 [P] [US1] Build `InboxScreen` with an Accepted/Requests segmented control, unread counts, and an empty state, in `apps/mobile/src/features/conversations/InboxScreen.tsx`
-- [ ] T050 [P] [US1] Build `ConversationScreen` with a long-poll loop that stops on blur and resumes on focus, in `apps/mobile/src/features/conversations/ConversationScreen.tsx`
-- [ ] T051 [P] [US1] Build `SharedPostBubble` rendering an unavailable shared post as "not available to you" / "no longer available" rather than an empty bubble, in `apps/mobile/src/features/conversations/SharedPostBubble.tsx`
-- [ ] T052 [US1] Add `InboxContainer` and `ConversationContainer` in `apps/mobile/src/screens/index.tsx`, loading real data and wiring every callback. **No `() => undefined`** — that exact placeholder is why the follow button, the comment sheet and the report action were all unreachable on device 🔒
-- [ ] T053 [US1] Mount the Chats tab and the conversation route in `apps/mobile/src/App.tsx`, and add a "Message" action to `ProfileScreen` so a conversation is reachable from the app's own entry points 🔒
-- [ ] T054 [US1] Add "Send to a conversation" to `apps/mobile/src/features/engagement/ShareAction.tsx`
+- [X] T047 [P] [US1] Create the conversations data layer — inbox, open, messages with `wait`, send, accept, decline, read — in `apps/mobile/src/data/conversations.ts`. **No react-native imports below this file**; `apps/e2e` drives these exact modules in Node
+- [X] T048 [US1] Register `ConversationsData` on `AppData` in `apps/mobile/src/data/index.ts` 🔒
+- [X] T049 [P] [US1] Build `InboxScreen` with an Accepted/Requests segmented control, unread counts, and an empty state, in `apps/mobile/src/features/conversations/InboxScreen.tsx`
+- [X] T050 [P] [US1] Build `ConversationScreen` with a long-poll loop that stops on blur and resumes on focus, in `apps/mobile/src/features/conversations/ConversationScreen.tsx`
+- [X] T051 [P] [US1] Build `SharedPostBubble` rendering an unavailable shared post as "not available to you" / "no longer available" rather than an empty bubble, in `apps/mobile/src/features/conversations/SharedPostBubble.tsx`
+- [X] T052 [US1] Add `InboxContainer` and `ConversationContainer` in `apps/mobile/src/screens/index.tsx`, loading real data and wiring every callback. **No `() => undefined`** — that exact placeholder is why the follow button, the comment sheet and the report action were all unreachable on device 🔒
+- [X] T053 [US1] Mount the Chats tab and the conversation route in `apps/mobile/src/App.tsx`, and add a "Message" action to `ProfileScreen` so a conversation is reachable from the app's own entry points 🔒
+- [X] T054 [US1] Add "Send to a conversation" to `apps/mobile/src/features/engagement/ShareAction.tsx`
 
 ### Device verification for User Story 1
 
-- [ ] T055 [P] [US1] Write `.maestro/13-send-message.yaml`: Chats tab → conversation → send → assert the message through `GET /v1/conversations/{id}/messages`, not through the view hierarchy
-- [ ] T056 [P] [US1] Write `.maestro/14-message-request.yaml`: a stranger's first message appears under Requests and produces no notification
-- [ ] T057 [US1] Run `node scripts/verify-maestro-ids.mjs` and add any missing `testID`s to the new screens
-- [ ] T058 [US1] Checkpoint: `pnpm --filter @sih/e2e test -- conversations` green; `test:visibility` reports **336/462, 3 surfaces unbuilt**; SC-001 measured under 2 s and SC-003 measured at zero
+- [X] T055 [P] [US1] Write `.maestro/13-send-message.yaml`: Chats tab → conversation → send → assert the message through `GET /v1/conversations/{id}/messages`, not through the view hierarchy
+- [X] T056 [P] [US1] Write `.maestro/14-message-request.yaml`: a stranger's first message appears under Requests and produces no notification
+- [X] T057 [US1] Run `node scripts/verify-maestro-ids.mjs` and add any missing `testID`s to the new screens
+- [X] T058 [US1] Checkpoint: `pnpm --filter @sih/e2e test -- conversations` green (16 cases); `test:visibility` reports **336/462, 3 surfaces unbuilt**; SC-001 measured at **301ms**, SC-003 measured at zero over a 1.5s window, SC-002 verified against a real `docker compose down`. Two browser cases added beyond the plan, driving the running app: the Message button on a profile, and the inbox route into a conversation — because the journeys prove the SERVICE and say nothing about whether the app calls it
 
 **Checkpoint**: chat works end to end, with its safety controls, and nothing else in this
 feature is required for it.

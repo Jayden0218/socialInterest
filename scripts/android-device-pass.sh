@@ -243,9 +243,24 @@ if ! adb shell content query --uri content://media/external/images/media \
   echo "10-publish-from-library.yaml will open an empty gallery."
 fi
 
+# 004/US1. One device cannot drive two people, so the other participant is
+# seeded server-side and the ASSERTION happens in the app - the same shape as
+# the FR-033 fixture above, and for the same reason.
+echo "== seed the conversation fixture (004/US1) =="
+CHAT="$(cd apps/e2e && E2E_BASE_URL=http://127.0.0.1:3000 npx tsx scripts/seed-chat-fixture.ts "$TOKEN")"
+echo "$CHAT"
+REQUESTER="$(echo "$CHAT" | sed -n 's/^REQUESTER=//p')"
+FRIEND="$(echo "$CHAT" | sed -n 's/^FRIEND=//p')"
+REQUEST_BODY="$(echo "$CHAT" | sed -n 's/^REQUEST_BODY=//p')"
+FRIEND_BODY="$(echo "$CHAT" | sed -n 's/^FRIEND_BODY=//p')"
+[ -n "$REQUESTER" ] && [ -n "$FRIEND" ] && [ -n "$REQUEST_BODY" ] && [ -n "$FRIEND_BODY" ] \
+  || { echo "FAIL: the conversation fixture did not print what the flows need"; exit 1; }
+
 echo "== journeys =="
 maestro test .maestro/ -e TOKEN="$TOKEN" -e PRESENT="$PRESENT" -e ABSENT="$ABSENT" \
   -e AUTHOR="$AUTHOR" \
+  -e REQUESTER="$REQUESTER" -e FRIEND="$FRIEND" \
+  -e REQUEST_BODY="$REQUEST_BODY" -e FRIEND_BODY="$FRIEND_BODY" \
   --format junit --output "$OUT/maestro-junit.xml" \
   --debug-output "$OUT/maestro-debug" || {
     echo "FAIL: a journey did not pass"
@@ -278,5 +293,30 @@ maestro test .maestro/ -e TOKEN="$TOKEN" -e PRESENT="$PRESENT" -e ABSENT="$ABSEN
     echo "==================================================="
     exit 1
   }
+
+# ---------------------------------------------------------------------------
+# Every journey's effect is asserted through the SERVICE, not the view
+# hierarchy. A message rendered optimistically in a list satisfies any DOM
+# assertion and proves nothing about delivery - and every one of the seven
+# product defects the first Android run found was invisible to the view.
+# ---------------------------------------------------------------------------
+echo "== 004/US1: did the typed message actually reach the server? =="
+if ! grep -qE '"method":"POST","path":"/v1/conversations/[^"]*/messages"' /tmp/api.log; then
+  echo "FAIL: no message send reached the API"
+  grep -oE '"method":"[A-Z]+","path":"/v1/conversations[^"]*"' /tmp/api.log | sort | uniq -c || true
+  exit 1
+fi
+if ! grep -qE '"method":"POST","path":"/v1/conversations/[^"]*/accept"' /tmp/api.log; then
+  echo "FAIL: accepting a request did not reach the API"
+  exit 1
+fi
+# The long poll is the delivery mechanism; if the app never issued one, messages
+# arrive only when the screen is reopened and FR-011 is not met on the device.
+if ! grep -qE '"path":"/v1/conversations/[^"]*/messages\?[^"]*wait=' /tmp/api.log; then
+  echo "WARNING: the app never issued a long-poll read. Delivery on device is"
+  echo "not continuous, whatever the journeys showed."
+fi
+echo "conversations API served:"
+grep -oE '"method":"[A-Z]+","path":"/v1/conversations[^"?]*"' /tmp/api.log | sort | uniq -c
 
 echo "PASS: the real APK ran on Android, exercised the real API, and completed the journeys."

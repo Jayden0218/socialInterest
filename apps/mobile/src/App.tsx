@@ -20,7 +20,11 @@ import {
   EditPostContainer,
   EditProfileContainer,
   SharedPostContainer,
+  InboxContainer,
+  ConversationContainer,
+  OpenConversationContainer,
 } from './screens';
+import type { ReportSubject } from './features/safety/SafetyActions';
 import { API_BASE_URL } from './config';
 
 export type Tab = 'feed' | 'discover' | 'chats' | 'notifications' | 'profile';
@@ -28,9 +32,9 @@ export type Tab = 'feed' | 'discover' | 'chats' | 'notifications' | 'profile';
 export const TABS: { key: Tab; label: string }[] = [
   { key: 'feed', label: 'Feed' },
   { key: 'discover', label: 'Discover' },
-  // 004/US1's Chats tab joins here in T053, together with its container. Five
-  // tabs is the ceiling, which is why places live INSIDE Discover (one search
-  // across interests and places) rather than taking a sixth.
+  // 004/US1. Five tabs is the ceiling, which is why places live INSIDE Discover
+  // (one search across interests and places) rather than taking a sixth.
+  { key: 'chats', label: 'Chats' },
   { key: 'notifications', label: 'Activity' },
   { key: 'profile', label: 'You' },
 ];
@@ -59,12 +63,13 @@ export type Route =
   | { name: 'shared-post'; postId: string }
   | { name: 'create-interest'; parentId: string; parentName: string }
   // ---- feature 004
+  | { name: 'open-conversation'; handle: string }
   | { name: 'conversation'; conversationId: string; otherHandle: string }
   | { name: 'place'; placeId: string }
   | { name: 'create-place' }
   | { name: 'saved' }
   | { name: 'people-search' }
-  | { name: 'safety'; subject: 'post' | 'comment' | 'interest'; subjectId: string; authorHandle?: string };
+  | { name: 'safety'; subject: ReportSubject; subjectId: string; authorHandle?: string };
 
 function Header({ title, onBack }: { title: string; onBack: () => void }) {
   return (
@@ -192,13 +197,39 @@ export function Shell() {
         case 'edit-profile':
           return <EditProfileContainer onDone={pop} />;
         case 'person':
-          // T053. Another person's profile, with a follow control that works.
+          // 003/T053. Another person's profile, with a follow control that works.
           return (
             <ProfileContainer
               handle={top.handle}
               isSelf={false}
               onOpenPost={(postId) => push({ name: 'post', postId })}
+              // 004/FR-001. The one way into a conversation from inside the
+              // product; without it the chat surface is reachable only from an
+              // inbox that starts empty.
+              onMessage={(personHandle) => requireSignIn({ name: 'open-conversation', handle: personHandle })}
             />
+          );
+        case 'open-conversation':
+          return (
+            <OpenConversationContainer
+              handle={top.handle}
+              onOpened={(conversationId: string, otherHandle: string) =>
+                setStack((st) => [
+                  ...st.slice(0, -1),
+                  { name: 'conversation', conversationId, otherHandle },
+                ])
+              }
+            />
+          );
+        case 'conversation':
+          return signedIn ? (
+            <ConversationContainer
+              conversationId={top.conversationId}
+              onOpenPost={(postId) => push({ name: 'post', postId })}
+              onReport={(subjectId) => push({ name: 'safety', subject: 'message', subjectId })}
+            />
+          ) : (
+            <SignedOutNotice onSignIn={() => push({ name: 'sign-in' })} />
           );
         case 'shared-post':
           // Landed here from a share link, so Back would go nowhere: the action
@@ -263,9 +294,15 @@ export function Shell() {
               <DiscoverContainer onSelect={(interestId) => push({ name: 'interest', interestId })} />
             );
           case 'chats':
-            // Mounted by 004/T053, which is also when it joins TABS. Until then
-            // the tab is unreachable rather than blank.
-            return <SignedOutNotice onSignIn={() => push({ name: 'sign-in' })} />;
+            return signedIn ? (
+              <InboxContainer
+                onOpen={(conversationId, otherHandle) =>
+                  push({ name: 'conversation', conversationId, otherHandle })
+                }
+              />
+            ) : (
+              <SignedOutNotice onSignIn={() => push({ name: 'sign-in' })} />
+            );
           case 'notifications':
             return <NotificationsContainer onOpen={(id) => push({ name: 'post', postId: id })} />;
           case 'profile':

@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { HomeFeedScreen } from '../features/feed/HomeFeedScreen';
 import { InterestSearchScreen } from '../features/discover/InterestSearchScreen';
 import { NotificationsScreen } from '../features/notifications/NotificationsScreen';
+import { InboxScreen } from '../features/conversations/InboxScreen';
+import { ConversationScreen } from '../features/conversations/ConversationScreen';
+import type { Conversation, ConversationState, ConversationSummary, Message } from '@sih/shared';
 import { useHomeFeed, useInterestSearch, useNotifications, usePaged } from '../containers';
 import { theme } from '../ui/theme';
 import { Button, Row } from '../ui/primitives';
@@ -100,7 +103,6 @@ export function NotificationsContainer({ onOpen }: { onOpen: (postId: string) =>
 
 /* --- post detail, comments, safety: the remaining screens, wired --- */
 
-import { useCallback, useEffect } from 'react';
 import type { Post } from '@sih/shared';
 import { PostDetailScreen } from '../features/posts/PostDetailScreen';
 import { EditPostScreen, type EditPostDraft } from '../features/posts/EditPostScreen';
@@ -446,10 +448,13 @@ export function ProfileContainer({
   handle,
   isSelf,
   onOpenPost,
+  onMessage,
 }: {
   handle: string;
   isSelf: boolean;
   onOpenPost: (postId: string) => void;
+  /** 004/FR-001. Not passed for your own profile - you cannot message yourself. */
+  onMessage?: (personHandle: string) => void;
 }) {
   const data = useData();
   const [profile, setProfile] = useState<ProfileData | null>(null);
@@ -556,6 +561,9 @@ export function ProfileContainer({
       isSelf={isSelf}
       followPending={pending}
       onToggleFollow={(next) => void toggleFollow(next)}
+      {...(onMessage && !isSelf && profile.handle
+        ? { onMessage: () => onMessage(profile.handle) }
+        : {})}
       onLoadMore={loadMore}
       renderPost={(post) => (
         <PostRow postId={post.postId} caption={post.caption ?? ''} onOpen={onOpenPost} />
@@ -694,6 +702,9 @@ export function ShareContainer({ postId, onDone }: { postId: string; onDone: () 
   const data = useData();
   const [post, setPost] = useState<Post | null>(null);
   const [url, setUrl] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<
+    { conversationId: string; displayName: string }[]
+  >([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -705,6 +716,18 @@ export function ShareContainer({ postId, onDone }: { postId: string; onDone: () 
         setPost(p);
         const link = await data.posts.shareLink(postId);
         if (live) setUrl(link.url);
+        // 004/FR-009. Accepted conversations only - sending a post into a
+        // REQUEST would deliver content to somebody who has not agreed to hear
+        // from you, which is the thing the request inbox exists to prevent.
+        const inbox = await data.conversations.list({ state: 'accepted', limit: 10 });
+        if (live) {
+          setConversations(
+            inbox.items.map((c) => ({
+              conversationId: c.conversationId,
+              displayName: c.other.displayName,
+            })),
+          );
+        }
       })
       .catch((e: unknown) => live && setError(e instanceof DataError ? e.message : String(e)));
     return () => {
@@ -712,14 +735,24 @@ export function ShareContainer({ postId, onDone }: { postId: string; onDone: () 
     };
   }, [data, postId]);
 
+  const sendToConversation = useCallback(
+    async (conversationId: string) => {
+      await data.conversations.send(conversationId, { sharedPostId: postId });
+      onDone();
+    },
+    [data, postId, onDone],
+  );
+
   if (error) return <Failed message={error} />;
   if (!post || url === null) return <View testID="share-loading" />;
   return (
     <ShareAction
       visibility={post.visibility}
       url={url}
+      conversations={conversations}
       onCopy={onDone}
       onShare={onDone}
+      onSendToConversation={(id) => void sendToConversation(id)}
     />
   );
 }
@@ -1000,4 +1033,228 @@ export function SharedPostContainer({ postId, onJoin }: { postId: string; onJoin
 
   if (status === null) return <View testID="shared-post-loading" />;
   return <SharedPostScreen status={status} {...(post ? { post } : {})} onJoin={onJoin} />;
+}
+
+// ---------------------------------------------------------------- feature 004
+
+/**
+ * The inbox (FR-003, FR-010).
+ *
+ * Two inboxes, each its own request. Not one list filtered in the client: the
+ * server partitions them, and a client-side filter would page wrongly - twenty
+ * rows fetched, three shown.
+ */
+export function InboxContainer({
+  onOpen,
+}: {
+  onOpen: (conversationId: string, otherHandle: string) => void;
+}) {
+  const data = useData();
+  const [inbox, setInbox] = useState<ConversationState>('accepted');
+  const [items, setItems] = useState<ConversationSummary[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(
+    async (state: ConversationState) => {
+      try {
+        setItems((await data.conversations.list({ state, limit: 30 })).items);
+        setError(null);
+      } catch (err) {
+        // Never an empty list for a failed load: "no messages yet" for a dropped
+        // connection is the mistake this shape exists to prevent.
+        setError(err instanceof DataError ? err.problem.title ?? 'Could not load messages' : 'Could not load messages');
+      }
+    },
+    [data],
+  );
+
+  useEffect(() => {
+    void load(inbox);
+  }, [load, inbox]);
+
+  if (error) return <Failed message={error} />;
+  return (
+    <InboxScreen
+      state={inbox}
+      conversations={items}
+      onSelectInbox={setInbox}
+      onOpen={(c) => onOpen(c.conversationId, c.other.handle)}
+    />
+  );
+}
+
+/**
+ * One conversation, with the long poll (FR-011).
+ *
+ * The loop re-issues as soon as each request settles, so there is exactly one
+ * in flight at a time and delivery is sub-second. It stops on unmount - a
+ * running poll after the screen is gone holds a connection nobody is reading.
+ */
+export function ConversationContainer({
+  conversationId,
+  onOpenPost,
+  onReport,
+}: {
+  conversationId: string;
+  onOpenPost: (postId: string) => void;
+  onReport: (subjectId: string) => void;
+}) {
+  const data = useData();
+  const [conversation, setConversation] = useState<Conversation | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [viewerId, setViewerId] = useState('');
+  const [draft, setDraft] = useState('');
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const live = useRef(true);
+  const cursor = useRef<string | undefined>(undefined);
+
+  const refreshConversation = useCallback(async () => {
+    try {
+      setConversation(await data.conversations.get(conversationId));
+    } catch (err) {
+      setError(err instanceof DataError ? err.problem.title ?? 'Not found' : 'Not found');
+    }
+  }, [data, conversationId]);
+
+  useEffect(() => {
+    live.current = true;
+    void data.session.me().then((me) => live.current && setViewerId(me.userId));
+    void refreshConversation();
+
+    const absorb = (page: { items: Message[] }): void => {
+      if (page.items.length === 0) return;
+      cursor.current = page.items[page.items.length - 1]!.messageId;
+      setMessages((prev) => {
+        const byId = new Map(prev.map((m) => [m.messageId, m]));
+        // Replace rather than append: a message can CHANGE - a shared post stops
+        // resolving, or moderation removes the body - and appending would keep
+        // showing the version that was fetched first.
+        for (const m of page.items) byId.set(m.messageId, m);
+        return [...byId.values()].sort((a, b) => a.messageId.localeCompare(b.messageId));
+      });
+      void data.conversations
+        .markRead(conversationId, page.items[page.items.length - 1]!.messageId)
+        .catch(() => undefined);
+    };
+
+    void (async () => {
+      try {
+        absorb(await data.conversations.messages(conversationId, { limit: 50 }));
+      } catch (err) {
+        if (live.current) {
+          setError(err instanceof DataError ? err.problem.title ?? 'Not found' : 'Not found');
+        }
+        return;
+      }
+      while (live.current) {
+        try {
+          absorb(
+            await data.conversations.messages(conversationId, {
+              ...(cursor.current ? { after: cursor.current } : {}),
+              waitSeconds: 25,
+            }),
+          );
+        } catch {
+          // A failed poll must not spin. Back off, then carry on - the
+          // conversation may simply have been severed while it was open.
+          await new Promise((r) => setTimeout(r, 2000));
+          if (live.current) await refreshConversation();
+        }
+      }
+    })();
+
+    return () => {
+      live.current = false;
+    };
+  }, [data, conversationId, refreshConversation]);
+
+  const send = useCallback(async () => {
+    setSending(true);
+    try {
+      await data.conversations.send(conversationId, { body: draft });
+      setDraft('');
+      await refreshConversation();
+    } catch (err) {
+      setError(err instanceof DataError ? err.problem.title ?? 'Could not send' : 'Could not send');
+    } finally {
+      setSending(false);
+    }
+  }, [data, conversationId, draft, refreshConversation]);
+
+  const respond = useCallback(
+    async (decision: 'accept' | 'decline') => {
+      await (decision === 'accept'
+        ? data.conversations.accept(conversationId)
+        : data.conversations.decline(conversationId));
+      await refreshConversation();
+    },
+    [data, conversationId, refreshConversation],
+  );
+
+  if (error) return <Failed message={error} />;
+  if (!conversation) return <Failed message="Loading…" />;
+  return (
+    <ConversationScreen
+      conversation={conversation}
+      messages={messages}
+      viewerId={viewerId}
+      draft={draft}
+      sending={sending}
+      onDraftChange={setDraft}
+      onSend={() => void send()}
+      onAccept={() => void respond('accept')}
+      onDecline={() => void respond('decline')}
+      onOpenPost={onOpenPost}
+      // A message is reported as `<conversationId>:<messageId>` - a message id
+      // alone does not locate a message, and the composite is the only form a
+      // participant can produce.
+      onReport={(messageId) => onReport(`${conversationId}:${messageId}`)}
+    />
+  );
+}
+
+/**
+ * Resolves a handle to a conversation, then hands over.
+ *
+ * `PUT /conversations/with/{handle}` is idempotent - the id is derived from the
+ * participant pair - so this is safe to re-enter and never makes a second
+ * thread. It REPLACES itself on the stack rather than pushing, so Back from the
+ * conversation returns to the profile rather than to a screen that immediately
+ * opens the conversation again.
+ */
+export function OpenConversationContainer({
+  handle,
+  onOpened,
+}: {
+  handle: string;
+  onOpened: (conversationId: string, otherHandle: string) => void;
+}) {
+  const data = useData();
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    void (async () => {
+      try {
+        const conversation = await data.conversations.open(handle);
+        if (live) onOpened(conversation.conversationId, conversation.other.handle);
+      } catch (err) {
+        // 404 here means blocked OR no such person, deliberately - the block
+        // must not be disclosed, so the copy cannot distinguish them either.
+        if (live) {
+          setError(
+            err instanceof DataError && err.status === 404
+              ? 'This person is not available.'
+              : 'Could not open the conversation.',
+          );
+        }
+      }
+    })();
+    return () => {
+      live = false;
+    };
+  }, [data, handle, onOpened]);
+
+  return <Failed message={error ?? 'Opening…'} />;
 }

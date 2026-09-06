@@ -37,6 +37,7 @@ export function ProfileScreen({
   isSelf,
   followPending = false,
   onToggleFollow,
+  onMessage,
   onLoadMore,
   renderPost,
 }: {
@@ -47,6 +48,8 @@ export function ProfileScreen({
   /** Disables the control while the server decides. FR-034 can refuse. */
   followPending?: boolean;
   onToggleFollow: (next: boolean) => void;
+  /** 004/FR-001. Absent on your own profile - you cannot message yourself. */
+  onMessage?: () => void;
   onLoadMore: () => void;
   renderPost: (post: Post, index: number) => React.ReactElement;
 }) {
@@ -86,6 +89,20 @@ export function ProfileScreen({
             <Text testID="follow-hint" style={{ fontSize: theme.font.sm, color: theme.color.muted }}>
               {followHint(profile, viewerFollowsAnyOfTheirInterests)}
             </Text>
+            {/*
+              004/FR-001. The ONE entry point to a conversation from inside the
+              product. Without it the whole chat surface is reachable only from
+              an inbox that starts empty, which is the "screen exists, nothing
+              opens it" shape four times over in this codebase.
+            */}
+            {onMessage ? (
+              <Button
+                testID="message-person"
+                label="Message"
+                variant="secondary"
+                onPress={onMessage}
+              />
+            ) : null}
           </View>
         ) : null}
       </View>

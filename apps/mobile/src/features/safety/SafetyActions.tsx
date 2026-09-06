@@ -2,7 +2,19 @@ import { Pressable, Text, View } from 'react-native';
 import { theme } from '../../ui/theme';
 import { Banner, Button, Screen } from '../../ui/primitives';
 
-export type ReportSubject = 'post' | 'comment' | 'interest';
+/**
+ * Every user-generated thing a person can report.
+ *
+ * 004/FR-042 adds three, and they arrive in the SAME release as the content
+ * they cover - Constitution IV names safety deferred as safety cancelled.
+ */
+export type ReportSubject =
+  | 'post'
+  | 'comment'
+  | 'interest'
+  | 'message'
+  | 'place'
+  | 'interest-description';
 
 export const REPORT_REASONS = [
   { value: 'spam', label: 'Spam' },
@@ -27,6 +39,12 @@ export function reportActionLabel(subject: ReportSubject): string {
       return 'Report this comment';
     case 'interest':
       return 'Report this interest name';
+    case 'interest-description':
+      return 'Report this description';
+    case 'message':
+      return 'Report this message';
+    case 'place':
+      return 'Report this place';
   }
 }
 

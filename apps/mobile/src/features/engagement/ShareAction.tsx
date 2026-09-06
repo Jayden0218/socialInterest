@@ -27,13 +27,18 @@ export function isShareable(visibility: Visibility): boolean {
 export function ShareAction({
   visibility,
   url,
+  conversations,
   onCopy,
   onShare,
+  onSendToConversation,
 }: {
   visibility: Visibility;
   url: string;
+  /** 004/FR-009. Empty when there is nobody to send to yet. */
+  conversations?: { conversationId: string; displayName: string }[];
   onCopy: () => void;
   onShare: () => void;
+  onSendToConversation?: (conversationId: string) => void;
 }) {
   const warning = shareWarning(visibility);
 
@@ -54,6 +59,29 @@ export function ShareAction({
         disabled={!isShareable(visibility)}
         onPress={onShare}
       />
+
+      {/*
+        004/FR-009. Sending a post INTO a conversation is not the same as sharing
+        a link: the post is a reference the recipient's own visibility is
+        evaluated against at read time, so it can stop resolving later. The link
+        warning above still applies for the same reason, which is why this sits
+        under it rather than replacing it.
+      */}
+      {onSendToConversation && conversations && conversations.length > 0 ? (
+        <View testID="share-to-conversations" style={{ gap: theme.space.xs }}>
+          <Text style={{ fontSize: theme.font.sm, color: theme.color.muted }}>Send to</Text>
+          {conversations.map((c) => (
+            <Button
+              key={c.conversationId}
+              testID={`share-to-${c.conversationId}`}
+              label={c.displayName}
+              variant="secondary"
+              disabled={!isShareable(visibility)}
+              onPress={() => onSendToConversation(c.conversationId)}
+            />
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 }

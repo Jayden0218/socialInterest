@@ -1,0 +1,41 @@
+# 004/US1, J-13. A conversation is reachable and a message reaches the server.
+#
+# The flow starts from the CHATS TAB, not from a deep link into the conversation
+# screen. Four defects in this codebase were a screen that worked and nothing
+# that mounted it, every one passing its own render test - so entering through
+# the app's own navigation is the whole point.
+#
+# The assertion that the message ARRIVED is made service-side, after the run, by
+# scripts/android-device-pass.sh. A message rendered optimistically in the list
+# would satisfy any assertion this file could make and prove nothing.
+appId: app.socialinterest
+---
+- runFlow: 01-sign-in.yaml
+
+- tapOn:
+    id: "tab-chats"
+- assertVisible:
+    id: "inbox-screen"
+
+# The main inbox: the seeded conversation from somebody this person follows.
+- extendedWaitUntil:
+    visible: "${FRIEND_BODY}"
+    timeout: 30000
+- tapOn:
+    id: "open-conversation-.*"
+- assertVisible:
+    id: "conversation-screen"
+- assertVisible: "${FRIEND_BODY}"
+
+- tapOn:
+    id: "message-input"
+- inputText: "a message typed on a real device"
+- hideKeyboard
+- tapOn:
+    id: "send-message"
+
+# The list is present and the composer cleared. Neither proves delivery - that
+# is checked against the API afterwards.
+- assertVisible:
+    id: "message-list"
+- assertVisible: "a message typed on a real device"
