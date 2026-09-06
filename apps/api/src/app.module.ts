@@ -13,6 +13,7 @@ import { SafetyModule } from './modules/safety/safety.module';
 import { ModerationModule } from './modules/moderation/moderation.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PostsModule } from './modules/posts/posts.module';
+import { ConversationsModule } from './modules/conversations/conversations.module';
 import { AuthGuard } from './common/auth/auth.guard';
 import { RateLimitGuard } from './common/rate-limit/rate-limit.guard';
 import { LoggerMiddleware } from './common/logging/logger.middleware';
@@ -33,6 +34,7 @@ import { HealthController } from './modules/health/health.controller';
     SafetyModule,
     ModerationModule,
     NotificationsModule,
+    ConversationsModule,
   ],
   controllers: [HealthController],
   providers: [

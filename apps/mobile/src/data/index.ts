@@ -17,6 +17,7 @@ import { SafetyData } from './safety';
 import { NotificationsData } from './notifications';
 import { SessionData } from './session';
 import { PeopleData } from './people';
+import { ConversationsData } from './conversations';
 
 export interface AppData {
   client: DataClient;
@@ -28,6 +29,7 @@ export interface AppData {
   engagement: EngagementData;
   safety: SafetyData;
   notifications: NotificationsData;
+  conversations: ConversationsData;
 }
 
 export function createAppData(opts: DataClientOptions): AppData {
@@ -42,6 +44,7 @@ export function createAppData(opts: DataClientOptions): AppData {
     engagement: new EngagementData(client),
     safety: new SafetyData(client),
     notifications: new NotificationsData(client),
+    conversations: new ConversationsData(client),
   };
 }
 

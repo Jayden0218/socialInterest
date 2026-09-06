@@ -143,6 +143,70 @@ export class ConversationRepository extends BaseRepository {
   }
 
   /**
+   * A message plus both inbox rows, in one transaction.
+   *
+   * Three items, fixed. The author's row gets a fresh `lastReadAt` because you
+   * have read what you just sent; the other's `unreadCount` goes up. Both get a
+   * new gsi5sk, which is what moves the conversation to the top of the inbox -
+   * and because that is a GSI SORT key it is updated by writing the attribute,
+   * with no delete-and-reinsert.
+   */
+  async applyMessage(input: {
+    conversation: ConversationItem;
+    messagePut: Record<string, unknown>;
+    authorId: string;
+    preview: string;
+    now: string;
+  }): Promise<void> {
+    const { conversation, messagePut, authorId, preview, now } = input;
+    await this.transact([
+      { Put: { TableName: this.tableName, Item: messagePut } },
+      {
+        Update: {
+          TableName: this.tableName,
+          Key: keys.conversation(conversation.conversationId),
+          UpdateExpression: 'SET lastMessageAt = :now',
+          ExpressionAttributeValues: { ':now': now },
+        },
+      },
+      ...conversation.participantIds.map((userId) => {
+        const isAuthor = userId === authorId;
+        return {
+          Update: {
+            TableName: this.tableName,
+            Key: keys.conversationParticipant(userId, conversation.conversationId),
+            UpdateExpression:
+              'SET lastMessageAt = :now, lastMessagePreview = :p, gsi5sk = :isk' +
+              (isAuthor ? ', lastReadAt = :now' : ' ADD unreadCount :one'),
+            ExpressionAttributeValues: {
+              ':now': now,
+              ':p': preview,
+              ':isk': keys.conversationInbox(userId, conversation.state, now).gsi5sk,
+              ...(isAuthor ? {} : { ':one': 1 }),
+            },
+          },
+        };
+      }),
+    ]);
+  }
+
+  /**
+   * FR-010. Clears the unread count as of a point in time.
+   *
+   * REMOVE, not SET 0: a count that is set to zero races a message arriving
+   * between the read and the write, and the person then never sees it as unread.
+   * Clearing the attribute and recomputing from `lastReadAt` would be stricter
+   * still; this is the version whose failure mode is an over-count, not an
+   * under-count, which is the right direction to be wrong in.
+   */
+  async markRead(userId: string, conversationId: string, upTo: string): Promise<void> {
+    await this.updateItem(keys.conversationParticipant(userId, conversationId), {
+      lastReadAt: upTo,
+      unreadCount: 0,
+    });
+  }
+
+  /**
    * Moves a conversation to a new state, on the meta item and both inbox rows,
    * atomically. Rewriting gsi5pk is what moves it between inboxes.
    */

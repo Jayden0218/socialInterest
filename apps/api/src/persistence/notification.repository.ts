@@ -3,7 +3,7 @@ import { ulid } from 'ulid';
 import { BaseRepository, type Page } from './base.repository';
 import { keys, SK_PREFIX } from './keys';
 
-export type NotificationKind = 'reaction' | 'comment' | 'follow';
+export type NotificationKind = 'reaction' | 'comment' | 'follow' | 'message';
 
 export interface NotificationItem {
   notificationId: string;

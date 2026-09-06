@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { NotificationRepository, type NotificationItem } from '../../persistence/notification.repository';
 import { PersonRepository } from '../../persistence/person.repository';
 import { PostRepository } from '../../persistence/post.repository';
+import { ConversationRepository } from '../../persistence/conversation.repository';
 import { PostQueryService } from '../posts/post-query.service';
 import { EVENT_BUS, type EventBus } from '../../ports';
 
@@ -26,6 +27,7 @@ export class NotificationService implements OnModuleInit {
     @Inject(PersonRepository) private readonly people: PersonRepository,
     @Inject(PostRepository) private readonly posts: PostRepository,
     @Inject(PostQueryService) private readonly queries: PostQueryService,
+    @Inject(ConversationRepository) private readonly conversations: ConversationRepository,
     @Inject(EVENT_BUS) private readonly events: EventBus,
   ) {}
 
@@ -38,6 +40,38 @@ export class NotificationService implements OnModuleInit {
       const { postId, authorId } = e.payload as { postId: string; authorId: string };
       await this.notifyPostAuthor(postId, 'comment', authorId);
     });
+    // 004/FR-004, FR-031. A REQUESTED conversation notifies nobody until it is
+    // accepted - the request inbox withholds the notification, not the content.
+    this.events.subscribe('message.created', async (e) => {
+      const { conversationId, authorId } = e.payload as {
+        conversationId: string;
+        authorId: string;
+      };
+      await this.notifyOtherParticipant(conversationId, authorId);
+    });
+  }
+
+  /**
+   * 004/FR-004.
+   *
+   * Every check that would normally live in the caller is here instead, for the
+   * same reason the post notifications are: a second place that decides whether
+   * to notify is a second place to get the preference wrong.
+   */
+  private async notifyOtherParticipant(conversationId: string, actorId: string): Promise<void> {
+    const conversation = await this.conversations.find(conversationId);
+    if (!conversation) return;
+    // Not yet accepted: no notification. FR-004 is enforced here rather than at
+    // the send site, so it holds however the message came to exist.
+    if (conversation.state !== 'accepted') return;
+
+    const recipientId = conversation.participantIds.find((id) => id !== actorId);
+    if (!recipientId) return;
+    const recipient = await this.people.findById(recipientId);
+    if (!recipient || recipient.status !== 'active') return;
+    if (recipient.notificationPrefs.message === false) return; // FR-031
+
+    await this.notifications.create({ recipientId, kind: 'message', actorId });
   }
 
   private async notifyPostAuthor(

@@ -5,6 +5,7 @@ import { PostQueryService } from '../../src/modules/posts/post-query.service';
 import { CommentService } from '../../src/modules/engagement/comment.service';
 import { NotificationService } from '../../src/modules/notifications/notification.service';
 import { FeedService } from '../../src/modules/feed/feed.service';
+import { MessagePresenter } from '../../src/modules/conversations/message-presenter';
 import { SURFACES } from './surfaces';
 
 /**
@@ -131,6 +132,7 @@ const PROBES: Probe[] = [
         { findById: async () => ({ userId: 'a1', handle: 'a', displayName: 'A', status: 'active' }) } as never,
         {} as never,
         queries,
+        { find: async () => null } as never,
         { publish: async () => undefined } as never,
       );
       return notifications.listVisible(VIEWER.userId);
@@ -152,6 +154,28 @@ const PROBES: Probe[] = [
         { findById: async () => post, listMedia: async () => [] } as never,
       );
       return feed.homeFeed(VIEWER);
+    },
+  },
+  {
+    surface: 'shared post in a message',
+    // TWO decisions, not one. ConversationAccess decided the reader may see the
+    // THREAD; whether they may see a post shared inside it is answered
+    // separately, per reader, by the post boundary. A presenter that trusted
+    // conversation membership would leak a private post to whoever was in the
+    // conversation.
+    run: ({ queries }) => {
+      const presenter = new MessagePresenter(queries, { listMedia: async () => [] } as never);
+      return presenter.present(VIEWER, [
+        {
+          messageId: 'm1',
+          conversationId: 'c1',
+          authorId: 'a1',
+          body: 'look at this',
+          sharedPostId: 'p1',
+          moderationState: 'visible',
+          createdAt: '2026-01-01T00:00:00Z',
+        },
+      ]);
     },
   },
   {

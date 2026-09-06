@@ -1,7 +1,7 @@
 // GENERATED from specs/001-interest-media-sharing/contracts/openapi.yaml
 // Do not edit by hand. Run: pnpm --filter @sih/shared generate:client
 //
-// 33 operations across 23 paths.
+// 53 operations across 38 paths.
 
 export const operations = {
   getMe: { method: 'GET', path: '/me', auth: true }, // Current person's profile and preferences
@@ -37,6 +37,26 @@ export const operations = {
   getModerationReports: { method: 'GET', path: '/moderation/reports', auth: true }, // The moderation queue, oldest first
   patchModerationReportsByReportId: { method: 'PATCH', path: '/moderation/reports/{reportId}', auth: true }, // Record a moderation decision
   patchModerationInterestsByInterestId: { method: 'PATCH', path: '/moderation/interests/{interestId}', auth: true }, // Re-parent, merge, or retire an interest
+  getConversations: { method: 'GET', path: '/conversations', auth: true }, // The signed-in person's inbox
+  putConversationsWithByHandle: { method: 'PUT', path: '/conversations/with/{handle}', auth: true }, // Open (or fetch) the conversation with a person
+  getConversationsByConversationId: { method: 'GET', path: '/conversations/{conversationId}', auth: true }, // One conversation's state
+  getConversationsByConversationIdMessages: { method: 'GET', path: '/conversations/{conversationId}/messages', auth: true }, // Messages, with optional long-poll
+  postConversationsByConversationIdMessages: { method: 'POST', path: '/conversations/{conversationId}/messages', auth: true }, // Send a message
+  postConversationsByConversationIdAccept: { method: 'POST', path: '/conversations/{conversationId}/accept', auth: true }, // Accept a message request
+  postConversationsByConversationIdDecline: { method: 'POST', path: '/conversations/{conversationId}/decline', auth: true }, // Decline a message request
+  putConversationsByConversationIdRead: { method: 'PUT', path: '/conversations/{conversationId}/read', auth: true }, // Mark read up to a message
+  getPlaces: { method: 'GET', path: '/places', auth: false }, // Search places by name
+  postPlaces: { method: 'POST', path: '/places', auth: true }, // Create a place
+  getPlacesByPlaceId: { method: 'GET', path: '/places/{placeId}', auth: false }, // A place
+  patchPlacesByPlaceId: { method: 'PATCH', path: '/places/{placeId}', auth: true }, // Rename, merge, or retire a place
+  getPlacesByPlaceIdPosts: { method: 'GET', path: '/places/{placeId}/posts', auth: false }, // Posts attached to a place
+  putPlacesByPlaceIdFollow: { method: 'PUT', path: '/places/{placeId}/follow', auth: true }, // Follow a place
+  deletePlacesByPlaceIdFollow: { method: 'DELETE', path: '/places/{placeId}/follow', auth: true }, // Unfollow a place
+  putInterestsByInterestIdDescription: { method: 'PUT', path: '/interests/{interestId}/description', auth: true }, // Set an interest's description
+  getPeople: { method: 'GET', path: '/people', auth: true }, // Search people by handle or display name
+  putPostsByPostIdSave: { method: 'PUT', path: '/posts/{postId}/save', auth: true }, // Save a post
+  deletePostsByPostIdSave: { method: 'DELETE', path: '/posts/{postId}/save', auth: true }, // Unsave a post
+  getMeSaved: { method: 'GET', path: '/me/saved', auth: true }, // The signed-in person's saved posts
 } as const;
 
 export type OperationName = keyof typeof operations;

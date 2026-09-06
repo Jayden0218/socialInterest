@@ -183,4 +183,46 @@ describe('durability — the stack keeps what it is given', () => {
     const still = (await pendingEvents()).filter((e) => e.payload['postId'] === post.postId);
     expect(still).toHaveLength(0);
   });
+
+  /**
+   * 004/SC-002. A conversation survives a full restart, in order, with nothing
+   * lost.
+   *
+   * Worth its own case rather than trusting the post one: messages are the first
+   * thing in this product stored under a DERIVED partition key and read
+   * ascending with a cursor, and both of those are ways to lose or reorder rows
+   * that a post read would never expose.
+   */
+  it('a conversation and its messages survive a full restart, in order', async () => {
+    const a = await actor('durchatA');
+    const b = await actor('durchatB');
+    await b.data.people.follow(a.handle);
+
+    const conv = await a.data.conversations.open(b.handle);
+    const sent = ['one', 'two', 'three', 'four', 'five'];
+    for (const body of sent) {
+      await a.data.conversations.send(conv.conversationId, { body });
+    }
+
+    await stopApi();
+    compose('down');
+    compose('up', '-d');
+    await new Promise((r) => setTimeout(r, 12_000));
+    await startApi();
+    await waitForApi();
+
+    // The id is DERIVED, so it must still resolve after a restart without
+    // anything having been stored to remember it.
+    const reopened = await b.data.conversations.open(a.handle);
+    expect(reopened.conversationId).toBe(conv.conversationId);
+
+    const page = await b.data.conversations.messages(conv.conversationId, { limit: 50 });
+    expect(page.items.map((m) => m.body)).toEqual(sent);
+
+    const inbox = await b.data.conversations.list({ state: 'accepted' });
+    const row = inbox.items.find((c) => c.conversationId === conv.conversationId);
+    expect(row).toBeDefined();
+    expect(row!.unreadCount).toBe(sent.length);
+    expect(row!.lastMessagePreview).toBe('five');
+  });
 });

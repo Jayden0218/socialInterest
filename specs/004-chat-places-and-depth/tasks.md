@@ -117,28 +117,28 @@ the request inbox, and block severance. They are tasks in this phase, not a late
 
 ### Tests for User Story 1
 
-- [ ] T028 [P] [US1] Write the conversation journeys — send/read, long-poll latency, request inbox, accept, decline, block both ways, shared-post resolution, report — in `apps/e2e/journeys/conversations.spec.ts`. **Must fail**
-- [ ] T029 [P] [US1] Write the SC-002 durability spec — restart the API and DynamoDB Local, assert no message lost and no ordering change — in `apps/e2e/durability/conversations.spec.ts`
-- [ ] T030 [P] [US1] Write the FR-012 negative test: a conversation between two people changes neither the contents nor the order of any feed, interest space, place page, or profile, in `apps/api/tests/integration/chat-does-not-widen.spec.ts`
+- [X] T028 [P] [US1] Write the conversation journeys — send/read, long-poll latency, request inbox, accept, decline, block both ways, shared-post resolution, report — in `apps/e2e/journeys/conversations.spec.ts`. **Must fail**
+- [X] T029 [P] [US1] Write the SC-002 durability spec — restart the API and DynamoDB Local, assert no message lost and no ordering change — in `apps/e2e/durability/conversations.spec.ts`
+- [X] T030 [P] [US1] Write the FR-012 negative test: a conversation between two people changes neither the contents nor the order of any feed, interest space, place page, or profile, in `apps/api/tests/integration/chat-does-not-widen.spec.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T031 [US1] Implement the derived conversation id — a hash of the two person ids sorted — with its unit test in `apps/api/src/modules/conversations/conversation-id.ts`. This is what makes opening a conversation idempotent with no uniqueness item and no race (research R8)
-- [ ] T032 [US1] Implement `ConversationService.open` (idempotent; returns the existing thread) in `apps/api/src/modules/conversations/conversation.service.ts`
-- [ ] T033 [US1] Implement inbox listing split by state over GSI5 — accepted and requested are one query each, not one query and a filter — in `apps/api/src/modules/conversations/conversation.service.ts`
-- [ ] T034 [US1] Implement `ConversationService.send`: the message plus both participant rows in one `TransactWriteItems`, updating `lastMessageAt`, `unreadCount` and `lastMessagePreview`, in `apps/api/src/modules/conversations/conversation.service.ts`
-- [ ] T035 [US1] Enforce the request rules on send — at most one unanswered message while `requested` (409), silent discard while `declined` (202), refusal while `severed` (404) — in `apps/api/src/modules/conversations/conversation.service.ts`
-- [ ] T036 [US1] Emit `message.created` on the durable event bus after a successful send, in `apps/api/src/modules/conversations/conversation.service.ts`
-- [ ] T037 [US1] Implement the long-poll message read: return immediately if anything is newer than the cursor, otherwise await `message.created` for this conversation for up to 25 s and return an empty page on timeout, in `apps/api/src/modules/conversations/message-poll.service.ts`
-- [ ] T038 [US1] Implement accept / decline / read-position handlers (meta item plus both participant rows, one transaction) in `apps/api/src/modules/conversations/conversation.service.ts`
-- [ ] T039 [US1] Resolve each message's `sharedPostId` per reader **through `VisibilityFilter`**, returning the message with `sharedPost: null` and `sharedPostUnavailableReason` when excluded, in `apps/api/src/modules/conversations/message-presenter.ts`. Never denormalise a snapshot of the post — that is a materialised copy outliving a visibility change
-- [ ] T040 [US1] Flip **surface 10** (post shared into a conversation) to `built: true` in `apps/api/tests/visibility/matrix.spec.ts` and make its 42 assertions pass 🔒
-- [ ] T041 [US1] Sever conversations in both directions from the existing block path in `apps/api/src/modules/safety/`, and make every refusal a `404` indistinguishable from non-existence
-- [ ] T042 [US1] Suppress notifications for `requested` conversations and create them for `accepted` ones, in `apps/api/src/modules/notifications/`
-- [ ] T043 [US1] Add message reporting to the existing queue and audit log, and make a `removed` message withhold its body while leaving the thread readable, in `apps/api/src/modules/moderation/`
-- [ ] T044 [US1] Rate-limit sending per sender and per recipient, reusing the existing publish/comment limiter, in `apps/api/src/modules/conversations/conversation.controller.ts`
-- [ ] T045 [US1] Implement all seven conversation endpoints per `contracts/openapi.yaml` in `apps/api/src/modules/conversations/conversation.controller.ts`, with every access decision delegated to `ConversationAccess`
-- [ ] T046 [US1] Register `ConversationsModule` in `apps/api/src/app.module.ts`
+- [X] T031 [US1] Implement the derived conversation id — a hash of the two person ids sorted — with its unit test in `apps/api/src/modules/conversations/conversation-id.ts`. This is what makes opening a conversation idempotent with no uniqueness item and no race (research R8)
+- [X] T032 [US1] Implement `ConversationService.open` (idempotent; returns the existing thread) in `apps/api/src/modules/conversations/conversation.service.ts`
+- [X] T033 [US1] Implement inbox listing split by state over GSI5 — accepted and requested are one query each, not one query and a filter — in `apps/api/src/modules/conversations/conversation.service.ts`
+- [X] T034 [US1] Implement `ConversationService.send`: the message plus both participant rows in one `TransactWriteItems`, updating `lastMessageAt`, `unreadCount` and `lastMessagePreview`, in `apps/api/src/modules/conversations/conversation.service.ts`
+- [X] T035 [US1] Enforce the request rules on send — at most one unanswered message while `requested` (409), silent discard while `declined` (202), refusal while `severed` (404) — in `apps/api/src/modules/conversations/conversation.service.ts`
+- [X] T036 [US1] Emit `message.created` on the durable event bus after a successful send, in `apps/api/src/modules/conversations/conversation.service.ts`
+- [X] T037 [US1] Implement the long-poll message read: return immediately if anything is newer than the cursor, otherwise await `message.created` for this conversation for up to 25 s and return an empty page on timeout, in `apps/api/src/modules/conversations/message-poll.service.ts`
+- [X] T038 [US1] Implement accept / decline / read-position handlers (meta item plus both participant rows, one transaction) in `apps/api/src/modules/conversations/conversation.service.ts`
+- [X] T039 [US1] Resolve each message's `sharedPostId` per reader **through `VisibilityFilter`**, returning the message with `sharedPost: null` and `sharedPostUnavailableReason` when excluded, in `apps/api/src/modules/conversations/message-presenter.ts`. Never denormalise a snapshot of the post — that is a materialised copy outliving a visibility change
+- [X] T040 [US1] Flip **surface 10** (post shared into a conversation) to `built: true` in `apps/api/tests/visibility/matrix.spec.ts` and make its 42 assertions pass 🔒
+- [X] T041 [US1] Sever conversations in both directions from the existing block path in `apps/api/src/modules/safety/`, and make every refusal a `404` indistinguishable from non-existence
+- [X] T042 [US1] Suppress notifications for `requested` conversations and create them for `accepted` ones, in `apps/api/src/modules/notifications/`
+- [X] T043 [US1] Add message reporting to the existing queue and audit log, and make a `removed` message withhold its body while leaving the thread readable, in `apps/api/src/modules/moderation/`
+- [X] T044 [US1] Rate-limit sending per sender and per recipient, reusing the existing publish/comment limiter, in `apps/api/src/modules/conversations/conversation.controller.ts`
+- [X] T045 [US1] Implement all seven conversation endpoints per `contracts/openapi.yaml` in `apps/api/src/modules/conversations/conversation.controller.ts`, with every access decision delegated to `ConversationAccess`
+- [X] T046 [US1] Register `ConversationsModule` in `apps/api/src/app.module.ts`
 
 ### Mobile for User Story 1
 
@@ -320,8 +320,8 @@ actually owed is the **new `message` category**, which is two small tasks, not f
 ## Phase 8: Polish & Cross-Cutting Concerns
 
 - [ ] T128 Assert the matrix runs **462 assertions with zero skipped surfaces** and fail the suite if any surface is unbuilt, in `apps/api/tests/visibility/matrix.spec.ts` 🔒
-- [ ] T129 Merge `specs/004-chat-places-and-depth/contracts/openapi.yaml` into `specs/001-interest-media-sharing/contracts/openapi.yaml` as one document
-- [ ] T130 Regenerate the shared client from the merged contract: `pnpm --filter @sih/shared generate:client`, then confirm the generated shapes match what the server actually accepts. **A generated client and a server generated from one document agree by construction and prove nothing** — 002 found the publish body mismatch only by making a request
+- [X] T129 Merge `specs/004-chat-places-and-depth/contracts/openapi.yaml` into `specs/001-interest-media-sharing/contracts/openapi.yaml` as one document. **Done early, in US1, not in Polish** — the mobile data layer calls operations from the generated map, so nothing in any story's app half could be written until the contract was merged and the client regenerated. Four operations were **edited, not replaced**: 001's versions carry the full schemas and the delta's carry only the changed field, so overwriting would have deleted the contract. `PersonSummary` and `Unauthorized` were remapped onto the contract's existing `PublicProfile` and `Unauthorised` rather than added as near-duplicates
+- [X] T130 Regenerate the shared client from the merged contract: `pnpm --filter @sih/shared generate:client`, then confirm the generated shapes match what the server actually accepts. **A generated client and a server generated from one document agree by construction and prove nothing** — 002 found the publish body mismatch only by making a request
 - [ ] T131 [P] Add empty states following the 001/FR-036 shape to `apps/mobile/src/features/conversations/InboxScreen.tsx` (both inboxes), `apps/mobile/src/features/places/PlaceScreen.tsx`, and `apps/mobile/src/features/profile/SavedScreen.tsx`
 - [ ] T132 [P] Verify rate limits cover every new write path — send, place create, save — in `apps/api/tests/integration/rate-limits.spec.ts`
 - [ ] T133 Assert the long-poll's **request count**, not only its latency, in `apps/e2e/journeys/conversations.spec.ts`. If the handler fails to await the event bus, the latency assertion still passes at small scale and the load characteristic is silently wrong
