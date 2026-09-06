@@ -9,7 +9,13 @@ on:
 
 jobs:
   android:
-    runs-on: ubuntu-latest
+    # NOT ubuntu-latest. That is now Ubuntu 24.04, where the Android emulator is
+    # known broken: avdmanager writes the AVD under ~/.config/.android while the
+    # emulator looks in ~/.android, so it finds no AVD and exits immediately.
+    # Nothing ever binds port 5554, which is why two runs sat for thirty minutes
+    # on `adb: device 'emulator-5554' not found` and then `Connection refused`.
+    # See actions/runner-images#11482 and android-emulator-runner#400.
+    runs-on: ubuntu-22.04
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
