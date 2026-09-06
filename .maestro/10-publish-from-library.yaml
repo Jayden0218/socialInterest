@@ -44,6 +44,13 @@ appId: app.socialinterest
     id: "media-item-0"
 - tapOn:
     id: "media-item-0"
+
+# `media-continue` renders after the gallery FlatList, and any banner the picker
+# shows pushes it further down. Scroll to it rather than assume it is in view.
+- scrollUntilVisible:
+    element:
+      id: "media-continue"
+    direction: DOWN
 - tapOn:
     id: "media-continue"
 

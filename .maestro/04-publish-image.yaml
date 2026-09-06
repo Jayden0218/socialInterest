@@ -31,8 +31,19 @@ appId: app.socialinterest
 - tapOn:
     id: "caption-input"
 - inputText: "published from a cloud device"
-- assertVisible:
-    id: "publish-button"
+
+# The keyboard is up and `publish-button` lives inside ComposeScreen's
+# ScrollView, below the caption input, the interest list and the visibility
+# control. On a 320x640 emulator it is simply not on screen - the flow assumed
+# it was, and run 12 failed here once the picker step was fixed.
+#
+# This is not a workaround for the failure: a button inside a scroll container
+# on a small screen must be scrolled to. The flow was wrong to assume otherwise.
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "publish-button"
+    direction: DOWN
 - tapOn:
     id: "publish-button"
 - assertNotVisible:

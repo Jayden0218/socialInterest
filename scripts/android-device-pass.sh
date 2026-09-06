@@ -241,17 +241,33 @@ fi
 echo "== journeys =="
 maestro test .maestro/ -e TOKEN="$TOKEN" -e PRESENT="$PRESENT" -e ABSENT="$ABSENT" \
   -e AUTHOR="$AUTHOR" \
-  --format junit --output "$OUT/maestro-junit.xml" || {
+  --format junit --output "$OUT/maestro-junit.xml" \
+  --debug-output "$OUT/maestro-debug" || {
     echo "FAIL: a journey did not pass"
     # Maestro's summary names the flow and the failed assertion but not the STEP
     # it reached. The junit report does, and it is the difference between "this
     # journey failed" and "it failed at step 7 of 12, here is what preceded it".
     # Printed, not merely uploaded: artifacts are served from a host the agent
     # sandbox's egress denies, so an uploaded report is unreadable.
+    # The junit report names the failed assertion and NOT the step context - run
+    # 12 proved that, so it is no longer the thing being relied on. Maestro's
+    # debug output carries the VIEW HIERARCHY at the point of failure, which is
+    # what actually answers "the assertion says this id was not visible; what
+    # was on screen instead".
     echo "=============== maestro junit report ==============="
     cat "$OUT/maestro-junit.xml" 2>/dev/null || echo "(no junit report)"
+    echo "=============== maestro debug: what was on screen ==============="
+    # Hierarchy dumps only, size-capped: the screenshots are in the artifact and
+    # the log is mostly noise. Every visible id, per failed flow, is the answer.
+    for h in "$OUT"/maestro-debug/*/*.json; do
+      [ -f "$h" ] || continue
+      echo "--- $(basename "$(dirname "$h")")/$(basename "$h") ---"
+      grep -oE '"resource-id":"[^"]*"|"text":"[^"]{1,60}"' "$h" 2>/dev/null \
+        | sort -u | head -40 || true
+    done
+    echo "=============== maestro log (tail) ==============="
+    find "$OUT/maestro-debug" -name 'maestro.log' -exec tail -40 {} \; 2>/dev/null || true
     echo "==================================================="
-    cp -r ~/.maestro/tests "$OUT/maestro-debug" 2>/dev/null || true
     exit 1
   }
 
