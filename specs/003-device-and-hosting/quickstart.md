@@ -87,14 +87,11 @@ actually was. If it was a stand-in, the result is reported as a measurement of t
 never as a statement about the product (FR-013). This is what 001 got wrong when it reported
 p95 11.8s as a property of the design.
 
-## Story 6 — the teardown check finds things
+## Story 6 — withdrawn
 
-```bash
-pnpm --filter @sih/infra verify:teardown
-```
-
-**Passes when** it enumerates tagged resources and reports any present — proved by giving it
-one that exists. A check that reports clean by not looking is worse than no check.
+Nothing to validate. `verify:teardown` already refuses to report "nothing survived" without
+having looked, and its unimplemented branch is unreachable without a cloud account. See
+[research.md R6](./research.md). Left untouched deliberately.
 
 ## Full regression
 

@@ -51,6 +51,12 @@ failure satisfies FR-004 and ends a line of guessing that has already cost six r
 3. Event bus: persist the event and its handled state, so an event published before a crash
    is handled after the restart rather than lost.
 
+**Verified 2026-09-06, not assumed.** The datastore claim was tested directly: an item was
+written to DynamoDB Local running `-dbPath` on a mounted volume, the **container was destroyed
+entirely** (not merely restarted), a new one was started on the same volume, and the item and
+its table were both still there. The `-inMemory` flag is the only thing standing between the
+current stack and durable storage.
+
 **Rationale**: Each is a genuine product weakness independent of hosting, and each is provable
 by the same test: write, restart everything, read back. The datastore currently keeps
 everything in memory, so a restart loses every post; the object store writes inside the
@@ -108,6 +114,13 @@ therefore decides whether Story 5 has an answer at all.
 place a test image into the emulator's library over `adb`, and drive both outcomes — permission
 granted and permission refused.
 
+**Verified 2026-09-06**: Maestro has first-class permission control — `launchApp` grants all
+permissions by default and accepts overrides, `setPermissions` changes them mid-flow, and a
+`when` guard on `runFlow` handles dialogs that may or may not appear. Both branches FR-012
+requires are directly expressible. One correction to the original plan: `adb push` alone is
+**not** sufficient — a pushed file is invisible to the picker until a media-scan broadcast runs,
+so the flow needs that step or the image simply will not be there.
+
 **Rationale**: Publishing is the product's core act and its first step is currently faked with
 a bundled sample. Permission handling in particular has no other way of being checked: a
 browser has no Android permission model. Placing the file over `adb` keeps the journey
@@ -145,22 +158,39 @@ container number as though it said something about production.
 
 ---
 
-## R6 — The teardown check must enumerate, not assume
+## R6 — The teardown check is already correct; the story is withdrawn
 
-**Decision**: Write the resource query so the check lists resources by tag and reports any
-still present, and prove it by presenting it with a tagged resource that exists.
+**Decision**: Withdraw Story 6. Write nothing.
 
-**Rationale**: The check exists and reports clean, but its query was never written — so it
-reports clean by not looking. That is worse than having no check, because it produces a
-confident answer with nothing behind it. It depends on nothing, needs no approval, and must be
-trustworthy *before* anything is ever provisioned. It is also the only story here with no
-unknowns at all.
+**Rationale**: This decision was originally written from feature 002's note — "partial, the
+resource-tagging query is unwritten" — rather than from the code. Reading the code reverses it.
+`verify-teardown.ts` returns "nothing survived" **only** when no cloud account is configured,
+which is correct because the local profile provisions nothing billable, and **throws** when an
+account is configured but the query is missing:
+
+> Refusing to report "nothing survived" without having looked — a false all-clear is worse
+> than no check.
+
+That is precisely the property this story intended to add. It already holds, and it fails safe
+in the one direction that matters.
+
+Under this feature's constraint no cloud account is ever configured, so the unimplemented
+branch is unreachable. Writing a resource-tagging query for a provider that was dropped, with
+no account to test it against, produces exactly what feature 002 deleted four adapters to
+avoid: an implementation nothing exercises. It becomes live work the day a paid run is
+approved, in whichever feature approves it.
+
+**What this says about the plan.** This decision, R2 and R4 were written from assumption while
+only R1 was researched — the same shape of mistake that cost six emulator runs. Checking them
+changed two: R2 is now proven rather than assumed, and R6 is withdrawn because its premise was
+false. The lesson is the same one this project keeps relearning: **read the thing, do not read
+the note about the thing.**
 
 **Alternatives considered**:
 
-- *Delete the check* — honest, but discards the guarantee at the moment it becomes needed.
-- *Leave it partial and note it* — it is already noted (002/T069) and the note has not made it
-  work.
+- *Write the query anyway, for later* — speculative code for a dropped provider, untestable
+  here, and contrary to the reasoning that removed the aws adapters.
+- *Leave the story in as a no-op* — a task that exists to be ticked without changing anything.
 
 ---
 

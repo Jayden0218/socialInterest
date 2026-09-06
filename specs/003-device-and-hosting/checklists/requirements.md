@@ -83,3 +83,28 @@ substitutes for what cannot be reached. FR-005 (no inferring Android from the br
 FR-013 (a stand-in measurement is reported as such), FR-016 (unmeasurable is reported
 unverified) and FR-017 (no synthetic usage figures) exist specifically to forbid it, and
 SC-012 makes it a criterion.
+
+
+---
+
+## Post-plan validation, 2026-09-06
+
+Challenged on whether the plan had actually been researched. It had not: **R1 was researched,
+R2, R4 and R6 were written from assumption.** That is the same shape as the mistake that cost
+six emulator runs, so all three were checked rather than defended. Two changed:
+
+- **R2 is now proven.** DynamoDB Local with `-dbPath` on a mounted volume was tested directly:
+  an item was written, the **container destroyed entirely**, a new one started on the same
+  volume, and both the table and the item were still there. `-inMemory` is the only thing
+  between the current stack and durable storage.
+- **R4 gained a correction.** Maestro does have first-class permission control
+  (`launchApp` overrides, `setPermissions`, `when` guards), so both branches of FR-012 are
+  expressible. But `adb push` alone does **not** make an image visible to the picker — a
+  media-scan broadcast is required. The plan would have failed on this.
+- **R6 was withdrawn, because its premise was false.** The teardown check does not report clean
+  by not looking; it returns "nothing survived" only when nothing could have been provisioned
+  and **throws** otherwise, explicitly refusing a false all-clear. Feature 002's note said
+  "partial"; the code says "fails safe". The story existed to add a property that already held.
+
+**The lesson, recorded because this project keeps relearning it:** read the thing, not the note
+about the thing. A spec written from a summary of code inherits every error in the summary.

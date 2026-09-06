@@ -37,7 +37,7 @@ device and no human tester.** That rules some things in and one thing decisively
 | 4 · Nobody has used it | **WITHDRAWN — see below** |
 | 5 · Behaviour under load | **In scope, conditionally.** Answerable only if the datastore is software that also runs in production |
 | 6 · Media from a device library | **In scope.** An emulator has a photo library, and media can be placed in it and permissions exercised without a person |
-| 7 · Teardown check unwritten | **In scope, and startable now** |
+| 7 · Teardown check unwritten | **Withdrawn.** The check already refuses to give a false all-clear; the missing branch is unreachable without an account. See Story 6 |
 | 8 · iOS unverified | **Out of scope.** Needs a macOS host; on a private repository those runner minutes bill at ten times the rate. Reported unverified |
 
 ### What the constraint costs, stated once
@@ -176,24 +176,23 @@ attributed ceiling.
 
 ---
 
-### User Story 6 - Nothing that was provisioned is left running (Priority: P2)
+### User Story 6 - Nothing that was provisioned is left running — **WITHDRAWN 2026-09-06**
 
-The teardown check can actually find what it claims to check, by enumerating resources rather
-than assuming.
+**Withdrawn after reading the code rather than the note about the code.** Feature 002 recorded
+this as "partial — the resource-tagging query is unwritten", and that description is
+misleading. The check does not report clean by not looking. It returns "nothing survived" only
+when no cloud account is configured — correct, because the local profile provisions nothing
+billable — and **throws** when an account is configured but the query is missing, explicitly
+refusing to give a false all-clear.
 
-**Why this priority**: The check exists but its resource query was never written, so it cannot
-confirm what it reports. It depends on nothing, needs no approval, and must be trustworthy
-before anything is ever provisioned — not after.
+So the safety property this story was going to add already holds. Under this feature's
+constraint no cloud account is ever configured, which makes the unimplemented branch
+unreachable: writing a resource-tagging query for a provider that was dropped, with no account
+to test it against, would be speculative code that cannot be exercised — the precise thing
+feature 002 deleted four adapters to avoid.
 
-**Independent Test**: Present it with a tagged resource and confirm it finds it; remove the
-resource and confirm it reports clean.
-
-**Acceptance Scenarios**:
-
-1. **Given** resources tagged as belonging to a run, **When** the check runs, **Then** it
-   enumerates them and reports any still present.
-2. **Given** none remain, **When** the check runs, **Then** it reports clean, and does so by
-   looking rather than by assuming.
+It becomes live again the day a paid run is approved, and it is recorded in that feature's
+scope, not this one.
 
 ### Edge Cases
 
@@ -242,8 +241,9 @@ resource and confirm it reports clean.
 - **FR-013**: A load measurement MUST name the component that was the binding constraint, and a
   measurement whose constraint is a development stand-in MUST be reported as a measurement of
   that stand-in rather than of the product.
-- **FR-014**: The teardown check MUST enumerate resources by tag and report any still present,
-  rather than reporting clean without looking.
+- **FR-014**: The teardown check MUST continue to refuse a false all-clear — reporting no
+  survivors only when nothing could have been provisioned, and failing rather than guessing
+  when it cannot see.
 - **FR-015**: No task MUST provision a billable resource. Any work that turns out to require one
   MUST stop and report rather than provision.
 - **FR-016**: Any outcome that cannot be measured under these constraints MUST be reported as
@@ -290,8 +290,8 @@ resource and confirm it reports clean.
 - **SC-009**: A load measurement reports latency at the concurrency reached and names the
   binding component — and is reported as a measurement of a stand-in whenever that is what it
   measured.
-- **SC-010**: The teardown check finds a tagged resource that exists and reports clean only
-  when none do.
+- **SC-010**: Zero runs report "nothing survived" without having looked. (Already held before
+  this feature; retained as a regression guard.)
 - **SC-011**: Zero billable resources are provisioned.
 - **SC-012**: Zero outcomes are reported as met on the basis of a measurement of the test
   harness rather than the product.
@@ -315,7 +315,8 @@ resource and confirm it reports clean.
 ## Dependencies
 
 - Story 4 depends on Story 1. Story 5 depends on Stories 2 and 3.
-- Stories 1, 2, 3 and 6 depend on nothing outside this repository and can start immediately.
+- Stories 1, 2 and 3 depend on nothing outside this repository and can start immediately.
+- Story 6 is withdrawn; nothing depends on it.
 
 ## Out of Scope
 
@@ -327,5 +328,8 @@ resource and confirm it reports clean.
 - **A public production deployment.** Needs an account and credentials the agent does not have.
   Story 2 delivers durability, not a public address.
 - **Production hardening**: multi-region, autoscaling, disaster recovery, cost optimisation.
+- **A resource-tagging query for a dropped cloud provider.** Unreachable without an account,
+  untestable without one, and the check already fails safe. It belongs to whichever feature
+  first approves a paid run.
 - **App store submission.**
 - **Any new product capability.** This feature makes what exists verifiable; it adds nothing.

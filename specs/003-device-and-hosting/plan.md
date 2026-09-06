@@ -6,7 +6,8 @@
 
 ## Summary
 
-Six stories, all performable by the agent in CI at no cost. Three things get built:
+Five live stories (a sixth was withdrawn during research — R6), all performable by the
+agent in CI at no cost. Three things get built:
 
 1. **An Android runtime that reports why it failed.** Six previous attempts produced nothing
    but a boot timeout, because the runner action swallows the emulator's own output. The
@@ -49,8 +50,8 @@ req/s. Whether a better number is obtainable depends entirely on Story 3.
 **Constraints**: No billable resources. No physical device. No human tester. Every Android
 attempt must produce the runtime's own output. Anything requiring spend stops and reports.
 
-**Scale/Scope**: One CI job for Android, one durable stack, one written decision, one
-teardown query. No new product capability.
+**Scale/Scope**: One CI job for Android, one durable stack, one written decision. No new
+product capability. (A teardown-query task was planned and withdrawn — R6.)
 
 ## Constitution Check
 
@@ -112,7 +113,7 @@ apps/
 └── e2e/                        # browser journeys stay; durability check added
 
 docker-compose.yml              # durable datastore and object storage
-infra/scripts/verify-teardown.ts # the unwritten resource query
+# infra/scripts/verify-teardown.ts is NOT touched - see research R6
 ```
 
 **Structure Decision**: No new packages. This feature changes how existing things are run and
