@@ -60,10 +60,25 @@ jobs:
       # name for MinIO. Both then send `Host: 10.0.2.2:9000`, both signatures
       # validate, and neither needs to know how the other resolves it. The
       # emulator resolves 10.0.2.2 internally and is unaffected by this file.
-      - name: Make the emulator's host alias resolvable on the runner too
+      - name: Give the runner the emulator's host alias as a real address
         run: |
-          echo "127.0.0.1 10.0.2.2" | sudo tee -a /etc/hosts
-          getent hosts 10.0.2.2
+          # NOT an /etc/hosts entry. `10.0.2.2` is an IP literal, and resolvers
+          # short-circuit literals before any name lookup, so a hosts line
+          # mapping it is never consulted - the connection goes to the real
+          # 10.0.2.2 on the network and hangs. (The `getent hosts 10.0.2.2`
+          # check I paired with it failed for the same reason: getent reads an
+          # IP literal as an address and does a reverse lookup.)
+          #
+          # Adding the address to loopback makes the runner genuinely own it, so
+          # a connection to 10.0.2.2:9000 reaches the MinIO that Docker
+          # published on 0.0.0.0. The emulator's own 10.0.2.2 lives on QEMU's
+          # internal network and is untouched by this.
+          sudo ip addr add 10.0.2.2/32 dev lo || true
+          ip addr show lo | grep -q '10\.0\.2\.2' || { echo "alias not added"; exit 1; }
+          # Proved, not assumed: MinIO must actually answer on that address.
+          curl -sf --max-time 10 http://10.0.2.2:9000/minio/health/live \
+            && echo "MinIO answers on 10.0.2.2:9000" \
+            || { echo "MinIO does not answer on 10.0.2.2:9000"; exit 1; }
 
       - name: Start the API on the runner
         run: |
