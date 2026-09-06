@@ -93,3 +93,61 @@ already.
   network conditions, vendor OS behaviour, battery or thermal effects.
 - **iOS is not covered at all.** Unverified, not "probably fine".
 - **J-05 is `not run`**, never `pass`: no video fixture reaches the device.
+
+
+---
+
+# Update — run 16 (id 34024543498, head `17e1008`), and a hard stop after it
+
+## Results
+
+| Journey | Result | Note |
+|---|---|---|
+| J-01 sign in | **pass** | |
+| J-02 browse catalogue | **pass** | |
+| J-03 follow an interest | **fail** | The tap on a search result did not navigate — the search screen was still visible afterwards. **The app is not at fault**: a container test drives the same press through the shell and the interest screen opens. Device tap landing; `hideKeyboard` added, unverified |
+| J-04 publish an image | **fail** | Reached compose, published (`POST /v1/posts` **201** in the API log), did not return to the feed within the assertion window. Explicit wait added, unverified |
+| J-05 publish a video | not run | No video fixture |
+| J-06 home feed | **pass** | |
+| J-07 interest space | not run | Part of J-03 |
+| J-08 comment | **fail** | Same cause as J-04 |
+| J-09 report | **fail** | Same cause as J-04 |
+| J-10 block | not run | Part of 09 |
+| FR-033 / Principle I | **pass** | Followed by tapping, then confirmed the unfollowed-interest post is absent |
+| 10 publish from library | **fail** | The app hands off to `com.android.documentsui` — **Android's own file picker** — which showed "No items". `media-continue` was behind another app's window |
+| 11 permission refused | **fail** | On API 30 the picker needs no storage permission, so denying produces no refusal and the banner correctly never appears |
+
+**4 of 10 passed.** `POST /v1/posts` reaching 201 is the run's real result: media uploads
+from the device and publishing works, which needed both the presigned public endpoint and the
+runner's loopback alias.
+
+## What is verified about US4, precisely
+
+- **Verified**: the compose flow hands off to the device's own media library.
+- **NOT verified, and recorded as `not run`**: that an image chosen from a populated gallery
+  publishes. The test image is in MediaStore, but DocumentsUI's Recent view does not surface
+  adb-pushed files, and reaching it would mean driving Google's own navigation — a journey
+  that breaks when Google changes it, for reasons that say nothing about this product.
+- **NOT verifiable on this device**: FR-012's refusal path. The picker needs no storage
+  permission on API 30, so there is nothing to refuse. The branch is covered by a container
+  test instead, and the device flow asserts the requirement that does hold — the app must not
+  proceed into compose with media the person never chose.
+
+## Stopped: the Actions allowance is exhausted
+
+Run 17 and two CI builds failed **six seconds after being created**, with no step run:
+
+```
+The job was not started because recent account payments have failed or your
+spending limit needs to be increased. Please check the 'Billing & plans'
+section in your settings
+```
+
+That is an account limit, not a code failure, and it blocks **all** workflows on this
+repository — the ordinary CI build as well as the emulator job. No further evidence can be
+gathered until the owner raises the Actions spending limit or the monthly allowance resets.
+
+**The fixes made after run 16 are therefore unverified**: `hideKeyboard` for J-03, the
+explicit feed waits for J-04/08/09, and the rewritten flows 10 and 11. They are reasoned from
+run 16's captured evidence, they pass every local check, and **no run has executed them**.
+They must be reported that way rather than as fixes that worked.

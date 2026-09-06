@@ -271,6 +271,23 @@ one that matched nothing — but **none has been executed on a device**.
   directly with props, which proves the screen works and says nothing about whether anything
   calls it. **A screen test is not a container test.**
 
+## The Actions allowance is exhausted (2026-09-06)
+
+Every workflow on this repository now fails ~6 seconds after being created, with no step run:
+
+```
+The job was not started because recent account payments have failed or your
+spending limit needs to be increased.
+```
+
+This blocks **ordinary CI too**, not just the emulator job. It is an account limit, not a
+code failure, and nothing in this repository can change it. Do not keep dispatching runs to
+see whether it has cleared — check the billing page, or wait for the monthly reset.
+
+Consequence for anyone reading the Android records: everything pushed after run 16
+(`17e1008`) is **unverified**. It is reasoned from captured evidence and passes every local
+check, and no run has executed it.
+
 ## Spec-kit workflow
 
 Order: `constitution → specify → clarify → plan → tasks → analyze → implement`.
