@@ -296,6 +296,35 @@ Consequence for anyone reading the Android records: everything pushed after run 
 (`17e1008`) is **unverified**. It is reasoned from captured evidence and passes every local
 check, and no run has executed it.
 
+## Spec 004 is planned, not built (2026-09-06)
+
+`specs/004-chat-places-and-depth/` holds spec, plan, research (R1-R11), data-model,
+contracts and quickstart for the owner's next ask: a **chat page**, a **restaurant page**,
+deeper interest pages, three holes 001 left open, and saved posts. **No code exists for it**
+and `tasks.md` has not been generated.
+
+Four things in there that will otherwise be rediscovered the expensive way:
+
+- **A Place is to a Post what an Interest is, minus feed membership.** Modelling a
+  restaurant as a sub-interest looks free and is not: 001/FR-024 rolls a sub-interest's
+  posts up into its parent, so every restaurant post would land in "Food" for everyone
+  following Food, worldwide. That is Principle I violated by construction, arrived at
+  without anyone deciding to. Hence `FR-019` + `SC-006`, the exact shape of FR-033.
+- **Chat is delivered by HTTP long-poll on the existing server**, resolved through the
+  existing durable event bus. Not WebSocket, not SSE, not interval polling - so every
+  assertion stays a request `apps/e2e` can make, which is the only kind of test that has
+  ever found a defect here. Registered as a Principle V divergence: it is not how a hosted
+  deployment would do it.
+- **Four new post surfaces** (place page, saved list, a post shared into a conversation,
+  in-interest search) take the generated visibility matrix from 294 to 462 assertions.
+  Conversation membership gets its own single boundary, `ConversationAccess`, for the same
+  reason `VisibilityFilter` is top-level.
+- **The datastore decision is a gate on this work, not a dependency.** Five new
+  repositories on top of thirteen is ~40% more migration if `003/datastore-decision.md`
+  later picks PostgreSQL, and proximity place search is nearly free on one candidate and a
+  sub-project on the other. Recorded as G1; G2 is scope confirmation on the two deliberate
+  exclusions (reviews/ratings on a place page, group chat).
+
 ## Spec-kit workflow
 
 Order: `constitution → specify → clarify → plan → tasks → analyze → implement`.
