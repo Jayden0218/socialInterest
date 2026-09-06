@@ -205,25 +205,37 @@ same execution as the first observation — a local run of
 **make it visible before changing anything**, and prefer the free observation to
 the expensive guess.
 
-**Still open: the app has never rendered a frame on Android.** Run 9 got
-furthest — emulator booted, APK installed, app launched — and 25 seconds later
-`app.socialinterest` was not running. **Why is unknown**, and that is a harness
-defect, not a property of the app: `pidof` exits 1 when nothing matches, so
-under `set -e` the script aborted AT THE ASSIGNMENT, before the branch that
-dumps logcat. The diagnostic written to explain this exact failure was made
-unreachable by the way the failure was detected. Fixed — logcat is captured
-unconditionally now, and the evidence is printed into the JOB LOG, because
-artifact downloads come from an Azure blob host this sandbox's egress policy
-denies, and an unreadable artifact is not evidence.
+**Still open: the app has never rendered a frame on Android — but run 10 found
+why it does not.** The activity starts (`Status: ok`, 520ms) and the app then
+dies in React Native module registration:
 
-Two real defects came out of run 9 regardless. `adb` is resolved from the SDK
-rather than PATH (run 7's failure). And the release manifest had no
-`usesCleartextTraffic`, so **every** request to `http://10.0.2.2:3000` would
-have been refused by the platform before reaching the network — the journeys
-could not have passed even with the app running. Note `android.usesCleartextTraffic`
-in the Expo app config is accepted silently and does nothing; it takes
-`expo-build-properties`, and the difference was found by checking the generated
-manifest instead of trusting the field.
+```
+FATAL EXCEPTION: java.lang.NoClassDefFoundError:
+  Lexpo/modules/kotlin/types/AnyTypeCache;
+  at expo.modules.imagepicker.ImagePickerModule.definition(ImagePickerModule.kt:330)
+Caused by: ClassNotFoundException: expo.modules.kotlin.types.AnyTypeCache
+```
+
+**Install Expo native modules with `expo install`, never `pnpm add`/`npm i`.**
+`pnpm add expo-image-picker` took the latest published version (57.0.16), built
+against a far newer `expo-modules-core` than SDK 54 ships, so the module called
+a class that does not exist and killed the app at startup. SDK 54 wants
+`~17.0.11`. Same for `expo-build-properties`: wanted `~1.0.10`, got `57.0.17`.
+
+`expo install` cannot run in this sandbox — it needs Expo's API, which egress
+blocks — so read the version map that ships inside the installed package:
+`node_modules/.../expo/bundledNativeModules.json`. It is authoritative for the
+SDK in use.
+
+Two harness fixes made this findable, both from run 9: `am start -W` instead of
+`monkey` (which reports "Events injected: 1" whether the activity started,
+failed to start, or started and died), and `adb logcat -b all` printed into the
+JOB LOG, since artifact downloads come from a host this sandbox's egress denies.
+
+Also still true from run 9: the release manifest needed `usesCleartextTraffic`
+(via `expo-build-properties`; the `android.usesCleartextTraffic` app-config
+field is accepted silently and does nothing), or every request to
+`http://10.0.2.2:3000` is refused by the platform before reaching the network.
 
 The Maestro journeys are written and their selectors are checked against the app
 on every CI run by `scripts/verify-maestro-ids.mjs` — which immediately found

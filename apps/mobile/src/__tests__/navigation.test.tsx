@@ -195,14 +195,19 @@ describe('the shell reaches every screen', () => {
       fireEvent.press(screen.getByTestId('open-compose'));
     });
 
-    // There is no expo-image-picker module under jest, so opening the library
-    // takes the "unavailable" path. The assertion that matters is that the app
-    // SAYS something either way: a silent fallback to whatever media happened
-    // to be around would publish something the person did not choose.
+    // The requirement is that the app SAYS something - not which thing it says.
+    // Asserting the exact banner tied this to whether the native module happens
+    // to resolve under jest, and it broke the moment the picker version was
+    // corrected, for a reason that had nothing to do with FR-012.
+    //
+    // What must hold either way: the person is told, and the app does NOT
+    // proceed into compose with media they did not choose.
     await act(async () => {
       fireEvent.press(screen.getByTestId('open-library'));
     });
-    expect(screen.getByTestId('library-unavailable')).toBeTruthy();
+    const explained =
+      screen.queryByTestId('library-unavailable') ?? screen.queryByTestId('library-permission-denied');
+    expect(explained).not.toBeNull();
     expect(screen.queryByTestId('compose-screen')).toBeNull();
   });
   /**

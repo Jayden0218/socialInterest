@@ -93,8 +93,21 @@ export function useMediaLibrary(): MediaLibrary {
       return;
     }
 
-    const permission = await picker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
+    // A native module that is PRESENT can still fail - an unlinked build, a
+    // host with no gallery, a version whose API differs. Left uncaught, the
+    // rejection escapes `void library.pick()` and the screen sits there showing
+    // nothing, which is the silent failure FR-012 exists to prevent. Treated as
+    // unavailable, because that is what it is from the person's point of view.
+    let permission: { granted: boolean; canAskAgain: boolean };
+    try {
+      permission = await picker.requestMediaLibraryPermissionsAsync();
+    } catch {
+      setStatus('unavailable');
+      setAvailable(SAMPLE_MEDIA);
+      return;
+    }
+
+    if (!permission?.granted) {
       // Not a silent fallback to the sample set: a person who refused must be
       // told what was refused and why it is needed (FR-012). Falling back
       // quietly here would make a denied permission look like a working app
@@ -103,11 +116,18 @@ export function useMediaLibrary(): MediaLibrary {
       return;
     }
 
-    const result = await picker.launchImageLibraryAsync({
-      allowsMultipleSelection: true,
-      selectionLimit: 10,
-      ...(picker.MediaTypeOptions ? { mediaTypes: picker.MediaTypeOptions.All } : {}),
-    });
+    let result: Awaited<ReturnType<Picker['launchImageLibraryAsync']>>;
+    try {
+      result = await picker.launchImageLibraryAsync({
+        allowsMultipleSelection: true,
+        selectionLimit: 10,
+        ...(picker.MediaTypeOptions ? { mediaTypes: picker.MediaTypeOptions.All } : {}),
+      });
+    } catch {
+      setStatus('unavailable');
+      setAvailable(SAMPLE_MEDIA);
+      return;
+    }
     if (result.canceled || !result.assets?.length) {
       // Cancelling is not an error and not a denial. Leave what was there.
       setStatus('ready');
