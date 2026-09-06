@@ -183,6 +183,11 @@ echo "== mint a token the API will actually accept =="
 # auth defect into a green run.
 TOKEN="$(npx tsx apps/api/scripts/mint-device-token.ts)"
 [ -n "$TOKEN" ] || { echo "FAIL: could not mint a token"; exit 1; }
+# A real two-hour credential, in a job log that is now world-readable. Nothing
+# here prints it deliberately, but the failure paths dump a UI hierarchy and
+# Maestro's own log, and "nothing prints it deliberately" is not a guarantee.
+# ::add-mask:: makes GitHub redact it wherever it turns up.
+echo "::add-mask::$TOKEN"
 
 # T012. A Maestro selector that matches nothing does not fail as a name error -
 # it fails as a timeout, twenty minutes into a run, indistinguishable from the

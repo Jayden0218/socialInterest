@@ -24,7 +24,19 @@ jobs:
       # and never leaves the runner - not a GitHub secret, which would be a
       # long-lived shared credential doing the same job worse.
       - name: Generate a per-run JWT secret
-        run: echo "LOCAL_JWT_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+        run: |
+          SECRET="$(openssl rand -hex 32)"
+          # ::add-mask:: BEFORE it is exported, or it is too late.
+          #
+          # GitHub redacts registered secrets from logs; a value generated at
+          # runtime into GITHUB_ENV is not one, so it was printed in full in the
+          # `env:` block of every step. That was survivable while the repository
+          # was private and is not the habit to keep now that it is public - a
+          # JWT signing key in a world-readable log is the shape of defect
+          # FR-007 exists to remove, even when what it signs for is an ephemeral
+          # API on a runner with no public route.
+          echo "::add-mask::$SECRET"
+          echo "LOCAL_JWT_SECRET=$SECRET" >> "$GITHUB_ENV"
       - run: pnpm typecheck
       - run: pnpm lint
       # The same compose file the local profile uses, so CI runs the configuration
