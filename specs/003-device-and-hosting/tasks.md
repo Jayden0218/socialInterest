@@ -81,7 +81,17 @@ app's own interface and one result per journey.
 
 ### If it does not boot
 
-- [ ] T016 [US1] Record the conclusion with the captured output as evidence, report Android unverified, and update `docs/verification/tier-b-runbook.md` and `CLAUDE.md` with what the output showed. **Do not attempt an eighth run without a new, evidenced hypothesis**
+- [X] T016 [US1] Record the conclusion with the captured output as evidence, report Android unverified, and update `docs/verification/tier-b-runbook.md` and `CLAUDE.md` with what the output showed. **Do not attempt an eighth run without a new, evidenced hypothesis**
+
+  **Delivered, though its heading no longer fits.** This sat under "If it does not boot"; the
+  runtime *does* boot. What it actually asks for has been done for both runs that produced
+  output: `2026-09-06-runtime-attempt-android.md` (runs 7 and 8) and
+  `2026-09-06-runtime-attempt-android-run9.md`, each stating only the conclusion its output
+  supports. `tier-b-runbook.md` and `CLAUDE.md` now say the runtime boots and the app has
+  never rendered a frame. Android is reported **unverified** throughout. The "no run without
+  a new, evidenced hypothesis" rule was honoured: run 9 followed run 7's captured
+  `adb: command not found`, and the next run follows run 9's captured launch failure plus two
+  causes ruled out by unzipping the APK.
 
 **Checkpoint**: Android is either verified with evidence, or unverified with evidence. Neither
 outcome is a guess.
@@ -113,16 +123,21 @@ counted from real classes.
 
 ### Storage
 
-- [ ] T022 [US2] Replace `-inMemory` with `-dbPath /data` in `docker-compose.yml` and mount a volume for the datastore, keeping `-sharedDb` (verified 2026-09-06: an item survives the container being destroyed and recreated on the same volume)
-- [ ] T023 [US2] Mount a volume for object storage in `docker-compose.yml` so uploads survive a container recreate, not merely a restart
-- [ ] T024 [US2] Make `infra/scripts/create-local-table.ts` and `create-local-bucket.ts` idempotent against pre-existing data — with a persistent volume they now run against a stack that already has state
-- [ ] T025 [P] [US2] Add the volumes to `.gitignore` so a developer's local data is never committed
+- [X] T022 [US2] Replace `-inMemory` with `-dbPath /data` in `docker-compose.yml` and mount a volume for the datastore, keeping `-sharedDb` (verified 2026-09-06: an item survives the container being destroyed and recreated on the same volume)
+- [X] T023 [US2] Mount a volume for object storage in `docker-compose.yml` so uploads survive a container recreate, not merely a restart
+- [X] T024 [US2] Make `infra/scripts/create-local-table.ts` and `create-local-bucket.ts` idempotent against pre-existing data — with a persistent volume they now run against a stack that already has state
+- [X] T025 [P] [US2] Add the volumes to `.gitignore` so a developer's local data is never
+  committed — **not applicable as written, and closed on that basis.** The task assumed bind
+  mounts into the working tree. `docker-compose.yml` uses NAMED volumes (`sih-dynamodb`,
+  `sih-minio`), which Docker keeps under its own storage outside the repository, so there is
+  nothing in the working tree to ignore. Verified: `git status` is clean with the stack
+  running and holding data. Switching to bind mounts later would make this task live again.
 
 ### Events
 
-- [ ] T026 [US2] Write a durable event bus at `apps/api/src/adapters/local/durable-event-bus.ts` that records each published event and its handled state before delivery
-- [ ] T027 [US2] Replay unhandled events on startup in `apps/api/src/adapters/local/durable-event-bus.ts`, so an event published before a crash is handled after the restart. **This is the highest-value task in the story**: an event lost here reproduces 002's worst defect — a post that never leaves `pending` and is visible only to its author, permanently
-- [ ] T028 [US2] Swap the binding in `apps/api/src/adapters/adapters.module.ts` from `InProcessEventBus` to the durable bus, keeping the port unchanged
+- [X] T026 [US2] Write a durable event bus at `apps/api/src/adapters/local/durable-event-bus.ts` that records each published event and its handled state before delivery
+- [X] T027 [US2] Replay unhandled events on startup in `apps/api/src/adapters/local/durable-event-bus.ts`, so an event published before a crash is handled after the restart. **This is the highest-value task in the story**: an event lost here reproduces 002's worst defect — a post that never leaves `pending` and is visible only to its author, permanently
+- [X] T028 [US2] Swap the binding in `apps/api/src/adapters/adapters.module.ts` from `InProcessEventBus` to the durable bus, keeping the port unchanged
 - [X] T029 [US2] Add a no-double-delivery case to `apps/api/tests/unit/durable-event-bus.spec.ts`: an event marked handled MUST NOT be replayed (a double-delivered `post.commented` sends a second notification)
 
 ### Identity
