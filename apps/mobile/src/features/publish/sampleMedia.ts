@@ -20,5 +20,10 @@ const PNG_1X1 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 
 export const SAMPLE_MEDIA: PickedMedia[] = [
-  { uri: PNG_1X1, kind: 'image', contentType: 'image/png', sizeBytes: 68 },
+  // 70, not 68. The declared length is what the app tells the server when it
+  // asks for an upload target, and it was two bytes short of what the base64
+  // actually decodes to - so the app announced one size and uploaded another.
+  // Caught by readMediaBytes.test.ts asserting the two agree, which is the
+  // whole reason that assertion is there.
+  { uri: PNG_1X1, kind: 'image', contentType: 'image/png', sizeBytes: 70 },
 ];

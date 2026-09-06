@@ -37,6 +37,58 @@ export const newSlot = (media: PickedMedia): UploadSlot => ({
  * retry resumes from wherever it got to rather than sending the person back to
  * the picker. That is the requirement; showing a progress bar is the easy half.
  */
+/**
+ * Decodes base64 without `atob` or `Buffer`.
+ *
+ * Neither is dependable across the runtimes this file has to work in - the
+ * browser bundle, jest, and React Native - and this is twenty lines.
+ */
+function decodeBase64(b64: string): Uint8Array {
+  const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  const clean = b64.replace(/[^A-Za-z0-9+/]/g, '');
+  const out = new Uint8Array((clean.length * 3) >> 2);
+  let o = 0;
+  for (let i = 0; i < clean.length; i += 4) {
+    const n =
+      (ALPHABET.indexOf(clean[i] ?? 'A') << 18) |
+      (ALPHABET.indexOf(clean[i + 1] ?? 'A') << 12) |
+      (ALPHABET.indexOf(clean[i + 2] ?? 'A') << 6) |
+      ALPHABET.indexOf(clean[i + 3] ?? 'A');
+    if (o < out.length) out[o++] = (n >> 16) & 0xff;
+    if (o < out.length) out[o++] = (n >> 8) & 0xff;
+    if (o < out.length) out[o++] = n & 0xff;
+  }
+  return out;
+}
+
+/**
+ * The bytes to upload, read the way each kind of URI should be read.
+ *
+ * A `data:` URI ALREADY CONTAINS the bytes. Fetching it sends them through the
+ * networking stack to get back what was in the string all along, and whether
+ * that works depends on the platform: browsers handle `data:` in fetch and
+ * return a Blob; React Native's fetch and Blob support for it is not the same.
+ * The browser journeys therefore passed while the device could not upload at
+ * all - the upload never reached `uploaded`, so the publish button stayed
+ * disabled and tapping it did nothing (runs 18-20).
+ *
+ * A real device URI - `file://`, `content://` - is fetched as before, because
+ * there the network stack is genuinely how you read it.
+ */
+export async function readMediaBytes(
+  uri: string,
+  doFetch: typeof globalThis.fetch,
+): Promise<Uint8Array | Blob> {
+  const match = /^data:[^;,]*(;base64)?,(.*)$/s.exec(uri);
+  if (match) {
+    const [, isBase64, payload = ''] = match;
+    return isBase64
+      ? decodeBase64(payload)
+      : new TextEncoder().encode(decodeURIComponent(payload));
+  }
+  return (await doFetch(uri)).blob();
+}
+
 export async function runUpload(
   client: UploadCaller,
   slot: UploadSlot,
@@ -69,7 +121,11 @@ export async function runUpload(
     onChange(current);
 
     const url = (current as UploadSlot & { url?: string }).url!;
-    const body = await (await doFetch(current.media.uri)).blob();
+    // `BodyInit` in the DOM lib does not include a bare Uint8Array, but every
+    // runtime this ships to accepts one - React Native's fetch passes it to
+    // XHR.send, and undici accepts it. The cast is narrower than widening the
+    // helper's return type to `any`, and the helper stays honestly typed.
+    const body = (await readMediaBytes(current.media.uri, doFetch)) as unknown as BodyInit;
     const res = await doFetch(url, {
       method: 'PUT',
       headers: { 'content-type': current.media.contentType },
