@@ -1,6 +1,6 @@
 import { FlatList, Image, Pressable, Text, View } from 'react-native';
 import { theme } from '../../ui/theme';
-import { Button, Screen } from '../../ui/primitives';
+import { Banner, Button, Screen } from '../../ui/primitives';
 import { MEDIA_LIMITS_HINT } from './limits';
 
 export interface PickedMedia {
@@ -16,9 +16,20 @@ export interface MediaPickerScreenProps {
   selected: PickedMedia[];
   onChange: (next: PickedMedia[]) => void;
   onContinue: () => void;
+  /** 003/FR-012. What the device library said, so refusal can be explained. */
+  libraryStatus?: 'idle' | 'unavailable' | 'denied' | 'ready';
+  /** Opens the device library. Absent in builds with no native picker. */
+  onOpenLibrary?: () => void;
 }
 
-export function MediaPickerScreen({ available, selected, onChange, onContinue }: MediaPickerScreenProps) {
+export function MediaPickerScreen({
+  available,
+  selected,
+  onChange,
+  onContinue,
+  libraryStatus = 'idle',
+  onOpenLibrary,
+}: MediaPickerScreenProps) {
   const isSelected = (m: PickedMedia): boolean => selected.some((s) => s.uri === m.uri);
 
   const toggle = (m: PickedMedia): void => {
@@ -38,6 +49,36 @@ export function MediaPickerScreen({ available, selected, onChange, onContinue }:
     <Screen testID="media-picker-screen">
       <Text style={{ fontSize: theme.font.xl, fontWeight: '700', color: theme.color.text }}>Choose media</Text>
       <Text style={{ fontSize: theme.font.sm, color: theme.color.muted }}>{MEDIA_LIMITS_HINT}</Text>
+
+      {/*
+        FR-012. A refused permission must explain itself. Falling back silently
+        to whatever media happened to be available would look like a working app
+        that publishes something the person did not choose - worse than an
+        error, because nothing tells them anything went wrong.
+      */}
+      {libraryStatus === 'denied' ? (
+        <Banner tone="warning" testID="library-permission-denied">
+          socialInterest cannot open your photos because access was refused. Nothing has been
+          read from your device. To choose your own media, allow photo access for this app in
+          your device settings, then come back here.
+        </Banner>
+      ) : null}
+
+      {libraryStatus === 'unavailable' ? (
+        <Banner tone="info" testID="library-unavailable">
+          This build has no device gallery, so a sample image is offered instead. Publishing
+          works exactly as it would with your own media.
+        </Banner>
+      ) : null}
+
+      {onOpenLibrary ? (
+        <Button
+          testID="open-library"
+          label={libraryStatus === 'denied' ? 'Try again' : 'Choose from your photos'}
+          variant="secondary"
+          onPress={onOpenLibrary}
+        />
+      ) : null}
 
       <FlatList
         numColumns={3}

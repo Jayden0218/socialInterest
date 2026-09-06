@@ -149,12 +149,12 @@ counted from real classes.
 **Independent test**: Pick an image from the emulator's library and publish it; refuse the
 permission and see an explanation.
 
-- [ ] T037 [US4] Install a native image picker in `apps/mobile/package.json` and regenerate the native project with `expo prebuild`
-- [ ] T038 [US4] Mount `MediaPickerScreen` in `ComposeContainer` (`apps/mobile/src/screens/index.tsx`) so media comes from the picker rather than `sampleMedia.ts` — the last screen in the app that nothing reaches
-- [ ] T039 [US4] Keep `apps/mobile/src/features/publish/sampleMedia.ts` as the fallback when no picker is available, so the browser journeys continue to exercise publish
-- [ ] T040 [US4] Place a test image in the emulator's library from `scripts/android-device-pass.sh`: `adb push` **followed by a media-scan broadcast** — a pushed file is invisible to the picker without it (research R4)
-- [ ] T041 [P] [US4] Add `.maestro/10-publish-from-library.yaml` driving pick-and-publish with the permission granted
-- [ ] T042 [P] [US4] Add `.maestro/11-permission-refused.yaml` using Maestro's `setPermissions` to deny, asserting the app explains what it needs rather than appearing broken (FR-012)
+- [X] T037 [US4] Install a native image picker in `apps/mobile/package.json` and regenerate the native project with `expo prebuild`
+- [X] T038 [US4] Mount `MediaPickerScreen` in `ComposeContainer` (`apps/mobile/src/screens/index.tsx`) so media comes from the picker rather than `sampleMedia.ts` — the last screen in the app that nothing reaches
+- [X] T039 [US4] Keep `apps/mobile/src/features/publish/sampleMedia.ts` as the fallback when no picker is available, so the browser journeys continue to exercise publish
+- [X] T040 [US4] Place a test image in the emulator's library from `scripts/android-device-pass.sh`: `adb push` **followed by a media-scan broadcast** — a pushed file is invisible to the picker without it (research R4)
+- [X] T041 [P] [US4] Add `.maestro/10-publish-from-library.yaml` driving pick-and-publish with the permission granted
+- [X] T042 [P] [US4] Add `.maestro/11-permission-refused.yaml` using Maestro's `setPermissions` to deny, asserting the app explains what it needs rather than appearing broken (FR-012)
 - [ ] T043 [US4] Record the two permission paths in the Journey Run under `docs/verification/runs/`
 
 **Checkpoint**: publishing starts where a person would start it.
@@ -167,7 +167,7 @@ permission and see an explanation.
 
 **Independent test**: The report names the binding component and what the datastore was.
 
-- [ ] T044 [US5] Add the required `datastore` field to `reportMeasurement` in `apps/api/bench/harness.ts`, and make a measurement without it fail rather than default
+- [X] T044 [US5] Add the required `datastore` field to `reportMeasurement` in `apps/api/bench/harness.ts`, and make a measurement without it fail rather than default
 - [ ] T045 [US5] Run `bench:ceiling` against the durable stack and record in `docs/verification/runs/` the three-way attribution — generator, datastore, application shape
 - [ ] T046 [US5] Run `bench:feed-load` against the durable stack and record in `docs/verification/runs/` a Load Measurement with `transport`, `datastore`, concurrency reached, latencies and binding constraint
 - [ ] T047 [US5] If the datastore is a stand-in, report the result **as a measurement of the stand-in** — never as a statement about the product (FR-013). 001 reported an emulator's p95 as a property of the design and it drove a proposal to build a hybrid that was not warranted

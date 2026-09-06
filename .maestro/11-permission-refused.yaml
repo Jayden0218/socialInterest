@@ -1,0 +1,46 @@
+# 003/FR-012: refusing photo access must produce an explanation, not an app that
+# appears broken.
+#
+# The failure this guards against is not a crash. It is the SILENT one: falling
+# back to whatever media happened to be available, so the person sees a working
+# compose screen and publishes something they never chose. That is worse than an
+# error, because nothing tells them anything went wrong.
+#
+# Sign-in is inlined for the same reason as 10-publish-from-library.yaml: the
+# device token store is memory-only, so a relaunch to set the permission would
+# also sign the person out, and `clearState` resets permission grants. The denial
+# and the session have to come from one launch.
+appId: app.socialinterest
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: deny
+- assertVisible:
+    id: "app-root"
+- tapOn:
+    id: "open-sign-in"
+- tapOn:
+    id: "sign-in-token"
+- inputText: ${TOKEN}
+- tapOn:
+    id: "sign-in-submit"
+- assertNotVisible:
+    id: "open-sign-in"
+
+- tapOn:
+    id: "open-compose"
+- assertVisible:
+    id: "media-picker-screen"
+- tapOn:
+    id: "open-library"
+
+# The requirement, stated as the app must state it.
+- assertVisible:
+    id: "library-permission-denied"
+- assertVisible: "access was refused"
+
+# And it must not have quietly proceeded into compose with someone else's idea
+# of what to publish.
+- assertNotVisible:
+    id: "compose-screen"

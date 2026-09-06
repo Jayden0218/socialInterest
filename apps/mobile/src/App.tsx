@@ -14,14 +14,13 @@ import {
   SignedOutNotice,
   InterestContainer,
   ProfileContainer,
-  ComposeContainer,
+  ComposeFlowContainer,
   ShareContainer,
   CreateInterestContainer,
   EditPostContainer,
   EditProfileContainer,
   SharedPostContainer,
 } from './screens';
-import { SAMPLE_MEDIA } from './features/publish/sampleMedia';
 import { API_BASE_URL } from './config';
 
 export type Tab = 'feed' | 'discover' | 'notifications' | 'profile';
@@ -171,7 +170,7 @@ export function Shell() {
           );
         case 'compose':
           return signedIn ? (
-            <ComposeContainer media={SAMPLE_MEDIA} onPublished={() => pop()} />
+            <ComposeFlowContainer onPublished={() => pop()} />
           ) : (
             <SignedOutNotice onSignIn={() => push({ name: 'sign-in' })} />
           );

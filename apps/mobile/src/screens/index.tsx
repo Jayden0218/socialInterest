@@ -319,7 +319,8 @@ import {
 } from '../features/discover/CreateInterestScreen';
 import { ProfileScreen, type ProfileData } from '../features/profile/ProfileScreen';
 import { ComposeScreen, newSlot, runUpload, type UploadSlot } from '../features/publish/ComposeScreen';
-import type { PickedMedia } from '../features/publish/MediaPickerScreen';
+import { MediaPickerScreen, type PickedMedia } from '../features/publish/MediaPickerScreen';
+import { useMediaLibrary } from '../features/publish/useMediaLibrary';
 import { DEFAULT_VISIBILITY } from '../features/publish/VisibilityControl';
 import { useInterestPosts, useProfilePosts } from '../containers';
 import type { InterestRef, Visibility } from '@sih/shared';
@@ -479,14 +480,43 @@ export function ProfileContainer({
 }
 
 /**
- * Compose.
+ * T038. The compose flow, starting where a person starts it: at their own media.
  *
- * `media` is supplied by the caller rather than picked here. There is no native
- * picker dependency in this build, and a journey that has to drive an OS gallery
- * dialog is the kind of device test that breaks for reasons unrelated to the
- * product. What the journey is actually about - choose an interest, upload,
- * publish, see it in the feed - runs end to end either way, over the real
- * presign/PUT/publish path.
+ * `MediaPickerScreen` existed and nothing reached it - it was the last screen in
+ * the app with no route to it, and compose took a bundled sample image instead.
+ * So the first step of the core act was faked, and every publish journey began
+ * one step in.
+ *
+ * The picker is now the first step, and the sample media remains the fallback
+ * (T039): the browser journeys run this same code through react-native-web,
+ * where there is no native gallery, and publish must still work end to end for
+ * them. A refused permission is neither - it is explained, per FR-012.
+ */
+export function ComposeFlowContainer({ onPublished }: { onPublished: (postId: string) => void }) {
+  const library = useMediaLibrary();
+  const [selected, setSelected] = useState<PickedMedia[]>([]);
+  const [picked, setPicked] = useState<PickedMedia[] | null>(null);
+
+  if (picked) return <ComposeContainer media={picked} onPublished={onPublished} />;
+
+  return (
+    <MediaPickerScreen
+      available={library.available}
+      selected={selected}
+      onChange={setSelected}
+      onContinue={() => setPicked(selected)}
+      libraryStatus={library.status}
+      onOpenLibrary={() => void library.pick()}
+    />
+  );
+}
+
+/**
+ * Compose itself, once media has been chosen.
+ *
+ * `media` is still a prop rather than picked here, so this stays drivable from a
+ * test with a fixed set - which is what the browser journeys and the unit tests
+ * both need.
  */
 export function ComposeContainer({
   media,

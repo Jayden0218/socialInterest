@@ -159,6 +159,43 @@ describe('the shell reaches every screen', () => {
     await act(async () => {
       fireEvent.press(screen.getByTestId('open-compose'));
     });
+
+    // T038. Compose now starts at the media picker, where a person starts it.
+    // It used to open straight onto the compose form with a bundled sample
+    // image, so the first step of the core act was skipped.
+    expect(screen.getByTestId('media-picker-screen')).toBeTruthy();
+
+    // No native gallery under jest, so the sample media is offered - T039, the
+    // fallback that keeps publish drivable everywhere the picker does not exist.
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('media-item-0'));
+    });
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('media-continue'));
+    });
     expect(screen.getByTestId('compose-screen')).toBeTruthy();
+  });
+
+  it('explains a refused photo permission rather than looking broken (FR-012)', async () => {
+    const data = fakeData({ session: { isSignedIn: async () => true, me: async () => ({
+      handle: 'me', displayName: 'Me', bio: null, interestFollowCount: 0,
+      followerCount: 0, followingCount: 0, topInterests: [],
+      notificationPrefs: { reaction: true, comment: true, follow: true },
+    }) } });
+    renderShell(data);
+    await waitFor(() => expect(screen.queryByTestId('open-sign-in')).toBeNull());
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('open-compose'));
+    });
+
+    // There is no expo-image-picker module under jest, so opening the library
+    // takes the "unavailable" path. The assertion that matters is that the app
+    // SAYS something either way: a silent fallback to whatever media happened
+    // to be around would publish something the person did not choose.
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('open-library'));
+    });
+    expect(screen.getByTestId('library-unavailable')).toBeTruthy();
+    expect(screen.queryByTestId('compose-screen')).toBeNull();
   });
 });

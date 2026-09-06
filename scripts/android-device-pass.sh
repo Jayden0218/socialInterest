@@ -153,6 +153,40 @@ PRESENT="$(echo "$FIXTURE" | sed -n 's/^PRESENT=//p')"
 ABSENT="$(echo "$FIXTURE" | sed -n 's/^ABSENT=//p')"
 [ -n "$PRESENT" ] && [ -n "$ABSENT" ] || { echo "FAIL: the FR-033 fixture printed no captions"; exit 1; }
 
+# T040. Put a real image in the emulator's gallery.
+#
+# `adb push` alone is NOT enough: MediaStore indexes the gallery, and a file
+# pushed straight into /sdcard is invisible to every picker until the media
+# scanner has seen it (research R4). The broadcast is the whole point of this
+# block - without it, 10-publish-from-library.yaml opens an empty gallery and
+# fails as a missing element, which reads like a broken app.
+echo "== place a test image in the device gallery =="
+node -e '
+  const fs = require("fs");
+  // A real JPEG, not a renamed PNG: the picker reports a MIME type from the
+  // file, and the server derives kind from its own upload record.
+  const b = Buffer.from(
+    "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0a" +
+    "HBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAAQABABAREA/8QAHwAAAQUBAQEB" +
+    "AQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1Fh" +
+    "ByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZ" +
+    "WmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXG" +
+    "x8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/9oACAEBAAA/APn+iiiv/9k=",
+    "base64");
+  fs.writeFileSync("/tmp/sih-gallery.jpg", b);
+'
+adb push /tmp/sih-gallery.jpg /sdcard/Pictures/sih-gallery.jpg
+adb shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE \
+  -d file:///sdcard/Pictures/sih-gallery.jpg
+# Assert the scanner actually indexed it. A silent no-op here is exactly the
+# failure this block exists to prevent, and it is cheap to check.
+sleep 3
+if ! adb shell content query --uri content://media/external/images/media \
+     --projection _display_name 2>/dev/null | grep -q 'sih-gallery'; then
+  echo "WARNING: the media scanner did not index the pushed image."
+  echo "10-publish-from-library.yaml will open an empty gallery."
+fi
+
 echo "== journeys =="
 maestro test .maestro/ -e TOKEN="$TOKEN" -e PRESENT="$PRESENT" -e ABSENT="$ABSENT" \
   --format junit --output "$OUT/maestro-junit.xml" || {

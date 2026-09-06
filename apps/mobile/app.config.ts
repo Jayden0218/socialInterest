@@ -8,6 +8,20 @@ export default {
   scheme: 'socialinterest',
   ios: { supportsTablet: false, bundleIdentifier: 'app.socialinterest' },
   android: { package: 'app.socialinterest' },
+  // T037. expo-image-picker's config plugin declares the platform permissions
+  // and the string a person is shown when asked. The default string is generic;
+  // this one says what the app wants the access FOR, which is what FR-012 is
+  // about on the grant side just as the explanation is on the refusal side.
+  plugins: [
+    [
+      'expo-image-picker',
+      {
+        photosPermission:
+          'socialInterest needs access to your photos so you can choose what to post. ' +
+          'Nothing is read or uploaded until you pick something.',
+      },
+    ],
+  ],
   // The API base URL comes from EXPO_PUBLIC_API_BASE_URL, which Expo inlines at
   // build time and src/config.ts reads. It deliberately does NOT live in `extra`:
   // it was in both, under different names, and nothing read the `extra` copy.

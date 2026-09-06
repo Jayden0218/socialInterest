@@ -1,0 +1,63 @@
+# J-04b / 003/US4: publish media chosen from the device's own library.
+#
+# This is the first step of the core act, and until T038 nothing reached it -
+# MediaPickerScreen existed with no route to it and compose took a bundled
+# sample image, so every publish journey started one step in.
+#
+# The image comes from scripts/android-device-pass.sh, which pushes it AND
+# broadcasts a media scan. Without the broadcast the gallery is empty and this
+# fails as a missing element rather than as a picker problem.
+#
+# Sign-in is INLINED rather than `runFlow: 01-sign-in.yaml`, and the permission
+# is set on the same launch, because on a device the token store is memory-only
+# (see apps/mobile/src/data-provider.tsx): a second launchApp signs the person
+# out, and `clearState` resets runtime permission grants. One launch is the only
+# way to hold both a session and a permission state at once.
+appId: app.socialinterest
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- assertVisible:
+    id: "app-root"
+- tapOn:
+    id: "open-sign-in"
+- tapOn:
+    id: "sign-in-token"
+- inputText: ${TOKEN}
+- tapOn:
+    id: "sign-in-submit"
+- assertNotVisible:
+    id: "open-sign-in"
+
+- tapOn:
+    id: "open-compose"
+- assertVisible:
+    id: "media-picker-screen"
+- tapOn:
+    id: "open-library"
+
+# The app must not silently fall back. Either the gallery opened and its media
+# is selectable, or the app said why it could not - never neither.
+- assertVisible:
+    id: "media-item-0"
+- tapOn:
+    id: "media-item-0"
+- tapOn:
+    id: "media-continue"
+
+- assertVisible:
+    id: "compose-screen"
+- tapOn:
+    id: "interest-option-0"
+- tapOn:
+    id: "caption-input"
+- inputText: "published from the device library"
+- tapOn:
+    id: "publish-button"
+
+# Published, not merely submitted: the feed is the app's own read of the server.
+- assertVisible:
+    id: "home-feed-screen"
+- assertVisible: "published from the device library"

@@ -123,14 +123,56 @@ export interface LoadMeasurement {
 }
 
 /**
+ * Datastores that are not the thing they stand for.
+ *
+ * DynamoDB Local is shipped by Amazon for testing. A number measured against it
+ * is a number about it - measured at 827 req/s against an application shape of
+ * 5,574, so it is the binding constraint long before the design is.
+ *
+ * 003/FR-013 exists because 001 reported an emulator's p95 of 11.8s as a
+ * property of the read-time feed design, and that reading drove a proposal to
+ * build a fan-out hybrid the evidence never warranted.
+ */
+const STAND_INS = ['dynamodb local', 'dynamodb-local', 'dynamodblocal', 'minio', 'in-memory', 'stub'];
+
+/**
+ * Substring, not equality. The benches name their datastore with detail -
+ * "DynamoDB Local (http://127.0.0.1:8000)" - and an exact-match check would
+ * silently classify that as a production datastore, which is precisely the
+ * mistake this guard exists to prevent.
+ */
+const isStandIn = (name: string): boolean => {
+  const n = name.trim().toLowerCase();
+  return STAND_INS.some((s) => n.includes(s));
+};
+
+/**
  * Prints the Load Measurement shape from data-model.md.
  *
- * `transport` and `bottleneck` are required fields because feature 001's headline
- * figure was taken in-process and read as though it were not. A measurement with
- * a firstBreach and no attribution must not be cited as evidence about the
- * design, and this says so on every run rather than trusting the reader.
+ * `transport`, `datastore` and `bottleneck` are required, and required at
+ * RUNTIME rather than only in the type: feature 001's headline figure was taken
+ * in-process against an emulator and read as though it were neither. A
+ * measurement that cannot say what it measured is not a weaker measurement, it
+ * is a misleading one, so this refuses to print it at all (003/T044).
  */
 export function reportMeasurement(m: LoadMeasurement, budgetMs: number): void {
+  const missing = (['transport', 'datastore', 'version', 'bottleneck'] as const).filter(
+    (k) => typeof m[k] !== 'string' || m[k].trim() === '',
+  );
+  if (missing.length > 0) {
+    throw new Error(
+      `Load Measurement is missing ${missing.join(', ')}. These have no default: a ` +
+        'figure that cannot say what it measured gets cited as though it measured ' +
+        'the design. Name the datastore exactly (e.g. "dynamodb-local").',
+    );
+  }
+  if (m.bottleneck !== 'undetermined' && m.bottleneckEvidence.trim() === '') {
+    throw new Error(
+      `bottleneck is "${m.bottleneck}" with no evidence. An attribution without ` +
+        'evidence is a guess wearing a field name.',
+    );
+  }
+
   console.log(`\nLoad Measurement — transport: ${m.transport}, datastore: ${m.datastore}`);
   console.log(`version ${m.version}  ${m.date}   (budget: p95 <= ${budgetMs}ms)\n`);
   console.log(
@@ -150,5 +192,18 @@ export function reportMeasurement(m: LoadMeasurement, budgetMs: number): void {
     console.log('  that something is the limit, not what. Run bench:ceiling first.\n');
   } else {
     console.log('');
+  }
+
+  // 003/T047. Printed last so it is the thing left on screen, and printed even
+  // when the run looks healthy - a comfortable number measured against a
+  // stand-in is just as misleading as an uncomfortable one.
+  if (isStandIn(m.datastore)) {
+    console.log(`  ${'='.repeat(68)}`);
+    console.log(`  THIS MEASURES ${m.datastore.toUpperCase()}, NOT A PRODUCTION DATASTORE.`);
+    console.log('  Report it as a measurement of the stand-in. It is not a statement');
+    console.log('  about the product, the design, or what either would do in service');
+    console.log('  (003/FR-013). Closing 002/SC-002 needs a provisioned datastore, and');
+    console.log("  that needs the owner's explicit approval to spend.");
+    console.log(`  ${'='.repeat(68)}\n`);
   }
 }
