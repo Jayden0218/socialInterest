@@ -16,6 +16,13 @@ import { ModerationLogRepository } from './moderation-log.repository';
 import { NotificationRepository } from './notification.repository';
 import { UploadRepository } from './upload.repository';
 import { EventRepository } from './event.repository';
+// feature 004
+import { ConversationRepository } from './conversation.repository';
+import { MessageRepository } from './message.repository';
+import { PlaceRepository } from './place.repository';
+import { PlaceFollowRepository } from './place-follow.repository';
+import { PostPlaceIndexRepository } from './post-place-index.repository';
+import { SavedPostRepository } from './saved-post.repository';
 
 const repo = <T>(
   cls: new (doc: DynamoDBDocumentClient, table: string) => T,
@@ -42,6 +49,12 @@ const providers: Provider[] = [
   repo(NotificationRepository),
   repo(UploadRepository),
   repo(EventRepository),
+  repo(ConversationRepository),
+  repo(MessageRepository),
+  repo(PlaceRepository),
+  repo(PlaceFollowRepository),
+  repo(PostPlaceIndexRepository),
+  repo(SavedPostRepository),
 ];
 
 @Global()
@@ -63,6 +76,12 @@ const providers: Provider[] = [
     NotificationRepository,
     UploadRepository,
     EventRepository,
+    ConversationRepository,
+    MessageRepository,
+    PlaceRepository,
+    PlaceFollowRepository,
+    PostPlaceIndexRepository,
+    SavedPostRepository,
   ],
 })
 export class PersistenceModule {}

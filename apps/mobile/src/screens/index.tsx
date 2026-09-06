@@ -84,7 +84,7 @@ export function NotificationsContainer({ onOpen }: { onOpen: (postId: string) =>
   return (
     <NotificationsScreen
       notifications={state.items}
-      prefs={{ reaction: true, comment: true, follow: true }}
+      prefs={{ reaction: true, comment: true, follow: true, message: true }}
       // The notification's postId, not its notificationId. Passing the latter
       // opened a post route with a notification's id, and the API answered 404
       // "No longer available" - so every notification was a dead end. A follow

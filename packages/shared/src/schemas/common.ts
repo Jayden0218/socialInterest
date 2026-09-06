@@ -15,7 +15,22 @@ export const interestStateSchema = z.enum(['active', 'merging', 'merged', 'retir
 export const personStatusSchema = z.enum(['active', 'deleting', 'deleted']);
 export const reportStateSchema = z.enum(['open', 'under_review', 'actioned', 'dismissed']);
 export const reportSubjectSchema = z.enum(['post', 'comment', 'interest']);
-export const notificationKindSchema = z.enum(['reaction', 'comment', 'follow']);
+export const notificationKindSchema = z.enum(['reaction', 'comment', 'follow', 'message']);
+
+/** 004/FR-013. A restaurant is a CATEGORY, not the entity - see research R3. */
+export const placeCategorySchema = z.enum([
+  'restaurant',
+  'cafe',
+  'bar',
+  'shop',
+  'venue',
+  'outdoor',
+  'other',
+]);
+export type PlaceCategory = z.infer<typeof placeCategorySchema>;
+
+export const conversationStateSchema = z.enum(['requested', 'accepted', 'declined', 'severed']);
+export type ConversationState = z.infer<typeof conversationStateSchema>;
 
 /**
  * FR-035: paging is cursor-based and position-preserving. Offsets are deliberately

@@ -1,6 +1,7 @@
 import { VisibilityFilter, type VisibilityCandidate, type Viewer } from '../../src/visibility/visibility.filter';
 import type { PersonFollowRepository } from '../../src/persistence/person-follow.repository';
 import type { BlockRepository } from '../../src/persistence/block.repository';
+import { SURFACES } from './surfaces';
 
 /**
  * ===========================================================================
@@ -8,12 +9,22 @@ import type { BlockRepository } from '../../src/persistence/block.repository';
  * ===========================================================================
  *
  * Generated from contracts/visibility-matrix.md, which is a contract rather than
- * documentation. 7 post states x 6 viewer relationships x 7 surfaces.
+ * documentation, plus 004's contracts/visibility-matrix-addendum.md, which grows
+ * the surface list from 7 to 11. 7 post states x 6 viewer relationships x
+ * 11 surfaces = 462.
  *
  * Surfaces are enabled by the story that builds them. A surface still marked
  * `built: false` is SKIPPED, not passed - the counts printed at the end say how
  * many assertions are actually running, so a skipped surface can never be
- * mistaken for a covered one. T154 turns on the last surface and closes SC-009.
+ * mistaken for a covered one.
+ *
+ * WHAT THIS SUITE DOES AND DOES NOT PROVE. It proves the FILTER implements the
+ * decision table. It does not prove a surface CALLS the filter - every row here
+ * runs the same `decide()`, so a read path that quietly built its own predicate
+ * would leave this suite green. That second half is surface-routing.spec.ts,
+ * which is the one that would have caught the five times a read path in this
+ * repository returned VisibilityFilter's candidates instead of using its answer.
+ * Neither suite is sufficient alone, and SC-005 needs both.
  */
 
 const AUTHOR = 'author-1';
@@ -51,31 +62,9 @@ const EXPECTED: Record<StateKey, Record<ViewerKey, boolean>> = {
   'removed by moderation': { anon: false, self: false, follower: false, stranger: false, 'blocked-by': false, blocker: false },
 };
 
-/** FR-018 enumerates these. Each is a distinct code path that could leak. */
-const SURFACES = [
-  // Built by US1: PostQueryService.listByInterest and .listByAuthor both route
-  // through VisibilityFilter - see tests/integration/us1-publish.spec.ts, which
-  // asserts the HTTP surfaces call them.
-  { name: 'interest space',   built: true,  story: 'US1 (T063)' },
-  { name: 'profile',          built: true,  story: 'US1 (T063)' },
-  // Built by US2: the interest listing goes through PostQueryService.listByInterest,
-  // and interest search returns no post content of its own - post counts come
-  // from the same filtered path. See tests/integration/us2-discover.spec.ts.
-  { name: 'interest search',  built: true,  story: 'US2 (T082)' },
-  // Built by US3: FeedService.homeFeed applies VisibilityFilter to the merged
-  // fan-in result before returning a page. See us3-follow-interests.spec.ts.
-  { name: 'home feed',        built: true,  story: 'US3 (T098)' },
-  // Built by US5: ShareResolutionService resolves against current visibility
-  // through PostQueryService.getById, and reports a block as 404 not 403.
-  { name: 'share link',       built: true,  story: 'US5 (T122)' },
-  // Built by US5: CommentService gates every read on the POST, never on the
-  // comment, so the two cannot disagree.
-  { name: 'comments',         built: true,  story: 'US5 (T122)' },
-  // Built by T154: NotificationService checks canOpen() before generating a
-  // notification AND filters stored ones on read, since visibility can change
-  // after generation. This is the last surface - SC-009 is now closed.
-  { name: 'notifications',    built: true,  story: 'T154 - closes SC-009' },
-] as const;
+// The surface list lives in surfaces.ts so this suite and surface-routing.spec.ts
+// cannot drift. See that file for why.
+
 
 function buildFilter(): VisibilityFilter {
   const follows = {
@@ -137,9 +126,9 @@ describe('SC-009 visibility matrix', () => {
     const perSurface = Object.keys(POST_STATES).length * Object.keys(VIEWERS).length;
     const built = SURFACES.filter((s) => s.built).length;
     console.log(
-      `\nSC-009: ${assertionsRun}/${perSurface * SURFACES.length} assertions run ` +
+      `\n001/SC-009 + 004/SC-005: ${assertionsRun}/${perSurface * SURFACES.length} assertions run ` +
         `(${built}/${SURFACES.length} surfaces built).\n` +
-        `Not yet built: ${skippedSurfaces.join(', ') || 'none - SC-009 is closed'}\n`,
+        `Not yet built: ${skippedSurfaces.join(', ') || 'none - every enumerated surface is covered'}\n`,
     );
   });
 });

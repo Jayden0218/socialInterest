@@ -8,6 +8,7 @@ import { ReportRepository, type ReportState } from '../../persistence/report.rep
 import { ModerationLogRepository } from '../../persistence/moderation-log.repository';
 import { PostRepository } from '../../persistence/post.repository';
 import { NotificationRepository } from '../../persistence/notification.repository';
+import { MessageRepository } from '../../persistence/message.repository';
 
 const decisionSchema = z.object({
   state: z.enum(['under_review', 'actioned', 'dismissed']),
@@ -22,6 +23,7 @@ export class ModerationController {
     @Inject(ReportRepository) private readonly reports: ReportRepository,
     @Inject(ModerationLogRepository) private readonly log: ModerationLogRepository,
     @Inject(PostRepository) private readonly posts: PostRepository,
+    @Inject(MessageRepository) private readonly messages: MessageRepository,
     @Inject(NotificationRepository) private readonly notifications: NotificationRepository,
   ) {}
 
@@ -46,9 +48,23 @@ export class ModerationController {
     const report = await this.reports.findById(reportId);
     if (!report) throw new DomainError(HttpStatus.NOT_FOUND, 'No such report');
 
-    const removing = decision.action === 'remove_content' && report.subjectType === 'post';
-    if (removing) {
+    /**
+     * `remove_content` means different things to different subjects, and the
+     * difference is not cosmetic: removing a MESSAGE withholds its body and
+     * leaves the thread readable (004 addendum, rule 6), because silently
+     * deleting a conversation is indistinguishable from a bug to both people in
+     * it. A place and an interest description are handled by their own admin
+     * endpoints; here they are recorded, not mutated.
+     */
+    const removing = decision.action === 'remove_content';
+    if (removing && report.subjectType === 'post') {
       await this.posts.setRemovedByModeration(report.subjectId);
+    }
+    if (removing && report.subjectType === 'message') {
+      const [conversationId, messageId] = report.subjectId.split(':');
+      if (conversationId && messageId) {
+        await this.messages.setModerationState(conversationId, messageId, 'removed');
+      }
     }
 
     const updated = await this.reports.transition(reportId, {
@@ -70,7 +86,7 @@ export class ModerationController {
     });
 
     // FR-045: the author is told when their content is removed.
-    if (removing) {
+    if (removing && report.subjectType === 'post') {
       const post = await this.posts.findById(report.subjectId);
       if (post) {
         await this.notifications.create({

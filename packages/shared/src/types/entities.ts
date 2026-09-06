@@ -4,6 +4,8 @@ import {
   interestLevelSchema,
   interestStateSchema,
   notificationKindSchema,
+  placeCategorySchema,
+  conversationStateSchema,
   processingStateSchema,
   visibilitySchema,
 } from '../schemas/common';
@@ -101,3 +103,68 @@ export const notificationSchema = z.object({
   readAt: z.string().nullable().optional(),
 });
 export type Notification = z.infer<typeof notificationSchema>;
+
+// ---------------------------------------------------------------- feature 004
+
+export const placeSummarySchema = z.object({
+  placeId: z.string(),
+  name: z.string().min(1).max(120),
+  category: placeCategorySchema,
+  locality: z.string().min(1).max(120),
+  postCount: z.number().int().nonnegative().optional(),
+});
+export type PlaceSummary = z.infer<typeof placeSummarySchema>;
+
+export const placeSchema = placeSummarySchema.extend({
+  address: z.string().max(240).nullable().optional(),
+  status: z.enum(['active', 'merged', 'retired']),
+  mergedIntoPlaceId: z.string().nullable().optional(),
+  followerCount: z.number().int().nonnegative(),
+  viewerIsFollowing: z.boolean().optional(),
+  /** Derived from the posts filed here, never authored. */
+  interests: z.array(interestRefSchema).optional(),
+});
+export type Place = z.infer<typeof placeSchema>;
+
+export const conversationSummarySchema = z.object({
+  conversationId: z.string(),
+  other: publicProfileSchema,
+  state: conversationStateSchema,
+  lastMessageAt: z.string(),
+  lastMessagePreview: z.string().max(140).nullable().optional(),
+  unreadCount: z.number().int().nonnegative(),
+});
+export type ConversationSummary = z.infer<typeof conversationSummarySchema>;
+
+export const conversationSchema = conversationSummarySchema.extend({
+  /** Decided by ConversationAccess on the server, never by the client. */
+  viewerCanSend: z.boolean(),
+  initiatedByViewer: z.boolean(),
+});
+export type Conversation = z.infer<typeof conversationSchema>;
+
+export const messageSchema = z.object({
+  messageId: z.string(),
+  authorId: z.string(),
+  body: z.string().max(2000).nullable().optional(),
+  createdAt: z.string(),
+  moderationState: z.enum(['visible', 'removed']),
+  sharedPostId: z.string().nullable().optional(),
+  /**
+   * Resolved PER READER through the post visibility boundary. Null when the
+   * reader may not see it - the message itself is still returned, because
+   * conversation access and post visibility are two decisions, not one.
+   */
+  sharedPost: postSchema.nullable().optional(),
+  sharedPostUnavailableReason: z.enum(['gone', 'not-for-you']).nullable().optional(),
+});
+export type Message = z.infer<typeof messageSchema>;
+
+/** Absent means on. `message` is new in 004; the other three ship in 001. */
+export const notificationPreferencesSchema = z.object({
+  reaction: z.boolean().optional(),
+  comment: z.boolean().optional(),
+  follow: z.boolean().optional(),
+  message: z.boolean().optional(),
+});
+export type NotificationPreferences = z.infer<typeof notificationPreferencesSchema>;

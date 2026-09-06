@@ -3,11 +3,9 @@ import type { Notification } from '@sih/shared';
 import { theme } from '../../ui/theme';
 import { EmptyState, Screen } from '../../ui/primitives';
 
-export interface NotificationPrefs {
-  reaction: boolean;
-  comment: boolean;
-  follow: boolean;
-}
+import type { NotificationPrefs } from '../../data/session';
+
+export type { NotificationPrefs };
 
 /**
  * FR-048, FR-049.
@@ -21,6 +19,10 @@ export const NOTIFICATION_CATEGORIES: { key: keyof NotificationPrefs; label: str
   { key: 'reaction', label: 'Reactions to your posts' },
   { key: 'comment', label: 'Comments on your posts' },
   { key: 'follow', label: 'New followers' },
+  // 004/FR-031. The fourth category, for the conversations US1 introduces. The
+  // control itself has worked since 001 - only this row and the server enum are
+  // new.
+  { key: 'message', label: 'Messages' },
 ];
 
 export function describeNotification(n: Notification): string {
@@ -31,11 +33,13 @@ export function describeNotification(n: Notification): string {
       return `${n.actor.displayName} commented on your post`;
     case 'follow':
       return `${n.actor.displayName} followed you`;
+    case 'message':
+      return `${n.actor.displayName} sent you a message`;
   }
 }
 
 export function allDisabled(prefs: NotificationPrefs): boolean {
-  return !prefs.reaction && !prefs.comment && !prefs.follow;
+  return !prefs.reaction && !prefs.comment && !prefs.follow && !prefs.message;
 }
 
 export function NotificationsScreen({

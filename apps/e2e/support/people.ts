@@ -33,7 +33,7 @@ export async function createProfile(userId: string, handle: string): Promise<str
     followerCount: 0,
     followingCount: 0,
     interestFollowCount: 0,
-    notificationPrefs: { reaction: true, comment: true, follow: true },
+    notificationPrefs: { reaction: true, comment: true, follow: true, message: true },
     status: 'active',
     createdAt: new Date().toISOString(),
   });

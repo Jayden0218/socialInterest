@@ -7,7 +7,7 @@ import { ReportService, REPORT_REASONS } from './report.service';
 import { BlockService } from './block.service';
 
 const reportSchema = z.object({
-  subjectType: z.enum(['post', 'comment', 'interest']),
+  subjectType: z.enum(['post', 'comment', 'interest', 'message', 'place', 'interest-description']),
   subjectId: z.string().min(1),
   reason: z.enum(REPORT_REASONS),
   detail: z.string().max(1000).optional(),

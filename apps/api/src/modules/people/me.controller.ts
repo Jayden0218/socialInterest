@@ -10,7 +10,13 @@ const profileUpdateSchema = z
     displayName: z.string().min(1).max(50),
     bio: z.string().max(300),
     notificationPrefs: z
-      .object({ reaction: z.boolean(), comment: z.boolean(), follow: z.boolean() })
+      // 004/FR-031 adds `message`. Absent still means on, so no backfill.
+      .object({
+        reaction: z.boolean(),
+        comment: z.boolean(),
+        follow: z.boolean(),
+        message: z.boolean(),
+      })
       .partial(),
   })
   .partial()

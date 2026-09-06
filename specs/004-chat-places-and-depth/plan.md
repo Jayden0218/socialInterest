@@ -106,7 +106,7 @@ Two sub-cases are called out because each invites a shortcut:
 
 **Extension, not exception**: conversation membership is a read path this principle does not
 cover, because a conversation is not a post. Its *rationale* covers it exactly, so
-`ConversationAccess` is a single boundary with its own generated table (60 assertions),
+`ConversationAccess` is a single boundary with its own generated table (48 assertions),
 mirroring `VisibilityFilter` (FR-041, research R2). This is applying the principle's
 reasoning to new ground, and it is recorded here rather than left implicit.
 

@@ -28,6 +28,8 @@ const KEY_ATTRIBUTES = [
   'gsi3sk',
   'gsi4pk',
   'gsi4sk',
+  'gsi5pk',
+  'gsi5sk',
 ] as const;
 
 export function stripKeys<T extends Record<string, unknown>>(item: T): T {
@@ -42,7 +44,7 @@ export interface Page<T> {
 }
 
 export interface QueryOptions {
-  indexName?: 'gsi1' | 'gsi2' | 'gsi3' | 'gsi4';
+  indexName?: 'gsi1' | 'gsi2' | 'gsi3' | 'gsi4' | 'gsi5';
   skPrefix?: string;
   limit?: number;
   cursor?: string | null;
@@ -88,6 +90,31 @@ export abstract class BaseRepository {
         UpdateExpression: 'ADD #a :n',
         ExpressionAttributeNames: { '#a': attribute },
         ExpressionAttributeValues: { ':n': by },
+      }),
+    );
+  }
+
+  /**
+   * Set named attributes on an existing item.
+   *
+   * Update rather than put, so a partial write cannot race a concurrent one into
+   * resurrecting fields it was not touching.
+   */
+  protected async updateItem(
+    key: Record<string, string>,
+    values: Record<string, unknown>,
+    condition?: string,
+  ): Promise<void> {
+    const entries = Object.entries(values);
+    if (entries.length === 0) return;
+    await this.doc.send(
+      new UpdateCommand({
+        TableName: this.tableName,
+        Key: key,
+        UpdateExpression: `SET ${entries.map((_, i) => `#k${i} = :v${i}`).join(', ')}`,
+        ExpressionAttributeNames: Object.fromEntries(entries.map(([k], i) => [`#k${i}`, k])),
+        ExpressionAttributeValues: Object.fromEntries(entries.map(([, v], i) => [`:v${i}`, v])),
+        ...(condition ? { ConditionExpression: condition } : {}),
       }),
     );
   }

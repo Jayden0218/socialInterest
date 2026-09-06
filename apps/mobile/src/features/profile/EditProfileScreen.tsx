@@ -2,11 +2,9 @@ import { Switch, Text, TextInput, View } from 'react-native';
 import { theme } from '../../ui/theme';
 import { Banner, Button, Row, Screen } from '../../ui/primitives';
 
-export interface NotificationPrefs {
-  reaction: boolean;
-  comment: boolean;
-  follow: boolean;
-}
+import type { NotificationPrefs } from '../../data/session';
+
+export type { NotificationPrefs };
 
 export interface ProfileDraft {
   displayName: string;

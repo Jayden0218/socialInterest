@@ -2,7 +2,21 @@ import { Injectable } from '@nestjs/common';
 import { BaseRepository, type Page } from './base.repository';
 import { keys } from './keys';
 
-export type ReportSubjectType = 'post' | 'comment' | 'interest';
+/**
+ * Every user-generated thing that can be reported.
+ *
+ * Constitution IV: user-generated names and text are CONTENT and are subject to
+ * the same policy and reporting as media. 004 adds three - a message body, a
+ * place name, and an interest description - and each must be reportable in the
+ * SAME release that introduces it, not a later one.
+ */
+export type ReportSubjectType =
+  | 'post'
+  | 'comment'
+  | 'interest'
+  | 'message'
+  | 'place'
+  | 'interest-description';
 export type ReportState = 'open' | 'under_review' | 'actioned' | 'dismissed';
 
 export interface ReportItem {

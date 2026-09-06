@@ -8,6 +8,8 @@ import {
 } from '../../persistence/report.repository';
 import { PostRepository } from '../../persistence/post.repository';
 import { CommentRepository } from '../../persistence/comment.repository';
+import { PlaceRepository } from '../../persistence/place.repository';
+import { MessageRepository } from '../../persistence/message.repository';
 import { CATALOGUE_SEARCH, type CatalogueSearch } from '../interests/catalogue.cache';
 
 export const REPORT_REASONS = [
@@ -34,6 +36,8 @@ export class ReportService {
     @Inject(PostRepository) private readonly posts: PostRepository,
     @Inject(CommentRepository) private readonly comments: CommentRepository,
     @Inject(CATALOGUE_SEARCH) private readonly catalogue: CatalogueSearch,
+    @Inject(PlaceRepository) private readonly places: PlaceRepository,
+    @Inject(MessageRepository) private readonly messages: MessageRepository,
   ) {}
 
   async file(input: {
@@ -65,13 +69,36 @@ export class ReportService {
    * ones, and SC-010 measures the queue's response time.
    */
   private async assertSubjectExists(type: ReportSubjectType, id: string): Promise<void> {
-    const exists =
-      type === 'post'
-        ? (await this.posts.findById(id)) !== null
-        : type === 'interest'
-          ? this.catalogue.byId(id) !== undefined
-          : await this.commentExists(id);
+    const exists = await this.subjectExists(type, id);
     if (!exists) throw new DomainError(HttpStatus.NOT_FOUND, 'No such content to report');
+  }
+
+  private async subjectExists(type: ReportSubjectType, id: string): Promise<boolean> {
+    switch (type) {
+      case 'post':
+        return (await this.posts.findById(id)) !== null;
+      // A description is reported by its interest's id: there is one description
+      // per interest, so a separate id would be a second name for the same thing.
+      case 'interest':
+      case 'interest-description':
+        return this.catalogue.byId(id) !== undefined;
+      case 'comment':
+        return this.commentExists(id);
+      case 'place':
+        return (await this.places.find(id)) !== null;
+      case 'message':
+        // A message id alone does not locate a message - it lives in a
+        // conversation partition. The reporter supplies `<conversationId>:<messageId>`,
+        // which is also the only form a participant can produce, so an outsider
+        // cannot fish for message ids by reporting them.
+        return this.messageExists(id);
+    }
+  }
+
+  private async messageExists(compositeId: string): Promise<boolean> {
+    const [conversationId, messageId] = compositeId.split(':');
+    if (!conversationId || !messageId) return false;
+    return (await this.messages.find(conversationId, messageId)) !== null;
   }
 
   private async commentExists(commentId: string): Promise<boolean> {

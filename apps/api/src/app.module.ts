@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { AdaptersModule } from './adapters/adapters.module';
 import { PersistenceModule } from './persistence/persistence.module';
 import { VisibilityModule } from './visibility/visibility.module';
+import { ConversationAccessModule } from './conversations/conversation-access.module';
 import { InterestsModule } from './modules/interests/interests.module';
 import { InterestsHttpModule } from './modules/interests/interests-http.module';
 import { FeedModule } from './modules/feed/feed.module';
@@ -22,6 +23,7 @@ import { HealthController } from './modules/health/health.controller';
     AdaptersModule,
     PersistenceModule,
     VisibilityModule,
+    ConversationAccessModule,
     InterestsModule,
     PostsModule,
     InterestsHttpModule,

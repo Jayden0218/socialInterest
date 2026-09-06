@@ -64,11 +64,13 @@ hold. `ConversationAccess` is therefore a single boundary with its own table-dri
 
 | Code | Meaning |
 |---|---|
-| `participant` | One of the two people in the conversation |
 | `initiator` | The participant who sent the first message |
 | `recipient` | The participant who did not |
 | `outsider` | Signed in, not a participant |
 | `anon` | Not signed in |
+
+`participant` appears in prose below as shorthand for `initiator ∪ recipient`. It is **not**
+a fifth axis — an earlier draft counted it as one and got the assertion count wrong.
 
 ### Decision table
 
@@ -114,8 +116,8 @@ hold. `ConversationAccess` is therefore a single boundary with its own table-dri
 | Send into `requested` when one unanswered message already exists | `409` | "Wait for a reply before sending again" |
 | Send into `severed`, or to a non-active person | `404` | "Not found" |
 
-**Test shape**: 6 conversation states × 5 viewer relationships × 2 operations (read, write)
-= **60 assertions**, generated from this table.
+**Test shape**: 6 conversation states × 4 viewer relationships × 2 operations (read, write)
+= **48 assertions**, generated from this table.
 
 ## Part 3 — What this contract does not cover
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { SafeAreaView, StatusBar, Text, View } from 'react-native';
 import { theme } from './ui/theme';
 import { Button, Row } from './ui/primitives';
@@ -23,11 +23,14 @@ import {
 } from './screens';
 import { API_BASE_URL } from './config';
 
-export type Tab = 'feed' | 'discover' | 'notifications' | 'profile';
+export type Tab = 'feed' | 'discover' | 'chats' | 'notifications' | 'profile';
 
 export const TABS: { key: Tab; label: string }[] = [
   { key: 'feed', label: 'Feed' },
   { key: 'discover', label: 'Discover' },
+  // 004/US1's Chats tab joins here in T053, together with its container. Five
+  // tabs is the ceiling, which is why places live INSIDE Discover (one search
+  // across interests and places) rather than taking a sixth.
   { key: 'notifications', label: 'Activity' },
   { key: 'profile', label: 'You' },
 ];
@@ -55,6 +58,12 @@ export type Route =
   | { name: 'person'; handle: string }
   | { name: 'shared-post'; postId: string }
   | { name: 'create-interest'; parentId: string; parentName: string }
+  // ---- feature 004
+  | { name: 'conversation'; conversationId: string; otherHandle: string }
+  | { name: 'place'; placeId: string }
+  | { name: 'create-place' }
+  | { name: 'saved' }
+  | { name: 'people-search' }
   | { name: 'safety'; subject: 'post' | 'comment' | 'interest'; subjectId: string; authorHandle?: string };
 
 function Header({ title, onBack }: { title: string; onBack: () => void }) {
@@ -229,44 +238,62 @@ export function Shell() {
 
   return (
     <View testID="app-root" style={{ flex: 1 }}>
-      {tab === 'feed' ? (
-        <View style={{ flex: 1 }}>
-          <HomeFeedContainer
-            onEmptyAction={() => setTab('discover')}
-            onOpenPost={(postId) => push({ name: 'post', postId })}
-          />
-        </View>
-      ) : null}
+      {/*
+        An EXHAUSTIVE switch, not a chain of `tab === 'x' ? ... : null`.
 
-      {tab === 'discover' ? (
-        <DiscoverContainer onSelect={(interestId) => push({ name: 'interest', interestId })} />
-      ) : null}
-
-      {tab === 'notifications' ? (
-        <NotificationsContainer onOpen={(id) => push({ name: 'post', postId: id })} />
-      ) : null}
-
-      {tab === 'profile' ? (
-        signedIn ? (
-          <View style={{ flex: 1 }}>
-            <ProfileContainer
-              handle="me"
-              isSelf
-              onOpenPost={(postId) => push({ name: 'post', postId })}
-            />
-            <Row style={{ padding: theme.space.sm }}>
-              <Button
-                testID="open-edit-profile"
-                label="Edit profile"
-                variant="secondary"
-                onPress={() => push({ name: 'edit-profile' })}
-              />
-            </Row>
-          </View>
-        ) : (
-          <SignedOutNotice onSignIn={() => push({ name: 'sign-in' })} />
-        )
-      ) : null}
+        The chain compiled fine with a tab that had no body and rendered an
+        empty screen - the same shape as the four defects where a screen existed
+        and nothing mounted it. `never` here turns "added a tab, forgot the
+        body" into a type error, and tabsRenderBody() in the tests asserts every
+        TABS entry actually produces something.
+      */}
+      {((): React.ReactElement => {
+        switch (tab) {
+          case 'feed':
+            return (
+              <View style={{ flex: 1 }}>
+                <HomeFeedContainer
+                  onEmptyAction={() => setTab('discover')}
+                  onOpenPost={(postId) => push({ name: 'post', postId })}
+                />
+              </View>
+            );
+          case 'discover':
+            return (
+              <DiscoverContainer onSelect={(interestId) => push({ name: 'interest', interestId })} />
+            );
+          case 'chats':
+            // Mounted by 004/T053, which is also when it joins TABS. Until then
+            // the tab is unreachable rather than blank.
+            return <SignedOutNotice onSignIn={() => push({ name: 'sign-in' })} />;
+          case 'notifications':
+            return <NotificationsContainer onOpen={(id) => push({ name: 'post', postId: id })} />;
+          case 'profile':
+            return signedIn ? (
+              <View style={{ flex: 1 }}>
+                <ProfileContainer
+                  handle="me"
+                  isSelf
+                  onOpenPost={(postId) => push({ name: 'post', postId })}
+                />
+                <Row style={{ padding: theme.space.sm }}>
+                  <Button
+                    testID="open-edit-profile"
+                    label="Edit profile"
+                    variant="secondary"
+                    onPress={() => push({ name: 'edit-profile' })}
+                  />
+                </Row>
+              </View>
+            ) : (
+              <SignedOutNotice onSignIn={() => push({ name: 'sign-in' })} />
+            );
+          default: {
+            const unreachable: never = tab;
+            return unreachable;
+          }
+        }
+      })()}
 
       <Row style={{ padding: theme.space.sm, gap: theme.space.sm }}>
         <Button

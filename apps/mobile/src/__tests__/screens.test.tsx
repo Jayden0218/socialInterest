@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import type { Comment, Interest, InterestRef, Notification, Post } from '@sih/shared';
-import App from '../App';
+import App, { Shell, TABS } from '../App';
+import { DataProvider } from '../data-provider';
 import { HomeFeedScreen, emptyStateCopy } from '../features/feed/HomeFeedScreen';
 import { InterestScreen } from '../features/discover/InterestScreen';
 import { InterestSearchScreen } from '../features/discover/InterestSearchScreen';
@@ -270,7 +271,7 @@ describe('Notifications and safety', () => {
     render(
       <NotificationsScreen
         notifications={[]}
-        prefs={{ reaction: true, comment: true, follow: true }}
+        prefs={{ reaction: true, comment: true, follow: true, message: true }}
         onOpen={() => undefined}
         onEditPrefs={() => undefined}
       />,
@@ -282,7 +283,7 @@ describe('Notifications and safety', () => {
     render(
       <NotificationsScreen
         notifications={[]}
-        prefs={{ reaction: false, comment: false, follow: false }}
+        prefs={{ reaction: false, comment: false, follow: false, message: false }}
         onOpen={() => undefined}
         onEditPrefs={() => undefined}
       />,
@@ -300,7 +301,7 @@ describe('Notifications and safety', () => {
     render(
       <NotificationsScreen
         notifications={[n]}
-        prefs={{ reaction: true, comment: true, follow: true }}
+        prefs={{ reaction: true, comment: true, follow: true, message: true }}
         onOpen={() => undefined}
         onEditPrefs={() => undefined}
       />,
@@ -335,7 +336,7 @@ describe('EditProfileScreen — FR-049 partial preference patch', () => {
     const onChange = jest.fn();
     render(
       <EditProfileScreen
-        draft={{ displayName: 'Me', bio: '', notificationPrefs: { reaction: true, comment: true, follow: true } }}
+        draft={{ displayName: 'Me', bio: '', notificationPrefs: { reaction: true, comment: true, follow: true, message: true } }}
         onChange={onChange}
         onSave={() => undefined}
         onDeleteAccount={() => undefined}
@@ -343,7 +344,37 @@ describe('EditProfileScreen — FR-049 partial preference patch', () => {
     );
     fireEvent(screen.getByTestId('pref-reaction'), 'valueChange', false);
     expect(onChange).toHaveBeenCalledWith(
-      expect.objectContaining({ notificationPrefs: { reaction: false, comment: true, follow: true } }),
+      // `message` is 004/FR-031's fourth category. The point of the test is that
+      // toggling one leaves the OTHERS untouched, so the new one belongs here.
+      expect.objectContaining({
+        notificationPrefs: { reaction: false, comment: true, follow: true, message: true },
+      }),
     );
   });
+});
+
+/**
+ * Every tab in TABS must render something.
+ *
+ * The tab body used to be a chain of `tab === 'x' ? ... : null`, which compiles
+ * happily with a tab that has no branch and renders an empty screen. That is
+ * the same shape as the four defects this codebase has already shipped - a
+ * screen that works and nothing that mounts it - one level up. The switch is now
+ * exhaustive, and this asserts the other half: that the body is not empty.
+ */
+describe('every tab renders a body', () => {
+  for (const t of TABS) {
+    it(`tab "${t.key}" is not blank`, () => {
+      const { getByTestId, unmount } = render(
+        <DataProvider baseUrl="http://127.0.0.1:1">
+          <Shell />
+        </DataProvider>,
+      );
+      fireEvent.press(getByTestId(`tab-${t.key}`));
+      const root = getByTestId('app-root');
+      // The tab bar and the compose row are always present; a body adds more.
+      expect(root.children.length).toBeGreaterThan(2);
+      unmount();
+    });
+  }
 });

@@ -6,11 +6,26 @@ import type { DataClient, TokenStore } from './client';
  * only yours to see. Typing it as PublicProfile would have hidden those fields
  * from every caller.
  */
+/**
+ * The notification categories a person can turn off (001/FR-049, extended by
+ * 004/FR-031 with `message`).
+ *
+ * Declared ONCE, here, because it was declared twice - in NotificationsScreen
+ * and EditProfileScreen - and adding the fourth category to one of them and not
+ * the other is exactly the drift a duplicated type invites.
+ */
+export interface NotificationPrefs {
+  reaction: boolean;
+  comment: boolean;
+  follow: boolean;
+  message: boolean;
+}
+
 export interface MyProfile extends PublicProfile {
   interestFollowCount: number;
   followerCount: number;
   followingCount: number;
-  notificationPrefs: { reaction: boolean; comment: boolean; follow: boolean };
+  notificationPrefs: NotificationPrefs;
 }
 
 /**
@@ -51,7 +66,7 @@ export class SessionData {
   updateProfile(patch: {
     displayName?: string;
     bio?: string;
-    notificationPrefs?: Partial<{ reaction: boolean; comment: boolean; follow: boolean }>;
+    notificationPrefs?: Partial<NotificationPrefs>;
   }): Promise<MyProfile> {
     return this.client.call<MyProfile>('patchMe', { body: patch });
   }
