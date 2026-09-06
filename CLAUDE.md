@@ -152,7 +152,7 @@ impossible regardless — the Simulator is macOS-only.
 | MinIO binary from `dl.min.io` | 403. Use the `minio/minio` image |
 | `quay.io` | Unreachable. `public.ecr.aws`, `ghcr.io`, `mirror.gcr.io` all work |
 | Android emulator **in this sandbox** | Boots, then crashloops. No `/dev/kvm`, no `vmx`/`svm`, so pure TCG: `system_server` is killed by its own watchdog *inside* `systemReady()` — `Blocked in handler on main thread for 94s`, limit 60s — restarts, and hits the same wall forever. Happens on a bare emulator with nothing installed. `pm.dexopt.install=skip` does not help (dexopt was never the problem) and `debug.disable_watchdog` is accepted by `setprop` but not honoured; the timeout is a compile-time constant. An `arm64` image is refused outright on an x86_64 host |
-| Android emulator on `ubuntu-latest` (24.04) | **Never starts.** `avdmanager` writes the AVD to `~/.config/.android`, the emulator reads `~/.android`. It is not launched in the foreground, so the only symptom is a boot timeout and `adb: device 'emulator-5554' not found`. Pin `runs-on: ubuntu-22.04` — `actions/runner-images#11482`, `android-emulator-runner#400` |
+| Android emulator on a GitHub runner | **Unresolved — never starts, on either image.** Three runs (4, 5, 6) ended the same way: no device ever appears, `adb: device 'emulator-5554' not found` for the whole boot budget, then `emu kill` → `Connection refused`. `/dev/kvm` is present and world-writable after the udev rule, and `emulator-boot-timeout: 1800` is honoured, so it is neither missing acceleration nor an impatient timeout. The Ubuntu 24.04 AVD-path bug (`actions/runner-images#11482`, `android-emulator-runner#400`) matches the symptom exactly and is **not** the cause here: pinning `runs-on: ubuntu-22.04` changed nothing. **Nobody has yet seen the emulator's own stderr** — the action does not surface it and only log tails are reachable — so every explanation so far has been a guess about an unobservable failure. Do not spend another run without first capturing that output (launch the emulator in a plain `run:` step, redirect to a file, `cat` it on failure) |
 
 ## Running the app on a device: what actually works
 
@@ -177,15 +177,22 @@ Two traps, both of which cost real runs:
   `apps/api/scripts/mint-device-token.ts` writes the row through the API's own
   `PersonRepository`, the same thing `apps/e2e/support/people.ts` does.
 
-**Six runs were spent getting there and four of the failures were mine**, every
-one the same shape: writing a step from memory instead of from the thing that
-already worked — `curl -sf` where the tested probe was `curl -so` (DynamoDB
+**Six runs, and the emulator has never once booted.** Three failures were mine,
+every one the same shape — writing a step from memory instead of from the thing
+that already worked: `curl -sf` where the tested probe was `curl -so` (DynamoDB
 Local answers a bare `GET /` with 400, and `-f` turns that into failure), the
-heaviest system image against a default 10-minute limit, `-accel-check` before
-the SDK existed, and an `emulator-options` override that swapped `-no-snapshot`
-for `-no-snapshot-save`. The other two were the Ubuntu 24.04 defect, which five
-minutes of searching would have found before spending two runs guessing at it.
-**When a failure is unobservable, search before you iterate.**
+heaviest system image against a default 10-minute limit, and `-accel-check`
+before the SDK existed. The other three are unexplained, and the two
+"explanations" offered for them — an `emulator-options` override, then the
+Ubuntu 24.04 AVD-path bug — were both plausible, both matched the symptom, and
+neither fixed anything.
+
+**The real lesson is not "check your config".** It is that six runs were spent
+iterating on a failure nobody could observe. The emulator's stderr has never
+been read; the action swallows it. Capturing it once is worth more than any
+number of further hypotheses, and the same reasoning applies anywhere else in
+this project: **when the failure is invisible, make it visible before changing
+anything.**
 
 ## Spec-kit workflow
 

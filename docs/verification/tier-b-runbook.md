@@ -132,13 +132,19 @@ a physical phone would need a hosted API first.
 
 ### The two things that are easy to get wrong
 
-**`runs-on` must be `ubuntu-22.04`.** On `ubuntu-latest`, now Ubuntu 24.04, the
-emulator never starts: `avdmanager` writes the AVD under `~/.config/.android`
-while the emulator reads `~/.android`, so it finds nothing and exits. Because it
-is not launched in the foreground the only symptom is a boot timeout with
-`adb: device 'emulator-5554' not found`. Two runs were lost to this before it
-was searched for rather than guessed at.
-See `actions/runner-images#11482` and `ReactiveCircus/android-emulator-runner#400`.
+**The emulator does not currently boot on a GitHub runner, and this route is
+therefore NOT yet usable.** Runs 4, 5 and 6 all ended with no device ever
+appearing: `adb: device 'emulator-5554' not found` for the full boot budget,
+then `Connection refused`. `/dev/kvm` is present and world-writable, and the
+1800s timeout is honoured, so neither acceleration nor patience is the problem.
+The Ubuntu 24.04 AVD-path bug (`actions/runner-images#11482`,
+`ReactiveCircus/android-emulator-runner#400`) matches the symptom exactly but is
+not the cause: pinning `runs-on: ubuntu-22.04` changed nothing.
+
+The blocker is that the emulator's own stderr has never been captured — the
+action does not surface it. Before spending another run, launch the emulator in
+a plain `run:` step with its output redirected to a file and `cat` it on
+failure. Everything below this line is written and reviewed but **unproven**.
 
 **The identity has to be provisioned, not just signed.** The local profile has
 no signup endpoint. A correctly signed token whose profile row does not exist
