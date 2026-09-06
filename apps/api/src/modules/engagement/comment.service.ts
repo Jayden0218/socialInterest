@@ -3,6 +3,7 @@ import { ulid } from 'ulid';
 import { DomainError } from '../../common/errors/problem.filter';
 import { CommentRepository, type CommentItem } from '../../persistence/comment.repository';
 import { PostRepository } from '../../persistence/post.repository';
+import { PersonRepository } from '../../persistence/person.repository';
 import { PostQueryService } from '../posts/post-query.service';
 import type { Viewer } from '../../visibility/visibility.filter';
 import { EVENT_BUS, type EventBus } from '../../ports';
@@ -18,8 +19,42 @@ export class CommentService {
     @Inject(CommentRepository) private readonly comments: CommentRepository,
     @Inject(PostRepository) private readonly posts: PostRepository,
     @Inject(PostQueryService) private readonly queries: PostQueryService,
+    @Inject(PersonRepository) private readonly people: PersonRepository,
     @Inject(EVENT_BUS) private readonly events: EventBus,
   ) {}
+
+  /**
+   * The contract's Comment carries an `author` profile; the stored row carries
+   * an `authorId`. Returning the row meant every client crashed reading
+   * `author.displayName`, and a comment thread rendered as nothing at all.
+   *
+   * Same defect as the post detail endpoint and, before that, the feed: a
+   * persistence shape escaping as a response. Authors are resolved once per
+   * distinct id rather than once per comment, so a thread of fifty comments
+   * from three people costs three reads.
+   */
+  private async withAuthors(items: CommentItem[]): Promise<Record<string, unknown>[]> {
+    const ids = [...new Set(items.map((c) => c.authorId))];
+    const profiles = new Map(
+      (await Promise.all(ids.map((id) => this.people.findById(id)))).map((p, i) => [
+        ids[i] as string,
+        p,
+      ]),
+    );
+    return items.map((c) => {
+      const p = profiles.get(c.authorId);
+      return {
+        commentId: c.commentId,
+        author: {
+          userId: c.authorId,
+          handle: p?.handle ?? 'unknown',
+          displayName: p?.displayName ?? 'Unknown',
+        },
+        body: c.body,
+        createdAt: c.createdAt,
+      };
+    });
+  }
 
   /** Gate on the POST, through the one visibility boundary. */
   private async requireReadablePost(viewer: Viewer, postId: string) {
@@ -36,12 +71,17 @@ export class CommentService {
     await this.requireReadablePost(viewer, postId);
     const page = await this.comments.list(postId, opts);
     return {
-      items: page.items.filter((c) => !c.deletedAt),
+      items: await this.withAuthors(page.items.filter((c) => !c.deletedAt)),
       nextCursor: page.nextCursor,
     };
   }
 
-  async create(viewer: { userId: string }, postId: string, body: string): Promise<CommentItem> {
+  /** Returns the contract shape, not the stored row - see withAuthors. */
+  async create(
+    viewer: { userId: string },
+    postId: string,
+    body: string,
+  ): Promise<Record<string, unknown>> {
     await this.requireReadablePost(viewer, postId);
     const comment: CommentItem = {
       commentId: ulid(),
@@ -56,6 +96,6 @@ export class CommentService {
       type: 'post.commented',
       payload: { postId, commentId: comment.commentId, authorId: viewer.userId },
     });
-    return comment;
+    return (await this.withAuthors([comment]))[0]!;
   }
 }

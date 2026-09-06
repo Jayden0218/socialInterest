@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { PersonRepository } from '../../persistence/person.repository';
 import { PostInterestIndexRepository } from '../../persistence/post-interest-index.repository';
 import { PostRepository, type PostItem } from '../../persistence/post.repository';
+import { InterestRepository } from '../../persistence/interest.repository';
 import {
   VisibilityFilter,
   type Decision,
@@ -29,8 +30,59 @@ export class PostQueryService {
     @Inject(PostRepository) private readonly posts: PostRepository,
     @Inject(PostInterestIndexRepository) private readonly index: PostInterestIndexRepository,
     @Inject(PersonRepository) private readonly people: PersonRepository,
+    @Inject(InterestRepository) private readonly interests: InterestRepository,
     @Inject(VisibilityFilter) private readonly visibility: VisibilityFilter,
   ) {}
+
+  /**
+   * Turns a stored post into the contract's Post.
+   *
+   * The detail endpoint used to return `{ ...postItem }` - the persistence row -
+   * so a client got `authorId` and `interestIds` where the contract promises an
+   * `author` object and `interests` refs, plus internal `type` and `updatedAt`
+   * it should never see. Every client crashed on `post.interests.map`, and the
+   * author's handle being absent silently disabled blocking, which needs it.
+   *
+   * This is the same defect the feed had, on a different endpoint: an index or
+   * storage shape escaping as a response. Both now hydrate in one place.
+   */
+  async toResponse(
+    post: PostItem,
+    media: Awaited<ReturnType<PostRepository['listMedia']>>,
+  ): Promise<Record<string, unknown>> {
+    const [author, interests] = await Promise.all([
+      this.people.findById(post.authorId),
+      Promise.all(post.interestIds.map((id) => this.interests.findById(id))),
+    ]);
+
+    return {
+      postId: post.postId,
+      author: {
+        userId: post.authorId,
+        handle: author?.handle ?? 'unknown',
+        displayName: author?.displayName ?? 'Unknown',
+      },
+      ...(post.caption === undefined ? {} : { caption: post.caption }),
+      // FR-006 guarantees at least one interest, so a missing catalogue row is
+      // a broken reference rather than an empty list. Dropping it silently
+      // would render a post that looks like it belongs to nothing.
+      interests: interests
+        .filter((i): i is NonNullable<typeof i> => i !== null)
+        .map((i) => ({
+          interestId: i.interestId,
+          name: i.name,
+          slug: i.slug,
+          level: i.level,
+        })),
+      visibility: post.visibility,
+      processingState: post.processingState,
+      mediaKind: post.mediaKind,
+      media,
+      reactionCount: post.reactionCount,
+      commentCount: post.commentCount,
+      createdAt: post.createdAt,
+    };
+  }
 
   private async toCandidate(post: PostItem): Promise<VisibilityCandidate> {
     const author = await this.people.findById(post.authorId);

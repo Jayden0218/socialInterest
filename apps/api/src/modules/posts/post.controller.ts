@@ -86,7 +86,9 @@ export class PostController {
       req.viewer === undefined || req.viewer === null
         ? false
         : await this.reactions.exists(postId, req.viewer.userId);
-    return { ...result.post, media: result.media, viewerHasReacted };
+    // Not `{ ...result.post }`: that is the persistence row, and spreading it
+    // is what shipped authorId/interestIds/type/updatedAt to every client.
+    return { ...(await this.queries.toResponse(result.post, result.media)), viewerHasReacted };
   }
 
   /**

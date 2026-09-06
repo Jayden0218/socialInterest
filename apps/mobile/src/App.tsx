@@ -123,6 +123,7 @@ export function Shell() {
             <InterestContainer
               interestId={top.interestId}
               onOpenSubInterest={(id) => push({ name: 'interest', interestId: id })}
+              onOpenPost={(postId) => push({ name: 'post', postId })}
             />
           );
         case 'compose':
@@ -155,7 +156,10 @@ export function Shell() {
     <View testID="app-root" style={{ flex: 1 }}>
       {tab === 'feed' ? (
         <View style={{ flex: 1 }}>
-          <HomeFeedContainer onEmptyAction={() => setTab('discover')} />
+          <HomeFeedContainer
+            onEmptyAction={() => setTab('discover')}
+            onOpenPost={(postId) => push({ name: 'post', postId })}
+          />
         </View>
       ) : null}
 
@@ -169,7 +173,11 @@ export function Shell() {
 
       {tab === 'profile' ? (
         signedIn ? (
-          <ProfileContainer handle="me" isSelf />
+          <ProfileContainer
+            handle="me"
+            isSelf
+            onOpenPost={(postId) => push({ name: 'post', postId })}
+          />
         ) : (
           <SignedOutNotice onSignIn={() => push({ name: 'sign-in' })} />
         )

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { HomeFeedScreen } from '../features/feed/HomeFeedScreen';
 import { InterestSearchScreen } from '../features/discover/InterestSearchScreen';
 import { NotificationsScreen } from '../features/notifications/NotificationsScreen';
@@ -17,6 +17,24 @@ import { Button, Row } from '../ui/primitives';
  * A failed load renders its own error, never an empty list - showing "nothing
  * here yet" for a dropped connection is the mistake this shape prevents.
  */
+/**
+ * A post in a list.
+ *
+ * Pressable, and that is the whole point: the feed used to render posts as bare
+ * Text, so tapping one did nothing and post detail - with comments, report and
+ * block behind it - was unreachable from every list in the app. The render tests
+ * could not see it (they assert the caption is on screen, which it was) and
+ * neither could the data-layer journeys (they never render). Only clicking it
+ * in a browser did.
+ */
+function PostRow({ postId, caption, onOpen }: { postId: string; caption: string; onOpen: (id: string) => void }) {
+  return (
+    <Pressable testID={`post-${postId}`} onPress={() => onOpen(postId)}>
+      <Text testID="post-caption">{caption}</Text>
+    </Pressable>
+  );
+}
+
 function Failed({ message }: { message: string }) {
   return (
     <View testID="load-error" style={{ padding: theme.space.md }}>
@@ -25,7 +43,13 @@ function Failed({ message }: { message: string }) {
   );
 }
 
-export function HomeFeedContainer({ onEmptyAction }: { onEmptyAction: () => void }) {
+export function HomeFeedContainer({
+  onEmptyAction,
+  onOpenPost,
+}: {
+  onEmptyAction: () => void;
+  onOpenPost: (postId: string) => void;
+}) {
   const { state, error, loadMore } = useHomeFeed();
   if (error) return <Failed message={error} />;
   return (
@@ -33,7 +57,9 @@ export function HomeFeedContainer({ onEmptyAction }: { onEmptyAction: () => void
       state={state}
       onLoadMore={loadMore}
       onEmptyAction={onEmptyAction}
-      renderPost={(post) => <Text testID={`post-${post.postId}`}>{post.caption ?? ''}</Text>}
+      renderPost={(post) => (
+        <PostRow postId={post.postId} caption={post.caption ?? ''} onOpen={onOpenPost} />
+      )}
     />
   );
 }
@@ -255,9 +281,11 @@ export { SignedOutNotice };
 export function InterestContainer({
   interestId,
   onOpenSubInterest,
+  onOpenPost,
 }: {
   interestId: string;
   onOpenSubInterest: (id: string) => void;
+  onOpenPost: (postId: string) => void;
 }) {
   const data = useData();
   const [detail, setDetail] = useState<InterestScreenData | null>(null);
@@ -310,12 +338,22 @@ export function InterestContainer({
       onLoadMore={loadMore}
       onToggleFollow={toggleFollow}
       onOpenSubInterest={onOpenSubInterest}
-      renderPost={(post) => <Text testID={`post-${post.postId}`}>{post.caption ?? ''}</Text>}
+      renderPost={(post) => (
+        <PostRow postId={post.postId} caption={post.caption ?? ''} onOpen={onOpenPost} />
+      )}
     />
   );
 }
 
-export function ProfileContainer({ handle, isSelf }: { handle: string; isSelf: boolean }) {
+export function ProfileContainer({
+  handle,
+  isSelf,
+  onOpenPost,
+}: {
+  handle: string;
+  isSelf: boolean;
+  onOpenPost: (postId: string) => void;
+}) {
   const data = useData();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -353,7 +391,9 @@ export function ProfileContainer({ handle, isSelf }: { handle: string; isSelf: b
       isSelf={isSelf}
       onToggleFollow={() => undefined}
       onLoadMore={loadMore}
-      renderPost={(post) => <Text testID={`post-${post.postId}`}>{post.caption ?? ''}</Text>}
+      renderPost={(post) => (
+        <PostRow postId={post.postId} caption={post.caption ?? ''} onOpen={onOpenPost} />
+      )}
     />
   );
 }
