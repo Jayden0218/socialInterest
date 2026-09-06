@@ -65,6 +65,12 @@ jobs:
       # metadata the way ts-jest does. Catches DI that works in tests and
       # returns 500 in production.
       - run: pnpm --filter @sih/api smoke:boot
+      # Durability runs in its own jest invocation, and LAST among the steps that
+      # need the stack. It stops and restarts the containers everything else
+      # shares - run alongside the journeys it pulls the datastore out from
+      # under them, which hung the whole e2e run and timed out the API suite in
+      # a separate process. Placed here so nothing after it depends on the stack.
+      - run: pnpm --filter @sih/e2e test:durability
       # Synth only. `cdk synth` needs no account and no credentials; deploying
       # requires explicit approval (plan.md Cost Posture), so CI can never do it.
       - run: pnpm --filter @sih/infra verify:stack

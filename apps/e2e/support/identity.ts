@@ -27,3 +27,19 @@ export function mintPerson(prefix = 'e2e', opts?: { isOperator?: boolean }): Tes
 export function mintForgedToken(): string {
   return jwt.sign({ sub: 'forged' }, 'not-the-real-secret', { issuer: e2eEnv.jwtIssuer });
 }
+
+/**
+ * A token signed with the development secret that used to be this project's
+ * default - the literal string, as anyone reading the repository would have it.
+ *
+ * Deliberately NOT imported from apps/api: the point is that the value was
+ * public, so the test states it the way an attacker holds it. If the constant
+ * in the API ever changes, this stays the historical value that leaked, which
+ * is the one that must keep being refused.
+ */
+export function mintPublishedSecretToken(): string {
+  return jwt.sign({ sub: 'published-secret' }, 'dev-only-not-a-real-secret', {
+    issuer: e2eEnv.jwtIssuer,
+    expiresIn: '1h',
+  });
+}

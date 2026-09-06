@@ -2,7 +2,7 @@ import { actor } from '../support/client';
 import { publishReadyImage } from '../support/publish';
 import { baseUrl } from '../support/base-url';
 import { raw } from '../support/http';
-import { mintForgedToken } from '../support/identity';
+import { mintForgedToken, mintPublishedSecretToken } from '../support/identity';
 import { e2eEnv } from '../support/env';
 
 /**
@@ -74,5 +74,33 @@ describe('negative journeys - driven as a hostile client', () => {
     const unsigned = await fetch(`${e2eEnv.s3Endpoint}/${e2eEnv.bucket}/${key}`);
     expect(unsigned.ok).toBe(false);
     expect([401, 403, 404]).toContain(unsigned.status);
+  });
+  /**
+   * T034 / 003/FR-007. The old default secret was a constant in this
+   * repository, so anyone who read it could mint a token the service accepted
+   * for any subject they liked - including an operator.
+   *
+   * The service now refuses to boot with that value at all, so a token signed
+   * with it cannot verify. This asserts the consequence from the outside, where
+   * an attacker stands.
+   *
+   * The refusal must also be INDISTINGUISHABLE from any other bad token. A
+   * distinct status or message for "you used the published secret" tells the
+   * holder they have the right idea and the wrong deployment, which is a
+   * signal worth nothing to a legitimate client and something to an attacker.
+   */
+  it('N-05 refuses a token signed with the published development secret, indistinguishably', async () => {
+    const published = await raw(baseUrl(), '/v1/feed/home', { token: mintPublishedSecretToken() });
+    const forged = await raw(baseUrl(), '/v1/feed/home', { token: mintForgedToken() });
+
+    expect(published.status).toBe(401);
+    expect(published.status).toBe(forged.status);
+    expect(JSON.stringify(published.body)).toBe(JSON.stringify(forged.body));
+
+    // And it buys nothing anywhere else, including the operator-only surface.
+    const moderation = await raw(baseUrl(), '/v1/moderation/reports', {
+      token: mintPublishedSecretToken(),
+    });
+    expect([401, 403]).toContain(moderation.status);
   });
 });

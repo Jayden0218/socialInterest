@@ -123,20 +123,20 @@ counted from real classes.
 - [ ] T026 [US2] Write a durable event bus at `apps/api/src/adapters/local/durable-event-bus.ts` that records each published event and its handled state before delivery
 - [ ] T027 [US2] Replay unhandled events on startup in `apps/api/src/adapters/local/durable-event-bus.ts`, so an event published before a crash is handled after the restart. **This is the highest-value task in the story**: an event lost here reproduces 002's worst defect — a post that never leaves `pending` and is visible only to its author, permanently
 - [ ] T028 [US2] Swap the binding in `apps/api/src/adapters/adapters.module.ts` from `InProcessEventBus` to the durable bus, keeping the port unchanged
-- [ ] T029 [US2] Add a no-double-delivery case to `apps/api/tests/unit/durable-event-bus.spec.ts`: an event marked handled MUST NOT be replayed (a double-delivered `post.commented` sends a second notification)
+- [X] T029 [US2] Add a no-double-delivery case to `apps/api/tests/unit/durable-event-bus.spec.ts`: an event marked handled MUST NOT be replayed (a double-delivered `post.commented` sends a second notification)
 
 ### Identity
 
-- [ ] T030 [US2] Remove the built-in development default for the JWT secret in `apps/api/src/config/configuration.ts` so the service refuses to boot without an explicitly configured secret, and refuse tokens signed with the known development value (FR-007, Principle III)
-- [ ] T031 [US2] Update every harness that mints tokens — `apps/e2e/support/identity.ts`, `apps/api/scripts/mint-device-token.ts` — to supply the secret explicitly rather than relying on a default
+- [X] T030 [US2] Remove the built-in development default for the JWT secret in `apps/api/src/config/configuration.ts` so the service refuses to boot without an explicitly configured secret, and refuse tokens signed with the known development value (FR-007, Principle III)
+- [X] T031 [US2] Update every harness that mints tokens — `apps/e2e/support/identity.ts`, `apps/api/scripts/mint-device-token.ts` — to supply the secret explicitly rather than relying on a default
 
 ### Proof
 
-- [ ] T032 [US2] Write `apps/e2e/journeys/durability.spec.ts`: write a person, a followed interest, a published post with media, a comment and a reaction; stop **every** component; start them; read all of it back. A partial pass is a failure, per contract `durability-contract.md`
-- [ ] T033 [US2] Add an event-durability case to `apps/e2e/journeys/durability.spec.ts`: publish, kill the process before the handler runs, restart, and assert the effect landed
-- [ ] T034 [US2] Add a rejected-token case to `apps/e2e/journeys/negative.spec.ts` asserting a development-secret token is refused, and that the refusal is indistinguishable from any other invalid token
-- [ ] T035 [US2] Run `pnpm --filter @sih/api test:visibility` against the durable stack and confirm it passes **in full**, with no reduction in surfaces or states (FR-009, Principle II — non-negotiable)
-- [ ] T036 [US2] Wire the durability suite into `.github/workflows/ci.yml`
+- [X] T032 [US2] Write `apps/e2e/durability/durability.spec.ts`: write a person, a followed interest, a published post with media, a comment and a reaction; stop **every** component; start them; read all of it back. A partial pass is a failure, per contract `durability-contract.md`
+- [X] T033 [US2] Add an event-durability case to `apps/e2e/durability/durability.spec.ts`: publish, kill the process before the handler runs, restart, and assert the effect landed
+- [X] T034 [US2] Add a rejected-token case to `apps/e2e/journeys/negative.spec.ts` asserting a development-secret token is refused, and that the refusal is indistinguishable from any other invalid token
+- [X] T035 [US2] Run `pnpm --filter @sih/api test:visibility` against the durable stack and confirm it passes **in full**, with no reduction in surfaces or states (FR-009, Principle II — non-negotiable)
+- [X] T036 [US2] Wire the durability suite into `.github/workflows/ci.yml`
 
 **Checkpoint**: nothing written to the product is lost by restarting it.
 
@@ -217,7 +217,7 @@ Phase 2 (T004-T006, blocking) ──> US1 (Phase 3) ──> US4 (Phase 6)
 | `scripts/android-device-pass.sh` | T009, T010, T011, T013, T040 |
 | `.github/workflows/android-emulator.yml` | T005 |
 | `docker-compose.yml` | T022, T023 |
-| `apps/e2e/journeys/durability.spec.ts` | T032, T033, T034 |
+| `apps/e2e/durability/durability.spec.ts` | T032, T033, T034 |
 | `apps/mobile/src/screens/index.tsx` | T038, T039 |
 | `.github/workflows/ci.yml` | T036 |
 

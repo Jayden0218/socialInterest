@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
 import { ulid } from 'ulid';
 import { EventRepository } from '../../persistence/event.repository';
 import type { DomainEvent, EventBus, EventHandler } from '../../ports';
@@ -19,14 +19,14 @@ import type { DomainEvent, EventBus, EventHandler } from '../../ports';
  *   2. run every handler
  *   3. remove the record         <- only once they have all succeeded
  *
- * A crash before 3 leaves the record, and `onModuleInit` replays it. A handler
- * that throws also leaves it, so the work is retried rather than lost.
+ * A crash before 3 leaves the record, and the replay at startup finishes it. A
+ * handler that throws also leaves it, so the work is retried rather than lost.
  *
  * Delivery is still asynchronous, so a slow handler never blocks the request
  * that produced the event, and a failing one never fails the write.
  */
 @Injectable()
-export class DurableEventBus implements EventBus, OnModuleInit {
+export class DurableEventBus implements EventBus, OnApplicationBootstrap {
   private readonly logger = new Logger(DurableEventBus.name);
   private readonly handlers = new Map<string, EventHandler[]>();
 
@@ -35,11 +35,23 @@ export class DurableEventBus implements EventBus, OnModuleInit {
   /**
    * Finish what a previous process started.
    *
-   * Runs after every module has initialised, so handlers are registered by the
-   * time anything is replayed. Failures are logged and the record left in
-   * place: a replay that cannot complete must not silently discard the work.
+   * `onApplicationBootstrap`, NOT `onModuleInit`. Nest runs onModuleInit
+   * bottom-up through the module graph, and the bus lives in a module that
+   * every subscriber's module imports - so it initialised FIRST, replayed into
+   * an empty handler map, found nothing outstanding to run, and cleared the
+   * record as complete. The event was silently discarded by the very mechanism
+   * written to stop events being silently discarded.
+   *
+   * That is not a hypothetical: it is what the T033 durability case caught. A
+   * post killed mid-pipeline came back `pending` forever after the restart -
+   * the identical symptom to feature 002, where nothing subscribed to
+   * `post.created` and a pending post is visible only to its author.
+   *
+   * onApplicationBootstrap is the hook Nest guarantees runs after EVERY
+   * module's onModuleInit has resolved, which is exactly the guarantee the
+   * replay needs.
    */
-  async onModuleInit(): Promise<void> {
+  async onApplicationBootstrap(): Promise<void> {
     let pending: Awaited<ReturnType<EventRepository['listPending']>>;
     try {
       pending = await this.events.listPending();
@@ -51,6 +63,16 @@ export class DurableEventBus implements EventBus, OnModuleInit {
     if (pending.length === 0) return;
     this.logger.log(`replaying ${pending.length} event(s) left unhandled by a previous run`);
     for (const p of pending) {
+      // A recorded event with nothing to handle it is worth saying out loud.
+      // In steady state it is fine - `post.deleted` has no subscriber and
+      // nothing is owed - but on a REPLAY it is the signature of the ordering
+      // bug above, and the whole cost of that bug was that it said nothing.
+      if ((this.handlers.get(p.type) ?? []).length === 0) {
+        this.logger.warn(
+          `replayed ${p.type} has no subscriber; clearing it. If something should ` +
+            'have handled this, it was not registered when the replay ran.',
+        );
+      }
       await this.deliver(p.eventId, {
         type: p.type,
         payload: p.payload,

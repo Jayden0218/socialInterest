@@ -71,6 +71,33 @@ export async function startApi(port = 3111): Promise<string> {
   throw new Error(`API did not become ready within 90s.\n${apiLog()}`);
 }
 
+/**
+ * Kills the API the way a crash does: SIGKILL, no chance to finish anything.
+ *
+ * `stopApi` sends SIGTERM first, which lets Nest run its shutdown hooks - and a
+ * durability test that lets the process tidy up proves only that an orderly
+ * shutdown is orderly. The question is what survives when it is not.
+ */
+export async function killApi(): Promise<void> {
+  if (!existsSync(PID_FILE)) return;
+  const pid = Number(readFileSync(PID_FILE, 'utf8').trim());
+  unlinkSync(PID_FILE);
+  if (!Number.isFinite(pid)) return;
+  try {
+    process.kill(-pid, 'SIGKILL');
+  } catch {
+    /* already gone */
+  }
+  for (let i = 0; i < 40; i++) {
+    try {
+      process.kill(pid, 0);
+    } catch {
+      return;
+    }
+    await new Promise((r) => setTimeout(r, 100));
+  }
+}
+
 /** The API's own output, for when a journey fails and the cause is server-side. */
 export function apiLog(): string {
   return existsSync(API_LOG) ? read(API_LOG, 'utf8') : '(no api log)';

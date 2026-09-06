@@ -1,9 +1,13 @@
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { actor } from '../support/client';
 import { publishReadyImage } from '../support/publish';
-import { startApi, stopApi } from '../support/api-process';
+import { jpegPlain } from '../support/media';
+import { startApi, stopApi, killApi } from '../support/api-process';
 import { baseUrl } from '../support/base-url';
+import { e2eEnv } from '../support/env';
 
 /**
  * 003/US2. The stack keeps what it is given.
@@ -40,6 +44,27 @@ async function waitForApi(): Promise<void> {
     await new Promise((r) => setTimeout(r, 1_000));
   }
   throw new Error('API did not come back after the restart');
+}
+
+/**
+ * Reads the outstanding-event partition directly.
+ *
+ * Not through the API: the point of the event case below is what is on disk at
+ * the instant the process dies, and the process is dead.
+ */
+const doc = DynamoDBDocumentClient.from(
+  new DynamoDBClient({ endpoint: e2eEnv.dynamoEndpoint, region: e2eEnv.region, credentials: e2eEnv.creds }),
+);
+
+async function pendingEvents(): Promise<{ eventType: string; payload: Record<string, unknown> }[]> {
+  const r = await doc.send(
+    new QueryCommand({
+      TableName: e2eEnv.tableName,
+      KeyConditionExpression: 'pk = :p',
+      ExpressionAttributeValues: { ':p': 'EVENTS#PENDING' },
+    }),
+  );
+  return (r.Items ?? []) as { eventType: string; payload: Record<string, unknown> }[];
 }
 
 describe('durability — the stack keeps what it is given', () => {
@@ -91,5 +116,71 @@ describe('durability — the stack keeps what it is given', () => {
     // gone, GET /v1/me answers 404 and sign-in fails on every client.
     const me = await person.data.session.me();
     expect(me.handle).toBe(person.handle);
+  });
+
+  /**
+   * T033. The case the in-process bus could never have passed.
+   *
+   * A post is published, and the process is SIGKILLed while the media pipeline
+   * is still running. Nothing else in the system calls that pipeline - feature
+   * 002 proved exactly that, when nothing subscribed to `post.created` and
+   * every post stayed `pending` forever. So if the post is `ready` after the
+   * restart, the only path that could have got it there is the replay.
+   *
+   * The kill window is real work, not a sleep: the handler fetches the object
+   * from storage and runs ffmpeg in a container, which takes seconds. The
+   * assertion that the record is still outstanding at kill time is what makes
+   * this a test of the replay rather than a test of timing luck - if the kill
+   * lands late, this fails loudly instead of passing for the wrong reason.
+   */
+  it('an event whose handler was killed mid-flight is replayed on restart', async () => {
+    const author = await actor('durevent');
+    const catalogue = await author.data.interests.listTop({ limit: 1 });
+    const interestId = catalogue.items[0]!.interestId;
+
+    const bytes = jpegPlain();
+    const target = await author.data.posts.createUploadTarget({
+      kind: 'image',
+      contentType: 'image/jpeg',
+      sizeBytes: bytes.byteLength,
+    });
+    await author.data.posts.uploadBytes(target, bytes, 'image/jpeg');
+    const post = await author.data.posts.publish({
+      uploadIds: [target.uploadId],
+      interestIds: [interestId],
+      caption: 'killed mid-pipeline',
+    });
+
+    // The publish response returns once the row is committed and the event is
+    // recorded; delivery is deliberately not awaited. So this kill lands after
+    // the record exists and before the handler can finish.
+    await killApi();
+
+    const outstanding = await pendingEvents();
+    const mine = outstanding.filter(
+      (e) => e.eventType === 'post.created' && e.payload['postId'] === post.postId,
+    );
+    expect(mine).toHaveLength(1);
+
+    await startApi();
+    await waitForApi();
+
+    const deadline = Date.now() + 120_000;
+    let state = 'pending';
+    while (Date.now() < deadline) {
+      state = (await author.data.posts.get(post.postId)).processingState;
+      if (state === 'ready' || state === 'failed') break;
+      await new Promise((r) => setTimeout(r, 500));
+    }
+
+    // `pending` here means the event was lost; `failed` means it was replayed
+    // and the work genuinely failed. Only `ready` is the effect landing.
+    expect(state).toBe('ready');
+    const after = await author.data.posts.get(post.postId);
+    expect(after.media?.length ?? 0).toBeGreaterThan(0);
+
+    // And the record is cleared, so the next restart does not deliver it again.
+    const still = (await pendingEvents()).filter((e) => e.payload['postId'] === post.postId);
+    expect(still).toHaveLength(0);
   });
 });
