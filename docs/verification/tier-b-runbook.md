@@ -199,3 +199,39 @@ provider would do this.
   Record it that way until a run says otherwise.
 - **iOS is not covered at all.** The Simulator is macOS-only and there is no
   macOS runner in this workflow.
+
+## Routes to a device without a phone — surveyed 2026-09-06
+
+The question "can this be done in the cloud without physical hardware" is **already answered
+by this repository**: runs 7 and 9 booted an Android emulator on a GitHub Actions runner with
+hardware acceleration, and the emulator itself reported `KVM (version 12) is installed and
+usable`. No phone, no tunnel, no public deployment. What is unresolved is not the emulator —
+it is why the app does not survive launch on it.
+
+The published guidance matches what this workflow already does: use the Ubuntu runners rather
+than macOS, and enable KVM with a udev rule before starting the emulator.
+
+| Route | Cost | Can it run OUR journeys? | Notes |
+|---|---|---|---|
+| **GitHub Actions + emulator** (current) | Actions minutes; private repo, so from the account's allowance | **Yes** — one runner holds both the emulator and the API, so the app reaches it at `10.0.2.2` | Proven to boot twice |
+| **Firebase Test Lab** | Spark plan: **10 virtual + 5 physical device runs/day at no cost, no billing details required**. Blaze removes the quota and does require billing | **No** — Test Lab devices are in Google's cloud and cannot reach an API on our runner | But a Robo test captures **logcat, video and annotated screenshots**, so it could diagnose a *startup crash* without needing our API at all |
+| **redroid** (containerised Android, no KVM) | Free | Untested | Ruled out **in this sandbox** — the kernel has `CONFIG_ANDROID_BINDER_IPC` unset. That is a limit of this container, not of cloud runners |
+| **BrowserStack / Sauce Labs / AWS Device Farm** | ~$99–$250 per month | Same reachability problem as Test Lab | Billable. Against the cost posture; not recommended while a no-cost route works |
+
+**Where this actually bears on the current blocker.** Firebase Test Lab is the only listed
+alternative that is free and would produce a crash log, and it would do so *without* our API,
+because a crash on launch reproduces regardless of what the app can reach. It is a fallback if
+our own run cannot explain the failure — not a replacement for the emulator job, which is the
+only route that can run the journeys end to end.
+
+**Caveat on sourcing.** `firebase.google.com` is blocked by this environment's egress proxy, so
+the Spark quota above could not be read at the primary source from here. Two independent
+secondary sources agree on it. Confirm it against Firebase's own pricing page before relying
+on it.
+
+### Sources
+
+- <https://github.com/marketplace/actions/android-emulator-runner> — Ubuntu runners, udev KVM rule
+- <https://firebase.google.com/docs/test-lab/android/robo-ux-test> — Robo test captures logcat, screenshots, video
+- <https://firebase.google.com/docs/test-lab/usage-quotas-pricing> — Test Lab quotas (not reachable from this sandbox)
+- <https://testgrid.io/blog/best-device-farms/> — device farm comparison and pricing
