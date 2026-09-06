@@ -24,6 +24,29 @@ echo "[device-pass] apk: $(ls -l apps/mobile/android/app/build/outputs/apk/relea
 PKG=app.socialinterest
 APK=apps/mobile/android/app/build/outputs/apk/release/app-release.apk
 
+# Resolve adb from the SDK, exactly as scripts/emulator-launch.sh does.
+#
+# Run 7 booted the emulator in 77s and then died here in under a second:
+#
+#   ./scripts/android-device-pass.sh: line 25: adb: command not found
+#
+# The runner has the SDK at /usr/local/lib/android/sdk, but platform-tools is
+# not on PATH - and the launcher never needed it to be, because it calls
+# "$SDK/platform-tools/adb" by path. This script assumed the PATH the launcher
+# had already shown it could not rely on.
+SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+if [ -x "$SDK/platform-tools/adb" ]; then
+  PATH="$SDK/platform-tools:$PATH"
+  export PATH
+fi
+command -v adb >/dev/null || {
+  echo "[device-pass] adb is not on PATH and not at $SDK/platform-tools/adb."
+  echo "[device-pass] Contents of $SDK:"; ls -1 "$SDK" 2>&1 || true
+  exit 1
+}
+echo "[device-pass] adb resolved to: $(command -v adb)"
+adb version | head -1
+
 # How did this boot? The sandbox proved TCG cannot run Android at all, so if a
 # run is slow or unstable the first question is whether acceleration engaged.
 # Non-fatal: this reports, it does not gate.
@@ -56,6 +79,14 @@ echo "running as pid $pid"
 
 echo "== capture what is actually on screen =="
 adb exec-out screencap -p > "$OUT/home.png"
+
+# T010. A capture is only evidence if it shows something.
+#
+# The only Android capture in this project's history is entirely black - taken
+# while the emulator was crashlooping and the app was not installed - and it was
+# filed as evidence anyway. This asserts the image is a rendered screen rather
+# than trusting that a file exists.
+node scripts/assert-screen-not-blank.mjs "$OUT/home.png"
 adb shell uiautomator dump /sdcard/ui.xml >/dev/null
 adb pull /sdcard/ui.xml "$OUT/ui.xml" >/dev/null
 adb logcat -d > "$OUT/logcat.txt"
@@ -104,8 +135,26 @@ echo "== mint a token the API will actually accept =="
 TOKEN="$(npx tsx apps/api/scripts/mint-device-token.ts)"
 [ -n "$TOKEN" ] || { echo "FAIL: could not mint a token"; exit 1; }
 
+# T012. A Maestro selector that matches nothing does not fail as a name error -
+# it fails as a timeout, twenty minutes into a run, indistinguishable from the
+# app being broken. Six of these were wrong when the flows were first written.
+# Checked here as well as in CI, because the flows and the app can drift apart
+# between the two.
+echo "== every Maestro selector must exist in the app =="
+node scripts/verify-maestro-ids.mjs
+
+# T014 / FR-033 / Principle I. Two people cannot be driven through one device's
+# UI, so the fixture is seeded server-side and the ASSERTION happens in the app:
+# a followed person's post in an unfollowed interest must not reach the feed.
+echo "== seed the FR-033 fixture =="
+FIXTURE="$(cd apps/e2e && E2E_BASE_URL=http://127.0.0.1:3000 npx tsx scripts/seed-fr033-fixture.ts "$TOKEN")"
+echo "$FIXTURE"
+PRESENT="$(echo "$FIXTURE" | sed -n 's/^PRESENT=//p')"
+ABSENT="$(echo "$FIXTURE" | sed -n 's/^ABSENT=//p')"
+[ -n "$PRESENT" ] && [ -n "$ABSENT" ] || { echo "FAIL: the FR-033 fixture printed no captions"; exit 1; }
+
 echo "== journeys =="
-maestro test .maestro/ -e TOKEN="$TOKEN" \
+maestro test .maestro/ -e TOKEN="$TOKEN" -e PRESENT="$PRESENT" -e ABSENT="$ABSENT" \
   --format junit --output "$OUT/maestro-junit.xml" || {
     echo "FAIL: a journey did not pass"
     cp -r ~/.maestro/tests "$OUT/maestro-debug" 2>/dev/null || true

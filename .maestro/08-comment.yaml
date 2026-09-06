@@ -9,9 +9,9 @@ appId: app.socialinterest
 - tapOn:
     id: "post-.*"
 - assertVisible:
-    id: "open-comments"
+    id: "comments-button"
 - tapOn:
-    id: "open-comments"
+    id: "comments-button"
 - assertVisible:
     id: "comments-screen"
 - tapOn:

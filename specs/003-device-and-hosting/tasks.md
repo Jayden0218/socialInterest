@@ -66,17 +66,17 @@ app's own interface and one result per journey.
 
 ### The attempt, which succeeds by reporting
 
-- [ ] T007 [US1] Dispatch `android-emulator.yml` and record a Runtime Attempt in `docs/verification/runs/` from T001's template, attaching `runtime-output.log` **whatever the outcome**
-- [ ] T008 [US1] Read the captured output and write the conclusion it supports — not one it merely permits. If it names a cause, fix that cause; if it does not, say so. **Do not form a hypothesis that the output does not evidence** (six previous attempts did exactly that)
+- [X] T007 [US1] Dispatch `android-emulator.yml` and record a Runtime Attempt in `docs/verification/runs/` from T001's template, attaching `runtime-output.log` **whatever the outcome**
+- [X] T008 [US1] Read the captured output and write the conclusion it supports — not one it merely permits. If it names a cause, fix that cause; if it does not, say so. **Do not form a hypothesis that the output does not evidence** (six previous attempts did exactly that)
 
 ### Only if the runtime boots
 
-- [ ] T009 [US1] Extend `scripts/android-device-pass.sh` to install the APK, launch it, and fail loudly if the process is not alive afterwards — a crash on start is a failure, not a slow start
-- [ ] T010 [US1] Capture `home.png` in `scripts/android-device-pass.sh` and **assert it is not blank** (the only Android capture in this project's history is entirely black; a blank capture MUST fail the run, per contract `android-journey-run.md`)
-- [ ] T011 [US1] Assert in `scripts/android-device-pass.sh` that the service's own request log shows a request that arrived from the app — a blank screen renders tabs too, so this is what separates a working app from a shell
-- [ ] T012 [P] [US1] Verify the `.maestro/` flows resolve against the app as built: every `id:` used must exist in `apps/mobile/src` (six were wrong when first written; check, do not assume)
+- [X] T009 [US1] Extend `scripts/android-device-pass.sh` to install the APK, launch it, and fail loudly if the process is not alive afterwards — a crash on start is a failure, not a slow start
+- [X] T010 [US1] Capture `home.png` in `scripts/android-device-pass.sh` and **assert it is not blank** (the only Android capture in this project's history is entirely black; a blank capture MUST fail the run, per contract `android-journey-run.md`)
+- [X] T011 [US1] Assert in `scripts/android-device-pass.sh` that the service's own request log shows a request that arrived from the app — a blank screen renders tabs too, so this is what separates a working app from a shell
+- [X] T012 [P] [US1] Verify the `.maestro/` flows resolve against the app as built: every `id:` used must exist in `apps/mobile/src` (six were wrong when first written; check, do not assume)
 - [ ] T013 [US1] Run the Maestro journeys on the emulator from `scripts/android-device-pass.sh`, asserting each journey's effect **through the service** rather than the view hierarchy, per contract `android-journey-run.md`
-- [ ] T014 [US1] Add the FR-033 negative case as `.maestro/12-interest-follow-does-not-widen.yaml`: a followed person's post in an unfollowed interest MUST be absent from the feed (Principle I, non-negotiable)
+- [X] T014 [US1] Add the FR-033 negative case as `.maestro/12-interest-follow-does-not-widen.yaml`: a followed person's post in an unfollowed interest MUST be absent from the feed (Principle I, non-negotiable)
 - [ ] T015 [US1] Record a Journey Run in `docs/verification/runs/` with `runtime: android-emulator`, one result per journey, `not run` where a journey was not attempted, and the non-blank capture attached
 
 ### If it does not boot
@@ -210,11 +210,27 @@ Phase 2 (T004-T006, blocking) ──> US1 (Phase 3) ──> US4 (Phase 6)
 - **US1 and US3 whole phases** — the largest parallel win, and the two P1 stories that unblock
   everything else.
 
+## Found while implementing — not in the original breakdown
+
+- [ ] T053 [US1] Wire following a PERSON in the app. `ProfileContainer`
+  (`apps/mobile/src/screens/index.tsx`) loads only the signed-in person's own profile via
+  `data.session.me()`, hardcodes `viewerIsFollowing: false`, and passes
+  `onToggleFollow={() => undefined}` — so `follow-person-toggle` does nothing and another
+  person's profile cannot be opened at all. `apps/mobile/src/data` exposes no person-follow
+  method, though `putPeopleByHandleFollow` / `deletePeopleByHandleFollow` exist in the
+  contract and the generated client, and the API implements them.
+
+  Found while writing T014. It does not block T014 — FR-033 is a requirement about what the
+  FEED shows, and `apps/e2e/scripts/seed-fr033-fixture.ts` establishes the person-follow
+  precondition server-side, which is the honest way to test the requirement while the app
+  cannot establish it itself. But it means **the app cannot demonstrate the premise of its
+  own non-negotiable principle**, and a person cannot follow anyone from the product.
+
 ## Single-owner files — do not edit concurrently
 
 | File | Tasks |
 |---|---|
-| `scripts/android-device-pass.sh` | T009, T010, T011, T013, T040 |
+| `scripts/android-device-pass.sh` | T009, T010, T011, T012, T013, T014, T040 |
 | `.github/workflows/android-emulator.yml` | T005 |
 | `docker-compose.yml` | T022, T023 |
 | `apps/e2e/durability/durability.spec.ts` | T032, T033, T034 |

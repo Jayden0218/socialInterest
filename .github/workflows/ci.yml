@@ -49,6 +49,11 @@ jobs:
       - run: pnpm --filter @sih/api test
       - run: pnpm --filter @sih/mobile test
       - run: pnpm --filter @sih/workers test
+      # The Maestro flows cannot run here - there is no emulator - but their
+      # selectors can be checked against the app in seconds. A selector that
+      # matches nothing fails as a timeout inside a 25-minute emulator run,
+      # which is the most expensive place to discover a renamed testID.
+      - run: node scripts/verify-maestro-ids.mjs
       # The contract between the app and the service. Regenerating the client and
       # failing on a diff is what makes an OpenAPI change that nobody propagated a
       # build failure instead of a runtime 400 (002/FR-003).

@@ -1,0 +1,32 @@
+# FR-033 / constitution Principle I (NON-NEGOTIABLE).
+#
+# Following a PERSON must never widen the feed beyond followed interests. The
+# requirement is only visible as an absence, so this flow asserts both halves:
+# the post in a followed interest IS there, and the same author's post in an
+# unfollowed interest is NOT.
+#
+# Asserting only the absence would pass against a feed that failed to load.
+#
+# PRESENT and ABSENT are captions seeded by
+# apps/e2e/scripts/seed-fr033-fixture.ts, which also makes the device person
+# follow the author. The setup is server-side because two people cannot be
+# driven through one device's UI.
+appId: app.socialinterest
+---
+- runFlow: 01-sign-in.yaml
+- tapOn:
+    id: "tab-feed"
+- assertVisible:
+    id: "home-feed-screen"
+
+# The feed loaded and contains what it should.
+- assertVisible: "${PRESENT}"
+
+# The requirement. This is the assertion the whole flow exists for.
+- assertNotVisible: "${ABSENT}"
+
+# And it is still absent after scrolling: "not on the first screen" is not the
+# same as "not in the feed", and a paged feed could put it lower down.
+- scroll
+- scroll
+- assertNotVisible: "${ABSENT}"

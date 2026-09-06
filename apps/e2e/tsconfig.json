@@ -13,5 +13,5 @@
       "@sih/mobile/data": ["../mobile/src/data/index.ts"]
     }
   },
-  "include": ["support/**/*.ts", "journeys/**/*.ts", "jest.config.ts"]
+  "include": ["support/**/*.ts", "journeys/**/*.ts", "durability/**/*.ts", "browser/**/*.ts", "scripts/**/*.ts", "jest.config.ts", "jest.durability.config.ts"]
 }
