@@ -12,13 +12,28 @@ import type { ObjectStore, PresignedUpload } from '../../ports';
 /** MinIO speaks the S3 API, so this is a true emulation - not a divergence (D9). */
 export class MinioObjectStore implements ObjectStore {
   private readonly s3: S3Client;
+  /**
+   * A second client bound to the PUBLIC endpoint, used only to sign URLs a
+   * client will follow.
+   *
+   * The signature covers the host, so a URL signed against the service's own
+   * endpoint cannot simply have its host rewritten afterwards - it has to be
+   * signed against the address the client will actually use. When the two
+   * addresses are the same, this is the same client's configuration and nothing
+   * differs.
+   */
+  private readonly signer: S3Client;
 
   constructor(private readonly config: AppConfig) {
-    this.s3 = new S3Client({
-      endpoint: config.objectStore.endpoint,
+    const base = {
       region: config.objectStore.region,
       forcePathStyle: config.objectStore.forcePathStyle,
       ...(config.objectStore.credentials ? { credentials: config.objectStore.credentials } : {}),
+    };
+    this.s3 = new S3Client({ ...base, endpoint: config.objectStore.endpoint });
+    this.signer = new S3Client({
+      ...base,
+      endpoint: config.objectStore.publicEndpoint ?? config.objectStore.endpoint,
     });
   }
 
@@ -29,7 +44,7 @@ export class MinioObjectStore implements ObjectStore {
   }): Promise<PresignedUpload> {
     const expiresIn = input.expiresInSeconds ?? 900;
     const url = await getSignedUrl(
-      this.s3,
+      this.signer,
       new PutObjectCommand({
         Bucket: this.config.objectStore.bucket,
         Key: input.key,

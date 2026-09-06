@@ -256,17 +256,20 @@ maestro test .maestro/ -e TOKEN="$TOKEN" -e PRESENT="$PRESENT" -e ABSENT="$ABSEN
     # was on screen instead".
     echo "=============== maestro junit report ==============="
     cat "$OUT/maestro-junit.xml" 2>/dev/null || echo "(no junit report)"
-    echo "=============== maestro debug: what was on screen ==============="
-    # Hierarchy dumps only, size-capped: the screenshots are in the artifact and
-    # the log is mostly noise. Every visible id, per failed flow, is the answer.
-    for h in "$OUT"/maestro-debug/*/*.json; do
-      [ -f "$h" ] || continue
-      echo "--- $(basename "$(dirname "$h")")/$(basename "$h") ---"
-      grep -oE '"resource-id":"[^"]*"|"text":"[^"]{1,60}"' "$h" 2>/dev/null \
-        | sort -u | head -40 || true
-    done
-    echo "=============== maestro log (tail) ==============="
-    find "$OUT/maestro-debug" -name 'maestro.log' -exec tail -40 {} \; 2>/dev/null || true
+    # Maestro's own log, filtered to the commands that FAILED and the element
+    # tree at that moment. Run 13 printed 40 unfiltered lines per log file and
+    # buried the flow summary under a quarter of a megabyte of INFO chatter -
+    # the fix for an unreadable failure is not more output, it is less of the
+    # right output.
+    echo "=============== maestro: failed commands ==============="
+    find "$OUT/maestro-debug" -name 'maestro.log' -exec \
+      grep -hE 'FAILED|Assertion is false|Element not found|No visible element' {} \; 2>/dev/null \
+      | head -40 || true
+    echo "=============== the screen when it stopped ==============="
+    # The device's own view of the final state, which needs no artifact.
+    adb shell uiautomator dump /sdcard/fail.xml >/dev/null 2>&1 || true
+    adb shell cat /sdcard/fail.xml 2>/dev/null \
+      | grep -oE 'resource-id="[^"]*"|text="[^"]{1,50}"' | grep -v '=""' | sort -u | head -40 || true
     echo "==================================================="
     exit 1
   }

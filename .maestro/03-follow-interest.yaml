@@ -9,8 +9,21 @@ appId: app.socialinterest
 - inputText: "clim"
 - tapOn:
     id: "search-result-0"
-- assertVisible:
-    id: "interest-screen"
+
+# Two different failures look identical from `interest-screen is not visible`,
+# and run 13 could not tell them apart. This separates them: if the search
+# screen is gone we navigated and the interest screen did not load; if it is
+# still there the tap did nothing.
+- assertNotVisible:
+    id: "interest-search-screen"
+
+# InterestContainer renders `interest-loading` until three parallel requests
+# resolve. On a software-rendered emulator that can exceed Maestro's default
+# assertion window, so the wait is explicit rather than assumed.
+- extendedWaitUntil:
+    visible:
+      id: "interest-screen"
+    timeout: 30000
 - tapOn:
     id: "follow-toggle"
 # FR-034: the server owns the 200-interest cap, so the control reverts if the

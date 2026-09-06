@@ -27,6 +27,7 @@ export interface AppConfig {
     endpoint?: string;
     region: string;
     bucket: string;
+    publicEndpoint?: string | undefined;
     forcePathStyle: boolean;
     credentials?: { accessKeyId: string; secretAccessKey: string };
   };
@@ -88,6 +89,24 @@ export function loadConfig(): AppConfig {
     },
     objectStore: {
       endpoint: isLocal ? str('S3_ENDPOINT', 'http://127.0.0.1:9000') : undefined,
+      /**
+       * The address a CLIENT uses to reach object storage, which is not always
+       * the address the service uses.
+       *
+       * On the device pass the API runs on the CI host and reaches MinIO at
+       * 127.0.0.1:9000, while the app runs in an emulator where 127.0.0.1 is
+       * the DEVICE's own loopback. Presigned upload URLs built from the
+       * service's endpoint were therefore unreachable from the app: run 13
+       * created three upload targets and issued no publish at all, because the
+       * bytes never landed.
+       *
+       * Defaults to the service endpoint, so nothing changes anywhere the two
+       * are the same. Any hosted deployment where object storage sits behind a
+       * different public address needs this distinction too.
+       */
+      publicEndpoint: isLocal
+        ? str('S3_PUBLIC_ENDPOINT', str('S3_ENDPOINT', 'http://127.0.0.1:9000'))
+        : undefined,
       region: str('S3_REGION', isLocal ? 'local' : 'us-east-1'),
       bucket: str('MEDIA_BUCKET', 'sih-media'),
       forcePathStyle: bool('S3_FORCE_PATH_STYLE', isLocal),

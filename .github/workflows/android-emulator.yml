@@ -50,7 +50,15 @@ jobs:
       - name: Start the API on the runner
         run: |
           cd apps/api
-          RUNTIME_PROFILE=local API_PORT=3000 npx tsx src/main.ts > /tmp/api.log 2>&1 &
+          # S3_PUBLIC_ENDPOINT is what makes uploads possible from the device.
+          # The API reaches MinIO at 127.0.0.1:9000; the emulator cannot - there
+          # 127.0.0.1 is the DEVICE's own loopback. Presigned URLs must be signed
+          # against 10.0.2.2:9000, the emulator's alias for the host, or the
+          # bytes never land and publish never fires. Run 13 showed exactly that:
+          # three upload targets created, zero posts published.
+          RUNTIME_PROFILE=local API_PORT=3000 \
+          S3_PUBLIC_ENDPOINT=http://10.0.2.2:9000 \
+            npx tsx src/main.ts > /tmp/api.log 2>&1 &
           for _ in $(seq 1 60); do
             if curl -sf -o /dev/null "http://127.0.0.1:3000/v1/interests?q=a"; then exit 0; fi
             sleep 2
@@ -138,8 +146,16 @@ jobs:
           mkdir -p artifacts/android-device-pass
           cp /tmp/api.log artifacts/android-device-pass/api.log || true
           df -h / | tail -1 > artifacts/android-device-pass/disk-free.txt || true
+          # An AGGREGATE of every request, not a tail. The tail covers only the
+          # end of the last flow; this says what the app asked for across the
+          # whole run and what it got back - which is how run 13's two real
+          # findings surfaced (no POST /v1/posts at all, and no
+          # GET /v1/interests/:interestId at all).
+          echo "=============== API requests: whole run, by path and status ==============="
+          grep -oE '"method":"[A-Z]+","path":"[^"]+","status":[0-9]+' /tmp/api.log 2>/dev/null \
+            | sort | uniq -c | sort -rn || echo "(no api log)"
           echo "=============== API request log (tail) ==============="
-          tail -60 /tmp/api.log || echo "(no api log)"
+          tail -40 /tmp/api.log || echo "(no api log)"
           echo "=============== activity launch result ==============="
           cat artifacts/android-device-pass/launch.txt || echo "(no launch record)"
           echo "=============== logcat: fatal entries ==============="
