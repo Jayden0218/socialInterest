@@ -456,7 +456,11 @@ export function ProfileContainer({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [myInterests, setMyInterests] = useState<string[]>([]);
-  const { state, loadMore } = useProfilePosts(handle);
+  // Your own posts need your REAL handle, not the literal "me" the tab passes
+  // in. Until `GET /v1/me` resolves there is no handle to ask with, and asking
+  // with "me" got a 404 and an empty list that explained nothing.
+  const postsHandle = isSelf ? (profile?.handle ?? '') : handle;
+  const { state, loadMore } = useProfilePosts(postsHandle);
 
   /**
    * T053. This used to call `session.me()` regardless of whose profile was

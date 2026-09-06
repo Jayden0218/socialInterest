@@ -334,4 +334,51 @@ describe('the shell reaches every screen', () => {
     expect(screen.queryByTestId('interest-search-screen')).toBeNull();
     await waitFor(() => expect(screen.getByTestId('interest-screen')).toBeTruthy());
   });
+  /**
+   * Your own posts must appear on your own profile.
+   *
+   * The "You" tab renders `<ProfileContainer handle="me" isSelf />`, and that
+   * literal "me" went straight to the server as a handle:
+   * `GET /v1/people/me/posts` -> 404 -> an empty list, silently. The profile
+   * itself loaded, because `isSelf` reads it from `session.me()`, so the screen
+   * looked fine and simply never showed anything you had published.
+   *
+   * Found by the device journeys - the API log carried three
+   * `GET /v1/people/:handle/posts 404` against exactly the three failing flows.
+   * This asserts the request is made with the REAL handle.
+   */
+  it('loads your own posts on your own profile, by real handle (not "me")', async () => {
+    const asked: string[] = [];
+    const data = fakeData({
+      session: { isSignedIn: async () => true, me: async () => ({
+        userId: 'u1', handle: 'realhandle', displayName: 'Me', bio: null,
+        interestFollowCount: 0, followerCount: 0, followingCount: 0, topInterests: [],
+        notificationPrefs: { reaction: true, comment: true, follow: true },
+      }) },
+      posts: {
+        byHandle: async (h: string) => {
+          asked.push(h);
+          return {
+            items: [{ postId: 'p9', caption: 'mine', interests: [], media: [],
+              reactionCount: 0, commentCount: 0, processingState: 'ready', visibility: 'public',
+              author: { userId: 'u1', handle: 'realhandle', displayName: 'Me' } }],
+            nextCursor: null,
+          };
+        },
+        get: async () => null,
+        publish: async () => ({ postId: 'p9' }),
+      },
+    });
+    renderShell(data);
+    await waitFor(() => expect(screen.queryByTestId('open-sign-in')).toBeNull());
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('tab-profile'));
+    });
+
+    await waitFor(() => expect(screen.getByTestId('post-p9')).toBeTruthy());
+    // The literal "me" is never sent as a handle.
+    expect(asked).not.toContain('me');
+    expect(asked).toContain('realhandle');
+  });
 });
