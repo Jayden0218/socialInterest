@@ -76,7 +76,7 @@ app's own interface and one result per journey.
 - [ ] T011 [US1] Assert in `scripts/android-device-pass.sh` that the service's own request log shows a request that arrived from the app — a blank screen renders tabs too, so this is what separates a working app from a shell
 - [ ] T012 [P] [US1] Verify the `.maestro/` flows resolve against the app as built: every `id:` used must exist in `apps/mobile/src` (six were wrong when first written; check, do not assume)
 - [ ] T013 [US1] Run the Maestro journeys on the emulator from `scripts/android-device-pass.sh`, asserting each journey's effect **through the service** rather than the view hierarchy, per contract `android-journey-run.md`
-- [ ] T014 [US1] Add the FR-033 negative case to the Android journey set: a followed person's post in an unfollowed interest MUST be absent from the feed (Principle I, non-negotiable)
+- [ ] T014 [US1] Add the FR-033 negative case as `.maestro/12-interest-follow-does-not-widen.yaml`: a followed person's post in an unfollowed interest MUST be absent from the feed (Principle I, non-negotiable)
 - [ ] T015 [US1] Record a Journey Run in `docs/verification/runs/` with `runtime: android-emulator`, one result per journey, `not run` where a journey was not attempted, and the non-blank capture attached
 
 ### If it does not boot
@@ -121,9 +121,9 @@ counted from real classes.
 ### Events
 
 - [ ] T026 [US2] Write a durable event bus at `apps/api/src/adapters/local/durable-event-bus.ts` that records each published event and its handled state before delivery
-- [ ] T027 [US2] Replay unhandled events on startup, so an event published before a crash is handled after the restart. **This is the highest-value task in the story**: an event lost here reproduces 002's worst defect — a post that never leaves `pending` and is visible only to its author, permanently
+- [ ] T027 [US2] Replay unhandled events on startup in `apps/api/src/adapters/local/durable-event-bus.ts`, so an event published before a crash is handled after the restart. **This is the highest-value task in the story**: an event lost here reproduces 002's worst defect — a post that never leaves `pending` and is visible only to its author, permanently
 - [ ] T028 [US2] Swap the binding in `apps/api/src/adapters/adapters.module.ts` from `InProcessEventBus` to the durable bus, keeping the port unchanged
-- [ ] T029 [US2] Confirm no handler is now delivered twice: an event marked handled MUST NOT be replayed (a double-delivered `post.commented` sends a second notification)
+- [ ] T029 [US2] Add a no-double-delivery case to `apps/api/tests/unit/durable-event-bus.spec.ts`: an event marked handled MUST NOT be replayed (a double-delivered `post.commented` sends a second notification)
 
 ### Identity
 
@@ -133,8 +133,8 @@ counted from real classes.
 ### Proof
 
 - [ ] T032 [US2] Write `apps/e2e/journeys/durability.spec.ts`: write a person, a followed interest, a published post with media, a comment and a reaction; stop **every** component; start them; read all of it back. A partial pass is a failure, per contract `durability-contract.md`
-- [ ] T033 [US2] Add an event-durability case to the same suite: publish, kill the process before the handler runs, restart, and assert the effect landed
-- [ ] T034 [US2] Add a rejected-token case asserting a development-secret token is refused, and that the refusal is indistinguishable from any other invalid token
+- [ ] T033 [US2] Add an event-durability case to `apps/e2e/journeys/durability.spec.ts`: publish, kill the process before the handler runs, restart, and assert the effect landed
+- [ ] T034 [US2] Add a rejected-token case to `apps/e2e/journeys/negative.spec.ts` asserting a development-secret token is refused, and that the refusal is indistinguishable from any other invalid token
 - [ ] T035 [US2] Run `pnpm --filter @sih/api test:visibility` against the durable stack and confirm it passes **in full**, with no reduction in surfaces or states (FR-009, Principle II — non-negotiable)
 - [ ] T036 [US2] Wire the durability suite into `.github/workflows/ci.yml`
 
@@ -151,11 +151,11 @@ permission and see an explanation.
 
 - [ ] T037 [US4] Install a native image picker in `apps/mobile/package.json` and regenerate the native project with `expo prebuild`
 - [ ] T038 [US4] Mount `MediaPickerScreen` in `ComposeContainer` (`apps/mobile/src/screens/index.tsx`) so media comes from the picker rather than `sampleMedia.ts` — the last screen in the app that nothing reaches
-- [ ] T039 [US4] Keep the bundled sample as the fallback when no picker is available, so the browser journeys continue to exercise publish
+- [ ] T039 [US4] Keep `apps/mobile/src/features/publish/sampleMedia.ts` as the fallback when no picker is available, so the browser journeys continue to exercise publish
 - [ ] T040 [US4] Place a test image in the emulator's library from `scripts/android-device-pass.sh`: `adb push` **followed by a media-scan broadcast** — a pushed file is invisible to the picker without it (research R4)
 - [ ] T041 [P] [US4] Add `.maestro/10-publish-from-library.yaml` driving pick-and-publish with the permission granted
 - [ ] T042 [P] [US4] Add `.maestro/11-permission-refused.yaml` using Maestro's `setPermissions` to deny, asserting the app explains what it needs rather than appearing broken (FR-012)
-- [ ] T043 [US4] Record the two permission paths in the Journey Run
+- [ ] T043 [US4] Record the two permission paths in the Journey Run under `docs/verification/runs/`
 
 **Checkpoint**: publishing starts where a person would start it.
 
@@ -168,8 +168,8 @@ permission and see an explanation.
 **Independent test**: The report names the binding component and what the datastore was.
 
 - [ ] T044 [US5] Add the required `datastore` field to `reportMeasurement` in `apps/api/bench/harness.ts`, and make a measurement without it fail rather than default
-- [ ] T045 [US5] Run `bench:ceiling` against the durable stack and record the three-way attribution — generator, datastore, application shape
-- [ ] T046 [US5] Run `bench:feed-load` against the durable stack and record a Load Measurement with `transport`, `datastore`, concurrency reached, latencies and binding constraint
+- [ ] T045 [US5] Run `bench:ceiling` against the durable stack and record in `docs/verification/runs/` the three-way attribution — generator, datastore, application shape
+- [ ] T046 [US5] Run `bench:feed-load` against the durable stack and record in `docs/verification/runs/` a Load Measurement with `transport`, `datastore`, concurrency reached, latencies and binding constraint
 - [ ] T047 [US5] If the datastore is a stand-in, report the result **as a measurement of the stand-in** — never as a statement about the product (FR-013). 001 reported an emulator's p95 as a property of the design and it drove a proposal to build a hybrid that was not warranted
 
 **Checkpoint**: the load number says what it is a number about.
@@ -181,7 +181,7 @@ permission and see an explanation.
 - [ ] T048 [P] Update `CLAUDE.md` with what the emulator output actually showed, replacing the current entry which records only that it fails
 - [ ] T049 [P] Update `docs/verification/tier-b-runbook.md`: the route is proven or disproven, not "unproven"
 - [ ] T050 [P] Update `specs/003-device-and-hosting/spec.md` status to reflect the delivered state, with every unreached outcome reported unverified rather than dropped
-- [ ] T051 Confirm the Out of Scope items are still reported honestly wherever they appear: real usage unanswered, iOS unverified, no public deployment
+- [ ] T051 Confirm the Out of Scope items are still reported honestly in `specs/003-device-and-hosting/spec.md`, `CLAUDE.md` and `docs/verification/`: real usage unanswered, iOS unverified, no public deployment
 - [ ] T052 Run the full CI step list from `.github/workflows/ci.yml` before the final push — the actual list, not a proxy for it. Two red builds in 002 came from checking a subset and assuming it covered CI
 
 ---
