@@ -151,3 +151,57 @@ gathered until the owner raises the Actions spending limit or the monthly allowa
 explicit feed waits for J-04/08/09, and the rewritten flows 10 and 11. They are reasoned from
 run 16's captured evidence, they pass every local check, and **no run has executed them**.
 They must be reported that way rather than as fixes that worked.
+
+
+---
+
+# Update — run 18 (id 34026697429, head `735f289`)
+
+The repository was made public, which restored GitHub-hosted Actions minutes. This is the
+first run to execute the five flow fixes that were pushed after run 16 and recorded as
+unverified. **All five worked.**
+
+| Journey | Result |
+|---|---|
+| J-01 sign in | **pass** |
+| J-02 browse catalogue | **pass** |
+| J-03 follow an interest | **pass** — `hideKeyboard` fixed it, and the API log confirms real navigation: `GET /v1/interests/:interestId` 200 and `GET /v1/interests/:interestId/posts` 200, neither of which appeared in any earlier run |
+| J-04 publish an image | **fail** — `home-feed-screen` not visible |
+| J-05 publish a video | not run |
+| J-06 home feed | **pass** |
+| J-07 interest space | **pass** — reached via J-03 |
+| J-08 comment | **fail** — same as J-04, which it runs |
+| J-09 report | **fail** — same as J-04, which it runs |
+| J-10 block | not run |
+| FR-033 / Principle I | **pass** |
+| 10 publish from library | **pass** — the hand-off to the device's own library is verified |
+| 11 permission refused | **pass** — asserting the requirement that holds on this platform rather than one it cannot produce |
+
+**7 of 10 passed**, up from 4.
+
+## The three remaining failures are one failure
+
+All three are `04-publish-image`; `08` and `09` run it. The API log for the whole run is the
+useful part: **three flows reached publish and exactly one `POST /v1/posts` was logged.**
+
+So the app is not failing to navigate after publishing — publishing itself is not completing
+in two of three attempts, and `assertNotVisible: compose-error` passes throughout because no
+error is ever shown. The request appears simply not to resolve.
+
+That is a hypothesis, and it is not recorded as the cause. What run 18 established is that
+`home-feed-screen is not visible` covers at least three different situations, and the flow
+could not tell them apart. It now separates them:
+
+1. still on compose after 30s — publish never resolved;
+2. `load-error` visible — the feed request rejected, which an assertion looking only for the
+   feed cannot see;
+3. neither — a genuinely missing feed screen.
+
+The next run says which.
+
+## Not verified, still
+
+- **J-05 publish a video** — no video fixture reaches the device.
+- **An image chosen from a populated gallery** — flow 10 verifies the hand-off to
+  `com.android.documentsui`, not a round trip through it.
+- **FR-012's refusal path on a device** — not producible on API 30; covered by a container test.

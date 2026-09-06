@@ -59,9 +59,25 @@ appId: app.socialinterest
 # Leaving compose is the app's own signal that the publish returned - the
 # container pops only in onPublished - and the post then has to be readable in
 # the feed, which is the service's answer rather than the screen's.
-# Publishing reaches the service now - run 16 logged POST /v1/posts 201 - but
-# the app still has to pop out of compose and the feed has to refetch. Both are
-# network-bound on a software-rendered emulator, so the wait is explicit.
+# Three separate failures looked identical as `home-feed-screen is not visible`
+# in run 18, so they are separated here, in the order they can occur.
+#
+# 1. Did publish return at all? ComposeFlowContainer pops only in onPublished,
+#    so still being on compose after 30s means the request never resolved -
+#    which matches run 18's API log: three flows reached publish and only ONE
+#    POST /v1/posts was ever logged.
+- extendedWaitUntil:
+    notVisible:
+      id: "compose-screen"
+    timeout: 30000
+
+# 2. Did the feed fail to load? HomeFeedContainer renders `load-error` instead
+#    of the feed when its request rejects, and that is invisible to an assertion
+#    that only looks for the feed.
+- assertNotVisible:
+    id: "load-error"
+
+# 3. Only then is a missing feed screen actually a missing feed screen.
 - extendedWaitUntil:
     visible:
       id: "home-feed-screen"
