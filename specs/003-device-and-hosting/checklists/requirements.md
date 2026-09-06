@@ -1,4 +1,4 @@
-# Specification Quality Checklist: Runnable on a real device, and somewhere to run
+# Specification Quality Checklist: Verified in the cloud, end to end
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-09-06
@@ -45,24 +45,41 @@
    or **recorded evidence** of why the runtime could not be obtained. FR-003 carries the same
    requirement.
 
-**No [NEEDS CLARIFICATION] markers.** Three candidates were considered and resolved from
-context rather than asked:
+**No [NEEDS CLARIFICATION] markers.** The one candidate — which datastore — is not a
+clarification but Story 3 itself, decided inside the feature rather than asked before it.
 
-- *Which host?* Deliberately unspecified. The spec requires reachability, durability across
-  restart, and a real identity provider; naming a vendor is a planning decision and would be
-  an implementation detail here.
-- *Device farm or hardware in the room?* Both satisfy Story 1. Recorded as an assumption.
-- *Participant group size for Story 6?* No reasonable default exists, but it does not change
-  scope — the window and its outcomes are declared before it opens either way. Left to
-  planning.
+**One deliberate deviation from the template.** The spec carries a table mapping each item
+carried over from 002 to its status under the cloud-only constraint. This is a continuation
+feature whose entire purpose is what 002 could not close; a reader cannot judge the stories
+without knowing what they inherited, or which of them the constraint rules out. The
+functional requirements and success criteria are kept clean of it.
 
-**One deliberate deviation from the template.** The spec carries a *What 002 handed over*
-table naming concrete artefacts. This is a continuation feature whose entire purpose is the
-eight items 002 could not close; a reader cannot judge the stories without knowing what they
-inherited. The functional requirements and success criteria are kept clean of it.
+**Revision 2026-09-06 — owner instruction: everything in the cloud, no physical phone, no
+human tester, all performable by the agent.** Re-validated after the rewrite.
 
-**Known unusual property of this feature.** Six of eight user stories are blocked on an owner
-decision or on resources this repository cannot obtain, and the spec says so plainly rather
-than proposing substitutes. That is the honest state, and the accompanying risk is that the
-substitutes get invented later under pressure — FR-004, FR-013 and FR-019 exist specifically
-to forbid that.
+The spec was reshaped from eight stories to six. What changed and why:
+
+- **Six stories now depend on nothing outside this repository** (1, 2, 3, 6 can start
+  immediately; 4 and 5 depend only on other stories here). Previously six of eight were
+  blocked on an owner decision or on resources the agent cannot obtain.
+- **Story 2 was reframed rather than dropped.** "Deploy to a public host" needs an account and
+  credentials the agent does not have. What it *can* do, and what actually matters for the
+  product, is make the stack durable: data survives a restart, events survive a restart, and a
+  development-secret token is refused. That is now the story.
+- **Real usage is withdrawn, not replaced.** Retention and second-post rate need people. The
+  spec says so in *Out of Scope* and FR-017 forbids reporting them from synthetic activity.
+  This is the one thing the constraint costs, and it is stated once, plainly, rather than
+  worked around.
+- **iOS is out of scope** on cost grounds: macOS runner minutes bill at ten times the rate on
+  a private repository. FR-018 keeps it reported unverified rather than assumed.
+- **A new requirement, FR-003, exists because of how this session went.** Six emulator runs
+  failed and not one captured the emulator's own output, so every diagnosis was a guess about
+  an invisible failure — including one that was confidently wrong. FR-003 and SC-003 now
+  require the runtime's own output from *every* attempt, so a seventh is informative whatever
+  it returns.
+
+**The risk this checklist is watching.** An agent-only spec creates pressure to invent
+substitutes for what cannot be reached. FR-005 (no inferring Android from the browser),
+FR-013 (a stand-in measurement is reported as such), FR-016 (unmeasurable is reported
+unverified) and FR-017 (no synthetic usage figures) exist specifically to forbid it, and
+SC-012 makes it a criterion.
