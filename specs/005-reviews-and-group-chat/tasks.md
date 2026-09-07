@@ -46,8 +46,8 @@ shapes available to every later one.
 
 - [X] T001 [P] Add `Review`, `PlaceRatingSummary`, `RatingWrite` and `ConversationParticipant` types to `packages/shared/src/index.ts`, matching `contracts/openapi-delta.yaml` exactly
 - [X] T002 [P] Extend `Conversation` in `packages/shared/src/index.ts` with `kind`, `name` and `participants`, leaving every existing field's meaning unchanged (FR-026)
-- [ ] T003 Merge `contracts/openapi-delta.yaml` into `apps/api/contracts/openapi.yaml` — one document, because the client is generated from it and two documents generate two clients (002's first defect)
-- [ ] T004 Regenerate the API client and confirm `pnpm --filter @sih/api verify:client-drift` is clean
+- [X] T003 Merge `contracts/openapi-delta.yaml` into `apps/api/contracts/openapi.yaml` — one document, because the client is generated from it and two documents generate two clients (002's first defect)
+- [X] T004 Run `pnpm --filter @sih/shared generate:client` and confirm `git diff --exit-code packages/shared/src/client/operations.generated.ts` is clean — **there is no `verify:client-drift` script**; the drift check in `.github/workflows/ci.yml` is regenerate-then-diff, and naming a command that does not exist is how a task gets reported done without running
 
 ---
 

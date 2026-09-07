@@ -1002,6 +1002,132 @@ paths:
 
   # ----------------------------------------------- Publish and edit (US2) — changed
 
+  # ============================ feature 005 ============================
+  # specs/005-reviews-and-group-chat/contracts/openapi-delta.yaml, merged.
+  #
+  # ONE document, because the client is generated from it and two documents would
+  # generate two clients. 002's first defect was the contract and the server
+  # disagreeing about the publish body, which 400'd every publish from any
+  # generated client - both sides being generated from one document is what
+  # prevents that, and is also why contract tests cannot catch it.
+
+  /places/{placeId}/rating:
+    put:
+      tags: [Places]
+      summary: Rate a place, or replace your existing rating
+      description: Serves 005/FR-001 and FR-002. At most one rating per person per place.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: placeId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/RatingWrite' } } }
+      responses:
+        '200':
+          description: The rating as stored, with the place's updated summary
+          content: { application/json: { schema: { $ref: '#/components/schemas/RatingWithSummary' } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorised' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Places]
+      summary: Withdraw your rating
+      description: Serves 005/FR-003.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: placeId, in: path, required: true, schema: { type: string } }
+      responses:
+        '204': { description: Withdrawn; the place summary is recomputed }
+        '401': { $ref: '#/components/responses/Unauthorised' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /places/{placeId}/reviews:
+    get:
+      tags: [Places]
+      summary: A place's reviews
+      description: |
+        Serves 005/FR-010 and FR-012. OPTIONAL AUTH, deliberately: a signed-out
+        visitor reads reviews, and a signed-in one gets the same list with blocks
+        applied in both directions (FR-013). 002's third defect was ApiClient
+        sending no token on optional-auth endpoints, so a signed-in person was
+        treated as anonymous and told content was "not available to you".
+
+        `security: []` is this contract's convention for a read that is public but
+        answers differently when it knows the caller - the same declaration
+        GET /places/{placeId} uses. The idiomatic `[{}, {bearerAuth: []}]` spelling
+        generates `auth: true`, which would misdescribe this operation in the
+        generated map even though ApiClient sends a token whenever it has one.
+      security: []
+      parameters:
+        - { name: placeId, in: path, required: true, schema: { type: string } }
+        - { name: cursor, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        '200':
+          description: Reviews the viewer may see, newest first
+          content: { application/json: { schema: { $ref: '#/components/schemas/ReviewPage' } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /conversations/groups:
+    post:
+      tags: [Conversations]
+      summary: Start a group conversation
+      description: |
+        Serves 005/FR-018. 200 rather than 201 because FR-027 means this can
+        resolve to an EXISTING pair conversation when given a single participant,
+        and reporting "created" for something already there makes a client's cache
+        wrong.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/GroupCreate' } } }
+      responses:
+        '200':
+          description: The conversation, created or resolved
+          content: { application/json: { schema: { $ref: '#/components/schemas/Conversation' } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorised' }
+        '409': { $ref: '#/components/responses/CannotAddParticipant' }
+
+  /conversations/{conversationId}/participants:
+    post:
+      tags: [Conversations]
+      summary: Add somebody to a group
+      description: Serves 005/FR-020. Idempotent for somebody already present.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: conversationId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [handle]
+              properties: { handle: { type: string } }
+      responses:
+        '204': { description: Added, or already a participant }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { description: You are not a participant }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/CannotAddParticipant' }
+
+  /conversations/{conversationId}/leave:
+    post:
+      tags: [Conversations]
+      summary: Leave a group
+      description: |
+        Serves 005/FR-021. Messages already sent remain readable to the rest -
+        leaving withdraws you from the conversation, it does not retract what you
+        said to people who were there.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: conversationId, in: path, required: true, schema: { type: string } }
+      responses:
+        '204': { description: Left }
+        '403': { description: You are not a participant }
+        '404': { description: No such conversation, or it is a pair conversation }
+
 
 components:
 
@@ -1066,6 +1192,24 @@ components:
           schema: { $ref: '#/components/schemas/Problem' }
     ValidationError:
       description: Request failed validation
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    CannotAddParticipant:
+      description: |
+        A person cannot be added to this conversation (005/FR-023).
+
+        THIS RESPONSE IS DELIBERATELY UNINFORMATIVE, and that is a requirement
+        rather than an oversight. 005/FR-023a: it MUST NOT disclose that a block
+        exists, who it involves, or which direction it runs. The obvious helpful
+        version - "Sam has blocked you" - tells the person adding their friend
+        something about a relationship between two OTHER people, neither of whom
+        chose to share it, and turns adding somebody to a group into a way to
+        probe who has blocked whom.
+
+        Every reason a person cannot be added returns this same body. SC-012
+        compares them as literal responses, because a message that differs only
+        in wording leaks the block just as well as one that spells it out.
       content:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
@@ -1549,14 +1693,52 @@ components:
 
     ConversationSummary:
       type: object
-      required: [conversationId, other, state, lastMessageAt, unreadCount]
+      # 005: `other` leaves `required`. A group has no single other person, and a
+      # required-but-null field is a contradiction a generated client cannot model.
+      required: [conversationId, state, lastMessageAt, unreadCount]
       properties:
         conversationId: { type: string }
-        other: { $ref: '#/components/schemas/PublicProfile' }
-        state: { type: string, enum: [requested, accepted, declined, severed] }
+        other:
+          allOf: [{ $ref: '#/components/schemas/PublicProfile' }]
+          nullable: true
+          description: |
+            The other participant, for a PAIR conversation. Null for a group.
+            Kept populated on every pair conversation so a client built against
+            the 004 contract still finds what it expects (005/FR-026).
+        state:
+          type: string
+          # 005: `left` describes a PARTICIPATION, not a conversation. One person
+          # leaving a group of four does not put the conversation in a state.
+          enum: [requested, accepted, declined, severed, left]
         lastMessageAt: { type: string, format: date-time }
         lastMessagePreview: { type: string, nullable: true, maxLength: 140 }
         unreadCount: { type: integer }
+        kind:
+          type: string
+          enum: [pair, group]
+          description: |
+            005/R1. Explicit, not inferred from participant count: the two kinds
+            derive their ids differently, so a length check would be a second way
+            to answer a question the id scheme already answers.
+        name:
+          type: string
+          nullable: true
+          maxLength: 60
+          description: 005/FR-024. User-generated content - reportable, moderatable.
+
+    ConversationParticipant:
+      type: object
+      required: [person, state, joinedAt]
+      properties:
+        person: { $ref: '#/components/schemas/PublicProfile' }
+        state:
+          type: string
+          enum: [requested, accepted, declined, severed, left]
+          description: |
+            PER PARTICIPANT, not per conversation (005/R2). A group has no single
+            state: Alice accepted, Bob has not looked, Jo declined.
+        joinedAt: { type: string, format: date-time }
+        leftAt: { type: string, format: date-time, nullable: true }
 
     Conversation:
       allOf:
@@ -1565,6 +1747,87 @@ components:
           properties:
             viewerCanSend: { type: boolean, description: Decided by ConversationAccess, never by the client }
             initiatedByViewer: { type: boolean }
+            participants:
+              type: array
+              maxItems: 20
+              description: |
+                005/FR-025. Membership is STORED, never derived from the id. The
+                cap of 20 is a transactional limit, not a preference: a membership
+                change writes one row per participant in a single transaction, and
+                DynamoDB caps that at 100 items (research R3).
+              items: { $ref: '#/components/schemas/ConversationParticipant' }
+
+    GroupCreate:
+      type: object
+      required: [participantHandles]
+      properties:
+        participantHandles:
+          type: array
+          # 1 is allowed and is NOT an error: FR-027 routes a "group" of two to the
+          # existing pair conversation rather than creating a parallel one. The
+          # response's `kind` says which happened.
+          minItems: 1
+          maxItems: 19
+          items: { type: string }
+        name: { type: string, nullable: true, maxLength: 60 }
+
+    RatingWrite:
+      type: object
+      required: [score]
+      properties:
+        score: { type: integer, minimum: 1, maximum: 5 }
+        body:
+          type: string
+          maxLength: 2000
+          nullable: true
+          description: 005/FR-009. Optional - a rating without text is complete.
+
+    PlaceRatingSummary:
+      type: object
+      required: [average, count]
+      properties:
+        average:
+          type: number
+          nullable: true
+          minimum: 1
+          maximum: 5
+          description: |
+            005/FR-005. NULL when count is 0, never 0. "Nobody has rated this" and
+            "rated badly" are different facts, and 0 is not a legal score - a zero
+            here is a value every client would have to know to special-case.
+        count: { type: integer, minimum: 0 }
+
+    Review:
+      type: object
+      required: [placeId, author, score, body, createdAt, updatedAt]
+      properties:
+        placeId: { type: string }
+        author:
+          allOf: [{ $ref: '#/components/schemas/PublicProfile' }]
+          description: |
+            A HYDRATED profile, not an id. Six surfaces in this codebase shipped
+            returning raw candidate rows because nothing asserted the response
+            shape; response-shape.spec.ts checks reviews against this.
+        score: { type: integer, minimum: 1, maximum: 5 }
+        body: { type: string, nullable: true, maxLength: 2000 }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    RatingWithSummary:
+      type: object
+      required: [rating, summary]
+      properties:
+        rating: { $ref: '#/components/schemas/Review' }
+        summary: { $ref: '#/components/schemas/PlaceRatingSummary' }
+
+    ReviewPage:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Review' }
+        page: { $ref: '#/components/schemas/PageMeta' }
 
     Message:
       type: object
