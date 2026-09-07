@@ -202,8 +202,8 @@ remove it as a moderator, confirm it is gone and the log survives.
 - [X] T070 [US3] Add the `CONV#`/`PARTICIPANT#` member row (A40) to `apps/api/src/persistence/conversation.repository.ts`, written in the same transaction as everything else
 - [X] T071 [US3] Extend `conversationIdFor` in `apps/api/src/conversations/conversation-id.ts` so a pair keeps its derived id and a group gets a ULID (research R1), keeping the existing pair test that asserts B's id for A equals A's id for B
 - [X] T072 [US3] Move the `state` authority to the participant row in `apps/api/src/persistence/conversation.repository.ts`, leaving the conversation item's field in place and unread (research R2, R9)
-- [ ] T073 [US3] Write `apps/api/scripts/backfill-conversation-state.ts` copying each conversation's `state` onto its participant rows
-- [ ] T074 [US3] Run `apps/api/scripts/backfill-conversation-state.ts`, then `tests/integration/conversation-migration.spec.ts`, and confirm it passes — **SC-008**
+- [X] T073 [US3] Write `apps/api/scripts/backfill-conversation-state.ts` copying each conversation's `state` onto its participant rows
+- [X] T074 [US3] Run `apps/api/scripts/backfill-conversation-state.ts`, then `tests/integration/conversation-migration.spec.ts`, and confirm it passes — **SC-008**
 - [X] T075 [US3] Add `tests/unit/conversation-state-authority.spec.ts` asserting no read path consults the conversation item's `state`, so the removed authority cannot come back
 
 ### ConversationAccess for N participants
@@ -267,10 +267,10 @@ remove it as a moderator, confirm it is gone and the log survives.
 - [X] T110 Extend `scripts/android-device-pass.sh` to assert both new flows **through the service**: a `PUT /v1/places/:placeId/rating` 200 and a group message 201 in the API log
 - [X] T111 [P] Seed a group fixture in `apps/e2e/scripts/seed-group-fixture.ts`, printing what the flows need and **asserting the fixture produced it** before the flows depend on it
 - [X] T112 **Already covered, checked rather than assumed.** `verify:register` has been a CI step since 004, and every 005 suite lives inside `@sih/api test`, `@sih/mobile test` or `@sih/e2e test`, which CI already runs - adding steps would have duplicated them. The real gap was elsewhere and is now closed: `verify-maestro-ids` fails when a flow uses a `${VAR}` that `android-device-pass.sh` never passes. Maestro does not error on an undefined variable; it substitutes the literal text and times out looking for it, twenty minutes into a 25-minute emulator run, looking exactly like a broken screen
-- [ ] T113 [P] Update `CLAUDE.md` with what 005 established and what it did not
-- [ ] T114 Write the run record in `docs/verification/runs/`, listing each criterion **with the command that measured it**, and each criterion not met
+- [X] T113 [P] Update `CLAUDE.md` with what 005 established and what it did not
+- [X] T114 Write the run record in `docs/verification/runs/`, listing each criterion **with the command that measured it**, and each criterion not met
 - [ ] T115 Dispatch `.github/workflows/android-emulator.yml` and record the result — free on this public repository, and the only place native behaviour is observed
-- [ ] T116 Run the full CI step list from quickstart.md § 8 locally before pushing — not a proxy for it; two red builds in 002 came from assuming typecheck/lint/tests covered CI
+- [X] T116 Run the full CI step list from quickstart.md § 8 locally before pushing — not a proxy for it; two red builds in 002 came from assuming typecheck/lint/tests covered CI
 
 ---
 
