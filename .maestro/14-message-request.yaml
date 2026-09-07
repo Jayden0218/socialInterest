@@ -15,8 +15,13 @@ appId: app.socialinterest
     id: "inbox-screen"
 
 # The main inbox holds the followed sender and NOT the stranger.
+#
+# Asserted on the sender's NAME, not their message. The row shows the last
+# message as a preview, and 13-send-message replies into this very conversation,
+# so the preview is whatever was sent most recently - correctly. Reading it here
+# made this flow depend on running before 13, which it did by luck for two runs.
 - extendedWaitUntil:
-    visible: "${FRIEND_BODY}"
+    visible: "${FRIEND_NAME}"
     timeout: 30000
 - assertNotVisible: "${REQUEST_BODY}"
 

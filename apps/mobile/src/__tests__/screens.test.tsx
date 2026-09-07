@@ -351,6 +351,34 @@ describe('EditProfileScreen — FR-049 partial preference patch', () => {
       }),
     );
   });
+
+  /**
+   * EVERY preference the model carries must have a switch.
+   *
+   * This screen kept its own three-entry category list while
+   * NOTIFICATION_CATEGORIES had four, so 004/FR-031's `message` toggle existed
+   * in the type, in the API and in the notifications screen's labels - and
+   * nowhere a person could tap. The requirement was reported complete. An
+   * Android device found it, on the first run that ever opened Edit profile.
+   *
+   * The expectation is DERIVED from the prefs object rather than listed here.
+   * A hand-written list of four ids would pass today and miss the fifth
+   * category exactly the way the last one was missed - the same argument as
+   * auth-surface.spec.ts enumerating routes instead of naming them.
+   */
+  it('renders a switch for every notification preference the model has', () => {
+    const prefs = { reaction: true, comment: true, follow: true, message: true };
+    render(
+      <EditProfileScreen
+        draft={{ displayName: 'Me', bio: '', notificationPrefs: prefs }}
+        onChange={() => undefined}
+        onSave={() => undefined}
+        onDeleteAccount={() => undefined}
+      />,
+    );
+    const missing = Object.keys(prefs).filter((key) => screen.queryByTestId(`pref-${key}`) === null);
+    expect(missing).toEqual([]);
+  });
 });
 
 /**

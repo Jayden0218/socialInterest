@@ -3,6 +3,7 @@ import { theme } from '../../ui/theme';
 import { Banner, Button, Row, Screen } from '../../ui/primitives';
 
 import type { NotificationPrefs } from '../../data/session';
+import { NOTIFICATION_CATEGORIES } from '../notifications/NotificationsScreen';
 
 export type { NotificationPrefs };
 
@@ -24,11 +25,23 @@ export function canSaveProfile(draft: ProfileDraft): boolean {
 export const DELETE_ACCOUNT_CONFIRMATION =
   'Your posts will be removed and your comments anonymised. This cannot be undone.';
 
-const CATEGORIES: { key: keyof NotificationPrefs; label: string }[] = [
-  { key: 'reaction', label: 'Reactions to your posts' },
-  { key: 'comment', label: 'Comments on your posts' },
-  { key: 'follow', label: 'New followers' },
-];
+/**
+ * ONE list, imported - this screen used to keep a private copy of it.
+ *
+ * The copy had three categories. NOTIFICATION_CATEGORIES has four: 004/FR-031
+ * added `message` and added it to the list in NotificationsScreen, which
+ * DESCRIBES notifications, not the one that renders the switches. So the
+ * control FR-031 is about did not exist in the UI on any platform, and the
+ * requirement was reported complete.
+ *
+ * Found by 18-notification-settings on an Android device, the first time that
+ * flow ever reached the screen. Nothing else could see it: the mobile tests
+ * render this screen with props and assert what IS there, and two lists that
+ * disagree are invisible to a test that only reads one of them. It is the same
+ * shape as the feed's second hand-rolled responder - the duplicate is not a
+ * risk of drift, it IS the drift.
+ */
+const CATEGORIES = NOTIFICATION_CATEGORIES;
 
 export function EditProfileScreen({
   draft,

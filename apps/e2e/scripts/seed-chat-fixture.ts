@@ -34,7 +34,11 @@ async function main(): Promise<void> {
   const me = await device.session.me();
 
   const requester = await actor('devreq');
-  const friend = await actor('devfriend');
+  // createProfile sets displayName to the prefix, so this IS the friend's
+  // display name as the inbox renders it. Printed below because 14 asserts on
+  // it - see FRIEND_NAME.
+  const friendPrefix = 'devfriend';
+  const friend = await actor(friendPrefix);
 
   // The device person follows the friend, so the friend's first message is
   // accepted rather than requested. FR-003 keys on the RECIPIENT's follow.
@@ -63,6 +67,21 @@ async function main(): Promise<void> {
 
   process.stdout.write(`REQUESTER=${requester.handle}\n`);
   process.stdout.write(`FRIEND=${friend.handle}\n`);
+  /**
+   * The friend's DISPLAY NAME, which the inbox row renders above the preview.
+   *
+   * 14-message-request used to assert on FRIEND_BODY to prove the followed
+   * sender is in the main inbox. That works only while nothing has replied:
+   * 13-send-message sends into the same conversation, the row's preview becomes
+   * the new message, and 14 waits thirty seconds for a string that is correctly
+   * no longer there. It passed for two runs purely because Maestro happened to
+   * run 14 before 13; sorting the flows made the coupling deterministic, which
+   * is the useful half of sorting them.
+   *
+   * A last-message preview is mutable BY DEFINITION. The participant's name is
+   * what identifies the row, so that is what the assertion should read.
+   */
+  process.stdout.write(`FRIEND_NAME=${friendPrefix}\n`);
   process.stdout.write(`REQUEST_BODY=${requestBody}\n`);
   process.stdout.write(`FRIEND_BODY=${friendBody}\n`);
 }

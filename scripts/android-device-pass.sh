@@ -251,9 +251,11 @@ CHAT="$(cd apps/e2e && E2E_BASE_URL=http://127.0.0.1:3000 npx tsx scripts/seed-c
 echo "$CHAT"
 REQUESTER="$(echo "$CHAT" | sed -n 's/^REQUESTER=//p')"
 FRIEND="$(echo "$CHAT" | sed -n 's/^FRIEND=//p')"
+FRIEND_NAME="$(echo "$CHAT" | sed -n 's/^FRIEND_NAME=//p')"
 REQUEST_BODY="$(echo "$CHAT" | sed -n 's/^REQUEST_BODY=//p')"
 FRIEND_BODY="$(echo "$CHAT" | sed -n 's/^FRIEND_BODY=//p')"
-[ -n "$REQUESTER" ] && [ -n "$FRIEND" ] && [ -n "$REQUEST_BODY" ] && [ -n "$FRIEND_BODY" ] \
+[ -n "$REQUESTER" ] && [ -n "$FRIEND" ] && [ -n "$FRIEND_NAME" ] \
+  && [ -n "$REQUEST_BODY" ] && [ -n "$FRIEND_BODY" ] \
   || { echo "FAIL: the conversation fixture did not print what the flows need"; exit 1; }
 
 # 004/US2. The flow taps an EXISTING match rather than creating a place, because
@@ -342,7 +344,7 @@ echo "== journeys =="
 MAESTRO_ENV=(
   -e TOKEN="$TOKEN" -e PRESENT="$PRESENT" -e ABSENT="$ABSENT"
   -e AUTHOR="$AUTHOR"
-  -e REQUESTER="$REQUESTER" -e FRIEND="$FRIEND"
+  -e REQUESTER="$REQUESTER" -e FRIEND="$FRIEND" -e FRIEND_NAME="$FRIEND_NAME"
   -e REQUEST_BODY="$REQUEST_BODY" -e FRIEND_BODY="$FRIEND_BODY"
   -e PLACE_NAME="$PLACE_NAME" -e PLACE_LOCALITY="$PLACE_LOCALITY"
 )
