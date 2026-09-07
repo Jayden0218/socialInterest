@@ -87,6 +87,22 @@ appId: app.socialinterest
     visible: "first message in the group"
     timeout: 30000
 
+# BACK, NOT THE TAB BAR - and run 33 failed on exactly this.
+#
+# The conversation is a PUSHED route, and `App` renders the tab bar only at the
+# root of the stack: a pushed screen gets a header with `nav-back` instead. So
+# `tab-chats` genuinely does not exist here, and tapping it waits sixty seconds
+# for an element that is not on screen. The API log for that run shows
+# `POST /v1/conversations/groups` 201 and `POST .../participants` 204 - the
+# product had already done everything asked of it; the flow could not find its
+# way back.
+- tapOn:
+    id: "nav-back"
+- extendedWaitUntil:
+    visible:
+      id: "inbox-screen"
+    timeout: 30000
+
 # The inbox row is found by the group's NAME.
 #
 # `group-row-.*` rather than the slug itself, for the same reason
@@ -96,8 +112,6 @@ appId: app.socialinterest
 # asserts the row is rendered AS A GROUP; the text assertion below asserts which
 # group. Between them that is the requirement - identified by name, never by the
 # last-message preview.
-- tapOn:
-    id: "tab-chats"
 - extendedWaitUntil:
     visible:
       id: "group-row-.*"
@@ -105,10 +119,15 @@ appId: app.socialinterest
 - assertVisible: "Climbing Tuesday"
 
 # FR-021. Leaving withdraws you, and the inbox no longer offers it.
+# THE GROUP's open button, not whichever row is first. By now the inbox holds
+# several conversations from earlier flows, and `open-conversation-.*` would
+# open an arbitrary one - which for a pair has no leave control at all.
 - tapOn:
-    id: "open-conversation-.*"
+    id: "open-group-.*"
 - assertVisible:
     id: "conversation-screen"
+- assertVisible:
+    id: "group-participants"
 - tapOn:
     id: "leave-group"
 - extendedWaitUntil:

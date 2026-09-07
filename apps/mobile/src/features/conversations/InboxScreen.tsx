@@ -110,12 +110,35 @@ export function InboxScreen({
                     {item.unreadCount}
                   </Text>
                 ) : null}
-                <Button
-                  testID={`open-conversation-${item.conversationId}`}
-                  label="Open"
-                  variant="secondary"
-                  onPress={() => onOpen(item)}
-                />
+                {/*
+                  A GROUP'S OPEN BUTTON IS IDENTIFIED BY THE GROUP, not by
+                  position. `open-conversation-.*` matches whichever row a list
+                  happens to render first, and by the time a device run reaches
+                  the group flow there are several conversations - so a flow
+                  selecting on it would open an arbitrary one and pass or fail on
+                  incidental ordering. That is 004's `14-message-request` defect
+                  in a new place.
+
+                  Two whole templates rather than one with the prefix
+                  interpolated, because `verify-maestro-ids` reads dynamic
+                  prefixes off the LEADING LITERAL of a template in a `testID=`
+                  position and cannot see through a ternary that builds one.
+                */}
+                {isGroup(item) ? (
+                  <Button
+                    testID={`open-group-${conversationSlug(item)}`}
+                    label="Open"
+                    variant="secondary"
+                    onPress={() => onOpen(item)}
+                  />
+                ) : (
+                  <Button
+                    testID={`open-conversation-${item.conversationId}`}
+                    label="Open"
+                    variant="secondary"
+                    onPress={() => onOpen(item)}
+                  />
+                )}
               </Row>
             </View>
           )}

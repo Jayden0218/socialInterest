@@ -98,3 +98,72 @@ and the prefix search could have been checked with one curl. I wrote a fixture
 assertion that tested a different search from the one the flow performs, which
 is the same shape as a guard that reads its own prose: it looked like evidence
 and answered nothing.
+
+
+---
+
+# Run 33 — 18/19, and the navigation fact I still had not checked for free
+
+**Run**: https://github.com/Jayden0218/socialInterest/actions/runs/34097613841
+**Commit**: `b21858f` · **Outcome**: fail · **Cost**: zero
+
+| | |
+|---|---|
+| Emulator boot | 63s |
+| Result | **18/19** — `20-rate-place` now **PASSES** |
+| Failed | `21-group-chat` only |
+
+`20-rate-place` passing is a real result: rating and reviewing a place works on a
+device, entered through the app's own navigation. The API log shows
+`PUT /v1/places/:placeId/rating` 200 and `GET /v1/places/:placeId/reviews` 200.
+
+```
+[Failed] 21-group-chat (1m 40s) (Element not found: Id matching regex: tab-chats)
+```
+
+**And the API log for that same run shows the group was fully built:**
+
+```
+1 "method":"POST","path":"/v1/conversations/groups","status":201
+1 "method":"POST","path":"/v1/conversations/:conversationId/participants","status":204
+```
+
+So the product did everything asked of it. The flow then could not find its way
+back: the conversation is a **pushed route**, and `App` renders the tab bar only
+at the root of the stack — a pushed screen gets a header with `nav-back`
+instead. `tab-chats` is genuinely not on screen, so the flow waited sixty
+seconds for an element that does not exist there.
+
+A second, latent fault in the same flow: `open-conversation-.*` matches
+whichever row renders first, and by flow 21 the inbox holds several
+conversations from earlier flows. Opening an arbitrary one would land on a pair,
+which has no leave control at all — 004's `14-message-request` ordering defect,
+in a new place. The group's open button is now `open-group-<slug>`, identified
+by the group.
+
+## The correction that matters more than either fix
+
+Both facts are **navigation**, and neither is about Android. Both are settled by
+a browser in three seconds. I spent two 25-minute device runs discovering them.
+
+`005/J-21` now drives the whole flow through `apps/e2e/browser/navigation.spec.ts`
+— create, send, back, find the row by name, open the group, leave — and asserts
+the two facts explicitly:
+
+```
+expect(await page.locator(id('tab-chats')).count()).toBe(0);   // on a pushed screen
+expect(await openGroup.count()).toBe(1);                        // exactly one open-group- button
+```
+
+It passes in 2,997ms, and all 15 browser journeys pass with it.
+
+This does **not** replace the device flow, and must not be reported as if it
+did: react-native-web renders the same components through DOM primitives, so it
+says nothing about native layout, touch handling, or the platform. What it does
+is settle the navigation for free, so a device run is spent on what only a
+device can answer. That is what CLAUDE.md already meant by *prefer the free
+observation to the expensive guess* — six emulator runs, four hung jest runs, and
+now two more.
+
+**005 on a device remains unverified.** `21-group-chat` has still never
+completed.
