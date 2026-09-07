@@ -385,8 +385,22 @@ before changing anything**, and prefer the free observation to the expensive gue
 
 ### Still not verified, and must be reported that way
 
-- **005 has never run on a device.** `20-rate-place.yaml` and `21-group-chat.yaml` are written
-  and their selectors check out; no emulator run has executed them.
+- **005 has never run on a device.** Run 32 (2026-09-07) executed them and **both failed** -
+  `17/19`, with all seventeen pre-existing flows passing first time and no device drop. Neither
+  failure was a product defect; both were defects in the flows I wrote. Record:
+  `docs/verification/runs/2026-09-07-android-run-32-005-flows-failed.md`. Fixed and awaiting a
+  re-run, so reviews and group chat on a device remain **unverified**.
+
+  Two things worth not repeating. **A toggle is not idempotent, so a flow that chains another
+  flow inherits its writes**: `20-rate-place` chained `16-place-page`, which had already
+  followed the place ten minutes earlier, so the chained tap UNFOLLOWED it and 16's own
+  assertion correctly failed. Each flow is its own Maestro session but they share ONE SERVER.
+
+  And **a fixture must assert the search the flow actually runs**. `seed-group-fixture` checked
+  that each member was findable by their FULL HANDLE, which passed; the flow searches a prefix,
+  which is a different query. The check looked like evidence and answered nothing - the same
+  shape as a guard that reads its own prose. It now asserts the one prefix query returns all
+  three, and exports the prefix so the flow cannot drift from it.
 - **001/SC-011** - a video PLAYING on a device. Unchanged by 005.
 - **iOS**: nothing has ever run.
 - **002/SC-002** (10,000 concurrent): unmeasured, and only a provisioned-DynamoDB run can close

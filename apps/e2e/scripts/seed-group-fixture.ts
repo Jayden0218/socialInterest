@@ -12,7 +12,7 @@
  * a person creating a group with friends takes.
  *
  * Usage: npx tsx apps/e2e/scripts/seed-group-fixture.ts <device-token>
- * Prints GROUP_MEMBER_A=, GROUP_MEMBER_B= and GROUP_MEMBER_C=.
+ * Prints GROUP_SEARCH=, GROUP_MEMBER_A=, GROUP_MEMBER_B= and GROUP_MEMBER_C=.
  */
 import { createAppData, MemoryTokenStore } from '@sih/mobile/data';
 import { actor } from '../support/client';
@@ -31,8 +31,19 @@ async function main(): Promise<void> {
   const device = createAppData({ baseUrl: `${baseUrl()}/v1`, tokens });
   const me = await device.session.me();
 
+  /**
+   * The prefix the FLOW searches for, exported rather than duplicated.
+   *
+   * Handle search is a prefix query over the handle index, so one search for
+   * this returns all three - which is what `21-group-chat.yaml` does, after the
+   * first version typed each handle separately and could not re-focus the field
+   * for the second (run 32). A literal in the flow would be this string written
+   * twice, in two files, with nothing to notice when one changes.
+   */
+  const SEARCH_PREFIX = 'grpmember';
+
   const members = [];
-  for (const prefix of ['grpmembera', 'grpmemberb', 'grpmemberc']) {
+  for (const prefix of [`${SEARCH_PREFIX}a`, `${SEARCH_PREFIX}b`, `${SEARCH_PREFIX}c`]) {
     const member = await actor(prefix);
     // FR-022: the INVITEE's follow decides, not the creator's.
     await member.data.people.follow(me.handle);
@@ -47,10 +58,17 @@ async function main(): Promise<void> {
    * into a run, looking exactly like a broken search screen. This is the same
    * reason `seed-chat-fixture` checks its two inboxes.
    */
+  /**
+   * Asserted against THE SEARCH THE FLOW ACTUALLY RUNS - one prefix query that
+   * must return all three - rather than three searches by full handle. The
+   * latter passed while the flow failed, because the flow does something else.
+   */
+  const byPrefix = await device.people.search(SEARCH_PREFIX, { limit: 20 });
   for (const member of members) {
-    const found = await device.people.search(member.handle, { limit: 20 });
-    if (!found.items.some((p) => p.handle === member.handle)) {
-      throw new Error(`fixture: ${member.handle} is not findable by the search the flow uses`);
+    if (!byPrefix.items.some((p) => p.handle === member.handle)) {
+      throw new Error(
+        `fixture: ${member.handle} is not returned by a search for "${SEARCH_PREFIX}", which is what the flow types`,
+      );
     }
     /**
      * Asked FROM THE MEMBER'S SIDE, because the direction is the whole point.
@@ -75,6 +93,7 @@ async function main(): Promise<void> {
     throw new Error('fixture: a group named "Climbing Tuesday" already exists for this person');
   }
 
+  process.stdout.write(`GROUP_SEARCH=${SEARCH_PREFIX}\n`);
   process.stdout.write(`GROUP_MEMBER_A=${members[0]!.handle}\n`);
   process.stdout.write(`GROUP_MEMBER_B=${members[1]!.handle}\n`);
   process.stdout.write(`GROUP_MEMBER_C=${members[2]!.handle}\n`);

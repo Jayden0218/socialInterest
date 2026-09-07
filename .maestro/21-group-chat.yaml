@@ -28,9 +28,17 @@ appId: app.socialinterest
 
 # FR-018. Two others, so this is genuinely a group: one other person is a PAIR by
 # FR-027 and resolves to the conversation that already exists.
+#
+# ONE SEARCH FOR BOTH, and that is the fix for run 32's failure rather than a
+# tidy-up. The first version typed member A, tapped them, then tapped the field,
+# `eraseText`, and typed member B - and never found B. Handle search is a PREFIX
+# query over the handle index, so the three seeded members share the prefix
+# `grpmember` and one search returns all of them. No re-typing, nothing to focus
+# a second time, and no `eraseText` whose success depends on the field still
+# holding focus behind a results list.
 - tapOn:
     id: "group-search-input"
-- inputText: "${GROUP_MEMBER_A}"
+- inputText: "${GROUP_SEARCH}"
 - hideKeyboard
 - extendedWaitUntil:
     visible:
@@ -38,16 +46,8 @@ appId: app.socialinterest
     timeout: 30000
 - tapOn:
     id: "group-participant-${GROUP_MEMBER_A}"
-
-- tapOn:
-    id: "group-search-input"
-- eraseText
-- inputText: "${GROUP_MEMBER_B}"
-- hideKeyboard
-- extendedWaitUntil:
-    visible:
-      id: "group-participant-${GROUP_MEMBER_B}"
-    timeout: 30000
+- assertVisible:
+    id: "group-participant-${GROUP_MEMBER_B}"
 - tapOn:
     id: "group-participant-${GROUP_MEMBER_B}"
 

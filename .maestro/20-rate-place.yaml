@@ -18,11 +18,31 @@
 #   the same division of labour as 13-send-message.
 appId: app.socialinterest
 ---
-- runFlow: 16-place-page.yaml
+# 15, NOT 16, and the difference cost a run.
+#
+# `16-place-page.yaml` taps `follow-place-toggle` and asserts "Following". Each
+# flow is its own Maestro session but they share ONE SERVER, and 16 has already
+# run and already followed this place - so chaining it here taps the toggle a
+# second time, correctly UNFOLLOWS, and the assertion inside 16 fails. Run 32
+# failed exactly there: `Assertion is false: "Following" is visible`.
+#
+# A toggle is not idempotent, so a flow that chains another flow inherits its
+# writes. 15 only publishes, which is safe to repeat, so this takes 15 and does
+# 16's three navigation steps itself. That duplication is deliberate and is the
+# smaller cost: the alternative is weakening 16's assertion, which is a real
+# FR-019 check that passes today.
+- runFlow: 15-attach-place.yaml
 
-# 16 leaves us on the place page, having followed it.
+# 15 leaves us on the profile tab with the post visible.
+- tapOn: "published from a real device, at a place"
+- assertVisible:
+    id: "post-detail-screen"
+- tapOn:
+    id: "post-place"
 - assertVisible:
     id: "place-screen"
+- assertVisible:
+    id: "place-name"
 
 # FR-005. An unrated place says so, and does NOT say 0.0 - "nobody has rated
 # this" and "everybody rated it nothing" are different facts, and the API sends

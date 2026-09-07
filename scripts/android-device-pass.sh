@@ -276,10 +276,11 @@ PLACE_ID="$(echo "$PLACE" | sed -n 's/^PLACE_ID=//p')"
 echo "== seed the group fixture (005/US3) =="
 GROUP="$(cd apps/e2e && E2E_BASE_URL=http://127.0.0.1:3000 npx tsx scripts/seed-group-fixture.ts "$TOKEN")"
 echo "$GROUP"
+GROUP_SEARCH="$(echo "$GROUP" | sed -n 's/^GROUP_SEARCH=//p')"
 GROUP_MEMBER_A="$(echo "$GROUP" | sed -n 's/^GROUP_MEMBER_A=//p')"
 GROUP_MEMBER_B="$(echo "$GROUP" | sed -n 's/^GROUP_MEMBER_B=//p')"
 GROUP_MEMBER_C="$(echo "$GROUP" | sed -n 's/^GROUP_MEMBER_C=//p')"
-[ -n "$GROUP_MEMBER_A" ] && [ -n "$GROUP_MEMBER_B" ] && [ -n "$GROUP_MEMBER_C" ] \
+[ -n "$GROUP_SEARCH" ] && [ -n "$GROUP_MEMBER_A" ] && [ -n "$GROUP_MEMBER_B" ] && [ -n "$GROUP_MEMBER_C" ] \
   || { echo "FAIL: the group fixture did not print what the flows need"; exit 1; }
 
 # ---------------------------------------------------------------------------
@@ -377,7 +378,7 @@ MAESTRO_ENV=(
   -e REQUEST_BODY="$REQUEST_BODY" -e FRIEND_BODY="$FRIEND_BODY"
   -e PLACE_NAME="$PLACE_NAME" -e PLACE_LOCALITY="$PLACE_LOCALITY"
   -e GROUP_MEMBER_A="$GROUP_MEMBER_A" -e GROUP_MEMBER_B="$GROUP_MEMBER_B"
-  -e GROUP_MEMBER_C="$GROUP_MEMBER_C"
+  -e GROUP_MEMBER_C="$GROUP_MEMBER_C" -e GROUP_SEARCH="$GROUP_SEARCH"
 )
 
 # Sorted, so the order is the same on every run and a failure is comparable
