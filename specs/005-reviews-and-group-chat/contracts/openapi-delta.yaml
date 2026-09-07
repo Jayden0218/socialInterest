@@ -1,0 +1,245 @@
+# OpenAPI delta — feature 005
+#
+# The endpoints and schemas 005 adds to apps/api/contracts/openapi.yaml. Kept as a delta
+# here for review; merged into the single contract during implementation, because a client
+# is generated from that one document and two documents would generate two clients.
+#
+# 002's first defect is the reason this file is precise about request shapes: OpenAPI said
+# `uploadIds: string[]` while the server wanted `uploads: [{uploadId, key, kind}]`, so any
+# client built from the contract 400'd on every publish. Both sides being generated from one
+# document is what prevents that - and is also why contract tests cannot catch it.
+
+paths:
+  /places/{placeId}/rating:
+    put:
+      summary: Rate a place, or replace your existing rating (FR-001, FR-002)
+      operationId: putPlaceRating
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: placeId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RatingWrite' }
+      responses:
+        '200':
+          description: The rating as stored, with the place's updated summary
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RatingWithSummary' }
+        '400': { description: score out of range, or body too long }
+        '401': { description: not signed in (FR-006) }
+        '404': { description: no such place }
+        '429': { description: rate limited }
+    delete:
+      summary: Withdraw your rating (FR-003)
+      operationId: deletePlaceRating
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: placeId, in: path, required: true, schema: { type: string } }
+      responses:
+        '204': { description: withdrawn; the place summary is recomputed }
+        '401': { description: not signed in }
+        '404': { description: no such place, or you had not rated it }
+
+  /places/{placeId}/reviews:
+    get:
+      summary: A place's reviews (FR-010, FR-012)
+      operationId: listPlaceReviews
+      # Optional auth, deliberately. A signed-out visitor reads reviews; a signed-in one
+      # gets the same list with blocks applied in both directions (FR-013). 002's third
+      # defect was ApiClient sending no token on optional-auth endpoints, so a signed-in
+      # person was treated as anonymous - hence this is called out rather than implied.
+      security: [{}, { bearerAuth: [] }]
+      parameters:
+        - { name: placeId, in: path, required: true, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+        - { name: cursor, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: Reviews the viewer may see, newest first
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, page]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Review' }
+                  page: { $ref: '#/components/schemas/PageInfo' }
+
+  /conversations/groups:
+    post:
+      summary: Start a group conversation (FR-018)
+      operationId: createGroupConversation
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [participantHandles]
+              properties:
+                participantHandles:
+                  type: array
+                  # 1 is allowed and is NOT an error: FR-027 routes a "group" of two to the
+                  # existing pair conversation rather than creating a parallel one. The
+                  # response says which happened via `kind`.
+                  minItems: 1
+                  maxItems: 19
+                  items: { type: string }
+                name:
+                  type: string
+                  maxLength: 60
+                  nullable: true
+      responses:
+        '200':
+          description: |
+            The conversation. 200 rather than 201 because FR-027 means this can resolve to
+            an existing pair conversation, and reporting "created" for something that was
+            already there is the kind of small lie that makes a client's cache wrong.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Conversation' }
+        '400': { description: too many participants (FR-031), or a handle that does not exist }
+        '401': { description: not signed in }
+        '409':
+          description: |
+            A participant cannot be added (FR-023). The body is IDENTICAL for every reason a
+            person cannot be added - see FR-023a and SC-012. It MUST NOT say that a block
+            exists, who it involves, or its direction.
+        '429': { description: rate limited }
+
+  /conversations/{conversationId}/participants:
+    post:
+      summary: Add somebody to a group (FR-020)
+      operationId: addConversationParticipant
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: conversationId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [handle]
+              properties: { handle: { type: string } }
+      responses:
+        '204': { description: added, or already a participant (idempotent) }
+        '400': { description: the group is at its maximum (FR-031) }
+        '403': { description: you are not a participant }
+        '404': { description: no such conversation, or not a group }
+        '409': { description: cannot be added - identical body for every reason (FR-023a) }
+
+  /conversations/{conversationId}/leave:
+    post:
+      summary: Leave a group (FR-021)
+      operationId: leaveConversation
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: conversationId, in: path, required: true, schema: { type: string } }
+      responses:
+        '204': { description: left; your messages remain readable to the rest }
+        '403': { description: you are not a participant }
+        '404': { description: no such conversation, or it is a pair conversation }
+
+components:
+  schemas:
+    RatingWrite:
+      type: object
+      required: [score]
+      properties:
+        score: { type: integer, minimum: 1, maximum: 5 }
+        body:
+          type: string
+          maxLength: 2000
+          nullable: true
+          description: Optional review text (FR-009)
+
+    PlaceRatingSummary:
+      type: object
+      required: [average, count]
+      properties:
+        average:
+          type: number
+          nullable: true
+          description: |
+            null when count is 0. NOT 0 - FR-005 requires "nobody has rated this" to be
+            distinguishable from "rated badly", and a zero average is a lie that every
+            client would have to know to special-case.
+        count: { type: integer, minimum: 0 }
+
+    RatingWithSummary:
+      type: object
+      required: [rating, summary]
+      properties:
+        rating: { $ref: '#/components/schemas/Review' }
+        summary: { $ref: '#/components/schemas/PlaceRatingSummary' }
+
+    Review:
+      type: object
+      required: [placeId, author, score, body, createdAt, updatedAt]
+      properties:
+        placeId: { type: string }
+        # A hydrated author, not an id. The interest space, the feed and four other surfaces
+        # each shipped returning raw candidate rows - postId only, no author, no counts -
+        # because nothing asserted the response SHAPE. `apps/e2e/journeys/response-shape.spec.ts`
+        # exists for that, and this schema is what it checks reviews against.
+        author: { $ref: '#/components/schemas/PersonRef' }
+        score: { type: integer, minimum: 1, maximum: 5 }
+        body: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    Conversation:
+      description: |
+        EXTENDED, not replaced. Existing fields keep their meaning so a client built against
+        the previous contract still works (FR-026).
+      allOf:
+        - $ref: '#/components/schemas/ConversationV004'
+        - type: object
+          required: [kind, participants]
+          properties:
+            kind:
+              type: string
+              enum: [pair, group]
+              description: |
+                Explicit rather than inferred from participant count. The two kinds derive
+                their ids differently (research R1), so a length check would be a second
+                way to answer a question the id scheme already answers.
+            name: { type: string, nullable: true, maxLength: 60 }
+            participants:
+              type: array
+              maxItems: 20
+              items: { $ref: '#/components/schemas/ConversationParticipant' }
+
+    ConversationParticipant:
+      type: object
+      required: [person, state, joinedAt]
+      properties:
+        person: { $ref: '#/components/schemas/PersonRef' }
+        state:
+          type: string
+          enum: [requested, accepted, declined, left]
+          description: |
+            PER PARTICIPANT, not per conversation (research R2). A group has no single state:
+            Alice accepted, Bob has not looked, Jo declined.
+        joinedAt: { type: string, format: date-time }
+        leftAt: { type: string, format: date-time, nullable: true }
+
+    # Reporting (FR-014, FR-024). Two values added to the existing enum; no new path.
+    ReportSubjectType:
+      type: string
+      enum:
+        - post
+        - comment
+        - interest
+        - message
+        - place
+        - interest-description
+        - review              # subjectId: "<placeId>:<userId>"
+        - conversation-name   # subjectId: "<conversationId>"
