@@ -308,6 +308,10 @@ sample_resources & SAMPLER_PID=$!
 # Killed however this script leaves, or it outlives the job as an orphan.
 trap 'kill "$SAMPLER_PID" 2>/dev/null || true' EXIT
 
+# FR-031's before-value, read now because the flows are about to change it.
+PREFS_BEFORE="$(curl -s -H "Authorization: Bearer $TOKEN" http://127.0.0.1:3000/v1/me \
+  | grep -oE '"message"[[:space:]]*:[[:space:]]*(true|false)' | head -1)"
+
 echo "== journeys =="
 
 # ONE FLOW PER INVOCATION, not `maestro test .maestro/`.
@@ -511,6 +515,35 @@ if ! grep -qE '"method":"PUT","path":"/v1/posts/[^"]*/save"' /tmp/api.log; then
 fi
 if ! grep -qE '"path":"/v1/me/saved' /tmp/api.log; then
   echo "FAIL: the saved list was never fetched"
+  exit 1
+fi
+
+echo "== 004/US4, FR-031: was the message preference actually turned off? =="
+# 18-notification-settings' own header says this is asserted service-side. It
+# was not - the check did not exist, and the flow's evidence was a `PATCH /v1/me
+# 200` in the request log. A 200 says a write happened, not that it wrote THIS
+# field: a switch bound to the wrong key sends a valid patch and passes.
+#
+# Worth having beyond the pedantry, because run 28 found that this screen's
+# switch for `message` did not exist at all while the requirement was recorded
+# as met. Reading the value back is the difference between "the control is on
+# screen" and "the preference is off".
+#
+# Asserted as a CHANGE, not against a hardcoded `false`. A new person's
+# notificationPrefs start empty - the service reads `=== false`, so an absent key
+# means enabled - and the switch therefore renders from `undefined`. Which
+# direction the tap moves it is not knowable here, and writing `false` in would
+# have failed the whole pass for my own reason rather than the product's.
+PREFS_AFTER="$(curl -s -H "Authorization: Bearer $TOKEN" http://127.0.0.1:3000/v1/me \
+  | grep -oE '"message"[[:space:]]*:[[:space:]]*(true|false)' | head -1)"
+echo "message preference before: ${PREFS_BEFORE:-(absent)}  after: ${PREFS_AFTER:-(absent)}"
+if [ -z "$PREFS_AFTER" ]; then
+  echo "FAIL: the flow saved, but no 'message' key exists on the profile."
+  echo "A switch bound to the wrong key sends a perfectly valid patch and a 200."
+  exit 1
+fi
+if [ "$PREFS_AFTER" = "$PREFS_BEFORE" ]; then
+  echo "FAIL: the message preference is unchanged after the flow toggled and saved it"
   exit 1
 fi
 

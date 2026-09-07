@@ -205,7 +205,12 @@ same execution as the first observation — a local run of
 **make it visible before changing anything**, and prefer the free observation to
 the expensive guess.
 
-**The app runs on Android and all ten journeys pass.** Run 25, 2026-09-06:
+**The app runs on Android and ALL SEVENTEEN journeys pass** - run 29, 2026-09-07,
+`17/17`, every flow on its first attempt. Record:
+`docs/verification/runs/2026-09-07-android-device-pass-17-of-17.md`, and see
+"What the Android runs added" below for the four findings that got there.
+
+The ten-journey run below is the earlier milestone. Run 25, 2026-09-06:
 `10/10 Flows Passed in 8m 4s`. Each journey's effect is asserted through the
 SERVICE, not the view hierarchy - `POST /v1/posts` 201, comments 201, reports
 201, follow 204, and the published caption read back from
@@ -242,9 +247,10 @@ Every one was invisible to a green test suite:
    instance of that defect here; the filter decides what is visible, never the
    shape of what to send.
 
-**Still not verified:** J-05 (no video fixture) and J-10 (a block hides content
-from later flows in the same suite; covered over HTTP by N-03) are recorded
-`not run`. An image chosen from a POPULATED gallery is not covered - flow 10
+**Not verified AS OF RUN 25** - J-05 has since been covered: `19-publish-video`
+uploads a real clip and asserts the poster frame on a device (run 29). J-10 (a
+block hides content from later flows in the same suite; covered over HTTP by
+N-03) is still recorded `not run`. An image chosen from a POPULATED gallery is not covered - flow 10
 verifies the hand-off to `com.android.documentsui` and deliberately does not
 drive Google's own UI. FR-012's refusal path is not producible on API 30, where
 the picker needs no storage permission.
@@ -279,22 +285,18 @@ the picker needs no storage permission.
   directly with props, which proves the screen works and says nothing about whether anything
   calls it. **A screen test is not a container test.**
 
-## The Actions allowance is exhausted (2026-09-06)
+## The Actions allowance was exhausted, and is not any more (cleared 2026-09-07)
 
-Every workflow on this repository now fails ~6 seconds after being created, with no step run:
+On 2026-09-06 every workflow failed ~6 seconds in with `recent account payments have
+failed or your spending limit needs to be increased`, blocking ordinary CI as well as the
+emulator job.
 
-```
-The job was not started because recent account payments have failed or your
-spending limit needs to be increased.
-```
-
-This blocks **ordinary CI too**, not just the emulator job. It is an account limit, not a
-code failure, and nothing in this repository can change it. Do not keep dispatching runs to
-see whether it has cleared — check the billing page, or wait for the monthly reset.
-
-Consequence for anyone reading the Android records: everything pushed after run 16
-(`17e1008`) is **unverified**. It is reasoned from captured evidence and passes every local
-check, and no run has executed it.
+**That is over.** The repository is **public** (`visibility: public`, checked 2026-09-07),
+so GitHub-hosted standard runners are free on it, and CI runs 169-176 plus emulator runs
+26-29 all executed normally. The cost rule in `plan.md` is a rule about SPEND, and a run
+on this repository does not spend - so dispatching the emulator job is not the owner's
+call any more. Check the facts before repeating either claim; both halves of this one
+expired within a day.
 
 ## What spec 004 built and established (2026-09-07)
 
@@ -307,10 +309,56 @@ conversations, places, interest depth, the shipped-scope holes, saved posts. Rec
 alone never could - every row runs the same `decide()`, so 462 assertions would otherwise
 mean one function tested 66 times.
 
-**Not verified, and must be reported that way**: nothing in 004 has run on Android. Seven
-Maestro flows are written and their selectors checked; none has executed. **001/SC-011 - a
-video PLAYING on a device - is still unverified**, and FR-005/FR-009 have now been claimed
-without a run behind them twice.
+**004 now runs on Android: 17 of 17 flows pass** (run 29, 2026-09-07). Record:
+`docs/verification/runs/2026-09-07-android-device-pass-17-of-17.md`. Effects are asserted
+through the SERVICE - 8 x `POST /v1/posts` 201, 3 x message sends 201, an accept 204, a
+place created and followed, a save, a comment, a report, `PATCH /v1/me` 200.
+
+**Still not verified, and must be reported that way**: **001/SC-011 - a video PLAYING on a
+device**. `19-publish-video` asserts the POSTER FRAME renders (FR-009) after a real upload
+and transcode; it does not assert that playback starts. iOS: nothing has ever run.
+002/SC-002: unmeasured. Real usage: unanswered.
+
+### What the Android runs added (runs 26-29, 2026-09-07)
+
+Four runs, four findings, and **not one of them was what I predicted**.
+
+- **A transient adb disconnect, cause unknown - and recorded as unknown.** Runs 26 and 27
+  both lost the device at flow 12 mid-`inputText`. Disk (99.8 GB free), memory (11.5 GB of
+  16), swap (zero) and qemu RSS were all flat across the whole run, `adb get-state` read
+  `device` in the sample immediately before, and qemu was still alive at the failure.
+  logcat read fine seconds later, showing the guest's adbd re-handshaking (`host-13:
+  already offline`). So the device drops off adb transiently and returns. **Do not write a
+  cause for this into this file without observing one** - the last two plausible
+  explanations here were both wrong and the second had to be retracted.
+- **`maestro test .maestro/` holds ONE device connection for the whole suite**, so that
+  momentary drop cost flow 12 and every flow after it: five failures in 10-40ms each, pure
+  collateral, in both runs. Flows now run one Maestro session each and a retry fires
+  **only** on a device-transport error, never on an assertion - retrying an assertion would
+  hide exactly the defects this pass exists to find.
+- **FR-031's message toggle did not exist in the UI.** `EditProfileScreen` kept a private
+  three-entry `CATEGORIES` while `NOTIFICATION_CATEGORIES` had four; 004 added `message` to
+  the list that DESCRIBES notifications, not the one that RENDERS the switches. Two lists
+  for one thing: the duplicate is not a risk of drift, it IS the drift.
+- **A flow-ordering coupling.** `14-message-request` waited on the friend's seeded message
+  text in the inbox, and `13-send-message` replies into that conversation, so the preview
+  correctly changes. It passed twice on Maestro's incidental ordering. A last-message
+  preview is mutable by definition; assert on what identifies the row.
+
+**`verify-maestro-ids.mjs`'s dynamic-prefix blind spot is closed.** A plain-string selector
+under a prefix now resolves against literals in the file that builds the id and the modules
+it imports AS VALUES (type-only imports skipped - that distinction is the whole check).
+Closing it took two attempts, and the second is the lesson: the file I reverted to
+reproduce the defect still carried **my own comment** naming `message` as the fourth
+category, and that comment alone made the selector resolvable. **A guard that reads prose
+describes the intention, not the build.** Comments are stripped now.
+
+**The observation lesson landed twice.** Run 26's evidence dump printed a logcat captured
+ELEVEN MINUTES BEFORE the failure and wrote the disk figure into an artifact this sandbox
+cannot download - so it looked like evidence and answered nothing. Adding a 15-second
+sampler and an after-the-run logcat ruled out both suspects on the very next run. This
+project already had "make the failure visible before changing anything" written down from
+the six emulator runs; I reproduced the mistake in a new place anyway.
 
 ### Six defects, all pre-existing, all found by a request
 
