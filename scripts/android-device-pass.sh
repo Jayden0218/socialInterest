@@ -267,6 +267,45 @@ PLACE_ID="$(echo "$PLACE" | sed -n 's/^PLACE_ID=//p')"
 [ -n "$PLACE_NAME" ] && [ -n "$PLACE_LOCALITY" ] && [ -n "$PLACE_ID" ] \
   || { echo "FAIL: the place fixture did not print what the flows need"; exit 1; }
 
+# ---------------------------------------------------------------------------
+# A SAMPLER, because run 26 died in a way nothing here could see.
+#
+# Eleven of seventeen flows passed and then the device went `offline` mid
+# `inputText`, ten and a half minutes in. Every later flow failed in under 40ms
+# with "Launch app with clear state FAILED" - collateral, not findings. The
+# evidence dump could not say why, for two reasons worth naming:
+#
+#   1. logcat.txt is captured BEFORE the journeys and never refreshed, so the
+#      "logcat (tail)" printed on failure was eleven minutes stale. It described
+#      the app starting, not the device dying.
+#   2. disk-free.txt is written into the ARTIFACT, and artifacts are served from
+#      a host this environment's egress denies. Evidence nobody can fetch is not
+#      evidence.
+#
+# qemu was still alive at job cleanup, so the emulator process did not crash -
+# adb lost the device while it ran. Host memory and disk are the obvious
+# suspects and BOTH ARE STILL GUESSES; this samples them every 15 seconds so the
+# next failure is read off a timeline instead of reasoned about. This project
+# has spent six runs on an invisible failure once already.
+SAMPLES="$OUT/resource-samples.txt"
+sample_resources() {
+  printf 'ts\tdisk_avail_mb\tmem_avail_mb\tswap_used_mb\tqemu_rss_mb\tadb_state\n' > "$SAMPLES"
+  while :; do
+    printf '%s\t%s\t%s\t%s\t%s\t%s\n' \
+      "$(date -u +%H:%M:%S)" \
+      "$(df -Pm / | awk 'NR==2{print $4}')" \
+      "$(free -m | awk '/^Mem:/{print $7}')" \
+      "$(free -m | awk '/^Swap:/{print $3}')" \
+      "$(pgrep -f 'qemu-system-x86_6[4]' 2>/dev/null | xargs -r ps -o rss= -p 2>/dev/null | awk '{s+=$1} END{print int(s/1024)}')" \
+      "$(adb get-state 2>&1 | tr -d '\r' | head -1)" \
+      >> "$SAMPLES"
+    sleep 15
+  done
+}
+sample_resources & SAMPLER_PID=$!
+# Killed however this script leaves, or it outlives the job as an orphan.
+trap 'kill "$SAMPLER_PID" 2>/dev/null || true' EXIT
+
 echo "== journeys =="
 maestro test .maestro/ -e TOKEN="$TOKEN" -e PRESENT="$PRESENT" -e ABSENT="$ABSENT" \
   -e AUTHOR="$AUTHOR" \
@@ -297,6 +336,38 @@ maestro test .maestro/ -e TOKEN="$TOKEN" -e PRESENT="$PRESENT" -e ABSENT="$ABSEN
     find "$OUT/maestro-debug" -name 'maestro.log' -exec \
       grep -hE 'FAILED|Assertion is false|Element not found|No visible element' {} \; 2>/dev/null \
       | head -40 || true
+    # WAS THE DEVICE STILL THERE? Answered first, because if it was not then
+    # every "assertion failed" above is collateral and reading them as findings
+    # is how a run gets diagnosed backwards. Run 26 lost the device at flow 12
+    # and reported six failures.
+    echo "=============== device state at failure ==============="
+    echo "adb get-state: $(adb get-state 2>&1 | tr -d '\r' | head -1)"
+    adb devices -l 2>&1 | head -10 || true
+    # -f, matching the full command line. `ps -C` and bare `pgrep` match `comm`,
+    # which the kernel truncates to 15 characters, so `qemu-system-x86_64-headless`
+    # never matches and the count silently reads 0 - a dead-emulator answer for a
+    # live one, which is the worst kind of wrong here.
+    echo "qemu processes: $(pgrep -cf 'qemu-system-x86_6[4]' 2>/dev/null | head -1)"
+    echo "=============== host resources over the run ==============="
+    # The whole timeline, not the last value: "it ran out at 01:49" is a cause,
+    # "it is low now" is not.
+    cat "$SAMPLES" 2>/dev/null || echo "(no samples)"
+    echo "-- now --"; df -h / | tail -1; free -m | head -3
+    echo "=============== logcat AFTER the journeys ==============="
+    # Refreshed here on purpose. The copy taken before the run describes the app
+    # starting and says nothing about a failure eleven minutes later; printing
+    # it as "the tail" is worse than printing nothing, because it looks like
+    # evidence. `|| true` throughout: a dead device cannot be read, and that
+    # answer is itself informative.
+    if adb logcat -b all -d > "$OUT/logcat-after.txt" 2>&1; then
+      grep -iE "AndroidRuntime|FATAL EXCEPTION|beginning of crash|lowmemorykiller|Out of memory|am_kill" \
+        "$OUT/logcat-after.txt" | tail -30 || echo "(no fatal entries)"
+      echo "-- last 30 lines --"; tail -30 "$OUT/logcat-after.txt" || true
+    else
+      echo "(logcat could not be read - the device is gone, which is the finding)"
+    fi
+    echo "=============== emulator's own output (tail) ==============="
+    tail -40 "$OUT/runtime-output.log" 2>/dev/null || echo "(no emulator log)"
     echo "=============== the screen when it stopped ==============="
     # The device's own view of the final state, which needs no artifact.
     adb shell uiautomator dump /sdcard/fail.xml >/dev/null 2>&1 || true

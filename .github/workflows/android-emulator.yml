@@ -212,11 +212,25 @@ jobs:
           tail -40 /tmp/api.log || echo "(no api log)"
           echo "=============== activity launch result ==============="
           cat artifacts/android-device-pass/launch.txt || echo "(no launch record)"
+          # PRINTED, not only written to disk-free.txt. Run 26 lost the device
+          # ten minutes into the journeys with host memory and disk the leading
+          # suspects, and the file that would have answered it went into the
+          # artifact - which is served from a host this environment's egress
+          # denies. A number nobody can fetch settles nothing.
+          echo "=============== host resources sampled during the run ==============="
+          cat artifacts/android-device-pass/resource-samples.txt || echo "(no samples)"
+          echo "-- at collection --"; df -h / | tail -1; free -m | head -3
           echo "=============== logcat: fatal entries ==============="
-          grep -iE "AndroidRuntime|FATAL EXCEPTION|beginning of crash|Force finishing" \
-            artifacts/android-device-pass/logcat.txt | tail -60 || echo "(none)"
-          echo "=============== logcat (tail) ==============="
-          tail -80 artifacts/android-device-pass/logcat.txt || echo "(no logcat)"
+          # logcat.txt is captured BEFORE the journeys; logcat-after.txt after
+          # them. Both are searched, and which one an entry came from matters:
+          # the first covers launch, the second covers the run.
+          grep -iE "AndroidRuntime|FATAL EXCEPTION|beginning of crash|Force finishing|lowmemorykiller" \
+            artifacts/android-device-pass/logcat.txt | tail -40 || echo "(none)"
+          echo "=============== logcat AFTER the journeys (tail) ==============="
+          tail -80 artifacts/android-device-pass/logcat-after.txt \
+            || echo "(none - either the run passed or the device was unreadable)"
+          echo "=============== emulator's own output (tail) ==============="
+          tail -40 artifacts/android-device-pass/runtime-output.log || echo "(no emulator log)"
           echo "====================================================="
       # if: always() - the emulator's output is the deliverable when it fails,
       # so it must survive the failure.
