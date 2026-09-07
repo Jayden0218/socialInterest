@@ -1,4 +1,11 @@
-import type { Place, PlaceCategory, PlaceSummary } from '@sih/shared';
+import type {
+  Place,
+  PlaceCategory,
+  PlaceRatingSummary,
+  PlaceSummary,
+  RatingWrite,
+  Review,
+} from '@sih/shared';
 import type { DataClient } from './client';
 import type { PostPage } from './people';
 
@@ -58,5 +65,45 @@ export class PlacesData {
 
   unfollow(placeId: string): Promise<void> {
     return this.client.call<void>('deletePlacesByPlaceIdFollow', { params: { placeId } });
+  }
+
+  // ---------------------------------------------------------------- feature 005
+
+  /**
+   * 005/FR-001, FR-002, FR-008. Rating and reviewing are ONE call.
+   *
+   * A review is text on a rating, so a separate `review()` method would imply
+   * they can be submitted apart - and FR-001 says they cannot: the score is the
+   * thing being saved. The optional `body` is what makes a rating alone complete.
+   */
+  rate(placeId: string, input: RatingWrite): Promise<{ rating: Review; summary: PlaceRatingSummary }> {
+    return this.client.call<{ rating: Review; summary: PlaceRatingSummary }>('putPlacesByPlaceIdRating', {
+      params: { placeId },
+      body: input,
+    });
+  }
+
+  /** 005/FR-003. */
+  withdrawRating(placeId: string): Promise<void> {
+    return this.client.call<void>('deletePlacesByPlaceIdRating', { params: { placeId } });
+  }
+
+  /**
+   * 005/FR-010, FR-012. Surface 12 of the visibility matrix.
+   *
+   * Optional auth on the server: readable signed out, and blocks apply in both
+   * directions when it knows who is asking. ApiClient sends the token whenever
+   * it has one, which is the fix for 002's third defect - gating the header on
+   * whether an endpoint REQUIRES auth made a signed-in person anonymous on
+   * exactly these reads.
+   */
+  reviews(placeId: string, opts: { limit?: number; cursor?: string } = {}): Promise<{
+    items: Review[];
+    page: { nextCursor: string | null };
+  }> {
+    return this.client.call<{ items: Review[]; page: { nextCursor: string | null } }>(
+      'getPlacesByPlaceIdReviews',
+      { params: { placeId }, query: { limit: opts.limit, cursor: opts.cursor } },
+    );
   }
 }

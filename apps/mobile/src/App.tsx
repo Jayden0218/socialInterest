@@ -239,6 +239,7 @@ export function Shell() {
           return (
             <PlaceContainer
               placeId={top.placeId}
+              signedIn={signedIn}
               onOpenPost={(postId) => push({ name: 'post', postId })}
               onReport={(subjectId) =>
                 requireSignIn({ name: 'safety', subject: 'place', subjectId })

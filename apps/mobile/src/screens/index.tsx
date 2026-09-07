@@ -18,6 +18,7 @@ import type {
   Place,
   PlaceCategory,
   PlaceSummary,
+  Review,
 } from '@sih/shared';
 import { useHomeFeed, useInterestSearch, useNotifications, usePaged } from '../containers';
 import { theme } from '../ui/theme';
@@ -1437,10 +1438,20 @@ export function OpenConversationContainer({
 /** FR-016, FR-018. Surface 8 in the app. */
 export function PlaceContainer({
   placeId,
+  signedIn,
   onOpenPost,
   onReport,
 }: {
   placeId: string;
+  /**
+   * 005/FR-006. Rating requires a caller; reading does not.
+   *
+   * Passed in rather than derived here. The app already knows, and asking
+   * `session.me()` per place page would be a network call to answer a question
+   * the navigator holds - and would render the control briefly for a signed-out
+   * visitor while the answer was in flight.
+   */
+  signedIn?: boolean;
   onOpenPost: (postId: string) => void;
   onReport: (subjectId: string) => void;
 }) {
@@ -1448,6 +1459,9 @@ export function PlaceContainer({
   const [place, setPlace] = useState<Place | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reviews, setReviews] = useState<Review[] | null>(null);
+  const [body, setBody] = useState('');
+  const [saving, setSaving] = useState(false);
   const { state, loadMore } = usePaged(
     (cursor) => data.places.posts(placeId, cursor ? { cursor } : {}),
     [placeId],
@@ -1480,16 +1494,79 @@ export function PlaceContainer({
     [data, placeId, reload],
   );
 
+  /**
+   * 005/US1, US2. EVERY HOOK ABOVE EVERY RETURN.
+   *
+   * `__tests__/hooks-before-return.test.ts` fails the build for a hook after ANY
+   * return, and it exists because 004 shipped `toggleSave` declared below the
+   * container's final return: dead code, a temporal dead zone, and a star that
+   * did nothing - with typecheck, lint and fifty mobile tests all green, because
+   * they render screens with props and never press a container's button.
+   */
+  const loadReviews = useCallback(async () => {
+    try {
+      setReviews((await data.places.reviews(placeId, { limit: 20 })).items);
+    } catch {
+      // A place page whose posts render is not broken because its reviews did
+      // not. Left null, which renders nothing rather than an error over content
+      // that loaded fine.
+    }
+  }, [data, placeId]);
+
+  useEffect(() => {
+    void loadReviews();
+  }, [loadReviews]);
+
+  const rate = useCallback(
+    async (score: number) => {
+      setSaving(true);
+      try {
+        await data.places.rate(placeId, { score, body: body.trim() ? body.trim() : null });
+        // Both, and from the server. The summary comes back in the response, but
+        // the place also carries `viewerRating`, and reloading is what proves the
+        // write landed rather than assuming it from a 200.
+        await reload();
+        await loadReviews();
+      } finally {
+        setSaving(false);
+      }
+    },
+    [data, placeId, body, reload, loadReviews],
+  );
+
+  const withdrawRating = useCallback(async () => {
+    setSaving(true);
+    try {
+      await data.places.withdrawRating(placeId);
+      setBody('');
+      await reload();
+      await loadReviews();
+    } finally {
+      setSaving(false);
+    }
+  }, [data, placeId, reload, loadReviews]);
+
   if (error) return <Failed message={error} />;
   if (!place) return <Failed message="Loading…" />;
   return (
     <PlaceScreen
       place={place}
       posts={state}
+      reviews={reviews ?? []}
+      reviewBody={body}
+      savingReview={saving}
+      signedIn={signedIn === true}
       followPending={pending}
       onToggleFollow={(next) => void toggleFollow(next)}
       onLoadMore={loadMore}
       onReport={() => onReport(placeId)}
+      onRate={(score) => void rate(score)}
+      onWithdrawRating={() => void withdrawRating()}
+      onChangeReviewBody={setBody}
+      // FR-014. The compound `<placeId>:<userId>` is the review's subject id -
+      // the same shape messages already use, so the moderation queue needs no
+      // new addressing scheme.
+      onReportReview={(p, authorId) => onReport(`${p}:${authorId}`)}
       renderPost={(post) => (
         <PostRow postId={post.postId} caption={post.caption ?? ''} onOpen={onOpenPost} />
       )}

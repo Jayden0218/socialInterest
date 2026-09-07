@@ -112,17 +112,17 @@ second. Requires nothing from US2 or US3.
 
 ### Mobile for US1
 
-- [ ] T031 [P] [US1] Create a `RatingControl` component in `apps/mobile/src/features/places/RatingControl.tsx` with testIDs `rating-star-1` … `rating-star-5` and `rating-summary`
-- [ ] T032 [US1] Render the summary and the control on the place screen in `apps/mobile/src/features/places/PlaceScreen.tsx`, showing "not yet rated" when the count is zero
-- [ ] T033 [US1] Wire the container in `apps/mobile/src/screens/index.tsx` — **every hook above every return**, per `__tests__/hooks-before-return.test.ts`
-- [ ] T034 [US1] Add `rating` methods to the mobile data layer in `apps/mobile/src/data/places.ts`
-- [ ] T035 [US1] Add a container test in `apps/mobile/src/__tests__/screens.test.tsx` that presses the rating control and asserts the data layer was called — a screen test is not a container test (003/T053)
+- [X] T031 [P] [US1] Create a `RatingControl` component in `apps/mobile/src/features/places/RatingControl.tsx` with testIDs `rating-star-1` … `rating-star-5` and `rating-summary`
+- [X] T032 [US1] Render the summary and the control on the place screen in `apps/mobile/src/features/places/PlaceScreen.tsx`, showing "not yet rated" when the count is zero
+- [X] T033 [US1] Wire the container in `apps/mobile/src/screens/index.tsx` — **every hook above every return**, per `__tests__/hooks-before-return.test.ts`
+- [X] T034 [US1] Add `rating` methods to the mobile data layer in `apps/mobile/src/data/places.ts`
+- [X] T035 [US1] Add a container test in `apps/mobile/src/__tests__/screens.test.tsx` that presses the rating control and asserts the data layer was called — a screen test is not a container test (003/T053)
 
 ### Measuring US1's criteria
 
-- [ ] T036 [P] [US1] Journey in `apps/e2e/journeys/ratings.spec.ts`: rate a place, read the average back as a second person — **SC-001**, asserting the round trip under one second
-- [ ] T037 [P] [US1] Journey in `apps/e2e/journeys/ratings.spec.ts` comparing displayed average against the individual ratings for 100 places — **SC-002**
-- [ ] T038 [US1] Journey step in `apps/e2e/journeys/ratings.spec.ts` asserting withdrawal recomputes the average — **FR-003**
+- [X] T036 [P] [US1] Journey in `apps/e2e/journeys/ratings.spec.ts`: rate a place, read the average back as a second person — **SC-001**, asserting the round trip under one second
+- [X] T037 [P] [US1] Journey in `apps/e2e/journeys/ratings.spec.ts` comparing displayed average against the individual ratings for 100 places — **SC-002**
+- [X] T038 [US1] Journey step in `apps/e2e/journeys/ratings.spec.ts` asserting withdrawal recomputes the average — **FR-003**
 - [ ] T039 [US1] Add rating shape assertions to `apps/e2e/journeys/response-shape.spec.ts` — six surfaces in this codebase shipped returning raw candidate rows, and nothing asked
 
 **Checkpoint**: ratings work end to end. US1 is shippable alone.
