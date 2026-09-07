@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { BaseRepository } from './base.repository';
+import { BaseRepository, type Page } from './base.repository';
 import { keys } from './keys';
 
 export interface PersonItem {
@@ -58,28 +58,73 @@ export class PersonRepository extends BaseRepository {
       ascending: true,
     });
 
-    // A display name is not in any sort key, so this is a filter. Bounded, and
-    // documented as the thing a search backend replaces.
-    const byName = await this.query<PersonItem>('PEOPLE', {
-      indexName: 'gsi3',
-      skPrefix: 'HANDLE#',
-      limit: 200,
-      ascending: true,
-      filter: {
-        expression: 'contains(#dn, :q)',
-        names: { '#dn': 'displayNameLower' },
-        values: { ':q': needle },
-      },
-    });
+    const byName = await this.searchByDisplayName(needle, limit);
 
     const seen = new Set<string>();
     const merged: PersonItem[] = [];
-    for (const p of [...byHandle.items, ...byName.items]) {
+    for (const p of [...byHandle.items, ...byName]) {
       if (seen.has(p.userId) || p.status !== 'active') continue;
       seen.add(p.userId);
       merged.push(p);
     }
     return merged.slice(0, limit);
+  }
+
+  /**
+   * A DISPLAY NAME IS IN NO SORT KEY, so this is a filter - and DynamoDB applies
+   * `Limit` to the items it EXAMINES, before the filter runs.
+   *
+   * The previous version passed `limit: 200` in one query and took what came
+   * back. That does not mean "up to 200 matches"; it means "look at 200 people,
+   * then filter". Past 200 accounts a match beyond them was invisible, silently,
+   * with the endpoint answering 200 OK and an empty list.
+   *
+   * It was not theoretical and it was not caught by design review. FR-034 - a
+   * renamed person is findable under their NEW name - went red in CI the moment
+   * feature 005's journeys pushed the account count past 200; one cap test alone
+   * creates 45 people. The requirement had already been false for any deployment
+   * with 200 accounts. The suite had simply never been big enough to ask.
+   *
+   * So this PAGES until it has enough matches or has examined `EXAMINE_BUDGET`
+   * people. Bounded on purpose: an unbounded scan behind a public endpoint is a
+   * denial of service waiting to be found, and a caller cannot raise the budget.
+   * The real answer is the search backend D3 defers until post-content search
+   * arrives; this makes the interim honest rather than quietly wrong, and the
+   * budget is the number to raise the day it is not enough.
+   */
+  private static readonly EXAMINE_BUDGET = 2_000;
+  private static readonly EXAMINE_PAGE = 200;
+
+  private async searchByDisplayName(needle: string, limit: number): Promise<PersonItem[]> {
+    const found: PersonItem[] = [];
+    let cursor: string | undefined;
+    let examined = 0;
+
+    while (examined < PersonRepository.EXAMINE_BUDGET) {
+      const page: Page<PersonItem> = await this.query<PersonItem>('PEOPLE', {
+        indexName: 'gsi3',
+        skPrefix: 'HANDLE#',
+        limit: PersonRepository.EXAMINE_PAGE,
+        ascending: true,
+        ...(cursor ? { cursor } : {}),
+        filter: {
+          expression: 'contains(#dn, :q)',
+          names: { '#dn': 'displayNameLower' },
+          values: { ':q': needle },
+        },
+      });
+      found.push(...page.items);
+      examined += PersonRepository.EXAMINE_PAGE;
+
+      // No cursor means the index is exhausted - every person has been
+      // considered, and stopping here is complete rather than merely bounded.
+      if (!page.nextCursor) break;
+      cursor = page.nextCursor;
+      // Enough to fill the caller's page even before block filtering removes
+      // some. Over-fetching a little beats a second round trip per result.
+      if (found.length >= limit * 4) break;
+    }
+    return found;
   }
 
   /** Atomic counter, so concurrent follows cannot lose an increment. */
