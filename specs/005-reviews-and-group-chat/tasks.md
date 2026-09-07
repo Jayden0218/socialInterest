@@ -92,23 +92,23 @@ second. Requires nothing from US2 or US3.
 
 ### Tests for US1 (write first, watch fail)
 
-- [ ] T017 [P] [US1] Unit-test the aggregate arithmetic in `apps/api/tests/unit/rating-aggregate.spec.ts` for all four operations in data-model.md's table: first, replace, withdraw, moderator removal
-- [ ] T018 [P] [US1] Integration test in `apps/api/tests/integration/rating-replace.spec.ts` asserting a second rating from the same person replaces rather than adds — **SC-003**
-- [ ] T019 [P] [US1] Integration test in `apps/api/tests/integration/rating-transaction.spec.ts` proving a replace is atomic: the sum and count never disagree with the rating rows
-- [ ] T020 [P] [US1] Integration test in `apps/api/tests/integration/rating-empty-place.spec.ts` asserting an unrated place reports `average: null`, not `0` — **FR-005**, and `null` is the contract
+- [X] T017 [P] [US1] Unit-test the aggregate arithmetic in `apps/api/tests/unit/rating-aggregate.spec.ts` for all four operations in data-model.md's table: first, replace, withdraw, moderator removal
+- [X] T018 [P] [US1] Integration test in `apps/api/tests/integration/rating-replace.spec.ts` asserting a second rating from the same person replaces rather than adds — **SC-003**
+- [X] T019 [P] [US1] Integration test in `apps/api/tests/integration/rating-transaction.spec.ts` proving a replace is atomic: the sum and count never disagree with the rating rows
+- [X] T020 [P] [US1] Integration test in `apps/api/tests/integration/rating-empty-place.spec.ts` asserting an unrated place reports `average: null`, not `0` — **FR-005**, and `null` is the contract
 
 ### Implementation for US1
 
-- [ ] T021 [US1] Create `RatingRepository` in `apps/api/src/persistence/rating.repository.ts` with `put`, `findByPerson`, `listByPlace` and `delete`, writing both the `PLACE#`/`RATING#` and `USER#`/`RATED#` rows
-- [ ] T022 [US1] Implement the transactional aggregate update in `apps/api/src/persistence/rating.repository.ts` — rating row plus place counters in one `TransactWriteItems`, per research R5
-- [ ] T023 [US1] Add `ratingSum` and `ratingCount` to the place item in `apps/api/src/persistence/place.repository.ts`, defaulting absent to zero so places written before this feature read correctly
-- [ ] T024 [US1] Create `apps/api/src/ratings/rating.service.ts` with `rate`, `withdraw` and `summaryFor`, validating score 1–5 server-side
-- [ ] T025 [US1] Create `apps/api/src/ratings/ratings.module.ts` and register it in the app module
-- [ ] T026 [US1] Add `PUT /v1/places/:placeId/rating` to `apps/api/src/modules/places/place.controller.ts` per the contract, returning rating plus summary
-- [ ] T027 [US1] Add `DELETE /v1/places/:placeId/rating` to `apps/api/src/modules/places/place.controller.ts`
-- [ ] T028 [US1] Include `ratingSummary` in the place response in `apps/api/src/modules/places/place.service.ts`, with `average: null` when the count is zero
-- [ ] T029 [US1] Apply `@RateLimit` to both rating endpoints in `apps/api/src/modules/places/place.controller.ts`
-- [ ] T030 [US1] Verify `pnpm --filter @sih/api test tests/integration/auth-surface.spec.ts` passes with the two new routes correctly absent from the public set
+- [X] T021 [US1] Create `RatingRepository` in `apps/api/src/persistence/rating.repository.ts` with `put`, `findByPerson`, `listByPlace` and `delete`, writing both the `PLACE#`/`RATING#` and `USER#`/`RATED#` rows
+- [X] T022 [US1] Implement the transactional aggregate update in `apps/api/src/persistence/rating.repository.ts` — rating row plus place counters in one `TransactWriteItems`, per research R5
+- [X] T023 [US1] Add `ratingSum` and `ratingCount` to the place item in `apps/api/src/persistence/place.repository.ts`, defaulting absent to zero so places written before this feature read correctly
+- [X] T024 [US1] Create `apps/api/src/ratings/rating.service.ts` with `rate`, `withdraw` and `summaryFor`, validating score 1–5 server-side
+- [X] T025 [US1] Create `apps/api/src/ratings/ratings.module.ts` and register it in the app module
+- [X] T026 [US1] Add `PUT /v1/places/:placeId/rating` to `apps/api/src/modules/places/place.controller.ts` per the contract, returning rating plus summary
+- [X] T027 [US1] Add `DELETE /v1/places/:placeId/rating` to `apps/api/src/modules/places/place.controller.ts`
+- [X] T028 [US1] Include `ratingSummary` in the place response in `apps/api/src/modules/places/place.service.ts`, with `average: null` when the count is zero
+- [X] T029 [US1] Apply `@RateLimit` to both rating endpoints in `apps/api/src/modules/places/place.controller.ts`
+- [X] T030 [US1] Verify `pnpm --filter @sih/api test tests/integration/auth-surface.spec.ts` passes with the two new routes correctly absent from the public set
 
 ### Mobile for US1
 
@@ -154,7 +154,7 @@ remove it as a moderator, confirm it is gone and the log survives.
 
 - [ ] T047 [US2] Add `body` and `removedByModeration` to the rating item in `apps/api/src/persistence/rating.repository.ts`
 - [ ] T048 [US2] Accept optional `body` (max 2000 chars) in `apps/api/src/ratings/rating.service.ts`
-- [ ] T049 [US2] Create `apps/api/src/ratings/review-query.service.ts` as the **one responder** for review shape, hydrating the author — the same argument as one `VisibilityFilter`, applied to the shape rather than the decision
+- [X] T049 [US2] **Pulled forward into US1.** The contract's `RatingWithSummary` returns a `Review`, which requires a hydrated author — so US1's `PUT` needed the responder. Building it in US1 was the alternative to US1 growing a second review shape that US2 then replaced, which is the two-responders defect. Created `apps/api/src/ratings/review-query.service.ts` as the **one responder**, hydrating the author — the same argument as one `VisibilityFilter`, applied to the shape rather than the decision
 - [ ] T050 [US2] Route review reads through `decideAuthored()` in `apps/api/src/ratings/review-query.service.ts`
 - [ ] T051 [US2] Add `GET /v1/places/:placeId/reviews` to `apps/api/src/modules/places/place.controller.ts` with **optional auth**, add `'GET /places/:placeId/reviews'` to `EXPECTED_PUBLIC` in `apps/api/tests/integration/auth-surface.spec.ts` (per T015), and confirm the client sends a token on it — 002's third defect was exactly this
 - [ ] T052 [US2] Add cursor pagination to the review list in `apps/api/src/ratings/review-query.service.ts`, sorting by `updatedAt` in memory per data-model.md § A35's stated limit

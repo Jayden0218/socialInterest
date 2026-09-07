@@ -20,6 +20,7 @@ import { EventRepository } from './event.repository';
 import { ConversationRepository } from './conversation.repository';
 import { MessageRepository } from './message.repository';
 import { PlaceRepository } from './place.repository';
+import { RatingRepository } from './rating.repository';
 import { PlaceFollowRepository } from './place-follow.repository';
 import { PostPlaceIndexRepository } from './post-place-index.repository';
 import { SavedPostRepository } from './saved-post.repository';
@@ -55,6 +56,8 @@ const providers: Provider[] = [
   repo(PlaceFollowRepository),
   repo(PostPlaceIndexRepository),
   repo(SavedPostRepository),
+  // feature 005
+  repo(RatingRepository),
 ];
 
 @Global()
@@ -79,6 +82,7 @@ const providers: Provider[] = [
     ConversationRepository,
     MessageRepository,
     PlaceRepository,
+    RatingRepository,
     PlaceFollowRepository,
     PostPlaceIndexRepository,
     SavedPostRepository,
