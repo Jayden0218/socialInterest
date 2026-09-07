@@ -11,7 +11,13 @@ import { jpegPlain, jpegWithGps } from './media';
 export async function publishReadyImage(
   who: Actor,
   interestIds: string[],
-  opts: { caption?: string; visibility?: 'public' | 'followers' | 'private'; withGps?: boolean } = {},
+  opts: {
+    caption?: string;
+    visibility?: 'public' | 'followers' | 'private';
+    withGps?: boolean;
+    /** 004/FR-015. Optional - a post with no place behaves exactly as before. */
+    placeId?: string;
+  } = {},
 ): Promise<string> {
   const bytes = opts.withGps ? jpegWithGps() : jpegPlain();
   const target = await who.data.posts.createUploadTarget({
@@ -25,6 +31,7 @@ export async function publishReadyImage(
     interestIds,
     ...(opts.caption ? { caption: opts.caption } : {}),
     ...(opts.visibility ? { visibility: opts.visibility } : {}),
+    ...(opts.placeId ? { placeId: opts.placeId } : {}),
   });
 
   const deadline = Date.now() + 60_000;

@@ -23,6 +23,8 @@ import {
   InboxContainer,
   ConversationContainer,
   OpenConversationContainer,
+  PlaceContainer,
+  CreatePlaceContainer,
 } from './screens';
 import type { ReportSubject } from './features/safety/SafetyActions';
 import { API_BASE_URL } from './config';
@@ -66,7 +68,7 @@ export type Route =
   | { name: 'open-conversation'; handle: string }
   | { name: 'conversation'; conversationId: string; otherHandle: string }
   | { name: 'place'; placeId: string }
-  | { name: 'create-place' }
+  | { name: 'create-place'; initialName?: string; initialLocality?: string }
   | { name: 'saved' }
   | { name: 'people-search' }
   | { name: 'safety'; subject: ReportSubject; subjectId: string; authorHandle?: string };
@@ -146,6 +148,7 @@ export function Shell() {
             <PostDetailContainer
               postId={top.postId}
               onOpenComments={(postId) => requireSignIn({ name: 'comments', postId })}
+              onOpenPlace={(placeId) => push({ name: 'place', placeId })}
               onReport={(subjectId, authorHandle) =>
                 requireSignIn({ name: 'safety', subject: 'post', subjectId, authorHandle })
               }
@@ -221,6 +224,26 @@ export function Shell() {
               }
             />
           );
+        case 'place':
+          return (
+            <PlaceContainer
+              placeId={top.placeId}
+              onOpenPost={(postId) => push({ name: 'post', postId })}
+              onReport={(subjectId) =>
+                requireSignIn({ name: 'safety', subject: 'place', subjectId })
+              }
+            />
+          );
+        case 'create-place':
+          return signedIn ? (
+            <CreatePlaceContainer
+              {...(top.initialName ? { initialName: top.initialName } : {})}
+              {...(top.initialLocality ? { initialLocality: top.initialLocality } : {})}
+              onCreated={(place) => setStack((st) => [...st.slice(0, -1), { name: 'place', placeId: place.placeId }])}
+            />
+          ) : (
+            <SignedOutNotice onSignIn={() => push({ name: 'sign-in' })} />
+          );
         case 'conversation':
           return signedIn ? (
             <ConversationContainer
@@ -291,7 +314,10 @@ export function Shell() {
             );
           case 'discover':
             return (
-              <DiscoverContainer onSelect={(interestId) => push({ name: 'interest', interestId })} />
+              <DiscoverContainer
+                onSelect={(interestId) => push({ name: 'interest', interestId })}
+                onSelectPlace={(placeId) => push({ name: 'place', placeId })}
+              />
             );
           case 'chats':
             return signedIn ? (

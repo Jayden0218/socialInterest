@@ -15,8 +15,14 @@ import type { MediaItemRecord, PostItem } from '../../persistence/post.repositor
  * it would make FR-017 (a visibility change applies everywhere immediately)
  * impossible to guarantee. Everything goes in one TransactWriteItems.
  *
- * The set is bounded: at most 10 media items plus 2 index items per assigned
- * interest, well inside DynamoDB's 100-item transaction limit.
+ * The set is bounded: at most 10 media items, 2 index items per assigned
+ * interest, and at most ONE place index item (004/FR-015) - well inside
+ * DynamoDB's 100-item transaction limit.
+ *
+ * 004 widened all three methods below with the place index item. It is not
+ * optional bookkeeping: the place page is surface 8 of the visibility matrix,
+ * and an index item whose `visibility` drifts from the post's is exactly the
+ * SC-009 failure this class exists to make impossible.
  */
 @Injectable()
 export class PostTransaction {
@@ -70,6 +76,28 @@ export class PostTransaction {
           },
         },
       })),
+      // 004/FR-016. At most one - a post has at most one place. Same shape as
+      // the interest index item, deliberately: that is what makes the place page
+      // one more row in the matrix rather than a new class of test.
+      ...(post.placeId
+        ? [
+            {
+              Put: {
+                TableName: table,
+                Item: {
+                  ...keys.postPlaceIndex(post.placeId, post.createdAt, post.postId),
+                  type: 'PostPlaceIndex',
+                  postId: post.postId,
+                  authorId: post.authorId,
+                  placeId: post.placeId,
+                  visibility: post.visibility,
+                  processingState: post.processingState,
+                  createdAt: post.createdAt,
+                },
+              },
+            },
+          ]
+        : []),
     ];
 
     await this.doc.send(new TransactWriteCommand({ TransactItems: items }));
@@ -105,6 +133,24 @@ export class PostTransaction {
               ExpressionAttributeValues: { ':v': input.visibility },
             },
           })),
+          // 004/FR-017. Missing this one would leave a private post visible on
+          // its place page - a leak on exactly the surface this feature added.
+          ...(input.post.placeId
+            ? [
+                {
+                  Update: {
+                    TableName: table,
+                    Key: keys.postPlaceIndex(
+                      input.post.placeId,
+                      input.post.createdAt,
+                      input.post.postId,
+                    ),
+                    UpdateExpression: 'SET visibility = :v',
+                    ExpressionAttributeValues: { ':v': input.visibility },
+                  },
+                },
+              ]
+            : []),
         ],
       }),
     );
@@ -131,6 +177,22 @@ export class PostTransaction {
               },
             },
           },
+          ...(input.post.placeId
+            ? [
+                {
+                  Update: {
+                    TableName: table,
+                    Key: keys.postPlaceIndex(
+                      input.post.placeId,
+                      input.post.createdAt,
+                      input.post.postId,
+                    ),
+                    UpdateExpression: 'SET processingState = :s',
+                    ExpressionAttributeValues: { ':s': input.processingState },
+                  },
+                },
+              ]
+            : []),
           ...input.expandedInterestIds.map((interestId) => ({
             Update: {
               TableName: table,

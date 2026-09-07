@@ -15,6 +15,8 @@ const updatePostSchema = z
     caption: z.string().max(2000),
     interestIds: z.array(z.string().min(1)).min(1),
     visibility: visibilitySchema,
+    /** 004/FR-015. `null` REMOVES the attachment; omitting it changes nothing. */
+    placeId: z.string().min(1).nullable(),
   })
   .partial()
   .refine((v) => Object.keys(v).length > 0, { message: 'Provide at least one field to change' });
@@ -28,6 +30,16 @@ const createPostSchema = z.object({
   caption: z.string().max(2000).optional(),
   visibility: visibilitySchema.default('public'),
   keepLocationMetadata: z.boolean().default(false),
+  /**
+   * 004/FR-015. Optional; a post with no place behaves exactly as before.
+   *
+   * The AUTHOR sets it or it does not happen. There is deliberately no code
+   * path anywhere that populates this from media metadata - 001/FR-010 requires
+   * the server to STRIP embedded location, and this discloses it on purpose
+   * (004/FR-021, Constitution III). SC-008 asserts the absence through the raw
+   * HTTP path a modified client would take.
+   */
+  placeId: z.string().min(1).optional(),
 });
 
 @Controller('posts')
@@ -50,6 +62,7 @@ export class PostController {
       ...(input.caption ? { caption: input.caption } : {}),
       visibility: input.visibility,
       keepLocationMetadata: input.keepLocationMetadata,
+      ...(input.placeId ? { placeId: input.placeId } : {}),
     });
     return post;
   }

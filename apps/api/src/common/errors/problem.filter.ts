@@ -25,8 +25,22 @@ export interface Problem {
 
 /** Domain errors that map onto a specific status without leaking internals. */
 export class DomainError extends HttpException {
-  constructor(status: HttpStatus, title: string, detail?: string, readonly problemType = 'about:blank') {
-    super({ title, detail }, status);
+  /**
+   * `extensions` become RFC 9457 extension members on the problem document.
+   *
+   * Added for 004/FR-014: a duplicate place is a 409 that CARRIES the existing
+   * place, so the client attaches that one instead of creating a second. A bare
+   * rejection sends the person back to a form with no way to do the right thing,
+   * which is how duplicates happen.
+   */
+  constructor(
+    status: HttpStatus,
+    title: string,
+    detail?: string,
+    extensions: Record<string, unknown> = {},
+    readonly problemType = 'about:blank',
+  ) {
+    super({ title, detail, ...extensions }, status);
   }
 }
 

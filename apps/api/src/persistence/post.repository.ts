@@ -17,6 +17,13 @@ export interface PostItem {
   updatedAt: string;
   deletedAt?: string | null;
   removedByModeration?: boolean;
+  /**
+   * 004/FR-015. At most one, and only ever because the AUTHOR set it.
+   *
+   * Never populated from media metadata: 001/FR-010 requires the server to STRIP
+   * embedded location, and this discloses location on purpose (004/FR-021).
+   */
+  placeId?: string | null;
 }
 
 export interface MediaItemRecord {

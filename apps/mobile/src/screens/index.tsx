@@ -5,7 +5,18 @@ import { InterestSearchScreen } from '../features/discover/InterestSearchScreen'
 import { NotificationsScreen } from '../features/notifications/NotificationsScreen';
 import { InboxScreen } from '../features/conversations/InboxScreen';
 import { ConversationScreen } from '../features/conversations/ConversationScreen';
-import type { Conversation, ConversationState, ConversationSummary, Message } from '@sih/shared';
+import { PlaceScreen } from '../features/places/PlaceScreen';
+import { CreatePlaceScreen } from '../features/places/CreatePlaceScreen';
+import { PlacePicker } from '../features/places/PlacePicker';
+import type {
+  Conversation,
+  ConversationState,
+  ConversationSummary,
+  Message,
+  Place,
+  PlaceCategory,
+  PlaceSummary,
+} from '@sih/shared';
 import { useHomeFeed, useInterestSearch, useNotifications, usePaged } from '../containers';
 import { theme } from '../ui/theme';
 import { Button, Row } from '../ui/primitives';
@@ -67,15 +78,46 @@ export function HomeFeedContainer({
   );
 }
 
-export function DiscoverContainer({ onSelect }: { onSelect: (interestId: string) => void }) {
+export function DiscoverContainer({
+  onSelect,
+  onSelectPlace,
+}: {
+  onSelect: (interestId: string) => void;
+  /** 004/US2. Places live inside Discover rather than taking a sixth tab. */
+  onSelectPlace?: (placeId: string) => void;
+}) {
+  const data = useData();
   const [query, setQuery] = useState('');
+  const [locality, setLocality] = useState('');
+  const [places, setPlaces] = useState<PlaceSummary[]>([]);
   const { state, error } = useInterestSearch(query);
+
+  useEffect(() => {
+    if (!onSelectPlace || query.trim().length === 0 || locality.trim().length === 0) {
+      setPlaces([]);
+      return;
+    }
+    let live = true;
+    // Swallowed on failure: a place lookup that is down must not take the
+    // interest search - the product's primary navigation - down with it.
+    void data.places
+      .search(query, { locality, limit: 5 })
+      .then((r) => live && setPlaces(r.items))
+      .catch(() => live && setPlaces([]));
+    return () => {
+      live = false;
+    };
+  }, [data, query, locality, onSelectPlace]);
+
   if (error) return <Failed message={error} />;
   return (
     <InterestSearchScreen
       query={query}
       results={state.items}
+      places={places}
+      locality={locality}
       onQueryChange={setQuery}
+      {...(onSelectPlace ? { onLocalityChange: setLocality, onSelectPlace } : {})}
       onSelect={onSelect}
     />
   );
@@ -117,6 +159,7 @@ import { DataError } from '../data';
 export function PostDetailContainer({
   postId,
   onOpenComments,
+  onOpenPlace,
   onReport,
   onShare,
   onEdit,
@@ -124,6 +167,8 @@ export function PostDetailContainer({
 }: {
   postId: string;
   onOpenComments: (postId: string) => void;
+  /** 004/FR-023. */
+  onOpenPlace?: (placeId: string) => void;
   /**
    * The author's handle comes from here rather than from the caller, because
    * this is where the post is. Without it SafetyActions renders no Block
@@ -208,7 +253,7 @@ export function PostDetailContainer({
   if (!post) return <View testID="post-loading" />;
   return (
     <View style={{ flex: 1 }}>
-      <PostDetailScreen post={post} />
+      <PostDetailScreen post={post} {...(onOpenPlace ? { onOpenPlace } : {})} />
       {/* Reacting had no control anywhere in the app: EngagementBar existed,
           was render-tested, and was never mounted. FR-039 was unreachable. */}
       <EngagementBar
@@ -626,6 +671,11 @@ export function ComposeContainer({
   const [visibility, setVisibility] = useState<Visibility>(DEFAULT_VISIBILITY);
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // 004/FR-015. Optional throughout - none of this blocks publishing.
+  const [place, setPlace] = useState<PlaceSummary | null>(null);
+  const [placeQuery, setPlaceQuery] = useState('');
+  const [placeLocality, setPlaceLocality] = useState('');
+  const [placeMatches, setPlaceMatches] = useState<PlaceSummary[]>([]);
 
   useEffect(() => {
     let live = true;
@@ -637,6 +687,27 @@ export function ComposeContainer({
       live = false;
     };
   }, [data]);
+
+  /**
+   * FR-014. Matches WHILE TYPING, not a rejection after submitting.
+   *
+   * A failed search is swallowed: an offline lookup must not stop somebody
+   * publishing, because the place is optional and the post is not.
+   */
+  useEffect(() => {
+    if (placeQuery.trim().length === 0 || placeLocality.trim().length === 0) {
+      setPlaceMatches([]);
+      return;
+    }
+    let live = true;
+    void data.places
+      .search(placeQuery, { locality: placeLocality, limit: 5 })
+      .then((r) => live && setPlaceMatches(r.items))
+      .catch(() => live && setPlaceMatches([]));
+    return () => {
+      live = false;
+    };
+  }, [data, placeQuery, placeLocality]);
 
   const upload = useCallback(
     (slot: UploadSlot) => {
@@ -653,6 +724,32 @@ export function ComposeContainer({
     fresh.forEach(upload);
   }, [media, upload]);
 
+  /**
+   * Creating from inside compose, rather than sending the person to another
+   * screen and losing their draft.
+   *
+   * A 409 attaches the existing place instead of failing - which is the whole
+   * dedupe, expressed as behaviour rather than as a warning nobody reads.
+   */
+  const createPlaceInline = useCallback(async () => {
+    try {
+      setPlace(
+        await data.places.create({
+          name: placeQuery.trim(),
+          category: 'restaurant',
+          locality: placeLocality.trim(),
+        }),
+      );
+    } catch (e: unknown) {
+      const problem = e instanceof DataError ? (e.problem as unknown as PlaceSummary) : null;
+      if (e instanceof DataError && e.status === 409 && problem?.placeId) {
+        setPlace(problem);
+      } else {
+        setError(e instanceof DataError ? e.message : String(e));
+      }
+    }
+  }, [data, placeQuery, placeLocality]);
+
   const publish = useCallback(async () => {
     setPublishing(true);
     setError(null);
@@ -662,6 +759,9 @@ export function ComposeContainer({
         interestIds: selected.map((i) => i.interestId),
         visibility,
         ...(caption ? { caption } : {}),
+        // 004/FR-015. Absent unless the AUTHOR picked one. There is deliberately
+        // no fallback that infers a place from anything.
+        ...(place ? { placeId: place.placeId } : {}),
       });
       onPublished(post.postId);
     } catch (e: unknown) {
@@ -686,6 +786,18 @@ export function ComposeContainer({
       onVisibilityChange={setVisibility}
       onRetry={upload}
       onPublish={() => void publish()}
+      placePicker={
+        <PlacePicker
+          query={placeQuery}
+          locality={placeLocality}
+          matches={placeMatches}
+          selected={place}
+          onQueryChange={setPlaceQuery}
+          onLocalityChange={setPlaceLocality}
+          onSelect={setPlace}
+          onCreate={() => void createPlaceInline()}
+        />
+      }
     />
   );
 }
@@ -1257,4 +1369,138 @@ export function OpenConversationContainer({
   }, [data, handle, onOpened]);
 
   return <Failed message={error ?? 'Opening…'} />;
+}
+
+/** FR-016, FR-018. Surface 8 in the app. */
+export function PlaceContainer({
+  placeId,
+  onOpenPost,
+  onReport,
+}: {
+  placeId: string;
+  onOpenPost: (postId: string) => void;
+  onReport: (subjectId: string) => void;
+}) {
+  const data = useData();
+  const [place, setPlace] = useState<Place | null>(null);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { state, loadMore } = usePaged(
+    (cursor) => data.places.posts(placeId, cursor ? { cursor } : {}),
+    [placeId],
+  );
+
+  const reload = useCallback(async () => {
+    try {
+      setPlace(await data.places.get(placeId));
+    } catch (err) {
+      setError(err instanceof DataError ? err.problem.title ?? 'No such place' : 'No such place');
+    }
+  }, [data, placeId]);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+
+  const toggleFollow = useCallback(
+    async (next: boolean) => {
+      setPending(true);
+      try {
+        await (next ? data.places.follow(placeId) : data.places.unfollow(placeId));
+        // Read back from the SERVER rather than flipping a local flag, so
+        // "Following" means the follow was accepted.
+        await reload();
+      } finally {
+        setPending(false);
+      }
+    },
+    [data, placeId, reload],
+  );
+
+  if (error) return <Failed message={error} />;
+  if (!place) return <Failed message="Loading…" />;
+  return (
+    <PlaceScreen
+      place={place}
+      posts={state}
+      followPending={pending}
+      onToggleFollow={(next) => void toggleFollow(next)}
+      onLoadMore={loadMore}
+      onReport={() => onReport(placeId)}
+      renderPost={(post) => (
+        <PostRow postId={post.postId} caption={post.caption ?? ''} onOpen={onOpenPost} />
+      )}
+    />
+  );
+}
+
+/**
+ * FR-013, FR-014.
+ *
+ * A 409 is not an error here: it carries the existing place, and the screen
+ * offers it. Treating the duplicate as a failure is what makes somebody type a
+ * slightly different name and create the duplicate anyway.
+ */
+export function CreatePlaceContainer({
+  initialName,
+  initialLocality,
+  onCreated,
+}: {
+  initialName?: string;
+  initialLocality?: string;
+  onCreated: (place: PlaceSummary) => void;
+}) {
+  const data = useData();
+  const [draft, setDraft] = useState<{
+    name: string;
+    category: PlaceCategory;
+    locality: string;
+    address: string;
+  }>({
+    name: initialName ?? '',
+    category: 'restaurant',
+    locality: initialLocality ?? '',
+    address: '',
+  });
+  const [existing, setExisting] = useState<PlaceSummary | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = useCallback(async () => {
+    setSaving(true);
+    setExisting(null);
+    try {
+      const place = await data.places.create({
+        name: draft.name.trim(),
+        category: draft.category,
+        locality: draft.locality.trim(),
+        ...(draft.address.trim() ? { address: draft.address.trim() } : {}),
+      });
+      onCreated(place);
+    } catch (err) {
+      const problem = err instanceof DataError ? (err.problem as unknown as PlaceSummary) : null;
+      if (err instanceof DataError && err.status === 409 && problem?.placeId) {
+        setExisting(problem);
+      } else {
+        setError(err instanceof DataError ? err.problem.title ?? 'Could not create' : 'Could not create');
+      }
+    } finally {
+      setSaving(false);
+    }
+  }, [data, draft, onCreated]);
+
+  if (error) return <Failed message={error} />;
+  return (
+    <CreatePlaceScreen
+      name={draft.name}
+      category={draft.category}
+      locality={draft.locality}
+      address={draft.address}
+      existing={existing}
+      saving={saving}
+      onChange={(next) => setDraft((d) => ({ ...d, ...next }))}
+      onSubmit={() => void submit()}
+      onUseExisting={onCreated}
+    />
+  );
 }

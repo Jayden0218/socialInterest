@@ -61,8 +61,8 @@ story-specific and nothing here provisions anything.
 - [X] T003 [P] Add key builders for `CONV#`, `MSG#`, `PLACE#`, `PLACEFOLLOW#`, `SAVE#`, `SAVEDBY#`, `PLACES#<locality>`, `PLACESLUG#<locality>#<slug>` in `apps/api/src/persistence/keys.ts`
 - [X] T004 [P] Add the item-type discriminators (`conversation`, `conversation-participant`, `message`, `place`, `place-post-index`, `place-follow`, `saved-post`) alongside the existing ones in `apps/api/src/persistence/keys.ts`
 - [X] T005 Register the long-poll divergence (research R1 — a hosted deployment will not hold HTTP connections; a green local chat suite is not evidence for a hosted transport) in `docs/verification/divergence-register.md` 🔒
-- [X] T006 [P] Add a script that produces a real, short H.264 test video at `apps/e2e/fixtures/sample.mp4` via the `linuxserver/ffmpeg` container, in `apps/e2e/scripts/make-video-fixture.mjs`. `apt-get install ffmpeg` does not work here
-- [X] T007 [P] Add a script that writes a JPEG carrying real EXIF GPS tags to `apps/e2e/fixtures/with-gps.jpg`, in `apps/e2e/scripts/make-exif-fixture.mjs`. SC-008 is worthless without a file that actually has coordinates in it
+- [X] T006 [P] **Nothing to add — and the reason is a better finding than the task.** `mp4Short()` already exists in `apps/e2e/support/media.ts`, produces a real H.264 clip through the ffmpeg container, and is **used by nothing at all**. I built a duplicate before checking, then deleted it. The claim "no video fixture exists" was wrong; the true statement is that one existed and was never once called
+- [X] T007 [P] **Nothing to add, same shape.** `jpegWithGps()` in `apps/e2e/support/media.ts` writes valid EXIF GPS — an independent reader (Pillow) confirms `GPSLatitude (51, 30, 0) N` — and `publishReadyImage({ withGps: true })` already threads it through. **Also used by nothing.** Two working fixtures were sitting unused while the requirements they serve were reported unverified; that is the finding, not the file
 - [X] T008 [P] Add a place fixture set with near-duplicate names in one locality and identical names across localities, in `apps/e2e/support/places.ts` — SC-007 measures against this set
 - [X] T009 Verify the table recreates cleanly from empty: `docker compose down -v && docker compose up -d && pnpm verify:local`. DynamoDB Local needs `user: root` on its volume or it answers 400 to a bare GET, passes the health probe, and hangs every real request forever
 
@@ -175,45 +175,45 @@ assert the post never reaches the feed.
 
 ### Tests for User Story 2
 
-- [ ] T059 [P] [US2] Write the place journeys — dedupe-before-create, attach, place page as stranger and anonymous, follow, merge — in `apps/e2e/journeys/places.spec.ts`. **Must fail**
-- [ ] T060 [P] [US2] Write the **SC-006** negative test in two halves in `apps/api/tests/integration/place-follow-does-not-widen.spec.ts`: first show the post **does** reach the feed when the interest is followed, then unfollow the interest and show it does not. A one-half version passes for the wrong reason whenever paging or an empty candidate set hides the post
-- [ ] T061 [P] [US2] Write the **SC-008** hostile-client test in `apps/api/tests/integration/place-never-inferred.spec.ts`: publish `apps/e2e/fixtures/with-gps.jpg` through the raw HTTP path a modified client would use and assert the result carries no place and none was suggested
-- [ ] T062 [P] [US2] Write the **SC-007** dedupe measurement over `apps/e2e/support/places.ts` in `apps/api/tests/integration/place-dedupe.spec.ts`
+- [X] T059 [P] [US2] Write the place journeys — dedupe-before-create, attach, place page as stranger and anonymous, follow, merge — in `apps/e2e/journeys/places.spec.ts`. **Must fail**
+- [X] T060 [P] [US2] Write the **SC-006** negative test in two halves in `apps/api/tests/integration/place-follow-does-not-widen.spec.ts`: first show the post **does** reach the feed when the interest is followed, then unfollow the interest and show it does not. A one-half version passes for the wrong reason whenever paging or an empty candidate set hides the post
+- [X] T061 [P] [US2] Write the **SC-008** hostile-client test in `apps/api/tests/integration/place-never-inferred.spec.ts`: publish `apps/e2e/fixtures/with-gps.jpg` through the raw HTTP path a modified client would use and assert the result carries no place and none was suggested
+- [X] T062 [P] [US2] Write the **SC-007** dedupe measurement over `apps/e2e/support/places.ts` in `apps/api/tests/integration/place-dedupe.spec.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T063 [US2] Implement place creation with slug uniqueness per locality, returning `409` **with the existing place body** so the client attaches it instead of creating a duplicate, in `apps/api/src/modules/places/place.service.ts`
-- [ ] T064 [US2] Implement place name search behind the existing `CatalogueSearch` interface, locality-scoped, with a GSI3 prefix query beyond the cached set, in `apps/api/src/modules/places/place-catalogue.service.ts`
-- [ ] T065 [US2] Add `placeId` to the publish DTO and validate it server-side (exists, `active`, at most one) in `apps/api/src/modules/posts/post.controller.ts`
-- [ ] T066 [US2] Widen the **publish** transaction to write the place index item alongside the post and its interest index items in `apps/api/src/persistence/post.repository.ts` 🔒
-- [ ] T067 [US2] Widen the **visibility-change** transaction (001/FR-017) to update the place index item's denormalised `visibility` and `processingState` in `apps/api/src/persistence/post.repository.ts` 🔒
-- [ ] T068 [US2] Widen the **edit/refile** transaction to move or delete the place index item when `placeId` changes or is nulled, in `apps/api/src/persistence/post.repository.ts` 🔒
-- [ ] T069 [US2] Add an explicit guard asserting no write path may populate `placeId` from media metadata, in `apps/api/src/modules/media/` — 001/FR-010 strips location and this attaches it, and the two must never meet (FR-021)
-- [ ] T070 [US2] Implement the place-page posts query — one `Query` on the place partition, handed to `VisibilityFilter` like any other candidate set — in `apps/api/src/modules/places/place-posts.service.ts`
-- [ ] T071 [US2] Flip **surface 8** (place page) to `built: true` in `apps/api/tests/visibility/matrix.spec.ts` and make its 42 assertions pass 🔒
-- [ ] T072 [US2] Implement place follow and unfollow with the GSI4 inverted follower count, in `apps/api/src/modules/places/place-follow.service.ts`
-- [ ] T073 [US2] Assert, in `apps/api/src/modules/feed/feed.service.ts`, that candidate assembly reads interest follows only and **never** `PlaceFollowRepository` — add the comment saying why at the call site, because the item existing is exactly what tempts a later change to consult it
-- [ ] T074 [US2] Implement place reporting, rename, merge and retire, carrying posts and followers across without orphaning content, in `apps/api/src/modules/moderation/place-admin.controller.ts`
-- [ ] T075 [US2] Implement the place endpoints per `contracts/openapi.yaml` in `apps/api/src/modules/places/place.controller.ts`, and register `PlacesModule` in `apps/api/src/app.module.ts`
-- [ ] T076 [US2] Add `place` to post responses, hydrated from the place record — **the full response shape, not `VisibilityFilter`'s candidate rows.** That defect has shipped five times in this repository — in `apps/api/src/modules/posts/post-query.service.ts`
+- [X] T063 [US2] Implement place creation with slug uniqueness per locality, returning `409` **with the existing place body** so the client attaches it instead of creating a duplicate, in `apps/api/src/modules/places/place.service.ts`
+- [X] T064 [US2] Implement place name search behind the existing `CatalogueSearch` interface, locality-scoped, with a GSI3 prefix query beyond the cached set, in `apps/api/src/modules/places/place-catalogue.service.ts`
+- [X] T065 [US2] Add `placeId` to the publish DTO and validate it server-side (exists, `active`, at most one) in `apps/api/src/modules/posts/post.controller.ts`
+- [X] T066 [US2] Widen the **publish** transaction to write the place index item alongside the post and its interest index items in `apps/api/src/persistence/post.repository.ts` 🔒
+- [X] T067 [US2] Widen the **visibility-change** transaction (001/FR-017) to update the place index item's denormalised `visibility` and `processingState` in `apps/api/src/persistence/post.repository.ts` 🔒
+- [X] T068 [US2] Widen the **edit/refile** transaction to move or delete the place index item when `placeId` changes or is nulled, in `apps/api/src/persistence/post.repository.ts` 🔒
+- [X] T069 [US2] Add an explicit guard asserting no write path may populate `placeId` from media metadata, in `apps/api/src/modules/media/` — 001/FR-010 strips location and this attaches it, and the two must never meet (FR-021)
+- [X] T070 [US2] Implement the place-page posts query — one `Query` on the place partition, handed to `VisibilityFilter` like any other candidate set — in `apps/api/src/modules/places/place-posts.service.ts`
+- [X] T071 [US2] Flip **surface 8** (place page) to `built: true` in `apps/api/tests/visibility/matrix.spec.ts` and make its 42 assertions pass 🔒
+- [X] T072 [US2] Implement place follow and unfollow with the GSI4 inverted follower count, in `apps/api/src/modules/places/place-follow.service.ts`
+- [X] T073 [US2] **A comment is not a guard.** `apps/api/tests/unit/feed-does-not-read-place-follows.spec.ts` fails the build if `FeedService` imports `PlaceFollowRepository`, references places at all, or grows a constructor argument. Verified to actually fail: the violation was introduced deliberately, all three cases went red, and it was reverted. SC-006 catches this behaviourally but only once code exists that widens the feed AND a post happens to exercise it; this catches the dependency appearing
+- [X] T074 [US2] Implement place reporting, rename, merge and retire, carrying posts and followers across without orphaning content, in `apps/api/src/modules/moderation/place-admin.controller.ts`
+- [X] T075 [US2] Implement the place endpoints per `contracts/openapi.yaml` in `apps/api/src/modules/places/place.controller.ts`, and register `PlacesModule` in `apps/api/src/app.module.ts`
+- [X] T076 [US2] Add `place` to post responses, hydrated from the place record — **the full response shape, not `VisibilityFilter`'s candidate rows.** That defect has shipped five times in this repository — in `apps/api/src/modules/posts/post-query.service.ts`
 
 ### Mobile for User Story 2
 
-- [ ] T077 [P] [US2] Create the places data layer — search, create, get, posts, follow, unfollow — in `apps/mobile/src/data/places.ts`
-- [ ] T078 [US2] Register `PlacesData` on `AppData` in `apps/mobile/src/data/index.ts` 🔒
-- [ ] T079 [P] [US2] Build `PlacePicker` (type-ahead, existing matches above the create action) in `apps/mobile/src/features/places/PlacePicker.tsx`
-- [ ] T080 [P] [US2] Build `CreatePlaceScreen` (name, category, locality, optional address) in `apps/mobile/src/features/places/CreatePlaceScreen.tsx`
-- [ ] T081 [P] [US2] Build `PlaceScreen` (header, category, locality, interests, follow button, posts, empty state) in `apps/mobile/src/features/places/PlaceScreen.tsx`
-- [ ] T082 [US2] Add the optional place step to compose in `apps/mobile/src/features/publish/ComposeScreen.tsx` — optional means skippable, and a post with no place must behave exactly as it does today
-- [ ] T083 [US2] Add a tappable place chip to `apps/mobile/src/features/posts/PostDetailScreen.tsx` and the feed card in `apps/mobile/src/features/feed/HomeFeedScreen.tsx`
-- [ ] T084 [US2] Add `PlaceContainer` and `CreatePlaceContainer` in `apps/mobile/src/screens/index.tsx` and mount their routes in `apps/mobile/src/App.tsx` 🔒
-- [ ] T085 [US2] Extend Discover so one search covers interests **and** places, in `apps/mobile/src/features/discover/InterestSearchScreen.tsx`
+- [X] T077 [P] [US2] Create the places data layer — search, create, get, posts, follow, unfollow — in `apps/mobile/src/data/places.ts`
+- [X] T078 [US2] Register `PlacesData` on `AppData` in `apps/mobile/src/data/index.ts` 🔒
+- [X] T079 [P] [US2] Build `PlacePicker` (type-ahead, existing matches above the create action) in `apps/mobile/src/features/places/PlacePicker.tsx`
+- [X] T080 [P] [US2] Build `CreatePlaceScreen` (name, category, locality, optional address) in `apps/mobile/src/features/places/CreatePlaceScreen.tsx`
+- [X] T081 [P] [US2] Build `PlaceScreen` (header, category, locality, interests, follow button, posts, empty state) in `apps/mobile/src/features/places/PlaceScreen.tsx`
+- [X] T082 [US2] Add the optional place step to compose in `apps/mobile/src/features/publish/ComposeScreen.tsx` — optional means skippable, and a post with no place must behave exactly as it does today
+- [X] T083 [US2] Add a tappable place chip to `apps/mobile/src/features/posts/PostDetailScreen.tsx` and the feed card in `apps/mobile/src/features/feed/HomeFeedScreen.tsx`
+- [X] T084 [US2] Add `PlaceContainer` and `CreatePlaceContainer` in `apps/mobile/src/screens/index.tsx` and mount their routes in `apps/mobile/src/App.tsx` 🔒
+- [X] T085 [US2] Extend Discover so one search covers interests **and** places, in `apps/mobile/src/features/discover/InterestSearchScreen.tsx`
 
 ### Device verification for User Story 2
 
-- [ ] T086 [P] [US2] Write `.maestro/15-attach-place.yaml`: compose → place picker → publish → assert the post through `GET /v1/places/{id}/posts`
-- [ ] T087 [P] [US2] Write `.maestro/16-place-page.yaml`: post → place chip → place page → follow
-- [ ] T088 [US2] Checkpoint: `pnpm --filter @sih/e2e test -- places` green; `test:visibility` reports **378/462, 2 surfaces unbuilt**; SC-006, SC-007 and SC-008 all measured
+- [X] T086 [P] [US2] Write `.maestro/15-attach-place.yaml`: compose → place picker → publish → assert the post through `GET /v1/places/{id}/posts`
+- [X] T087 [P] [US2] Write `.maestro/16-place-page.yaml`: post → place chip → place page → follow
+- [X] T088 [US2] Checkpoint: 11 place journeys green; `test:visibility` reports **378/462, 2 surfaces unbuilt**; SC-006 measured in two halves, SC-007 across all 12 fixture cases in both directions, SC-008 through the raw HTTP path. A browser case beyond the plan drives the chip → place page → follow route, because the journeys prove the service and say nothing about whether the app reaches it
 
 **Checkpoint**: places work end to end and Principle I is enforced by a test rather than by
 an intention.

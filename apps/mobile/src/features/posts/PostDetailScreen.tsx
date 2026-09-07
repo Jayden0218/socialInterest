@@ -1,4 +1,4 @@
-import { Image, Text, View } from 'react-native';
+import { Image, Pressable, Text, View } from 'react-native';
 import type { MediaItem, Post } from '@sih/shared';
 import { theme } from '../../ui/theme';
 import { Banner, Screen } from '../../ui/primitives';
@@ -27,7 +27,14 @@ export function processingMessage(post: Post): string | null {
   }
 }
 
-export function PostDetailScreen({ post }: { post: Post }) {
+export function PostDetailScreen({
+  post,
+  onOpenPlace,
+}: {
+  post: Post;
+  /** 004/FR-023. Absent where a place page is not reachable from the surface. */
+  onOpenPlace?: (placeId: string) => void;
+}) {
   const notice = processingMessage(post);
   const first = post.media?.[0];
 
@@ -60,6 +67,20 @@ export function PostDetailScreen({ post }: { post: Post }) {
           </Text>
         ))}
       </View>
+
+      {/*
+        004/FR-023. Tappable, and that is the point: a place rendered as bare
+        text makes the place page unreachable from the only screen that names
+        it. The feed used to render posts as bare Text for exactly this reason,
+        and post detail was unreachable from every list in the app.
+      */}
+      {post.place && onOpenPlace ? (
+        <Pressable testID="post-place" onPress={() => onOpenPlace(post.place!.placeId)}>
+          <Text style={{ fontSize: theme.font.sm, color: theme.color.accent }}>
+            {`${post.place.name} · ${post.place.locality}`}
+          </Text>
+        </Pressable>
+      ) : null}
     </Screen>
   );
 }

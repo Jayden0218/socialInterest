@@ -256,11 +256,23 @@ FRIEND_BODY="$(echo "$CHAT" | sed -n 's/^FRIEND_BODY=//p')"
 [ -n "$REQUESTER" ] && [ -n "$FRIEND" ] && [ -n "$REQUEST_BODY" ] && [ -n "$FRIEND_BODY" ] \
   || { echo "FAIL: the conversation fixture did not print what the flows need"; exit 1; }
 
+# 004/US2. The flow taps an EXISTING match rather than creating a place, because
+# FR-014's requirement is that the match is offered before the create action.
+echo "== seed the place fixture (004/US2) =="
+PLACE="$(cd apps/e2e && E2E_BASE_URL=http://127.0.0.1:3000 npx tsx scripts/seed-place-fixture.ts "$TOKEN")"
+echo "$PLACE"
+PLACE_NAME="$(echo "$PLACE" | sed -n 's/^PLACE_NAME=//p')"
+PLACE_LOCALITY="$(echo "$PLACE" | sed -n 's/^PLACE_LOCALITY=//p')"
+PLACE_ID="$(echo "$PLACE" | sed -n 's/^PLACE_ID=//p')"
+[ -n "$PLACE_NAME" ] && [ -n "$PLACE_LOCALITY" ] && [ -n "$PLACE_ID" ] \
+  || { echo "FAIL: the place fixture did not print what the flows need"; exit 1; }
+
 echo "== journeys =="
 maestro test .maestro/ -e TOKEN="$TOKEN" -e PRESENT="$PRESENT" -e ABSENT="$ABSENT" \
   -e AUTHOR="$AUTHOR" \
   -e REQUESTER="$REQUESTER" -e FRIEND="$FRIEND" \
   -e REQUEST_BODY="$REQUEST_BODY" -e FRIEND_BODY="$FRIEND_BODY" \
+  -e PLACE_NAME="$PLACE_NAME" -e PLACE_LOCALITY="$PLACE_LOCALITY" \
   --format junit --output "$OUT/maestro-junit.xml" \
   --debug-output "$OUT/maestro-debug" || {
     echo "FAIL: a journey did not pass"
@@ -318,5 +330,21 @@ if ! grep -qE '"path":"/v1/conversations/[^"]*/messages\?[^"]*wait=' /tmp/api.lo
 fi
 echo "conversations API served:"
 grep -oE '"method":"[A-Z]+","path":"/v1/conversations[^"?]*"' /tmp/api.log | sort | uniq -c
+
+echo "== 004/US2: did the post actually land AT the place? =="
+# A chip rendered from local state satisfies any view assertion. The place page
+# is a SERVER query, so asking it is the only claim worth making.
+PLACE_POSTS="$(curl -s "http://127.0.0.1:3000/v1/places/$PLACE_ID/posts?limit=20")"
+if ! echo "$PLACE_POSTS" | grep -q "published from a real device, at a place"; then
+  echo "FAIL: the published post is not on its place page"
+  echo "$PLACE_POSTS" | head -c 2000
+  exit 1
+fi
+if ! grep -qE '"method":"PUT","path":"/v1/places/[^"]*/follow"' /tmp/api.log; then
+  echo "FAIL: following a place did not reach the API"
+  exit 1
+fi
+echo "places API served:"
+grep -oE '"method":"[A-Z]+","path":"/v1/places[^"?]*"' /tmp/api.log | sort | uniq -c
 
 echo "PASS: the real APK ran on Android, exercised the real API, and completed the journeys."

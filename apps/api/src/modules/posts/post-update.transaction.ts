@@ -11,6 +11,12 @@ export interface PostUpdate {
   visibility?: Visibility;
   /** Already expanded (sub-interest AND parent) when interests change. */
   expandedInterestIds?: string[];
+  /**
+   * 004/FR-015. `null` REMOVES the place; `undefined` leaves it as it is.
+   * Collapsing the two would make it impossible to detach a place, which is
+   * half of what the requirement asks for.
+   */
+  placeId?: string | null;
 }
 
 /**
@@ -45,11 +51,20 @@ export class PostUpdateTransaction {
     const visibility = update.visibility ?? post.visibility;
     const caption = update.caption ?? post.caption;
 
+    /**
+     * 004/FR-015. `placeId: null` REMOVES the attachment; `undefined` leaves it
+     * alone. The distinction matters - collapsing them makes it impossible to
+     * take a place off a post, which is half of what the requirement asks for.
+     */
+    const nextPlaceId =
+      update.placeId === undefined ? (post.placeId ?? null) : update.placeId;
+
     const updated: PostItem = {
       ...post,
       ...(caption !== undefined ? { caption } : {}),
       visibility,
       ...(update.expandedInterestIds ? { interestIds: update.expandedInterestIds } : {}),
+      placeId: nextPlaceId,
       updatedAt: now,
     };
 
@@ -90,6 +105,38 @@ export class PostUpdateTransaction {
           },
         },
       })),
+      // 004/FR-015. The place index item moves, is written, or is deleted in
+      // the SAME transaction - never separately, or a post could end up listed
+      // at a place it is no longer attached to.
+      ...(post.placeId && post.placeId !== nextPlaceId
+        ? [
+            {
+              Delete: {
+                TableName: table,
+                Key: keys.postPlaceIndex(post.placeId, post.createdAt, post.postId),
+              },
+            },
+          ]
+        : []),
+      ...(nextPlaceId
+        ? [
+            {
+              Put: {
+                TableName: table,
+                Item: {
+                  ...keys.postPlaceIndex(nextPlaceId, post.createdAt, post.postId),
+                  type: 'PostPlaceIndex',
+                  postId: post.postId,
+                  authorId: post.authorId,
+                  placeId: nextPlaceId,
+                  visibility,
+                  processingState: post.processingState,
+                  createdAt: post.createdAt,
+                },
+              },
+            },
+          ]
+        : []),
     ];
 
     await this.doc.send(new TransactWriteCommand({ TransactItems: items }));
@@ -124,6 +171,17 @@ export class PostUpdateTransaction {
               Key: keys.postInterestIndex(interestId, post.createdAt, post.postId),
             },
           })),
+          // 004/FR-016. And from its place page, for exactly the same reason.
+          ...(post.placeId
+            ? [
+                {
+                  Delete: {
+                    TableName: table,
+                    Key: keys.postPlaceIndex(post.placeId, post.createdAt, post.postId),
+                  },
+                },
+              ]
+            : []),
         ],
       }),
     );

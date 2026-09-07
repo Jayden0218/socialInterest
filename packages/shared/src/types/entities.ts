@@ -69,6 +69,28 @@ export const mediaItemSchema = z.object({
 });
 export type MediaItem = z.infer<typeof mediaItemSchema>;
 
+// ---------------------------------------------------------------- feature 004
+
+export const placeSummarySchema = z.object({
+  placeId: z.string(),
+  name: z.string().min(1).max(120),
+  category: placeCategorySchema,
+  locality: z.string().min(1).max(120),
+  postCount: z.number().int().nonnegative().optional(),
+});
+export type PlaceSummary = z.infer<typeof placeSummarySchema>;
+
+export const placeSchema = placeSummarySchema.extend({
+  address: z.string().max(240).nullable().optional(),
+  status: z.enum(['active', 'merged', 'retired']),
+  mergedIntoPlaceId: z.string().nullable().optional(),
+  followerCount: z.number().int().nonnegative(),
+  viewerIsFollowing: z.boolean().optional(),
+  /** Derived from the posts filed here, never authored. */
+  interests: z.array(interestRefSchema).optional(),
+});
+export type Place = z.infer<typeof placeSchema>;
+
 export const postSchema = z.object({
   postId: z.string(),
   author: publicProfileSchema,
@@ -82,6 +104,15 @@ export const postSchema = z.object({
   reactionCount: z.number().int().nonnegative(),
   commentCount: z.number().int().nonnegative(),
   viewerHasReacted: z.boolean().optional(),
+  /**
+   * 004/FR-023. The place the author attached, if any.
+   *
+   * NEVER derived from media metadata (FR-021): 001/FR-010 strips embedded
+   * location and this discloses it on purpose, and the two must not meet.
+   */
+  place: placeSummarySchema.nullable().optional(),
+  /** 004/FR-037. */
+  viewerHasSaved: z.boolean().optional(),
   createdAt: z.string(),
 });
 export type Post = z.infer<typeof postSchema>;
@@ -104,27 +135,11 @@ export const notificationSchema = z.object({
 });
 export type Notification = z.infer<typeof notificationSchema>;
 
-// ---------------------------------------------------------------- feature 004
-
-export const placeSummarySchema = z.object({
-  placeId: z.string(),
-  name: z.string().min(1).max(120),
-  category: placeCategorySchema,
-  locality: z.string().min(1).max(120),
-  postCount: z.number().int().nonnegative().optional(),
-});
-export type PlaceSummary = z.infer<typeof placeSummarySchema>;
-
-export const placeSchema = placeSummarySchema.extend({
-  address: z.string().max(240).nullable().optional(),
-  status: z.enum(['active', 'merged', 'retired']),
-  mergedIntoPlaceId: z.string().nullable().optional(),
-  followerCount: z.number().int().nonnegative(),
-  viewerIsFollowing: z.boolean().optional(),
-  /** Derived from the posts filed here, never authored. */
-  interests: z.array(interestRefSchema).optional(),
-});
-export type Place = z.infer<typeof placeSchema>;
+// ------------------------------- feature 004, continued
+//
+// These come AFTER postSchema because messageSchema references it: a shared post
+// is resolved per reader and embedded in the response, never denormalised into
+// the message row.
 
 export const conversationSummarySchema = z.object({
   conversationId: z.string(),

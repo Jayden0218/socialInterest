@@ -330,4 +330,69 @@ describe('browser journeys - the screens the shell could not reach', () => {
     const conversation = await me.data.conversations.open(them.handle);
     expect(conversation.other.handle).toBe(them.handle);
   }, 120_000);
+
+  /**
+   * 004/US2 on the running app.
+   *
+   * The place chip is the only route to a place page from inside the product,
+   * and PlaceContainer is the only thing that mounts PlaceScreen. Both are the
+   * shape this codebase keeps shipping broken - a screen that renders and
+   * nothing that opens it - so both are driven here rather than render-tested.
+   */
+  it('004/J-16 a place chip opens its page, and following it reaches the server', async () => {
+    const author = await actor('webplaceauthor');
+    const viewer = await actor('webplaceviewer');
+    const catalogue = await author.data.interests.listTop({ limit: 1 });
+    const interestId = catalogue.items[0]!.interestId;
+    await viewer.data.interests.follow(interestId);
+
+    const locality = `Web-${Date.now().toString(36)}`;
+    const place = await author.data.places.create({
+      name: 'The Chip Shop',
+      category: 'restaurant',
+      locality,
+    });
+    const postId = await publishReadyImage(author, [interestId], {
+      caption: 'find the place',
+      placeId: place.placeId,
+    });
+
+    await signInThroughTheScreen(viewer.token);
+    await page.click(id('tab-feed'));
+    await page.waitForSelector(id(`post-${postId}`), { timeout: 30_000 });
+    await page.click(id(`post-${postId}`));
+
+    // FR-023. Tappable, not decorative - the whole reason it is a Pressable.
+    await page.waitForSelector(id('post-place'), { timeout: 20_000 });
+    await page.click(id('post-place'));
+    await page.waitForSelector(id('place-screen'), { timeout: 20_000 });
+    await page.waitForSelector(id('place-name'), { timeout: 20_000 });
+
+    // FR-019 stated to the person, not only enforced behind their back.
+    expect(await page.$(id('place-follow-hint'))).not.toBeNull();
+
+    await page.click(id('follow-place-toggle'));
+    // Asserted through the SERVICE. `viewerIsFollowing` is computed per viewer
+    // by the API, so a local flag flip would not move it.
+    await page.waitForSelector(id('place-screen'), { timeout: 20_000 });
+    const after = await eventuallyFollowing(viewer, place.placeId);
+    expect(after).toBe(true);
+
+    // And the post is on the place page, which is surface 8 doing its job.
+    const onPlace = await viewer.data.places.posts(place.placeId, { limit: 10 });
+    expect(onPlace.items.map((p) => p.postId)).toContain(postId);
+  }, 120_000);
 });
+
+async function eventuallyFollowing(
+  viewer: Awaited<ReturnType<typeof actor>>,
+  placeId: string,
+): Promise<boolean> {
+  const deadline = Date.now() + 10_000;
+  for (;;) {
+    if ((await viewer.data.places.get(placeId)).viewerIsFollowing) return true;
+    if (Date.now() > deadline) return false;
+    await new Promise((r) => setTimeout(r, 250));
+  }
+}
+

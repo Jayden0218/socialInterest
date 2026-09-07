@@ -6,6 +6,7 @@ import { CommentService } from '../../src/modules/engagement/comment.service';
 import { NotificationService } from '../../src/modules/notifications/notification.service';
 import { FeedService } from '../../src/modules/feed/feed.service';
 import { MessagePresenter } from '../../src/modules/conversations/message-presenter';
+import { PlacePostsService } from '../../src/modules/places/place-posts.service';
 import { SURFACES } from './surfaces';
 
 /**
@@ -81,6 +82,7 @@ function build(): Ctx {
     people as never,
     interests as never,
     filter,
+    { find: async () => null } as never,
   );
 
   return {
@@ -154,6 +156,21 @@ const PROBES: Probe[] = [
         { findById: async () => post, listMedia: async () => [] } as never,
       );
       return feed.homeFeed(VIEWER);
+    },
+  },
+  {
+    surface: 'place page',
+    // A place page is structurally an interest space: one Query, then the
+    // filter. That sameness is the design (research R9) - it is what makes a
+    // new surface one more row here rather than a new class of test.
+    run: ({ queries, filter }) => {
+      const service = new PlacePostsService(
+        { listByPlace: async () => ({ items: [{ ...post, placeId: 'pl1' }], nextCursor: null }) } as never,
+        { findWithMedia: async () => ({ post, media: [] }) } as never,
+        queries,
+        filter,
+      );
+      return service.list(VIEWER, 'pl1');
     },
   },
   {

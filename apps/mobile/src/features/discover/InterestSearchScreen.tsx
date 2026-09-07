@@ -1,5 +1,5 @@
 import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
-import type { InterestRef } from '@sih/shared';
+import type { InterestRef, PlaceSummary } from '@sih/shared';
 import { theme } from '../../ui/theme';
 import { EmptyState, Screen } from '../../ui/primitives';
 import { labelWithParent } from './InterestScreen';
@@ -20,16 +20,33 @@ export function resultLabel(ref: InterestRef): string {
   return labelWithParent(ref);
 }
 
+/**
+ * 004/US2 lives HERE rather than in a sixth tab.
+ *
+ * Five tabs is the ceiling (research R6), and one search across interests and
+ * places is also the honest model: a person looking for "Tiong Bahru Bakery"
+ * does not first decide whether it is an interest or a place. Places are shown
+ * in their own section, and only when a locality is known - a place search
+ * without one cannot dedupe and would return the wrong "Joe's".
+ */
 export function InterestSearchScreen({
   query,
   results,
+  places,
+  locality,
   onQueryChange,
+  onLocalityChange,
   onSelect,
+  onSelectPlace,
 }: {
   query: string;
   results: InterestRef[];
+  places?: PlaceSummary[];
+  locality?: string;
   onQueryChange: (next: string) => void;
+  onLocalityChange?: (next: string) => void;
   onSelect: (interestId: string) => void;
+  onSelectPlace?: (placeId: string) => void;
 }) {
   return (
     <Screen testID="interest-search-screen">
@@ -49,6 +66,44 @@ export function InterestSearchScreen({
           color: theme.color.text,
         }}
       />
+
+      {onLocalityChange ? (
+        <TextInput
+          testID="place-search-locality"
+          accessibilityLabel="City or area, to search places"
+          placeholder="City or area (to find places)"
+          value={locality ?? ''}
+          onChangeText={onLocalityChange}
+          autoCorrect={false}
+          style={{
+            borderWidth: 1,
+            borderColor: theme.color.border,
+            borderRadius: theme.radius.md,
+            padding: theme.space.md,
+            fontSize: theme.font.md,
+            color: theme.color.text,
+          }}
+        />
+      ) : null}
+
+      {places && places.length > 0 && onSelectPlace ? (
+        <View testID="place-results" style={{ gap: theme.space.xs }}>
+          <Text style={{ fontSize: theme.font.sm, color: theme.color.muted }}>Places</Text>
+          {places.map((p) => (
+            <Pressable
+              key={p.placeId}
+              testID={`place-result-${p.placeId}`}
+              accessibilityRole="button"
+              onPress={() => onSelectPlace(p.placeId)}
+              style={{ paddingVertical: theme.space.sm }}
+            >
+              <Text style={{ fontSize: theme.font.md, color: theme.color.text }}>
+                {`${p.name} · ${p.category} · ${p.locality}`}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
 
       {shouldQuery(query) && results.length === 0 ? (
         <EmptyState

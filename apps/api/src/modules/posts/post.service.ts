@@ -1,6 +1,7 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { ulid } from 'ulid';
 import type { Visibility } from '@sih/shared';
+import { PlaceRepository } from '../../persistence/place.repository';
 import { DomainError } from '../../common/errors/problem.filter';
 import { MEDIA_LIMITS } from '../../config/media.limits';
 import { CATALOGUE_SEARCH, type CatalogueSearch } from '../interests/catalogue.cache';
@@ -22,6 +23,8 @@ export interface CreatePostInput {
   caption?: string;
   visibility?: Visibility;
   keepLocationMetadata?: boolean;
+  /** 004/FR-015. Validated against the catalogue before the post is written. */
+  placeId?: string;
 }
 
 @Injectable()
@@ -33,6 +36,7 @@ export class PostService {
     @Inject(EVENT_BUS) private readonly events: EventBus,
     @Inject(PostUpdateTransaction) private readonly updates: PostUpdateTransaction,
     @Inject(UploadRepository) private readonly uploads: UploadRepository,
+    @Inject(PlaceRepository) private readonly places: PlaceRepository,
   ) {}
 
   /**
@@ -123,11 +127,28 @@ export class PostService {
     const now = new Date().toISOString();
     const postId = ulid();
 
+    /**
+     * 004/FR-015. Validated against the catalogue, so a post cannot point at a
+     * place that does not exist or has been retired - the same reasoning that
+     * makes an upload id resolved from the server's own record above.
+     */
+    if (input.placeId) {
+      const place = await this.places.find(input.placeId);
+      if (!place || place.status !== 'active') {
+        throw new DomainError(
+          HttpStatus.UNPROCESSABLE_ENTITY,
+          'Validation failed',
+          `Unknown or retired place ${input.placeId}`,
+        );
+      }
+    }
+
     const post: PostItem = {
       postId,
       authorId: input.authorId,
       ...(input.caption ? { caption: input.caption } : {}),
       interestIds: input.interestIds,
+      ...(input.placeId ? { placeId: input.placeId } : {}),
       // FR-013: public unless the author chose otherwise.
       visibility: input.visibility ?? 'public',
       processingState: 'pending',
@@ -182,7 +203,13 @@ export class PostService {
   async update(
     postId: string,
     userId: string,
-    patch: { caption?: string; interestIds?: string[]; visibility?: PostItem['visibility'] },
+    patch: {
+      caption?: string;
+      interestIds?: string[];
+      visibility?: PostItem['visibility'];
+      /** 004/FR-015. `null` removes the place; omitted leaves it alone. */
+      placeId?: string | null;
+    },
   ): Promise<PostItem> {
     const post = await this.requireOwnPost(postId, userId);
     const currentExpanded = this.expandInterests(post.interestIds);
@@ -196,10 +223,23 @@ export class PostService {
       );
     }
 
+    // Same catalogue check as on publish. An edit is not a lesser write.
+    if (patch.placeId) {
+      const place = await this.places.find(patch.placeId);
+      if (!place || place.status !== 'active') {
+        throw new DomainError(
+          HttpStatus.UNPROCESSABLE_ENTITY,
+          'Validation failed',
+          `Unknown or retired place ${patch.placeId}`,
+        );
+      }
+    }
+
     const update: PostUpdate = {
       ...(patch.caption !== undefined ? { caption: patch.caption } : {}),
       ...(patch.visibility ? { visibility: patch.visibility } : {}),
       ...(patch.interestIds ? { expandedInterestIds: this.expandInterests(patch.interestIds) } : {}),
+      ...(patch.placeId !== undefined ? { placeId: patch.placeId } : {}),
     };
 
     const updated = await this.updates.apply({

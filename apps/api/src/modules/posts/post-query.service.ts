@@ -3,6 +3,7 @@ import { PersonRepository } from '../../persistence/person.repository';
 import { PostInterestIndexRepository } from '../../persistence/post-interest-index.repository';
 import { PostRepository, type PostItem } from '../../persistence/post.repository';
 import { InterestRepository } from '../../persistence/interest.repository';
+import { PlaceRepository } from '../../persistence/place.repository';
 import {
   VisibilityFilter,
   type Decision,
@@ -32,6 +33,7 @@ export class PostQueryService {
     @Inject(PersonRepository) private readonly people: PersonRepository,
     @Inject(InterestRepository) private readonly interests: InterestRepository,
     @Inject(VisibilityFilter) private readonly visibility: VisibilityFilter,
+    @Inject(PlaceRepository) private readonly places: PlaceRepository,
   ) {}
 
   /**
@@ -50,9 +52,12 @@ export class PostQueryService {
     post: PostItem,
     media: Awaited<ReturnType<PostRepository['listMedia']>>,
   ): Promise<Record<string, unknown>> {
-    const [author, interests] = await Promise.all([
+    const [author, interests, place] = await Promise.all([
       this.people.findById(post.authorId),
       Promise.all(post.interestIds.map((id) => this.interests.findById(id))),
+      // 004/FR-023. Hydrated here with everything else, so every surface that
+      // returns a post shows its place - rather than one endpoint learning to.
+      post.placeId ? this.places.find(post.placeId) : Promise.resolve(null),
     ]);
 
     return {
@@ -80,6 +85,14 @@ export class PostQueryService {
       media,
       reactionCount: post.reactionCount,
       commentCount: post.commentCount,
+      place: place
+        ? {
+            placeId: place.placeId,
+            name: place.name,
+            category: place.category,
+            locality: place.locality,
+          }
+        : null,
       createdAt: post.createdAt,
     };
   }

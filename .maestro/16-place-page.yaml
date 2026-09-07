@@ -1,0 +1,36 @@
+# 004/US2, J-16. Post -> place chip -> place page -> follow.
+#
+# The chip is the ONLY route to a place page from inside the product, so this
+# flow is the guard against the shape this codebase keeps producing: a screen
+# that renders correctly and nothing that opens it. Four such defects have
+# shipped here, each passing its own render test.
+appId: app.socialinterest
+---
+- runFlow: 15-attach-place.yaml
+
+# Still on the profile tab, where 15 left off, with the post visible.
+- tapOn: "published from a real device, at a place"
+- assertVisible:
+    id: "post-detail-screen"
+
+# FR-023. Tappable, not decorative text.
+- assertVisible:
+    id: "post-place"
+- tapOn:
+    id: "post-place"
+- assertVisible:
+    id: "place-screen"
+- assertVisible:
+    id: "place-name"
+
+# FR-019, said to the person rather than only enforced. Following a place does
+# not put its posts in their feed, and a control that surprises people silently
+# is one they will misread.
+- assertVisible:
+    id: "place-follow-hint"
+
+- tapOn:
+    id: "follow-place-toggle"
+# Reads back from GET /places/{id}, so "Following" means the SERVER agreed
+# rather than that a local flag was flipped.
+- assertVisible: "Following"

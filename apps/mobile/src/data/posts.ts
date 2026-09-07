@@ -53,6 +53,11 @@ export class PostsData {
     caption?: string;
     visibility?: Visibility;
     keepLocationMetadata?: boolean;
+    /**
+     * 004/FR-015. At most one, and only ever because the AUTHOR chose it.
+     * The server refuses to infer it from media metadata (FR-021).
+     */
+    placeId?: string | null;
   }): Promise<Post> {
     return this.client.call<Post>('postPosts', { body: input });
   }
@@ -61,7 +66,16 @@ export class PostsData {
     return this.client.call<Post>('getPostsByPostId', { params: { postId } });
   }
 
-  update(postId: string, patch: { caption?: string; interestIds?: string[]; visibility?: Visibility }): Promise<Post> {
+  update(
+    postId: string,
+    /** `placeId: null` removes the attachment (004/FR-015). */
+    patch: {
+      caption?: string;
+      interestIds?: string[];
+      visibility?: Visibility;
+      placeId?: string | null;
+    },
+  ): Promise<Post> {
     return this.client.call<Post>('patchPostsByPostId', { params: { postId }, body: patch });
   }
 

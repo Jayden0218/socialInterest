@@ -25,6 +25,8 @@ export interface ComposeScreenProps {
   onVisibilityChange: (next: Visibility) => void;
   onRetry: (slot: UploadSlot) => void;
   onPublish: () => void;
+  /** 004/FR-015. Rendered by the container, so this screen stays presentational. */
+  placePicker?: React.ReactElement | null;
 }
 
 /**
@@ -103,6 +105,13 @@ export function ComposeScreen(props: ComposeScreenProps) {
         />
 
         <VisibilityControl value={props.visibility ?? DEFAULT_VISIBILITY} onChange={props.onVisibilityChange} />
+
+        {/*
+          004/FR-015, FR-024. OPTIONAL, and optional means skippable: publishing
+          must remain exactly as easy as it was, or a feature meant to add
+          context has instead added a step to every post.
+        */}
+        {props.placePicker ?? null}
 
         {props.error ? <Banner tone="danger" testID="compose-error">{props.error}</Banner> : null}
         {blocked ? <Banner tone="info" testID="publish-blocked-reason">{blocked}</Banner> : null}
