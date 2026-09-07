@@ -22,6 +22,7 @@ import type {
 import { useHomeFeed, useInterestSearch, useNotifications, usePaged } from '../containers';
 import { theme } from '../ui/theme';
 import { Button, Row } from '../ui/primitives';
+import { conversationTitle } from '../features/conversations/conversation-title';
 
 /**
  * Containers: they fetch, the screens render.
@@ -898,7 +899,7 @@ export function ShareContainer({ postId, onDone }: { postId: string; onDone: () 
           setConversations(
             inbox.items.map((c) => ({
               conversationId: c.conversationId,
-              displayName: c.other.displayName,
+              displayName: conversationTitle(c),
             })),
           );
         }
@@ -1221,7 +1222,7 @@ export function SharedPostContainer({ postId, onJoin }: { postId: string; onJoin
 export function InboxContainer({
   onOpen,
 }: {
-  onOpen: (conversationId: string, otherHandle: string) => void;
+  onOpen: (conversationId: string, otherHandle: string | null) => void;
 }) {
   const data = useData();
   const [inbox, setInbox] = useState<ConversationState>('accepted');
@@ -1252,7 +1253,7 @@ export function InboxContainer({
       state={inbox}
       conversations={items}
       onSelectInbox={setInbox}
-      onOpen={(c) => onOpen(c.conversationId, c.other.handle)}
+      onOpen={(c) => onOpen(c.conversationId, c.other?.handle ?? null)}
     />
   );
 }
@@ -1402,7 +1403,7 @@ export function OpenConversationContainer({
   onOpened,
 }: {
   handle: string;
-  onOpened: (conversationId: string, otherHandle: string) => void;
+  onOpened: (conversationId: string, otherHandle: string | null) => void;
 }) {
   const data = useData();
   const [error, setError] = useState<string | null>(null);
@@ -1412,7 +1413,7 @@ export function OpenConversationContainer({
     void (async () => {
       try {
         const conversation = await data.conversations.open(handle);
-        if (live) onOpened(conversation.conversationId, conversation.other.handle);
+        if (live) onOpened(conversation.conversationId, conversation.other?.handle ?? null);
       } catch (err) {
         // 404 here means blocked OR no such person, deliberately - the block
         // must not be disclosed, so the copy cannot distinguish them either.

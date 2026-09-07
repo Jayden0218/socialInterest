@@ -327,8 +327,16 @@ describe('browser journeys - the screens the shell could not reach', () => {
     await page.waitForSelector(id('conversation-screen'), { timeout: 20_000 });
 
     // And it reached the RIGHT conversation, not merely a conversation.
+    //
+    // `other` became nullable in 005 because a group has no single other person.
+    // Asserted rather than narrowed with `?.` or `!`: this opens a conversation
+    // with one named person, so a null here would mean the pair path returned a
+    // group - which `?.handle` would quietly report as undefined !== handle,
+    // failing with the wrong reason.
     const conversation = await me.data.conversations.open(them.handle);
-    expect(conversation.other.handle).toBe(them.handle);
+    expect(conversation.kind ?? 'pair').toBe('pair');
+    expect(conversation.other).not.toBeNull();
+    expect(conversation.other?.handle).toBe(them.handle);
   }, 120_000);
 
   /**

@@ -2,6 +2,7 @@ import { FlatList, Text, View } from 'react-native';
 import type { ConversationState, ConversationSummary } from '@sih/shared';
 import { theme } from '../../ui/theme';
 import { Button, EmptyState, Row, Screen } from '../../ui/primitives';
+import { conversationTitle } from './conversation-title';
 
 export const INBOXES: { key: ConversationState; label: string }[] = [
   { key: 'accepted', label: 'Messages' },
@@ -70,7 +71,7 @@ export function InboxScreen({
               <Row style={{ alignItems: 'center', gap: theme.space.sm }}>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: theme.color.text, fontWeight: '600' }}>
-                    {item.other.displayName}
+                    {conversationTitle(item)}
                   </Text>
                   <Text numberOfLines={1} style={{ color: theme.color.muted }}>
                     {item.lastMessagePreview ?? 'No messages yet'}

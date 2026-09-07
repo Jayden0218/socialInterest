@@ -67,7 +67,8 @@ export type Route =
   | { name: 'create-interest'; parentId: string; parentName: string }
   // ---- feature 004
   | { name: 'open-conversation'; handle: string }
-  | { name: 'conversation'; conversationId: string; otherHandle: string }
+  // otherHandle is null for a group, which has no single other person (005).
+  | { name: 'conversation'; conversationId: string; otherHandle: string | null }
   | { name: 'place'; placeId: string }
   | { name: 'create-place'; initialName?: string; initialLocality?: string }
   | { name: 'saved' }
@@ -220,7 +221,7 @@ export function Shell() {
           return (
             <OpenConversationContainer
               handle={top.handle}
-              onOpened={(conversationId: string, otherHandle: string) =>
+              onOpened={(conversationId: string, otherHandle: string | null) =>
                 setStack((st) => [
                   ...st.slice(0, -1),
                   { name: 'conversation', conversationId, otherHandle },

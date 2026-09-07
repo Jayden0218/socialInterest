@@ -3,6 +3,7 @@ import type { Conversation, Message } from '@sih/shared';
 import { theme } from '../../ui/theme';
 import { Banner, Button, EmptyState, Row, Screen } from '../../ui/primitives';
 import { SharedPostBubble } from './SharedPostBubble';
+import { conversationTitle } from './conversation-title';
 
 export const MAX_MESSAGE_LENGTH = 2000;
 
@@ -65,7 +66,7 @@ export function ConversationScreen({
       {showRequestControls ? (
         <Row style={{ padding: theme.space.sm, gap: theme.space.sm, alignItems: 'center' }}>
           <Text style={{ flex: 1, color: theme.color.muted }}>
-            {conversation.other.displayName} wants to message you.
+            {conversationTitle(conversation)} wants to message you.
           </Text>
           <Button testID="accept-request" label="Accept" onPress={onAccept} />
           <Button testID="decline-request" label="Decline" variant="secondary" onPress={onDecline} />
@@ -76,7 +77,7 @@ export function ConversationScreen({
         <EmptyState
           testID="conversation-empty"
           title="No messages yet"
-          body={`Say hello to ${conversation.other.displayName}.`}
+          body={`Say hello to ${conversationTitle(conversation)}.`}
         />
       ) : (
         <FlatList

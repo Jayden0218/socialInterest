@@ -44,8 +44,8 @@ From plan.md. Each blocks work that would otherwise look ready:
 **Purpose**: nothing to install. This feature adds no dependency; these tasks make the new
 shapes available to every later one.
 
-- [ ] T001 [P] Add `Review`, `PlaceRatingSummary`, `RatingWrite` and `ConversationParticipant` types to `packages/shared/src/index.ts`, matching `contracts/openapi-delta.yaml` exactly
-- [ ] T002 [P] Extend `Conversation` in `packages/shared/src/index.ts` with `kind`, `name` and `participants`, leaving every existing field's meaning unchanged (FR-026)
+- [X] T001 [P] Add `Review`, `PlaceRatingSummary`, `RatingWrite` and `ConversationParticipant` types to `packages/shared/src/index.ts`, matching `contracts/openapi-delta.yaml` exactly
+- [X] T002 [P] Extend `Conversation` in `packages/shared/src/index.ts` with `kind`, `name` and `participants`, leaving every existing field's meaning unchanged (FR-026)
 - [ ] T003 Merge `contracts/openapi-delta.yaml` into `apps/api/contracts/openapi.yaml` — one document, because the client is generated from it and two documents generate two clients (002's first defect)
 - [ ] T004 Regenerate the API client and confirm `pnpm --filter @sih/api verify:client-drift` is clean
 
