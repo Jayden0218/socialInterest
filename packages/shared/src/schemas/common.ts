@@ -29,7 +29,22 @@ export const placeCategorySchema = z.enum([
 ]);
 export type PlaceCategory = z.infer<typeof placeCategorySchema>;
 
-export const conversationStateSchema = z.enum(['requested', 'accepted', 'declined', 'severed']);
+/**
+ * `left` is 005/FR-021 and belongs to a PARTICIPANT, not a conversation.
+ *
+ * The other four are values a whole pair conversation can hold. `left` never is:
+ * one person leaving a group of four does not put the conversation in a state,
+ * it puts that participation in one. Research R2 is the reason state moved to
+ * the participant at all - a group has no single value that is not a lie about
+ * somebody.
+ */
+export const conversationStateSchema = z.enum([
+  'requested',
+  'accepted',
+  'declined',
+  'severed',
+  'left',
+]);
 export type ConversationState = z.infer<typeof conversationStateSchema>;
 
 /**

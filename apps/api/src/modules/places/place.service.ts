@@ -1,4 +1,5 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { averageOf } from '../../ratings/aggregate';
 import { ulid } from 'ulid';
 import { DomainError } from '../../common/errors/problem.filter';
 import {
@@ -126,7 +127,11 @@ export class PlaceService {
     return { postsMoved, followersMoved };
   }
 
-  toResponse(place: PlaceItem, viewerIsFollowing: boolean): Record<string, unknown> {
+  toResponse(
+    place: PlaceItem,
+    viewerIsFollowing: boolean,
+    viewerRating: number | null = null,
+  ): Record<string, unknown> {
     return {
       placeId: place.placeId,
       name: place.name,
@@ -138,6 +143,18 @@ export class PlaceService {
       followerCount: place.followerCount,
       postCount: place.postCount,
       viewerIsFollowing,
+      /**
+       * 005/FR-004, FR-005. Computed from the counters already on the item this
+       * method was handed, so the summary costs no extra read.
+       *
+       * `average` is NULL when nothing has been rated, never 0 - `averageOf`
+       * enforces that, and it is also what makes a place written before 005 read
+       * as unrated rather than as NaN. NaN serialises to `null` in JSON, so that
+       * bug would have looked exactly like the correct answer until a place had
+       * ratings.
+       */
+      ratingSummary: { average: averageOf(place), count: Math.max(0, place.ratingCount ?? 0) },
+      viewerRating,
     };
   }
 }

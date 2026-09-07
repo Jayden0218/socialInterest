@@ -1,32 +1,57 @@
 import { Text, View } from 'react-native';
-import type { Place, Post } from '@sih/shared';
+import type { Place, Post, Review } from '@sih/shared';
 import { theme } from '../../ui/theme';
 import { Button, Row, Screen } from '../../ui/primitives';
 import { PagedPostList, type PagedState } from '../../components/PagedPostList';
+import { RatingControl } from './RatingControl';
+import { ReviewList } from './ReviewList';
 
 /**
- * FR-016. A place page shows the posts filed to it - and nothing else.
+ * FR-016. A place page shows the posts filed to it, and - as of 005 - its
+ * ratings and reviews.
  *
- * No ratings, no reviews, no opening hours, no bookings. Each is a distinct
- * content type with its own moderation and abuse profile, and folding one in
- * here as "just a field" is how safety work gets deferred (spec, Out of Scope,
- * and plan gate G2).
+ * THIS COMMENT USED TO SAY "no ratings, no reviews", and the reasoning behind
+ * that is worth keeping rather than deleting: each is a distinct content type
+ * with its own moderation and abuse profile, and folding one in as "just a
+ * field" is how safety work gets deferred. The owner brought both into scope in
+ * 005, so the answer is not that the concern was wrong - it is that reviews
+ * arrive WITH their reporting and moderation, inside the same story (plan gate
+ * G2), rather than as a field somebody adds and secures later.
+ *
+ * Still deliberately absent: opening hours, bookings, menus. Each remains its
+ * own content type with its own problems.
  */
 export function PlaceScreen({
   place,
   posts,
+  reviews,
+  reviewBody,
+  savingReview,
+  signedIn,
   followPending,
   onToggleFollow,
   onLoadMore,
   onReport,
+  onRate,
+  onWithdrawRating,
+  onChangeReviewBody,
+  onReportReview,
   renderPost,
 }: {
   place: Place;
   posts: PagedState<Post>;
+  reviews?: Review[];
+  reviewBody?: string;
+  savingReview?: boolean;
+  signedIn?: boolean;
   followPending?: boolean;
   onToggleFollow: (next: boolean) => void;
   onLoadMore: () => void;
   onReport: () => void;
+  onRate?: (score: number) => void;
+  onWithdrawRating?: () => void;
+  onChangeReviewBody?: (body: string) => void;
+  onReportReview?: (placeId: string, authorId: string) => void;
   renderPost: (post: Post) => React.ReactElement;
 }) {
   return (
@@ -70,6 +95,30 @@ export function PlaceScreen({
           Following a place saves it for you. Posts reach your feed through the interests you follow.
         </Text>
       </View>
+
+      {/*
+        005/US1, US2. Below the place's own details and above its posts: the
+        rating is about the place, so it belongs with the place rather than at
+        the end of a list of posts.
+
+        `ratingSummary` is optional in the contract because a place written
+        before 005 has no counters, so this falls back to an explicitly UNRATED
+        summary - not to zero, which would read as "everybody rated it badly".
+      */}
+      <RatingControl
+        summary={place.ratingSummary ?? { average: null, count: 0 }}
+        viewerRating={place.viewerRating ?? null}
+        signedIn={signedIn === true}
+        body={reviewBody ?? ''}
+        {...(savingReview !== undefined ? { saving: savingReview } : {})}
+        onRate={(score) => onRate?.(score)}
+        onWithdraw={() => onWithdrawRating?.()}
+        onChangeBody={(b) => onChangeReviewBody?.(b)}
+      />
+
+      {reviews ? (
+        <ReviewList reviews={reviews} onReport={(p, a) => onReportReview?.(p, a)} />
+      ) : null}
 
       {/* PagedPostList renders its own empty state - a second one here would
           race it and show both, or neither, depending on load order. */}

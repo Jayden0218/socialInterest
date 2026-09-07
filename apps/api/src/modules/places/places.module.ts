@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PostsModule } from '../posts/posts.module';
+import { RatingsModule } from '../../ratings/ratings.module';
 import { PlaceController } from './place.controller';
 import { PlaceService } from './place.service';
 import { PlacePostsService } from './place-posts.service';
@@ -10,7 +11,7 @@ import { PlacePostsService } from './place-posts.service';
  * repository directly here is how a surface ends up returning candidate rows.
  */
 @Module({
-  imports: [PostsModule],
+  imports: [PostsModule, RatingsModule],
   controllers: [PlaceController],
   providers: [PlaceService, PlacePostsService],
   exports: [PlaceService],

@@ -16,7 +16,12 @@ export type ReportSubjectType =
   | 'interest'
   | 'message'
   | 'place'
-  | 'interest-description';
+  | 'interest-description'
+  // 005/FR-014. subjectId is `<placeId>:<userId>` - the same compound shape a
+  // message already uses, so the moderation queue needs no new addressing.
+  | 'review'
+  // 005/FR-024. A group's name is user-generated text every participant sees.
+  | 'conversation-name';
 export type ReportState = 'open' | 'under_review' | 'actioned' | 'dismissed';
 
 export interface ReportItem {

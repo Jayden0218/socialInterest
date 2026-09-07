@@ -327,8 +327,16 @@ describe('browser journeys - the screens the shell could not reach', () => {
     await page.waitForSelector(id('conversation-screen'), { timeout: 20_000 });
 
     // And it reached the RIGHT conversation, not merely a conversation.
+    //
+    // `other` became nullable in 005 because a group has no single other person.
+    // Asserted rather than narrowed with `?.` or `!`: this opens a conversation
+    // with one named person, so a null here would mean the pair path returned a
+    // group - which `?.handle` would quietly report as undefined !== handle,
+    // failing with the wrong reason.
     const conversation = await me.data.conversations.open(them.handle);
-    expect(conversation.other.handle).toBe(them.handle);
+    expect(conversation.kind ?? 'pair').toBe('pair');
+    expect(conversation.other).not.toBeNull();
+    expect(conversation.other?.handle).toBe(them.handle);
   }, 120_000);
 
   /**
@@ -422,6 +430,84 @@ describe('browser journeys - the screens the shell could not reach', () => {
     await page.waitForSelector(id('saved-screen'), { timeout: 20_000 });
     await page.waitForSelector(id(`post-${postId}`), { timeout: 20_000 });
   }, 120_000);
+
+  /**
+   * 005/US3, AND THE REASON IT IS HERE RATHER THAN ONLY IN MAESTRO.
+   *
+   * `21-group-chat.yaml` failed twice on an Android runner - a 25-minute run
+   * each time - for two facts that are true in a browser in thirty seconds:
+   *
+   *   1. The conversation is a PUSHED route, and `App` renders the tab bar only
+   *      at the root of the stack. `tab-chats` does not exist on a pushed
+   *      screen; `nav-back` does. The flow waited sixty seconds for a tab that
+   *      was not there, AFTER the API log shows it had already created the
+   *      group (201) and added a participant (204).
+   *   2. `open-conversation-.*` matches whichever row renders first, and by then
+   *      the inbox holds several conversations from earlier flows. A group needs
+   *      an open button identified by the GROUP.
+   *
+   * Neither is about Android. Both are navigation facts the browser can settle
+   * for free, which is exactly what CLAUDE.md means by preferring the free
+   * observation to the expensive guess - a lesson this project has now paid for
+   * in six emulator runs, four hung jest runs, and these two.
+   *
+   * This does NOT replace the device flow. It cannot: react-native-web renders
+   * the same components through DOM primitives, so it says nothing about native
+   * layout, touch handling or the platform. It settles the NAVIGATION, so the
+   * device run is spent on what only a device can answer.
+   */
+  it('005/J-21 a group is created, opened by name, and left - through the app', async () => {
+    const me = await actor('webgroupowner');
+    const a = await actor('webgroupa');
+    const b = await actor('webgroupb');
+    // FR-022: the INVITEE's follow decides whether the invitation is accepted.
+    await a.data.people.follow(me.handle);
+    await b.data.people.follow(me.handle);
+
+    await signInThroughTheScreen(me.token);
+    await page.click(id('tab-chats'));
+    await page.waitForSelector(id('inbox-screen'), { timeout: 20_000 });
+
+    await page.click(id('new-group'));
+    await page.waitForSelector(id('new-group-screen'), { timeout: 20_000 });
+
+    // One search for both, which is what the device flow does - the handles
+    // share a prefix and handle search is a prefix query.
+    await page.fill(id('group-search-input'), 'webgroup');
+    await page.waitForSelector(id(`group-participant-${a.handle}`), { timeout: 20_000 });
+    await page.click(id(`group-participant-${a.handle}`));
+    await page.click(id(`group-participant-${b.handle}`));
+    await page.fill(id('group-name-input'), 'Climbing Tuesday');
+    await page.click(id('create-group'));
+
+    // Lands ON the conversation, with the participants named (FR-019).
+    await page.waitForSelector(id('conversation-screen'), { timeout: 20_000 });
+    await page.waitForSelector(id('group-participants'), { timeout: 20_000 });
+
+    await page.fill(id('message-input'), 'first message in the group');
+    await page.click(id('send-message'));
+    await page.waitForSelector('text=first message in the group', { timeout: 20_000 });
+
+    // THE FIRST FACT THE DEVICE RUNS COST: a pushed screen has no tab bar.
+    expect(await page.locator(id('tab-chats')).count()).toBe(0);
+    await page.waitForSelector(id('nav-back'), { timeout: 20_000 });
+    await page.click(id('nav-back'));
+    await page.waitForSelector(id('inbox-screen'), { timeout: 20_000 });
+
+    // FR-024: the row is identified by the group's NAME, never by the preview.
+    await page.waitForSelector('text=Climbing Tuesday', { timeout: 20_000 });
+
+    // THE SECOND FACT: the group's own open button, not whichever row is first.
+    const openGroup = page.locator('[data-testid^="open-group-"]');
+    expect(await openGroup.count()).toBe(1);
+    await openGroup.click();
+    await page.waitForSelector(id('conversation-screen'), { timeout: 20_000 });
+
+    // FR-021. Leaving withdraws you, and the inbox no longer offers it.
+    await page.click(id('leave-group'));
+    await page.waitForSelector(id('inbox-screen'), { timeout: 20_000 });
+    await page.waitForSelector('text=Climbing Tuesday', { state: 'detached', timeout: 20_000 });
+  }, 180_000);
 });
 
 async function eventuallySaved(

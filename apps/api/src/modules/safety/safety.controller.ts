@@ -7,7 +7,19 @@ import { ReportService, REPORT_REASONS } from './report.service';
 import { BlockService } from './block.service';
 
 const reportSchema = z.object({
-  subjectType: z.enum(['post', 'comment', 'interest', 'message', 'place', 'interest-description']),
+  subjectType: z.enum([
+    'post',
+    'comment',
+    'interest',
+    'message',
+    'place',
+    'interest-description',
+    // 005/FR-014. Two entries in an enum that already exists and one branch in
+    // moderation - review safety EXTENDS machinery rather than inventing it
+    // (research R7), and reporting that honestly is more useful than inflating it.
+    'review',
+    'conversation-name',
+  ]),
   subjectId: z.string().min(1),
   reason: z.enum(REPORT_REASONS),
   detail: z.string().max(1000).optional(),

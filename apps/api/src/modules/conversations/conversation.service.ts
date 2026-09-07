@@ -15,7 +15,7 @@ import { PersonRepository } from '../../persistence/person.repository';
 import { PersonFollowRepository } from '../../persistence/person-follow.repository';
 import { BlockRepository } from '../../persistence/block.repository';
 import { EVENT_BUS, type EventBus } from '../../ports';
-import { conversationIdFor, participantPair } from './conversation-id';
+import { conversationIdFor, newGroupConversationId, participantPair } from './conversation-id';
 
 const PREVIEW_MAX = 140;
 
@@ -50,10 +50,24 @@ export class ConversationService {
     const item = await this.conversations.find(conversationId);
     if (!item) return null;
 
+    const isGroup = item.kind === 'group';
     const other = item.participantIds.find((id) => id !== viewerId);
-    const [blocked, participants] = await Promise.all([
-      other ? this.blocks.existsBetween(item.participantIds[0]!, item.participantIds[1]!) : false,
+    const [blocked, participants, viewerState] = await Promise.all([
+      /**
+       * PAIR ONLY. 005/FR-023b: a block created after both people are already in
+       * a group leaves the group unchanged - blocking somebody must not silently
+       * drop you out of an unrelated conversation with four friends.
+       *
+       * The pair rule is untouched: there, a block still severs symmetrically,
+       * and it is still COMPUTED rather than stored (004/FR-006), so unblocking
+       * restores the prior state because nothing was destroyed.
+       */
+      !isGroup && other
+        ? this.blocks.existsBetween(item.participantIds[0]!, item.participantIds[1]!)
+        : false,
       Promise.all(item.participantIds.map((id) => this.people.findById(id))),
+      // 005/R2. The authority, read once and handed to the pure boundary.
+      this.conversations.participantState(viewerId, conversationId),
     ]);
 
     return {
@@ -63,7 +77,20 @@ export class ConversationService {
         participantIds: item.participantIds,
         initiatorId: item.initiatorId,
         state: blocked ? 'severed' : item.state,
-        participantInactive: participants.some((p) => !p || p.status !== 'active'),
+        // Absent on a legacy row, in which case the meta item's state is still
+        // the answer - which is exactly what FR-026 requires.
+        ...(viewerState ? { viewerState: blocked ? 'severed' : viewerState } : {}),
+        ...(item.kind ? { kind: item.kind } : {}),
+        /**
+         * A GROUP IS NOT READ-ONLY BECAUSE ONE PERSON LEFT.
+         *
+         * For a pair, a departed participant makes the thread a record rather
+         * than a channel. For a group, the remaining people are still talking to
+         * each other, so this only applies when NOBODY active is left.
+         */
+        participantInactive: isGroup
+          ? participants.every((p) => !p || p.status !== 'active')
+          : participants.some((p) => !p || p.status !== 'active'),
       },
     };
   }
@@ -125,15 +152,29 @@ export class ConversationService {
     opts: { limit?: number; cursor?: string | null },
   ) {
     const page = await this.conversations.listInbox(viewerId, state, opts);
-    const others = await Promise.all(page.items.map((i) => this.people.findById(i.otherUserId)));
+    // 005: `otherUserId` is null for a group, so only pair rows have somebody to
+    // look up. A group identifies itself by its name or its participants
+    // (FR-024), which the inbox row carries without a second read.
+    const others = await Promise.all(
+      page.items.map((i) => (i.otherUserId ? this.people.findById(i.otherUserId) : null)),
+    );
+    const metas = await Promise.all(
+      page.items.map((i) => this.conversations.find(i.conversationId)),
+    );
     return {
       items: page.items.map((row, i) => {
         const other = others[i];
+        const meta = metas[i];
         return {
           conversationId: row.conversationId,
-          other: other
-            ? { userId: other.userId, handle: other.handle, displayName: other.displayName }
-            : { userId: row.otherUserId, handle: 'unavailable', displayName: 'Unavailable' },
+          other: row.otherUserId
+            ? (other
+                ? { userId: other.userId, handle: other.handle, displayName: other.displayName }
+                : { userId: row.otherUserId, handle: 'unavailable', displayName: 'Unavailable' })
+            : null,
+          // Absent on a legacy row, and a legacy row is always a pair.
+          kind: meta?.kind ?? 'pair',
+          name: meta?.nameRemovedByModeration ? null : (meta?.name ?? null),
           state: row.state,
           lastMessageAt: row.lastMessageAt,
           lastMessagePreview: row.lastMessagePreview ?? null,
@@ -157,22 +198,52 @@ export class ConversationService {
     item: ConversationItem,
     view: ConversationForAccess,
   ) {
-    const otherId = item.participantIds.find((id) => id !== viewerId)!;
-    const [other, participant] = await Promise.all([
-      this.people.findById(otherId),
+    const isGroup = item.kind === 'group';
+    const otherId = item.participantIds.find((id) => id !== viewerId);
+    const [other, participant, members] = await Promise.all([
+      !isGroup && otherId ? this.people.findById(otherId) : null,
       this.conversations.findParticipant(viewerId, item.conversationId),
+      isGroup ? this.conversations.listMembers(item.conversationId) : Promise.resolve([]),
     ]);
+
+    // FR-025. Membership is STORED and read from the member rows, never derived
+    // from the id - which for a group carries no information at all.
+    const people = await Promise.all(members.map((m) => this.people.findById(m.userId)));
+
     return {
       conversationId: item.conversationId,
-      other: other
-        ? { userId: other.userId, handle: other.handle, displayName: other.displayName }
-        : { userId: otherId, handle: 'unavailable', displayName: 'Unavailable' },
-      state: view.state,
+      // Null for a group: there is no single other person. Kept populated for
+      // every pair so a client built against the 004 contract still works.
+      other:
+        isGroup || !otherId
+          ? null
+          : other
+            ? { userId: other.userId, handle: other.handle, displayName: other.displayName }
+            : { userId: otherId, handle: 'unavailable', displayName: 'Unavailable' },
+      kind: item.kind ?? 'pair',
+      name: item.nameRemovedByModeration ? null : (item.name ?? null),
+      // The VIEWER's state, which for a group is the only one that means
+      // anything (005/R2).
+      state: view.viewerState ?? view.state,
       lastMessageAt: item.lastMessageAt,
       lastMessagePreview: participant?.lastMessagePreview ?? null,
       unreadCount: participant?.unreadCount ?? 0,
       viewerCanSend: this.access.canWrite(viewerId, view),
       initiatedByViewer: item.initiatorId === viewerId,
+      ...(isGroup
+        ? {
+            participants: members.map((m, i) => {
+              const person = people[i];
+              return {
+                person: person
+                  ? { userId: person.userId, handle: person.handle, displayName: person.displayName }
+                  : { userId: m.userId, handle: 'unavailable', displayName: 'Unavailable' },
+                state: m.state,
+                joinedAt: m.joinedAt,
+              };
+            }),
+          }
+        : {}),
     };
   }
 
@@ -200,7 +271,9 @@ export class ConversationService {
     if (!this.access.canWrite(viewerId, view)) this.refuse(viewerId, view);
 
     const initiatorMessageCount =
-      view.state === 'requested' ? await this.messages.countBy(conversationId, item.initiatorId) : 0;
+      this.access.stateOf(view) === 'requested'
+        ? await this.messages.countBy(conversationId, item.initiatorId)
+        : 0;
     if (!this.access.canSendNow(viewerId, view, { initiatorMessageCount })) {
       throw new DomainError(
         HttpStatus.CONFLICT,
@@ -223,10 +296,9 @@ export class ConversationService {
      * against the request rules caught it, because each of them sent one message
      * and asserted the refusal.
      */
-    if (view.state === 'requested' && viewerId !== item.initiatorId) {
-      await this.conversations.setState(item, 'accepted');
-      item.state = 'accepted';
-      view = { ...view, state: 'accepted' };
+    if (this.access.stateOf(view) === 'requested' && viewerId !== item.initiatorId) {
+      await this.acceptFor(viewerId, item, view);
+      view = this.accepted(view);
     }
 
     const now = new Date().toISOString();
@@ -289,8 +361,59 @@ export class ConversationService {
     // The initiator accepting their own request would be a way to bypass the
     // control entirely, so it is a 404 rather than a 403 - same rule as above.
     if (view.initiatorId === viewerId) throw new DomainError(HttpStatus.NOT_FOUND, 'Not found');
-    if (view.state !== 'requested') return;
-    await this.conversations.setState(item, decision);
+    if (this.access.stateOf(view) !== 'requested') return;
+    await this.setStateFor(viewerId, item, view, decision);
+  }
+
+  /**
+   * 005/R2. WHOSE STATE IS THIS.
+   *
+   * For a pair, the conversation's state and both people's are the same fact,
+   * and `setState` writes the meta item and both participant rows together -
+   * which is also what a legacy row needs (FR-026).
+   *
+   * For a GROUP it is one person's, and only theirs. `setState` there would
+   * write every participant row, so one invitee accepting would accept on behalf
+   * of the four people who had not looked and the one who declined - a decision
+   * nobody made, taken silently, and invisible to any test that only holds
+   * pairs.
+   */
+  private async setStateFor(
+    viewerId: string,
+    item: ConversationItem,
+    view: ConversationForAccess,
+    state: ConversationState,
+  ): Promise<void> {
+    if (view.kind === 'group') {
+      await this.conversations.setParticipantState(
+        viewerId,
+        item.conversationId,
+        state,
+        item.lastMessageAt,
+      );
+      return;
+    }
+    await this.conversations.setState(item, state);
+    item.state = state;
+  }
+
+  private acceptFor(
+    viewerId: string,
+    item: ConversationItem,
+    view: ConversationForAccess,
+  ): Promise<void> {
+    return this.setStateFor(viewerId, item, view, 'accepted');
+  }
+
+  /**
+   * The in-memory view after an accept, kept consistent with which field the
+   * write above actually touched - so the rest of `send` decides from the same
+   * authority the row now carries.
+   */
+  private accepted(view: ConversationForAccess): ConversationForAccess {
+    return view.kind === 'group'
+      ? { ...view, viewerState: 'accepted' }
+      : { ...view, state: 'accepted', ...(view.viewerState ? { viewerState: 'accepted' } : {}) };
   }
 
   /** FR-010. */
@@ -302,5 +425,164 @@ export class ConversationService {
     const message = await this.messages.find(conversationId, upToMessageId);
     if (!message) throw new DomainError(HttpStatus.NOT_FOUND, 'No such message');
     await this.conversations.markRead(viewerId, conversationId, message.createdAt);
+  }
+
+  // ---------------------------------------------------------------- feature 005
+
+  /** 005/FR-031. A transactional limit, not a preference - research R3. */
+  static readonly MAX_PARTICIPANTS = 20;
+
+  /**
+   * FR-023a. THE ONE REFUSAL for "this person cannot be added".
+   *
+   * Every reason returns THIS, byte for byte. The helpful version - "Sam has
+   * blocked you" - tells the person adding their friend something about a
+   * relationship between two OTHER people, neither of whom chose to share it,
+   * and turns adding somebody to a group into a way to probe who has blocked
+   * whom. SC-012 compares the refusals as literal responses, because a message
+   * that differs only in wording leaks the block just as well.
+   *
+   * A method rather than a constant so there is exactly one construction site;
+   * two `new DomainError(409, '...')` calls are two strings that can drift.
+   */
+  private cannotAdd(): DomainError {
+    return new DomainError(HttpStatus.CONFLICT, 'That person cannot be added to this conversation');
+  }
+
+  /**
+   * FR-018, FR-027. Start a group - or resolve to the existing pair.
+   *
+   * A single participant is NOT an error. FR-027 says a "group" of two must not
+   * create a second conversation alongside the existing one-to-one thread, and
+   * routing it to `open()` here is what makes that fall out of R1's id scheme
+   * rather than needing its own check: the pair path computes the derived id and
+   * finds what is already there.
+   */
+  async createGroup(
+    creatorId: string,
+    handles: string[],
+    name: string | null,
+  ): Promise<ConversationItem> {
+    const unique = [...new Set(handles.map((h) => h.toLowerCase()))];
+    if (unique.length === 0) {
+      throw new DomainError(HttpStatus.UNPROCESSABLE_ENTITY, 'A conversation needs somebody in it');
+    }
+    // +1 for the creator. Checked BEFORE any lookup, so an oversized request
+    // cannot be used to probe which handles exist.
+    if (unique.length + 1 > ConversationService.MAX_PARTICIPANTS) {
+      throw new DomainError(
+        HttpStatus.UNPROCESSABLE_ENTITY,
+        `A conversation can have at most ${ConversationService.MAX_PARTICIPANTS} people`,
+      );
+    }
+
+    if (unique.length === 1) return this.open(creatorId, unique[0]!);
+
+    const people = await Promise.all(unique.map((h) => this.people.findByHandle(h)));
+    const members: string[] = [];
+    for (const person of people) {
+      // A handle that does not exist and a person who cannot be added are the
+      // SAME refusal. Distinguishing them would make this endpoint a way to test
+      // whether a handle exists, and then whether it has blocked you.
+      if (!person || person.status !== 'active' || person.userId === creatorId) {
+        throw this.cannotAdd();
+      }
+      members.push(person.userId);
+    }
+
+    // FR-023: both directions, against every participant including the creator.
+    const everyone = [creatorId, ...members];
+    for (const a of everyone) {
+      for (const b of everyone) {
+        if (a >= b) continue;
+        if (await this.blocks.existsBetween(a, b)) throw this.cannotAdd();
+      }
+    }
+
+    /**
+     * FR-022. An invitation from somebody you do not follow waits in Requests -
+     * the same rule the pair case applies to an unsolicited first message, and
+     * for the same reason: being added to a group by a stranger is the group
+     * version of being messaged by one.
+     */
+    const states = await Promise.all(
+      members.map(async (userId) =>
+        (await this.follows.isFollowing(userId, creatorId)) ? 'accepted' : 'requested',
+      ),
+    );
+
+    const conversationId = newGroupConversationId();
+    const now = new Date().toISOString();
+    await this.conversations.createGroup({
+      conversationId,
+      creatorId,
+      name: name?.trim() ? name.trim().slice(0, 60) : null,
+      members: [
+        { userId: creatorId, state: 'accepted' as ConversationState },
+        ...members.map((userId, i) => ({ userId, state: states[i]! as ConversationState })),
+      ],
+      now,
+    });
+
+    const stored = await this.conversations.find(conversationId);
+    if (!stored) throw new DomainError(HttpStatus.INTERNAL_SERVER_ERROR, 'Could not create the conversation');
+    return stored;
+  }
+
+  /** FR-020. Idempotent for somebody already present. */
+  async addParticipant(viewerId: string, conversationId: string, handle: string): Promise<void> {
+    const conversation = await this.conversations.find(conversationId);
+    if (!conversation || conversation.kind !== 'group') {
+      throw new DomainError(HttpStatus.NOT_FOUND, 'Not found');
+    }
+    const viewerState = await this.conversations.participantState(viewerId, conversationId);
+    if (!viewerState || viewerState === 'left') {
+      throw new DomainError(HttpStatus.FORBIDDEN, 'You are not in this conversation');
+    }
+
+    const target = await this.people.findByHandle(handle.toLowerCase());
+    if (!target || target.status !== 'active') throw this.cannotAdd();
+    // Already present: a no-op, not an error and not a second row.
+    if (conversation.participantIds.includes(target.userId)) return;
+
+    if (conversation.participantIds.length + 1 > ConversationService.MAX_PARTICIPANTS) {
+      throw new DomainError(
+        HttpStatus.UNPROCESSABLE_ENTITY,
+        `A conversation can have at most ${ConversationService.MAX_PARTICIPANTS} people`,
+      );
+    }
+
+    // FR-023 against EVERY current participant, not just the one adding.
+    for (const existing of conversation.participantIds) {
+      if (await this.blocks.existsBetween(existing, target.userId)) throw this.cannotAdd();
+    }
+
+    const state: ConversationState = (await this.follows.isFollowing(target.userId, viewerId))
+      ? 'accepted'
+      : 'requested';
+    const now = new Date().toISOString();
+    await this.conversations.addMember({
+      conversationId,
+      userId: target.userId,
+      addedBy: viewerId,
+      state,
+      participantIds: conversation.participantIds,
+      now,
+    });
+  }
+
+  /** FR-021. */
+  async leave(viewerId: string, conversationId: string): Promise<void> {
+    const conversation = await this.conversations.find(conversationId);
+    if (!conversation || conversation.kind !== 'group') {
+      // A pair conversation cannot be left - there is nothing to leave it TO.
+      // Blocking is the tool for that, and it already exists.
+      throw new DomainError(HttpStatus.NOT_FOUND, 'Not found');
+    }
+    const state = await this.conversations.participantState(viewerId, conversationId);
+    if (!state || state === 'left') {
+      throw new DomainError(HttpStatus.FORBIDDEN, 'You are not in this conversation');
+    }
+    await this.conversations.markLeft(conversationId, viewerId, new Date().toISOString());
   }
 }

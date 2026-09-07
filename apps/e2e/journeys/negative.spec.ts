@@ -104,3 +104,224 @@ describe('negative journeys - driven as a hostile client', () => {
     expect([401, 403]).toContain(moderation.status);
   });
 });
+
+/**
+ * 005, THROUGH THE PATH A MODIFIED CLIENT WOULD TAKE.
+ *
+ * Constitution principle III: a server-side guarantee tested only through the
+ * well-behaved first-party client is not tested at all - and the modified client
+ * is the one that will exist. Everything here bypasses apps/mobile/src/data.
+ */
+describe('005 - server-side guarantees, asked rudely', () => {
+  const uniqueLocality = (p: string) => `${p}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  const makePlace = async (owner: Awaited<ReturnType<typeof actor>>) =>
+    owner.data.places.create({
+      name: `Rude ${Math.random().toString(36).slice(2, 8)}`,
+      category: 'other',
+      locality: uniqueLocality('rude'),
+    });
+
+  /**
+   * SC-004, but through a raw request rather than the data layer.
+   *
+   * The app filtering a blocked person's review out of a list it received is not
+   * the guarantee. The guarantee is that the server never sends it.
+   */
+  it('N-06 a blocked person\'s review is absent from the raw response, both directions', async () => {
+    const author = await actor('rudeRevAuthor');
+    const viewer = await actor('rudeViewer');
+    const place = await makePlace(author);
+    await author.data.places.rate(place.placeId, { score: 1, body: 'Hidden soon.' });
+
+    const before = await raw(baseUrl(), `/v1/places/${place.placeId}/reviews`, {
+      token: viewer.token,
+    });
+    expect(before.status).toBe(200);
+    expect((before.body as { items: unknown[] }).items).toHaveLength(1);
+
+    await viewer.data.safety.block(author.handle);
+    const afterViewerBlocks = await raw(baseUrl(), `/v1/places/${place.placeId}/reviews`, {
+      token: viewer.token,
+    });
+    expect((afterViewerBlocks.body as { items: unknown[] }).items).toHaveLength(0);
+
+    // The other direction, with a second pair - the same assertion is only worth
+    // making twice if the two blocks are independent.
+    const author2 = await actor('rudeRevAuthor2');
+    const viewer2 = await actor('rudeViewer2');
+    const place2 = await makePlace(author2);
+    await author2.data.places.rate(place2.placeId, { score: 1, body: 'Also hidden.' });
+    await author2.data.safety.block(viewer2.handle);
+
+    const afterAuthorBlocks = await raw(baseUrl(), `/v1/places/${place2.placeId}/reviews`, {
+      token: viewer2.token,
+    });
+    expect((afterAuthorBlocks.body as { items: unknown[] }).items).toHaveLength(0);
+  });
+
+  /**
+   * FR-001 and the general lesson behind FR-031: a constraint enforced only
+   * where the well-behaved client passes through is not enforced. A 7 would
+   * corrupt this place's average permanently, and nothing would ever detect it.
+   */
+  it('N-07 refuses an out-of-range score sent past the client', async () => {
+    const owner = await actor('rudeRater');
+    const place = await makePlace(owner);
+
+    for (const score of [0, 6, 99, -3, 2.5, '5', null]) {
+      const res = await raw(baseUrl(), `/v1/places/${place.placeId}/rating`, {
+        token: owner.token,
+        method: 'PUT',
+        body: JSON.stringify({ score }),
+      });
+      expect([400, 422]).toContain(res.status);
+    }
+
+    const place2 = await owner.data.places.get(place.placeId);
+    expect(place2.ratingSummary).toEqual({ average: null, count: 0 });
+  });
+
+  /**
+   * A review body longer than the contract allows. Not a security boundary, but
+   * an unbounded write into a row every place-page reader fetches.
+   */
+  it('N-08 refuses an oversized review body sent past the client', async () => {
+    const owner = await actor('rudeReviewer');
+    const place = await makePlace(owner);
+
+    const res = await raw(baseUrl(), `/v1/places/${place.placeId}/rating`, {
+      token: owner.token,
+      method: 'PUT',
+      body: JSON.stringify({ score: 4, body: 'x'.repeat(5000) }),
+    });
+    expect([400, 422]).toContain(res.status);
+  });
+
+  /**
+   * SC-010. THE CAP IS THE SERVER'S, NOT THE SCREEN'S.
+   *
+   * `NewGroupScreen` disables its button past the cap, and that is a courtesy.
+   * The rule is the server's refusal, and the reason it is a rule rather than a
+   * preference is `TransactWriteItems`: it caps at 100 items and a group write
+   * is 1 meta + 2N participant rows, so 20 people is 41 and the next size up
+   * would not be a bigger group but a silently truncated one.
+   *
+   * So this never goes near the client. It asks for 25 in one request, and then
+   * asks to exceed a full group one person at a time - the two ways past a cap
+   * that is only checked in one of them.
+   */
+  it('N-09 refuses a group over the cap, whichever way it is exceeded (SC-010, FR-031)', async () => {
+    const creator = await actor('capRude');
+
+    // Twenty-five in a single create. A cap enforced only on `addParticipant`
+    // passes every incremental test and loses six people here.
+    const tooMany: string[] = [];
+    for (let i = 0; i < 25; i++) tooMany.push((await actor('capRudeMember')).handle);
+
+    const atOnce = await raw(baseUrl(), '/v1/conversations/groups', {
+      token: creator.token,
+      method: 'POST',
+      body: JSON.stringify({ participantHandles: tooMany, name: 'Too Many' }),
+    });
+    expect([400, 409, 422]).toContain(atOnce.status);
+
+    // And nothing was written. A refusal that half-created the group would be
+    // worse than one that created all of it.
+    const inbox = await raw(baseUrl(), '/v1/conversations?state=accepted&limit=50', {
+      token: creator.token,
+    });
+    const named = (inbox.body as { items: { name: string | null }[] }).items.filter(
+      (c) => c.name === 'Too Many',
+    );
+    expect(named).toHaveLength(0);
+
+    // Exactly the cap is ALLOWED - 19 others plus the creator - so the refusal
+    // above is about the cap and not about groups being refused generally.
+    const atCap: string[] = [];
+    for (let i = 0; i < 19; i++) atCap.push((await actor('capRudeOk')).handle);
+    const full = await raw(baseUrl(), '/v1/conversations/groups', {
+      token: creator.token,
+      method: 'POST',
+      body: JSON.stringify({ participantHandles: atCap, name: 'Exactly Full' }),
+    });
+    expect(full.status).toBe(201);
+    const conversationId = (full.body as { conversationId: string }).conversationId;
+
+    // One more, one at a time, past the client entirely.
+    const overflow = await actor('capRudeOverflow');
+    const added = await raw(baseUrl(), `/v1/conversations/${conversationId}/participants`, {
+      token: creator.token,
+      method: 'POST',
+      body: JSON.stringify({ handle: overflow.handle }),
+    });
+    expect([400, 409, 422]).toContain(added.status);
+
+    // And they really are not in it.
+    const reread = await raw(baseUrl(), `/v1/conversations/${conversationId}`, {
+      token: creator.token,
+    });
+    const participants = (reread.body as { participants: { person: { handle: string } }[] })
+      .participants;
+    expect(participants).toHaveLength(20);
+    expect(participants.some((p) => p.person.handle === overflow.handle)).toBe(false);
+  });
+
+  /**
+   * SC-012. TWO REFUSALS THAT MUST BE THE SAME BYTES.
+   *
+   * FR-023 refuses a group containing a blocking pair. If that refusal is
+   * distinguishable from any other "cannot add" refusal, it discloses the block
+   * - which is the one thing the whole blocking design withholds, and the same
+   * reason 001 makes a blocked post a 404 rather than a 403.
+   *
+   * "Both are 409" is not the assertion. The bodies are compared LITERALLY,
+   * because a title that reads "That person has blocked you" is also a 409.
+   */
+  it('N-10 the blocked-add refusal is byte-identical to an ordinary cannot-add refusal (SC-012)', async () => {
+    const creator = await actor('blockRefusalCreator');
+    const member = await actor('blockRefusalMember');
+    const filler = await actor('blockRefusalFiller');
+    const blocked = await actor('blockRefusalTarget');
+
+    await member.data.people.follow(creator.handle);
+    await filler.data.people.follow(creator.handle);
+
+    const group = await creator.data.conversations.createGroup({
+      participantHandles: [member.handle, filler.handle],
+      name: 'Refusal Comparison',
+    });
+
+    // Refusal A: a block exists between a member and the person being added.
+    await member.data.safety.block(blocked.handle);
+    const blockedAdd = await raw(baseUrl(), `/v1/conversations/${group.conversationId}/participants`, {
+      token: creator.token,
+      method: 'POST',
+      body: JSON.stringify({ handle: blocked.handle }),
+    });
+
+    /**
+     * Refusal B: NO BLOCK ANYWHERE - the handle simply does not exist.
+     *
+     * That is the right comparison, and picking it took a wrong one first: the
+     * creator's own handle is already a participant, which is an idempotent
+     * no-op returning 204 (J-36), not a refusal at all. The pairing that
+     * matters is "there is no such person" against "you have been blocked",
+     * because those are exactly the two answers an attacker is trying to tell
+     * apart.
+     */
+    const ordinary = await raw(baseUrl(), `/v1/conversations/${group.conversationId}/participants`, {
+      token: creator.token,
+      method: 'POST',
+      body: JSON.stringify({ handle: `nobody-${Date.now()}` }),
+    });
+
+    expect(blockedAdd.status).toBe(ordinary.status);
+    // The BODIES, literally. Anything that varies between them - a title, a
+    // detail, an extension member - is a channel that answers "did they block
+    // me?" to anyone willing to try both.
+    expect(blockedAdd.text).toBe(ordinary.text);
+    // And neither of them names the block.
+    expect(blockedAdd.text.toLowerCase()).not.toMatch(/block/);
+  });
+});

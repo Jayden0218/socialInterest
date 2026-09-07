@@ -15,6 +15,18 @@ export interface Surface {
   /** Enabled by the story that builds it. `false` means SKIPPED, never passed. */
   readonly built: boolean;
   readonly story: string;
+  /**
+   * WHAT KIND OF CONTENT this surface returns, and therefore which decision
+   * table applies to it. Defaults to 'post'.
+   *
+   * 005 added the first surface that is not about posts. Without this the post
+   * matrix - 7 post states x 6 viewers - would run against the review surface,
+   * asserting things like "a followers-only review while processing" about a
+   * thing that has neither a visibility setting nor a processing state. It would
+   * have passed, too, because `decide()` would answer for a candidate built out
+   * of invented fields; the count would have read 504 and meant nothing.
+   */
+  readonly kind?: 'post' | 'review';
 }
 
 export const SURFACES: readonly Surface[] = [
@@ -33,7 +45,53 @@ export const SURFACES: readonly Surface[] = [
   { name: 'saved posts', built: true, story: '004/US5 (T122)' },
   { name: 'shared post in a message', built: true, story: '004/US1 (T040)' },
   { name: 'in-interest search', built: true, story: '004/US3 (T096)' },
+
+  // ---- feature 005 adds one, and it is a different KIND of read.
+  //
+  // The place page is already surface 8 and returns posts. It now returns
+  // reviews too, through a second entry point (research R4), and both must be
+  // probed: a routing probe covering only the post path would report the place
+  // page as consulting the boundary while its review path did not.
+  //
+  // `built: false` DELIBERATELY, while US2 is in progress. 004/T128 turned this
+  // list into a ratchet, and the two failure modes are opposite: adding this row
+  // as `built: true` before the code exists fails the ratchet, and leaving it out
+  // entirely lets the suite report a smaller green number while a surface is
+  // uncovered. False is the honest value until T053 flips it.
+  { name: 'place reviews', built: true, story: '005/US2 (T053)', kind: 'review' },
 ] as const;
+
+/**
+ * SURFACES THAT HAVE EVER BEEN COVERED. Append-only, never edited down.
+ *
+ * This is what makes the check in matrix.spec.ts an actual ratchet rather than a
+ * snapshot. 004/T128 asserted "no surface is unbuilt", which catches the failure
+ * it was written for - a covered surface silently flipping to `built: false` and
+ * the suite reporting a smaller green number - but cannot tell that case apart
+ * from a surface honestly in progress. The result was that adding surface 12
+ * before its implementation turned the whole API suite red for forty unrelated
+ * tasks, which is how a signal stops being read.
+ *
+ * Splitting them keeps the guarantee and drops the false alarm: a name here MUST
+ * be built, so a regression still fails loudly, while a genuinely new surface may
+ * be `false` until its work lands. Removing a name from this list to quiet a
+ * failure is a deliberate, reviewable edit rather than a one-word flip.
+ */
+export const EVER_BUILT: readonly string[] = [
+  'interest space',
+  'profile',
+  'interest search',
+  'home feed',
+  'share link',
+  'comments',
+  'notifications',
+  'place page',
+  'saved posts',
+  'shared post in a message',
+  'in-interest search',
+  // 005
+  'place reviews',
+];
 
 export const POST_STATE_COUNT = 7;
 export const VIEWER_COUNT = 6;

@@ -5,6 +5,7 @@ import { InterestSearchScreen } from '../features/discover/InterestSearchScreen'
 import { NotificationsScreen } from '../features/notifications/NotificationsScreen';
 import { InboxScreen } from '../features/conversations/InboxScreen';
 import { ConversationScreen } from '../features/conversations/ConversationScreen';
+import { NewGroupScreen } from '../features/conversations/NewGroupScreen';
 import { PlaceScreen } from '../features/places/PlaceScreen';
 import { CreatePlaceScreen } from '../features/places/CreatePlaceScreen';
 import { SavedScreen } from '../features/profile/SavedScreen';
@@ -18,10 +19,12 @@ import type {
   Place,
   PlaceCategory,
   PlaceSummary,
+  Review,
 } from '@sih/shared';
 import { useHomeFeed, useInterestSearch, useNotifications, usePaged } from '../containers';
 import { theme } from '../ui/theme';
 import { Button, Row } from '../ui/primitives';
+import { conversationTitle } from '../features/conversations/conversation-title';
 
 /**
  * Containers: they fetch, the screens render.
@@ -898,7 +901,7 @@ export function ShareContainer({ postId, onDone }: { postId: string; onDone: () 
           setConversations(
             inbox.items.map((c) => ({
               conversationId: c.conversationId,
-              displayName: c.other.displayName,
+              displayName: conversationTitle(c),
             })),
           );
         }
@@ -1220,8 +1223,11 @@ export function SharedPostContainer({ postId, onJoin }: { postId: string; onJoin
  */
 export function InboxContainer({
   onOpen,
+  onNewGroup,
 }: {
-  onOpen: (conversationId: string, otherHandle: string) => void;
+  onOpen: (conversationId: string, otherHandle: string | null) => void;
+  /** 005/FR-018. Optional so a caller that has no route for it still compiles. */
+  onNewGroup?: () => void;
 }) {
   const data = useData();
   const [inbox, setInbox] = useState<ConversationState>('accepted');
@@ -1252,7 +1258,8 @@ export function InboxContainer({
       state={inbox}
       conversations={items}
       onSelectInbox={setInbox}
-      onOpen={(c) => onOpen(c.conversationId, c.other.handle)}
+      onOpen={(c) => onOpen(c.conversationId, c.other?.handle ?? null)}
+      {...(onNewGroup ? { onNewGroup } : {})}
     />
   );
 }
@@ -1268,10 +1275,20 @@ export function ConversationContainer({
   conversationId,
   onOpenPost,
   onReport,
+  onLeft,
 }: {
   conversationId: string;
   onOpenPost: (postId: string) => void;
   onReport: (subjectId: string) => void;
+  /**
+   * 005/FR-021. Where to go once leaving succeeds.
+   *
+   * Leaving makes the conversation a 404 to you, so the screen you are standing
+   * on stops existing. Without somewhere to go, the poll's next request fails
+   * and the screen renders its own refusal - which reads as an error rather than
+   * as the thing you just asked for.
+   */
+  onLeft?: () => void;
 }) {
   const data = useData();
   const [conversation, setConversation] = useState<Conversation | null>(null);
@@ -1280,6 +1297,8 @@ export function ConversationContainer({
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [addHandle, setAddHandle] = useState('');
+  const [addError, setAddError] = useState<string | null>(null);
   const live = useRef(true);
   const cursor = useRef<string | undefined>(undefined);
 
@@ -1366,6 +1385,37 @@ export function ConversationContainer({
     [data, conversationId, refreshConversation],
   );
 
+  const addParticipant = useCallback(async () => {
+    const handle = addHandle.trim().replace(/^@/, '');
+    if (!handle) return;
+    try {
+      await data.conversations.addParticipant(conversationId, handle);
+      setAddHandle('');
+      setAddError(null);
+      // Re-read rather than appending locally: the server decides who is in the
+      // group, and a client that painted the new member itself would show one
+      // that the transaction had in fact refused.
+      await refreshConversation();
+    } catch (err) {
+      setAddError(
+        err instanceof DataError ? err.problem.title ?? 'Could not add them' : 'Could not add them',
+      );
+    }
+  }, [data, conversationId, addHandle, refreshConversation]);
+
+  const leave = useCallback(async () => {
+    try {
+      await data.conversations.leave(conversationId);
+      // Stop the poll BEFORE handing over. It is now polling a conversation the
+      // server refuses, and a request in flight would set an error on a screen
+      // that is on its way out.
+      live.current = false;
+      onLeft?.();
+    } catch (err) {
+      setError(err instanceof DataError ? err.problem.title ?? 'Could not leave' : 'Could not leave');
+    }
+  }, [data, conversationId, onLeft]);
+
   if (error) return <Failed message={error} />;
   if (!conversation) return <Failed message="Loading…" />;
   return (
@@ -1384,6 +1434,17 @@ export function ConversationContainer({
       // alone does not locate a message, and the composite is the only form a
       // participant can produce.
       onReport={(messageId) => onReport(`${conversationId}:${messageId}`)}
+      // Only a group can be left or added to, and `ConversationScreen` hides
+      // both controls when these are absent - so a pair never offers them.
+      {...(conversation.kind === 'group'
+        ? {
+            onLeave: () => void leave(),
+            addHandle,
+            addError,
+            onAddHandleChange: setAddHandle,
+            onAddParticipant: () => void addParticipant(),
+          }
+        : {})}
     />
   );
 }
@@ -1402,7 +1463,7 @@ export function OpenConversationContainer({
   onOpened,
 }: {
   handle: string;
-  onOpened: (conversationId: string, otherHandle: string) => void;
+  onOpened: (conversationId: string, otherHandle: string | null) => void;
 }) {
   const data = useData();
   const [error, setError] = useState<string | null>(null);
@@ -1412,7 +1473,7 @@ export function OpenConversationContainer({
     void (async () => {
       try {
         const conversation = await data.conversations.open(handle);
-        if (live) onOpened(conversation.conversationId, conversation.other.handle);
+        if (live) onOpened(conversation.conversationId, conversation.other?.handle ?? null);
       } catch (err) {
         // 404 here means blocked OR no such person, deliberately - the block
         // must not be disclosed, so the copy cannot distinguish them either.
@@ -1433,13 +1494,123 @@ export function OpenConversationContainer({
   return <Failed message={error ?? 'Opening…'} />;
 }
 
+/**
+ * 005/FR-018, FR-027. Creating a group.
+ *
+ * EVERY HOOK ABOVE EVERY RETURN, per `__tests__/hooks-before-return.test.ts`.
+ * A hook after the final return is dead code - that is how 004's save button
+ * came to do nothing - and a hook after an EARLY return is "Rendered more hooks
+ * than during the previous render".
+ */
+export function NewGroupContainer({
+  onCreated,
+}: {
+  onCreated: (conversationId: string, otherHandle: string | null) => void;
+}) {
+  const data = useData();
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<PublicProfile[]>([]);
+  const [selected, setSelected] = useState<PublicProfile[]>([]);
+  const [name, setName] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    const q = query.trim();
+    if (!q) {
+      setResults([]);
+      return () => {
+        live = false;
+      };
+    }
+    // Debounced, so typing a handle is one search rather than eight - and the
+    // people-search endpoint is rate limited.
+    const timer = setTimeout(() => {
+      void data.people
+        .search(q, { limit: 20 })
+        .then((page) => live && setResults(page.items))
+        .catch(() => live && setResults([]));
+    }, 250);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [data, query]);
+
+  const toggle = useCallback((person: PublicProfile) => {
+    setSelected((prev) =>
+      prev.some((p) => p.handle === person.handle)
+        ? prev.filter((p) => p.handle !== person.handle)
+        : [...prev, person],
+    );
+  }, []);
+
+  const create = useCallback(async () => {
+    setCreating(true);
+    try {
+      const conversation = await data.conversations.createGroup({
+        participantHandles: selected.map((p) => p.handle),
+        name: name.trim() ? name.trim() : null,
+      });
+      /**
+       * FR-027: one other person is a PAIR, and the server says so by returning
+       * the derived-id conversation with `other` populated. Handing that
+       * straight through means the caller navigates to the right thing without
+       * a second rule here about which kind it got.
+       */
+      onCreated(conversation.conversationId, conversation.other?.handle ?? null);
+    } catch (err) {
+      /**
+       * The SERVER's refusal, verbatim. FR-023 refuses a group containing a
+       * blocking pair without naming who blocked whom, and SC-012 compares that
+       * response against another "cannot add" refusal as literal responses. A
+       * client that substituted its own friendlier copy here would be free to
+       * disclose exactly what the wording was chosen to withhold.
+       */
+      setError(
+        err instanceof DataError
+          ? err.problem.title ?? 'Could not create the group'
+          : 'Could not create the group',
+      );
+    } finally {
+      setCreating(false);
+    }
+  }, [data, selected, name, onCreated]);
+
+  return (
+    <NewGroupScreen
+      query={query}
+      results={results}
+      selected={selected}
+      name={name}
+      creating={creating}
+      error={error}
+      onQueryChange={setQuery}
+      onToggle={toggle}
+      onNameChange={setName}
+      onCreate={() => void create()}
+    />
+  );
+}
+
 /** FR-016, FR-018. Surface 8 in the app. */
 export function PlaceContainer({
   placeId,
+  signedIn,
   onOpenPost,
   onReport,
 }: {
   placeId: string;
+  /**
+   * 005/FR-006. Rating requires a caller; reading does not.
+   *
+   * Passed in rather than derived here. The app already knows, and asking
+   * `session.me()` per place page would be a network call to answer a question
+   * the navigator holds - and would render the control briefly for a signed-out
+   * visitor while the answer was in flight.
+   */
+  signedIn?: boolean;
   onOpenPost: (postId: string) => void;
   onReport: (subjectId: string) => void;
 }) {
@@ -1447,6 +1618,9 @@ export function PlaceContainer({
   const [place, setPlace] = useState<Place | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reviews, setReviews] = useState<Review[] | null>(null);
+  const [body, setBody] = useState('');
+  const [saving, setSaving] = useState(false);
   const { state, loadMore } = usePaged(
     (cursor) => data.places.posts(placeId, cursor ? { cursor } : {}),
     [placeId],
@@ -1479,16 +1653,79 @@ export function PlaceContainer({
     [data, placeId, reload],
   );
 
+  /**
+   * 005/US1, US2. EVERY HOOK ABOVE EVERY RETURN.
+   *
+   * `__tests__/hooks-before-return.test.ts` fails the build for a hook after ANY
+   * return, and it exists because 004 shipped `toggleSave` declared below the
+   * container's final return: dead code, a temporal dead zone, and a star that
+   * did nothing - with typecheck, lint and fifty mobile tests all green, because
+   * they render screens with props and never press a container's button.
+   */
+  const loadReviews = useCallback(async () => {
+    try {
+      setReviews((await data.places.reviews(placeId, { limit: 20 })).items);
+    } catch {
+      // A place page whose posts render is not broken because its reviews did
+      // not. Left null, which renders nothing rather than an error over content
+      // that loaded fine.
+    }
+  }, [data, placeId]);
+
+  useEffect(() => {
+    void loadReviews();
+  }, [loadReviews]);
+
+  const rate = useCallback(
+    async (score: number) => {
+      setSaving(true);
+      try {
+        await data.places.rate(placeId, { score, body: body.trim() ? body.trim() : null });
+        // Both, and from the server. The summary comes back in the response, but
+        // the place also carries `viewerRating`, and reloading is what proves the
+        // write landed rather than assuming it from a 200.
+        await reload();
+        await loadReviews();
+      } finally {
+        setSaving(false);
+      }
+    },
+    [data, placeId, body, reload, loadReviews],
+  );
+
+  const withdrawRating = useCallback(async () => {
+    setSaving(true);
+    try {
+      await data.places.withdrawRating(placeId);
+      setBody('');
+      await reload();
+      await loadReviews();
+    } finally {
+      setSaving(false);
+    }
+  }, [data, placeId, reload, loadReviews]);
+
   if (error) return <Failed message={error} />;
   if (!place) return <Failed message="Loading…" />;
   return (
     <PlaceScreen
       place={place}
       posts={state}
+      reviews={reviews ?? []}
+      reviewBody={body}
+      savingReview={saving}
+      signedIn={signedIn === true}
       followPending={pending}
       onToggleFollow={(next) => void toggleFollow(next)}
       onLoadMore={loadMore}
       onReport={() => onReport(placeId)}
+      onRate={(score) => void rate(score)}
+      onWithdrawRating={() => void withdrawRating()}
+      onChangeReviewBody={setBody}
+      // FR-014. The compound `<placeId>:<userId>` is the review's subject id -
+      // the same shape messages already use, so the moderation queue needs no
+      // new addressing scheme.
+      onReportReview={(p, authorId) => onReport(`${p}:${authorId}`)}
       renderPost={(post) => (
         <PostRow postId={post.postId} caption={post.caption ?? ''} onOpen={onOpenPost} />
       )}

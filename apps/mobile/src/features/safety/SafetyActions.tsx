@@ -14,7 +14,10 @@ export type ReportSubject =
   | 'interest'
   | 'message'
   | 'place'
-  | 'interest-description';
+  | 'interest-description'
+  // 005/FR-014. A review is user-generated text on a page every visitor sees,
+  // so it is reportable on the same path as everything else here.
+  | 'review';
 
 export const REPORT_REASONS = [
   { value: 'spam', label: 'Spam' },
@@ -45,6 +48,8 @@ export function reportActionLabel(subject: ReportSubject): string {
       return 'Report this message';
     case 'place':
       return 'Report this place';
+    case 'review':
+      return 'Report this review';
   }
 }
 

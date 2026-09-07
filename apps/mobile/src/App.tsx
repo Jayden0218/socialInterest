@@ -23,6 +23,7 @@ import {
   InboxContainer,
   ConversationContainer,
   OpenConversationContainer,
+  NewGroupContainer,
   PlaceContainer,
   CreatePlaceContainer,
   SavedContainer,
@@ -67,7 +68,10 @@ export type Route =
   | { name: 'create-interest'; parentId: string; parentName: string }
   // ---- feature 004
   | { name: 'open-conversation'; handle: string }
-  | { name: 'conversation'; conversationId: string; otherHandle: string }
+  // ---- feature 005
+  | { name: 'new-group' }
+  // otherHandle is null for a group, which has no single other person (005).
+  | { name: 'conversation'; conversationId: string; otherHandle: string | null }
   | { name: 'place'; placeId: string }
   | { name: 'create-place'; initialName?: string; initialLocality?: string }
   | { name: 'saved' }
@@ -216,11 +220,27 @@ export function Shell() {
               onMessage={(personHandle) => requireSignIn({ name: 'open-conversation', handle: personHandle })}
             />
           );
+        case 'new-group':
+          // 005/FR-018. Replaces itself on the stack rather than pushing, so
+          // Back from the new conversation returns to the inbox and not to a
+          // half-filled form that would create a second group.
+          return signedIn ? (
+            <NewGroupContainer
+              onCreated={(conversationId, otherHandle) =>
+                setStack((st) => [
+                  ...st.slice(0, -1),
+                  { name: 'conversation', conversationId, otherHandle },
+                ])
+              }
+            />
+          ) : (
+            <SignedOutNotice onSignIn={() => push({ name: 'sign-in' })} />
+          );
         case 'open-conversation':
           return (
             <OpenConversationContainer
               handle={top.handle}
-              onOpened={(conversationId: string, otherHandle: string) =>
+              onOpened={(conversationId: string, otherHandle: string | null) =>
                 setStack((st) => [
                   ...st.slice(0, -1),
                   { name: 'conversation', conversationId, otherHandle },
@@ -238,9 +258,20 @@ export function Shell() {
           return (
             <PlaceContainer
               placeId={top.placeId}
+              signedIn={signedIn}
               onOpenPost={(postId) => push({ name: 'post', postId })}
+              /**
+               * 005/FR-014. ONE callback, two subject types, told apart by the
+               * shape of the id: a review's is `<placeId>:<userId>`, a place's
+               * is a bare id. That is the same discriminator the API uses, so
+               * the client cannot report a review as a place or the reverse.
+               */
               onReport={(subjectId) =>
-                requireSignIn({ name: 'safety', subject: 'place', subjectId })
+                requireSignIn({
+                  name: 'safety',
+                  subject: subjectId.includes(':') ? 'review' : 'place',
+                  subjectId,
+                })
               }
             />
           );
@@ -260,6 +291,9 @@ export function Shell() {
               conversationId={top.conversationId}
               onOpenPost={(postId) => push({ name: 'post', postId })}
               onReport={(subjectId) => push({ name: 'safety', subject: 'message', subjectId })}
+              // 005/FR-021. Leaving makes this screen a 404 to you, so go back
+              // rather than stand on a conversation the server now refuses.
+              onLeft={pop}
             />
           ) : (
             <SignedOutNotice onSignIn={() => push({ name: 'sign-in' })} />
@@ -336,6 +370,7 @@ export function Shell() {
                 onOpen={(conversationId, otherHandle) =>
                   push({ name: 'conversation', conversationId, otherHandle })
                 }
+                onNewGroup={() => push({ name: 'new-group' })}
               />
             ) : (
               <SignedOutNotice onSignIn={() => push({ name: 'sign-in' })} />

@@ -20,6 +20,18 @@ export interface PlaceItem {
   followerCount: number;
   postCount: number;
   createdAt: string;
+  /**
+   * 005/FR-004. The rating aggregate, maintained transactionally by
+   * RatingRepository (research R5) - the one thing on a place item that another
+   * module writes.
+   *
+   * BOTH OPTIONAL, and that is load-bearing rather than defensive: every place
+   * written before 005 has neither attribute. `averageOf` treats absent as
+   * unrated, and the counter update uses `if_not_exists`, so an old place takes
+   * its first rating without a migration.
+   */
+  ratingSum?: number;
+  ratingCount?: number;
 }
 
 /**

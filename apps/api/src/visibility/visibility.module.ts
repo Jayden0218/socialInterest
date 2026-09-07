@@ -1,4 +1,5 @@
 import { Global, Module } from '@nestjs/common';
+import { AuthoredContentVisibility } from './authored-content';
 import { VisibilityFilter } from './visibility.filter';
 
 /**
@@ -7,5 +8,8 @@ import { VisibilityFilter } from './visibility.filter';
  * module to provide its own, which is precisely the failure SC-009 guards.
  */
 @Global()
-@Module({ providers: [VisibilityFilter], exports: [VisibilityFilter] })
+@Module({
+  providers: [VisibilityFilter, AuthoredContentVisibility],
+  exports: [VisibilityFilter, AuthoredContentVisibility],
+})
 export class VisibilityModule {}

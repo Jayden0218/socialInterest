@@ -1,7 +1,7 @@
 // GENERATED from specs/001-interest-media-sharing/contracts/openapi.yaml
 // Do not edit by hand. Run: pnpm --filter @sih/shared generate:client
 //
-// 53 operations across 38 paths.
+// 59 operations across 43 paths.
 
 export const operations = {
   getMe: { method: 'GET', path: '/me', auth: true }, // Current person's profile and preferences
@@ -57,6 +57,12 @@ export const operations = {
   putPostsByPostIdSave: { method: 'PUT', path: '/posts/{postId}/save', auth: true }, // Save a post
   deletePostsByPostIdSave: { method: 'DELETE', path: '/posts/{postId}/save', auth: true }, // Unsave a post
   getMeSaved: { method: 'GET', path: '/me/saved', auth: true }, // The signed-in person's saved posts
+  putPlacesByPlaceIdRating: { method: 'PUT', path: '/places/{placeId}/rating', auth: true }, // Rate a place, or replace your existing rating
+  deletePlacesByPlaceIdRating: { method: 'DELETE', path: '/places/{placeId}/rating', auth: true }, // Withdraw your rating
+  getPlacesByPlaceIdReviews: { method: 'GET', path: '/places/{placeId}/reviews', auth: false }, // A place's reviews
+  postConversationsGroups: { method: 'POST', path: '/conversations/groups', auth: true }, // Start a group conversation
+  postConversationsByConversationIdParticipants: { method: 'POST', path: '/conversations/{conversationId}/participants', auth: true }, // Add somebody to a group
+  postConversationsByConversationIdLeave: { method: 'POST', path: '/conversations/{conversationId}/leave', auth: true }, // Leave a group
 } as const;
 
 export type OperationName = keyof typeof operations;

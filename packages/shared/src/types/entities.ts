@@ -80,6 +80,51 @@ export const placeSummarySchema = z.object({
 });
 export type PlaceSummary = z.infer<typeof placeSummarySchema>;
 
+// ---------------------------------------------------------------- feature 005
+
+/**
+ * 005/FR-004, FR-005.
+ *
+ * `average` is NULL when `count` is 0, never 0. "Nobody has rated this" and
+ * "everybody rated this 0" are different facts, and 0 is not even a legal score -
+ * a zero here would be a value every client had to know to special-case, which is
+ * how a display bug becomes everyone's problem.
+ */
+export const placeRatingSummarySchema = z.object({
+  average: z.number().min(1).max(5).nullable(),
+  count: z.number().int().nonnegative(),
+});
+export type PlaceRatingSummary = z.infer<typeof placeRatingSummarySchema>;
+
+/** 005/FR-001, FR-008. The rating is required; the text is not. */
+export const ratingWriteSchema = z.object({
+  score: z.number().int().min(1).max(5),
+  body: z.string().max(2000).nullable().optional(),
+});
+export type RatingWrite = z.infer<typeof ratingWriteSchema>;
+
+/**
+ * A review as a client receives it.
+ *
+ * `author` is a HYDRATED profile, not an id. Six surfaces in this codebase have
+ * shipped returning raw candidate rows because nothing asserted the response
+ * shape; this schema is what apps/e2e/journeys/response-shape.spec.ts checks
+ * reviews against.
+ *
+ * There is deliberately no `visibility` field. A review has no audience setting -
+ * it is as visible as the place page it sits on - and inventing one to satisfy a
+ * type signature is the defect research R4 exists to avoid.
+ */
+export const reviewSchema = z.object({
+  placeId: z.string(),
+  author: publicProfileSchema,
+  score: z.number().int().min(1).max(5),
+  body: z.string().max(2000).nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type Review = z.infer<typeof reviewSchema>;
+
 export const placeSchema = placeSummarySchema.extend({
   address: z.string().max(240).nullable().optional(),
   status: z.enum(['active', 'merged', 'retired']),
@@ -88,6 +133,10 @@ export const placeSchema = placeSummarySchema.extend({
   viewerIsFollowing: z.boolean().optional(),
   /** Derived from the posts filed here, never authored. */
   interests: z.array(interestRefSchema).optional(),
+  /** 005/FR-004. Optional so a place written before 005 still parses. */
+  ratingSummary: placeRatingSummarySchema.optional(),
+  /** 005/FR-002. The viewer's own rating, so the control renders in the right state. */
+  viewerRating: z.number().int().min(1).max(5).nullable().optional(),
 });
 export type Place = z.infer<typeof placeSchema>;
 
@@ -143,18 +192,45 @@ export type Notification = z.infer<typeof notificationSchema>;
 
 export const conversationSummarySchema = z.object({
   conversationId: z.string(),
-  other: publicProfileSchema,
+  /**
+   * 005: NULLABLE, because a group has no single other person.
+   *
+   * Kept populated for every pair conversation, so a client written against the
+   * 004 contract still finds what it expects there (005/FR-026). A group sends
+   * `null` and identifies itself by `name` or `participants` instead.
+   */
+  other: publicProfileSchema.nullable(),
   state: conversationStateSchema,
   lastMessageAt: z.string(),
   lastMessagePreview: z.string().max(140).nullable().optional(),
   unreadCount: z.number().int().nonnegative(),
+  /**
+   * 005/R1. EXPLICIT, not inferred from participant count: a pair derives its id
+   * by hashing the sorted pair and a group gets a ULID, so a length check would
+   * be a second way to answer a question the id scheme already answers - and the
+   * two answers could disagree.
+   */
+  kind: z.enum(['pair', 'group']).optional(),
+  /** 005/FR-024. User-generated content: reportable, moderatable. */
+  name: z.string().max(60).nullable().optional(),
 });
 export type ConversationSummary = z.infer<typeof conversationSummarySchema>;
+
+/** 005/FR-025. Membership is stored, never derived from the conversation id. */
+export const conversationParticipantSchema = z.object({
+  person: publicProfileSchema,
+  state: conversationStateSchema,
+  joinedAt: z.string(),
+  leftAt: z.string().nullable().optional(),
+});
+export type ConversationParticipant = z.infer<typeof conversationParticipantSchema>;
 
 export const conversationSchema = conversationSummarySchema.extend({
   /** Decided by ConversationAccess on the server, never by the client. */
   viewerCanSend: z.boolean(),
   initiatedByViewer: z.boolean(),
+  /** 005: at most 20 (research R3 - a transactional limit, not a preference). */
+  participants: z.array(conversationParticipantSchema).max(20).optional(),
 });
 export type Conversation = z.infer<typeof conversationSchema>;
 

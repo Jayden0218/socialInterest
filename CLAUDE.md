@@ -298,6 +298,130 @@ on this repository does not spend - so dispatching the emulator job is not the o
 call any more. Check the facts before repeating either claim; both halves of this one
 expired within a day.
 
+## What spec 005 built and established (2026-09-07)
+
+`specs/005-reviews-and-group-chat/` covers the two scope items the owner put back in:
+**reviews and ratings on places**, and **group chat**. Three stories, 34 FRs, 12 SCs.
+
+**SC-005 now runs 480 assertions**: 462 post assertions across 11 surfaces plus **18 review
+assertions** on the twelfth. The review surface needed `Surface.kind` on the surface table -
+without it the post matrix would have run its rows against a review surface and reported a
+larger green number for a smaller thing.
+
+**Established:**
+
+- **`state` is no longer a property of a conversation** (R2). A group has no single state -
+  Alice accepted, Bob has not looked, Jo declined - so the authority moved to the participant
+  row. Legacy rows keep working because the meta item's state is still the fallback (FR-026),
+  and `conversation-migration.spec.ts` proves it against rows written in the OLD SHAPE rather
+  than against new ones the new code produced.
+- **A pair id is derived; a group id is a ULID** (R1). That is not two schemes for the sake of
+  it: a derived id cannot survive a membership change, and FR-020 requires the id to stay the
+  same when somebody is added. A pair therefore cannot be promoted to a group - recorded as
+  J-41 with a clean 404, not left to be rediscovered.
+- **The 20-person cap is a CORRECTNESS constraint, not a product preference.**
+  `TransactWriteItems` caps at 100 items and a group write is 1 meta + 2N rows, so 20 people is
+  41. The next size up would not be a bigger group but a silently truncated one.
+- **The rating aggregate is transactional** (R5): the rating row and the place counters move in
+  one `TransactWriteItems`, so the sum and the count can never disagree with the rows.
+- **The average is NOT filtered per viewer**, and that is a stated, accepted leak: a determined
+  viewer could detect a blocked person's effect on an average by arithmetic. Filtering it would
+  make it not an average. J-30 pins the behaviour rather than leaving it to be discovered.
+- **A moderator removal takes the SCORE with it** (R6). Removal that only hid the text would
+  leave an abuser's 1-star in the average, which is the assertion that would have failed.
+
+### Three live defects, found by the guard that was written to prevent them
+
+T075 asks for a structural guard that the moved `state` authority cannot come back. **It had
+already come back, before the guard was written.** Three sites in `ConversationService` decided
+from `view.state` directly - the message-count gate, the reply-accepts rule, and accept/decline
+- each correct for every pair and reading the meta item's placeholder for every group.
+
+Accept/decline was the worst: it called `setState`, which writes the meta item **and every
+participant row**. So one invitee tapping Accept on a group invitation accepted it on behalf of
+everyone who had not looked, and un-declined it for anyone who had said no.
+
+Nothing caught it. Twelve tests exercise the request rules and **all of them hold pairs**, where
+the conversation's state and both people's are the same fact. The defect is only observable with
+three people in three different states at once, which is what
+`tests/integration/group-state-per-participant.spec.ts` now constructs.
+
+**The guard's first version was the wrong shape**: it counted reads of `item.state`, which cannot
+tell a read from a write and cannot distinguish the legitimate FR-026 fallback from a new
+offender. It now fails on a DECISION made from `view.state`.
+
+And the lesson worth keeping: **a structural guard says the dependency is absent, never that the
+behaviour is right.** Both are here, and the behavioural one was verified by reverting the fix -
+three go red, the pair test stays green.
+
+### The testID that took three attempts, and the guard that was right every time
+
+`verify-maestro-ids` refused the inbox row's group testID three times running:
+
+1. `group-row-Climbing Tuesday` - a space in a testID, and a Maestro selector is a **regex**.
+2. A slug built by a helper function. The verifier reads dynamic prefixes off the **leading
+   literal of a template in a `testID=` position**, so a function call hides the prefix entirely
+   and every `group-row-.*` selector then matches nothing. It cannot see through a call and is
+   right not to pretend it can.
+3. Fixed by keeping the prefix in the JSX, where the guard reads it, and having the helper
+   return only the suffix.
+
+**A new check, because the selector checks could not see this one**: a flow using a `${VAR}` the
+device runner never passes. Maestro does not error on an undefined variable - it substitutes the
+literal text and then waits thirty seconds for an element with that name, twenty minutes into a
+25-minute emulator run, looking exactly like a broken screen. Verified by removing one variable
+and watching it fail.
+
+### A test-harness trap worth not repeating
+
+A stub whose `messages` resolves instantly turns `ConversationContainer`'s long-poll loop into a
+**microtask spin**. The event loop starves, so jest's own `testTimeout` never fires either, and
+the run hangs for 120 seconds with **no output at all** rather than failing. Counting the calls
+made it visible in one run; guessing at it cost four. The stub now answers once and then hangs,
+which is what the server does.
+
+That is the same lesson as the six emulator runs, in a third place: **make the failure visible
+before changing anything**, and prefer the free observation to the expensive guess.
+
+### Still not verified, and must be reported that way
+
+- **005 RUNS ON ANDROID: 19/19, run 34, 2026-09-07**, every flow on its first attempt with no
+  device drop. Record: `docs/verification/runs/2026-09-07-android-run-34-005-pass-19-of-19.md`.
+  Asserted through the SERVICE: `PUT /v1/places/:id/rating` 200, `GET /v1/places/:id/reviews`
+  200 with an author, and the whole group lifecycle - `POST /v1/conversations/groups` 201,
+  `.../participants` 204, `.../leave` 204 - with the group gone from the inbox the server
+  returns afterwards.
+
+  **It took three runs, and two of the three failures were navigation facts a browser settles
+  in three seconds.** Run 32 (17/19): `20-rate-place` chained `16-place-page`, whose follow
+  toggle had already fired, so the chained tap UNFOLLOWED and 16's own assertion correctly
+  failed - a toggle is not idempotent and flows share ONE SERVER. Run 33 (18/19):
+  `21-group-chat` waited for `tab-chats`, which does not exist on a PUSHED screen (`App`
+  renders the tab bar only at the root of the stack), while that run's log already showed the
+  group created 201 and a participant added 204. `005/J-21` in
+  `apps/e2e/browser/navigation.spec.ts` now asserts both facts - `tab-chats` count 0 on a
+  pushed screen, exactly one `open-group-` button - in 2,997ms. **Prefer the free observation
+  to the expensive guess**, again.
+
+  Two things worth not repeating. **A toggle is not idempotent, so a flow that chains another
+  flow inherits its writes**: `20-rate-place` chained `16-place-page`, which had already
+  followed the place ten minutes earlier, so the chained tap UNFOLLOWED it and 16's own
+  assertion correctly failed. Each flow is its own Maestro session but they share ONE SERVER.
+
+  And **a fixture must assert the search the flow actually runs**. `seed-group-fixture` checked
+  that each member was findable by their FULL HANDLE, which passed; the flow searches a prefix,
+  which is a different query. The check looked like evidence and answered nothing - the same
+  shape as a guard that reads its own prose. It now asserts the one prefix query returns all
+  three, and exports the prefix so the flow cannot drift from it.
+- **001/SC-011** - a video PLAYING on a device. Unchanged by 005.
+- **iOS**: nothing has ever run.
+- **002/SC-002** (10,000 concurrent): unmeasured, and only a provisioned-DynamoDB run can close
+  it. The owner declined the spend; report it unverified, never as met.
+- **Real usage**: nobody has used the product. Retention, second-post rate and onboarding
+  success stay unanswered.
+- **The datastore decision** (`003/datastore-decision.md`) is the owner's and is recorded as
+  **pending** - "decide later, keep building local", 2026-09-07.
+
 ## What spec 004 built and established (2026-09-07)
 
 `specs/004-chat-places-and-depth/` is **implemented**: 128 of 140 tasks, five stories -

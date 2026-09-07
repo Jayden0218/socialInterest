@@ -3,6 +3,7 @@ import type { Conversation, Message } from '@sih/shared';
 import { theme } from '../../ui/theme';
 import { Banner, Button, EmptyState, Row, Screen } from '../../ui/primitives';
 import { SharedPostBubble } from './SharedPostBubble';
+import { conversationTitle, isGroup } from './conversation-title';
 
 export const MAX_MESSAGE_LENGTH = 2000;
 
@@ -41,6 +42,11 @@ export function ConversationScreen({
   onDecline,
   onOpenPost,
   onReport,
+  onLeave,
+  addHandle,
+  onAddHandleChange,
+  onAddParticipant,
+  addError,
 }: {
   conversation: Conversation;
   messages: Message[];
@@ -53,6 +59,22 @@ export function ConversationScreen({
   onDecline: () => void;
   onOpenPost: (postId: string) => void;
   onReport: (messageId: string) => void;
+  /** 005/FR-021. Absent for a pair, where there is nothing to leave. */
+  onLeave?: () => void;
+  /** 005/FR-020. The handle to add, held by the container. */
+  addHandle?: string;
+  onAddHandleChange?: (next: string) => void;
+  onAddParticipant?: () => void;
+  /**
+   * The SERVER's refusal, shown as it was worded.
+   *
+   * FR-023 refuses an add that would put a blocking pair in one group WITHOUT
+   * naming who blocked whom, and SC-012 compares that response against another
+   * "cannot add" refusal as literal responses. A client that substituted its own
+   * friendlier copy here would be free to disclose exactly what the wording was
+   * chosen to withhold.
+   */
+  addError?: string | null;
 }) {
   const notice = composerNotice(conversation);
   // FR-005: only the RECIPIENT is offered accept/decline. Offering it to the
@@ -60,12 +82,76 @@ export function ConversationScreen({
   const showRequestControls =
     conversation.state === 'requested' && !conversation.initiatedByViewer;
 
+  const group = isGroup(conversation);
+
   return (
     <Screen testID="conversation-screen">
+      {/*
+        005/FR-019, FR-024. WHO IS IN HERE, on the screen.
+
+        A group is identified by its name or by its people, never by the last
+        message - that is mutable by definition, and 004's flow-ordering defect
+        was a test asserting on exactly that preview and passing only because of
+        incidental ordering.
+
+        Someone who left is listed as having left rather than dropped: a group
+        that silently loses a name has no way to explain a message from somebody
+        who is no longer there.
+      */}
+      {group ? (
+        <Row style={{ paddingHorizontal: theme.space.sm, gap: theme.space.sm }}>
+          <Text testID="group-participants" style={{ flex: 1, color: theme.color.muted }}>
+            {(conversation.participants ?? [])
+              .map((p) => (p.state === 'left' ? `${p.person.displayName} (left)` : p.person.displayName))
+              .join(', ')}
+          </Text>
+          {onLeave ? (
+            <Button testID="leave-group" label="Leave" variant="danger" onPress={onLeave} />
+          ) : null}
+        </Row>
+      ) : null}
+
+      {/* 005/FR-020. The id does not change when somebody is added (R1). */}
+      {group && onAddParticipant ? (
+        <Row style={{ paddingHorizontal: theme.space.sm, gap: theme.space.sm }}>
+          <TextInput
+            testID="add-participant-input"
+            style={{
+              flex: 1,
+              borderWidth: 1,
+              borderColor: theme.color.border,
+              borderRadius: 8,
+              color: theme.color.text,
+              padding: theme.space.sm,
+            }}
+            placeholder="Add someone by handle"
+            placeholderTextColor={theme.color.muted}
+            autoCapitalize="none"
+            value={addHandle ?? ''}
+            onChangeText={onAddHandleChange}
+          />
+          <Button
+            testID="add-participant"
+            label="Add"
+            variant="secondary"
+            disabled={!(addHandle ?? '').trim()}
+            onPress={onAddParticipant}
+          />
+        </Row>
+      ) : null}
+
+      {addError ? (
+        <Banner tone="danger" testID="add-participant-error">
+          {addError}
+        </Banner>
+      ) : null}
+
       {showRequestControls ? (
         <Row style={{ padding: theme.space.sm, gap: theme.space.sm, alignItems: 'center' }}>
           <Text style={{ flex: 1, color: theme.color.muted }}>
-            {conversation.other.displayName} wants to message you.
+            {group
+              ? `You were added to ${conversationTitle(conversation)}.`
+              : `${conversationTitle(conversation)} wants to message you.`}
           </Text>
           <Button testID="accept-request" label="Accept" onPress={onAccept} />
           <Button testID="decline-request" label="Decline" variant="secondary" onPress={onDecline} />
@@ -76,7 +162,7 @@ export function ConversationScreen({
         <EmptyState
           testID="conversation-empty"
           title="No messages yet"
-          body={`Say hello to ${conversation.other.displayName}.`}
+          body={`Say hello to ${conversationTitle(conversation)}.`}
         />
       ) : (
         <FlatList

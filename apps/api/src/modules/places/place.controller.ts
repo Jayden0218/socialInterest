@@ -23,6 +23,9 @@ import { DomainError } from '../../common/errors/problem.filter';
 import { PlaceService } from './place.service';
 import { PlacePostsService } from './place-posts.service';
 import { PlaceRepository } from '../../persistence/place.repository';
+import { RatingService } from '../../ratings/rating.service';
+import { ReviewQueryService } from '../../ratings/review-query.service';
+import { ratingWriteSchema } from '@sih/shared';
 
 const categorySchema = z.enum(['restaurant', 'cafe', 'bar', 'shop', 'venue', 'outdoor', 'other']);
 
@@ -48,6 +51,8 @@ export class PlaceController {
     @Inject(PlaceService) private readonly places: PlaceService,
     @Inject(PlacePostsService) private readonly placePosts: PlacePostsService,
     @Inject(PlaceRepository) private readonly repo: PlaceRepository,
+    @Inject(RatingService) private readonly ratings: RatingService,
+    @Inject(ReviewQueryService) private readonly reviewQueries: ReviewQueryService,
   ) {}
 
   /** FR-014, FR-022. Readable signed out, like interest search. */
@@ -80,7 +85,11 @@ export class PlaceController {
   @Get(':placeId')
   async get(@Req() req: AppRequest, @Param('placeId') placeId: string) {
     const place = await this.places.get(placeId, req.viewer?.userId ?? null);
-    return this.places.toResponse(place, place.viewerIsFollowing);
+    // 005/FR-002 on the read side: the control renders in the state the person
+    // left it, rather than resetting to empty on every visit and inviting a
+    // second rating that silently replaces the first.
+    const viewerRating = await this.ratings.viewerRating(placeId, req.viewer?.userId ?? null);
+    return this.places.toResponse(place, place.viewerIsFollowing, viewerRating);
   }
 
   /** FR-016, FR-017. Surface 8. Anonymous callers see public posts only. */
@@ -115,6 +124,64 @@ export class PlaceController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async unfollow(@Req() req: AppRequest, @Param('placeId') placeId: string) {
     await this.places.unfollow(req.viewer!.userId, placeId);
+  }
+
+  // ------------------------------------------------------------- feature 005
+  //
+  // APPENDED, not inserted. Placing a method above an existing `@Get` moves that
+  // route's `@Public()` decorator onto the new method - a write becomes public
+  // and the read starts 401ing, with typecheck and lint clean throughout. That
+  // happened TWICE in 004. auth-surface.spec.ts now enumerates every route
+  // against a snapshot in both directions, and appending avoids the class
+  // entirely.
+
+  /** 005/FR-001, FR-002. Signed in only (FR-006). */
+  @Put(':placeId/rating')
+  @RateLimit({ capacity: 10, refillPerSecond: 0.1 })
+  async rate(@Req() req: AppRequest, @Param('placeId') placeId: string, @Body() body: unknown) {
+    const input = zodBody(ratingWriteSchema, body);
+    const { rating, summary } = await this.ratings.rate({
+      placeId,
+      userId: req.viewer!.userId,
+      score: input.score,
+      body: input.body ?? null,
+    });
+    return {
+      rating: await this.reviewQueries.responseFor(rating, req.viewer ?? null),
+      summary,
+    };
+  }
+
+  /** 005/FR-003. */
+  @Delete(':placeId/rating')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async withdrawRating(@Req() req: AppRequest, @Param('placeId') placeId: string) {
+    await this.ratings.withdraw(placeId, req.viewer!.userId);
+  }
+
+  /**
+   * 005/FR-010, FR-012. Surface 12.
+   *
+   * `@Public()` means readable signed out - not that the caller is ignored.
+   * ApiClient sends a token whenever it has one, and the boundary applies blocks
+   * in both directions when it knows who is asking. Gating the header on whether
+   * an endpoint REQUIRES auth is 002's third defect, which made a signed-in
+   * person anonymous on exactly these reads.
+   */
+  @Public()
+  @Get(':placeId/reviews')
+  async reviews(
+    @Req() req: AppRequest,
+    @Param('placeId') placeId: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const place = await this.repo.find(placeId);
+    if (!place) throw new DomainError(HttpStatus.NOT_FOUND, 'No such place');
+    return this.reviewQueries.listByPlace(req.viewer ?? null, placeId, {
+      limit: limit ? Math.min(50, Math.max(1, Number(limit) || 20)) : 20,
+      ...(cursor ? { cursor } : {}),
+    });
   }
 
   /** FR-020. Operators only. A merge carries posts and followers across. */

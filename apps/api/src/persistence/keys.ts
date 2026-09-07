@@ -207,6 +207,58 @@ export const keys = {
     pk: `USER#${userId}`,
     sk: `SAVEDBY#${postId}`,
   }),
+
+  // ---------------------------------------------------------------- feature 005
+
+  /**
+   * A35 (005/FR-002) - one person's rating of one place.
+   *
+   * THE KEY ENFORCES "at most one rating per person per place". A second rating
+   * writes the same key, so the constraint cannot be violated by any code path
+   * and no test needs to prove that every path checks it. Same argument as
+   * `reaction`, which is why FR-039 needed no uniqueness logic either.
+   *
+   * The place partition now holds three sk shapes - `#META`, `POST#...` and
+   * `RATING#...` - which is the intended use of an overloaded key. Both list
+   * prefixes are explicit so a query for one cannot scan the other.
+   */
+  rating: (placeId: string, userId: string) => ({
+    pk: `PLACE#${placeId}`,
+    sk: `RATING#${userId}`,
+  }),
+  ratingPrefix: (placeId: string) => ({ pk: `PLACE#${placeId}`, skPrefix: 'RATING#' }),
+
+  /**
+   * A36 - "have I rated this?" without reading a place's ratings.
+   *
+   * Under the PERSON's own partition, a base-table item rather than an index -
+   * the same shape as `savedPostBy`, and private by key for the same reason.
+   */
+  ratingByPerson: (userId: string, placeId: string) => ({
+    pk: `USER#${userId}`,
+    sk: `RATED#${placeId}`,
+  }),
+
+  /**
+   * A40 (005/FR-025) - every participant of a conversation.
+   *
+   * Participation was stored only under the PERSON's partition, which answers
+   * "am I in this?" but cannot list a conversation's members without already
+   * knowing them. That was fine for a pair, where `participantIds` on the meta
+   * item IS the answer, and is not fine for a group whose membership changes.
+   *
+   * Mirrors how media items share a post's partition so A3 is one Query. Two
+   * rows per participation, one under each partition, written in the same
+   * transaction - the cost of A40 being a query rather than a scan.
+   */
+  conversationMember: (conversationId: string, userId: string) => ({
+    pk: `CONV#${conversationId}`,
+    sk: `PARTICIPANT#${userId}`,
+  }),
+  conversationMemberPrefix: (conversationId: string) => ({
+    pk: `CONV#${conversationId}`,
+    skPrefix: 'PARTICIPANT#',
+  }),
 } as const;
 
 export const SK_PREFIX = {
@@ -223,6 +275,9 @@ export const SK_PREFIX = {
   message: 'MSG#',
   placeFollow: 'PLFOLLOW#',
   savedPost: 'SAVE#',
+  // feature 005
+  rating: 'RATING#',
+  conversationMember: 'PARTICIPANT#',
 } as const;
 
 /** Item discriminators for the `type` attribute (004). */
@@ -234,4 +289,10 @@ export const ITEM_TYPE_004 = {
   placePostIndex: 'place-post-index',
   placeFollow: 'place-follow',
   savedPost: 'saved-post',
+} as const;
+
+/** Item discriminators for the `type` attribute (005). */
+export const ITEM_TYPE_005 = {
+  rating: 'rating',
+  conversationMember: 'conversation-member',
 } as const;
