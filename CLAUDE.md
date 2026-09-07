@@ -385,11 +385,23 @@ before changing anything**, and prefer the free observation to the expensive gue
 
 ### Still not verified, and must be reported that way
 
-- **005 has never run on a device.** Run 32 (2026-09-07) executed them and **both failed** -
-  `17/19`, with all seventeen pre-existing flows passing first time and no device drop. Neither
-  failure was a product defect; both were defects in the flows I wrote. Record:
-  `docs/verification/runs/2026-09-07-android-run-32-005-flows-failed.md`. Fixed and awaiting a
-  re-run, so reviews and group chat on a device remain **unverified**.
+- **005 RUNS ON ANDROID: 19/19, run 34, 2026-09-07**, every flow on its first attempt with no
+  device drop. Record: `docs/verification/runs/2026-09-07-android-run-34-005-pass-19-of-19.md`.
+  Asserted through the SERVICE: `PUT /v1/places/:id/rating` 200, `GET /v1/places/:id/reviews`
+  200 with an author, and the whole group lifecycle - `POST /v1/conversations/groups` 201,
+  `.../participants` 204, `.../leave` 204 - with the group gone from the inbox the server
+  returns afterwards.
+
+  **It took three runs, and two of the three failures were navigation facts a browser settles
+  in three seconds.** Run 32 (17/19): `20-rate-place` chained `16-place-page`, whose follow
+  toggle had already fired, so the chained tap UNFOLLOWED and 16's own assertion correctly
+  failed - a toggle is not idempotent and flows share ONE SERVER. Run 33 (18/19):
+  `21-group-chat` waited for `tab-chats`, which does not exist on a PUSHED screen (`App`
+  renders the tab bar only at the root of the stack), while that run's log already showed the
+  group created 201 and a participant added 204. `005/J-21` in
+  `apps/e2e/browser/navigation.spec.ts` now asserts both facts - `tab-chats` count 0 on a
+  pushed screen, exactly one `open-group-` button - in 2,997ms. **Prefer the free observation
+  to the expensive guess**, again.
 
   Two things worth not repeating. **A toggle is not idempotent, so a flow that chains another
   flow inherits its writes**: `20-rate-place` chained `16-place-page`, which had already

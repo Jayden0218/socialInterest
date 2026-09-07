@@ -111,7 +111,7 @@ less than one reported honestly as open.
 
 | | Status |
 |---|---|
-| **005 on a device** | **Never run.** `20-rate-place.yaml` and `21-group-chat.yaml` are written and every selector resolves, but no emulator run has executed them. The flows are unproven; treat their passing as unknown, not likely |
+| **005 on a device** | **CLOSED — 19/19, run 34, 2026-09-07.** Both 005 flows pass on a real Android runtime, asserted through the API's own request log. Record: `2026-09-07-android-run-34-005-pass-19-of-19.md`. It took runs 32 and 33 to get there; both failures were mine, not the product's |
 | SC-002 at the stated scale | 12 places, not 100. See the table |
 | 001/SC-011 — a video PLAYING | Unchanged by 005 and still open. `19-publish-video` asserts the poster frame, not playback |
 | iOS | Nothing has ever run. The Simulator is macOS-only |

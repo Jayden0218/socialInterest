@@ -269,7 +269,7 @@ remove it as a moderator, confirm it is gone and the log survives.
 - [X] T112 **Already covered, checked rather than assumed.** `verify:register` has been a CI step since 004, and every 005 suite lives inside `@sih/api test`, `@sih/mobile test` or `@sih/e2e test`, which CI already runs - adding steps would have duplicated them. The real gap was elsewhere and is now closed: `verify-maestro-ids` fails when a flow uses a `${VAR}` that `android-device-pass.sh` never passes. Maestro does not error on an undefined variable; it substitutes the literal text and times out looking for it, twenty minutes into a 25-minute emulator run, looking exactly like a broken screen
 - [X] T113 [P] Update `CLAUDE.md` with what 005 established and what it did not
 - [X] T114 Write the run record in `docs/verification/runs/`, listing each criterion **with the command that measured it**, and each criterion not met
-- [ ] T115 Dispatch `.github/workflows/android-emulator.yml` and record the result — free on this public repository, and the only place native behaviour is observed
+- [X] T115 Dispatch `.github/workflows/android-emulator.yml` and record the result — free on this public repository, and the only place native behaviour is observed
 - [X] T116 Run the full CI step list from quickstart.md § 8 locally before pushing — not a proxy for it; two red builds in 002 came from assuming typecheck/lint/tests covered CI
 
 ---
