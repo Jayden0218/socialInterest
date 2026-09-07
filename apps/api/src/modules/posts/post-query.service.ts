@@ -85,7 +85,7 @@ export class PostQueryService {
       visibility: post.visibility,
       processingState: post.processingState,
       mediaKind: post.mediaKind,
-      media: media.map((m) => this.toMediaItem(m)),
+      media: await Promise.all(media.map((m) => this.toMediaItem(m))),
       reactionCount: post.reactionCount,
       commentCount: post.commentCount,
       place: place
@@ -116,17 +116,44 @@ export class PostQueryService {
    * escaping as a response. `renditions` gets the same treatment: keys become
    * URLs, because a client cannot fetch a key.
    */
-  private toMediaItem(m: Awaited<ReturnType<PostRepository['listMedia']>>[number]): Record<string, unknown> {
-    const url = (key: string | undefined): string | null => (key ? this.store.publicUrl(key) : null);
+  /**
+   * 006/R4b. PRESIGNED, NOT PUBLIC.
+   *
+   * `publicUrl` returns an unsigned URL, and the bucket is private, so every
+   * image request was 403 - media had never displayed anywhere. It was invisible
+   * because nothing had ever put a photograph on a browse surface: the device
+   * flows assert API calls rather than pixels, and the browser journeys assert
+   * testIDs.
+   *
+   * The fix is NOT to open the bucket. That hands every scraped key to anyone,
+   * which is precisely what N-04 exists to forbid and what Principle III puts
+   * server-side. A signed URL is issued instead, and only here - after
+   * `VisibilityFilter` has already decided this viewer may see this post.
+   *
+   * The trade this accepts, stated rather than glossed: a signed URL is a bearer
+   * token for one object until it expires, so a link copied out of a response
+   * works for whoever holds it, for 15 minutes. That is the standard shape of
+   * media authorisation and it is bounded; an open bucket is neither.
+   */
+  private async toMediaItem(
+    m: Awaited<ReturnType<PostRepository['listMedia']>>[number],
+  ): Promise<Record<string, unknown>> {
+    const url = async (key: string | undefined): Promise<string | null> =>
+      key ? this.store.presignedGetUrl(key) : null;
     return {
       kind: m.kind,
       processingState: m.processingState,
       ...(m.width !== undefined ? { width: m.width } : {}),
       ...(m.height !== undefined ? { height: m.height } : {}),
       ...(m.durationMs !== undefined ? { durationMs: m.durationMs } : {}),
-      posterUrl: url(m.posterKey),
+      posterUrl: await url(m.posterKey),
       renditions: Object.fromEntries(
-        Object.entries(m.renditions ?? {}).map(([name, key]) => [name, this.store.publicUrl(key)]),
+        await Promise.all(
+          Object.entries(m.renditions ?? {}).map(async ([name, key]) => [
+            name,
+            await this.store.presignedGetUrl(key),
+          ]),
+        ),
       ),
       // Part of the contract on purpose: a client can tell a viewer that media
       // is still being prepared rather than showing an empty frame (FR-010).

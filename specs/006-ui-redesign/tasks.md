@@ -122,7 +122,7 @@ what it shows, on the first screen anyone sees. `PostRow` is currently a
 - [X] T022 [US1] Adopt `PostCard` on the interest space and profile surfaces in `apps/mobile/src/screens/index.tsx` — sequential after T021
 - [X] T023 [US1] Adopt `PostCard` on the saved and place-page surfaces in `apps/mobile/src/screens/index.tsx` — sequential after T022; **SC-001 requires all five, with zero left rendering a bare caption**
 - [X] T024 [US1] Render skeletons for the loading state in `apps/mobile/src/components/PagedPostList.tsx` instead of a spinner on an empty screen — FR-023
-- [X] T025 [US1] Verify `docs/screens/03-home-feed.png`, recaptured, shows media and authors. **Card, avatar, author, interest chip and counts all render. The IMAGE does not**: `publicUrl` is unsigned and the bucket is private, so every fetch is 403 (R4b). Granting anonymous read made images appear and broke `N-04` — a privacy regression — so it was reverted. **SC-002 is NOT MET** and needs an API decision. List images are also full-size (R4)
+- [X] T025 [US1] Verify `docs/screens/03-home-feed.png`, recaptured, shows media and authors. **Card, avatar, author, interest chip and counts all render. The IMAGE does not**: `publicUrl` is unsigned and the bucket is private, so every fetch is 403 (R4b). Granting anonymous read made images appear and broke `N-04` — a privacy regression — so it was reverted. **SC-002 is now MET** via presigned GET urls (R4b, owner's option 1): images render AND an unsigned fetch is still refused. List images are also full-size (R4)
 
 **Checkpoint**: the feed shows what was posted. FR-008 remains **not met** and must be reported that way.
 

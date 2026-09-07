@@ -174,11 +174,30 @@ no working media read path. Two honest options, both API work and both outside
 2. **A media endpoint that consults `VisibilityFilter`** and streams. One more
    read path, which Principle II says must be enumerated in the matrix.
 
-**Consequence for this feature, stated rather than worked around**: FR-001 is
-implemented and `PostCard` renders whatever URL it is given — provable by unit
-test — but **SC-002 ("media is reachable from every browse surface, verified by
-rendering") is NOT MET** and cannot be until the above is decided. It must be
-reported that way.
+**RESOLVED 2026-09-07, option 1** (owner's choice): the post response now issues
+a **presigned GET URL**, generated in `PostQueryService.toMediaItem` — which runs
+only after `VisibilityFilter` has decided this viewer may see this post. 15
+minutes, signed against the PUBLIC endpoint so the host in the signature is the
+one a client uses (004 found the alternative on a device that could not reach its
+own loopback).
+
+**The trade, stated rather than glossed**: a signed URL is a bearer token for one
+object until it expires, so a link copied out of a response works for whoever
+holds it, for 15 minutes. That is the standard shape of media authorisation, it
+is bounded, and an open bucket is neither.
+
+**And a correction that matters more than the fix.** I first reported that
+opening the bucket "made private media readable and broke N-04". The second half
+was wrong and I had not read the failure: N-04 went from 404 to **400**. The test
+builds `${s3Endpoint}/${bucket}/${rendition}` while `rendition` is already a full
+URL, so it fetched a URL nested inside a URL — nonsense that errors whatever the
+bucket permits. **N-04 has never tested the guarantee it names.** It now extracts
+the key from the URL and drops the query string, so an unsigned request is really
+an unsigned request.
+
+**SC-002 is now MET**: images render on every browse surface, and `N-04` — fixed
+— still refuses an unsigned fetch of a private post's key. Both hold at once,
+which is the only combination worth having.
 
 ---
 

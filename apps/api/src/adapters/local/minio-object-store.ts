@@ -86,6 +86,25 @@ export class MinioObjectStore implements ObjectStore {
     );
   }
 
+  /**
+   * 006/R4b. A time-limited GET url for a viewer already authorised.
+   *
+   * Signed with `this.signer`, which is bound to the PUBLIC endpoint - the same
+   * reason uploads are. A signature covers the host, so a URL signed for
+   * `127.0.0.1` cannot be rewritten for `10.0.2.2` afterwards; 004 found that
+   * the hard way, on a device that could not reach its own loopback.
+   *
+   * 15 minutes: long enough to scroll a feed without images expiring underneath
+   * a person, short enough that a link copied out of a response goes stale.
+   */
+  async presignedGetUrl(key: string, expiresInSeconds = 900): Promise<string> {
+    return getSignedUrl(
+      this.signer,
+      new GetObjectCommand({ Bucket: this.config.objectStore.bucket, Key: key }),
+      { expiresIn: expiresInSeconds },
+    );
+  }
+
   publicUrl(key: string): string {
     const base = this.config.objectStore.endpoint ?? '';
     return `${base}/${this.config.objectStore.bucket}/${key}`;
