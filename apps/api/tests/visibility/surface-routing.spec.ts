@@ -83,6 +83,7 @@ function build(): Ctx {
     interests as never,
     filter,
     { find: async () => null } as never,
+    { publicUrl: (k: string) => `http://store/${k}` } as never,
   );
 
   return {

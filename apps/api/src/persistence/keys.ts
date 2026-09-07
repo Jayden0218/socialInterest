@@ -8,6 +8,25 @@ export const keys = {
   personByHandle: (handleLower: string) => ({ gsi1pk: `HANDLE#${handleLower}`, gsi1sk: '#PROFILE' }),
 
   /**
+   * A34 (004/FR-034) - people, searchable by handle PREFIX.
+   *
+   * `personByHandle` is an exact-match partition key, so it cannot answer "who
+   * starts with jo". This puts every person in one partition sorted by handle,
+   * on GSI3 (Hierarchy: children under a parent) - the same shape places under a
+   * locality use, so no sixth index is needed.
+   *
+   * ONE PARTITION FOR EVERY PERSON is a hot partition, and it is the honest
+   * limit of this design: it is right for a product with no users and wrong for
+   * one with a million. Display-name matching is a bounded filter over the same
+   * partition. Both are the 001/D3 trade again - the friction is concentrated
+   * behind one interface, and a real search backend replaces it there.
+   */
+  personSearch: (handleLower: string) => ({
+    gsi3pk: 'PEOPLE',
+    gsi3sk: `HANDLE#${handleLower}`,
+  }),
+
+  /**
    * An issued upload target. Persisted so POST /posts can quote an uploadId alone
    * (the contract's PostCreate) and the server derives key and kind from its own
    * record - rather than trusting a client-supplied key, which let a caller point

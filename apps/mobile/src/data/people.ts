@@ -32,6 +32,17 @@ export class PeopleData {
    * per viewer - so the follow control reflects the server's answer rather than
    * a guess the client made.
    */
+  /**
+   * 004/FR-034 to FR-036. Excludes people blocked in EITHER direction and any
+   * non-active account - decided server-side, because a client-side filter is
+   * one a modified client simply removes.
+   */
+  search(q: string, opts: { limit?: number } = {}): Promise<{ items: PublicProfile[] }> {
+    return this.client.call<{ items: PublicProfile[] }>('getPeople', {
+      query: { q, limit: opts.limit },
+    });
+  }
+
   get(handle: string): Promise<PublicProfile> {
     return this.client.call<PublicProfile>('getPeopleByHandle', { params: { handle } });
   }

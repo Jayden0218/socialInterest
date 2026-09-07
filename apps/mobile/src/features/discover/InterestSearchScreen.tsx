@@ -1,5 +1,5 @@
 import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
-import type { InterestRef, PlaceSummary } from '@sih/shared';
+import type { InterestRef, PlaceSummary, PublicProfile } from '@sih/shared';
 import { theme } from '../../ui/theme';
 import { EmptyState, Screen } from '../../ui/primitives';
 import { labelWithParent } from './InterestScreen';
@@ -33,20 +33,24 @@ export function InterestSearchScreen({
   query,
   results,
   places,
+  people,
   locality,
   onQueryChange,
   onLocalityChange,
   onSelect,
   onSelectPlace,
+  onSelectPerson,
 }: {
   query: string;
   results: InterestRef[];
   places?: PlaceSummary[];
+  people?: PublicProfile[];
   locality?: string;
   onQueryChange: (next: string) => void;
   onLocalityChange?: (next: string) => void;
   onSelect: (interestId: string) => void;
   onSelectPlace?: (placeId: string) => void;
+  onSelectPerson?: (handle: string) => void;
 }) {
   return (
     <Screen testID="interest-search-screen">
@@ -99,6 +103,25 @@ export function InterestSearchScreen({
             >
               <Text style={{ fontSize: theme.font.md, color: theme.color.text }}>
                 {`${p.name} · ${p.category} · ${p.locality}`}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+
+      {people && people.length > 0 && onSelectPerson ? (
+        <View testID="people-results" style={{ gap: theme.space.xs }}>
+          <Text style={{ fontSize: theme.font.sm, color: theme.color.muted }}>People</Text>
+          {people.map((p) => (
+            <Pressable
+              key={p.handle}
+              testID={`person-result-${p.handle}`}
+              accessibilityRole="button"
+              onPress={() => onSelectPerson(p.handle)}
+              style={{ paddingVertical: theme.space.sm }}
+            >
+              <Text style={{ fontSize: theme.font.md, color: theme.color.text }}>
+                {`${p.displayName} · @${p.handle}`}
               </Text>
             </Pressable>
           ))}

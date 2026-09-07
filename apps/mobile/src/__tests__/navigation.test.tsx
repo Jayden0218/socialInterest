@@ -66,6 +66,9 @@ function fakeData(over: Partial<Record<string, unknown>> = {}): AppData {
       posts: async () => page,
       follow: async () => undefined,
       unfollow: async () => undefined,
+      // 004/FR-034. Discover queries people alongside interests; a stub without
+      // it makes the whole search screen throw, which is what happened.
+      search: async () => ({ items: [] }),
     },
     feed: { home: async () => page },
     engagement: { comments: async () => page, comment: async () => undefined },
@@ -175,7 +178,7 @@ describe('the shell reaches every screen', () => {
     // No native gallery under jest, so the sample media is offered - T039, the
     // fallback that keeps publish drivable everywhere the picker does not exist.
     await act(async () => {
-      fireEvent.press(screen.getByTestId('media-item-0'));
+      fireEvent.press(screen.getByTestId('media-item-image-0'));
     });
     await act(async () => {
       fireEvent.press(screen.getByTestId('media-continue'));
@@ -253,6 +256,7 @@ describe('the shell reaches every screen', () => {
           followerCount: 3, followingCount: 1, topInterests: [], viewerIsFollowing,
         }),
         posts: async () => ({ items: [], nextCursor: null }),
+        search: async () => ({ items: [] }),
         follow: async (h: string) => {
           followed = h;
           viewerIsFollowing = true;

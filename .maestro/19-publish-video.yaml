@@ -1,0 +1,55 @@
+# 004/US4 -> 001/SC-011. A video plays on a real device.
+#
+# 001/FR-005 and FR-009 have been reported complete twice against a journey that
+# never uploaded a byte. The service path is now exercised over HTTP; what only
+# a device can show is that the poster frame RENDERS and playback starts.
+#
+# The video comes from the app's bundled sample, the same way the image flow
+# works: an emulator has no camera roll video, and driving the system picker is
+# a different journey (see 10-publish-from-library.yaml).
+appId: app.socialinterest
+---
+- runFlow: 01-sign-in.yaml
+- tapOn:
+    id: "open-compose"
+- assertVisible:
+    id: "media-picker-screen"
+
+# The video item, not the image. If the picker offers no video the flow fails
+# here as a missing element - which is the honest outcome, because there is then
+# nothing on the device to publish.
+- tapOn:
+    id: "media-item-video-1"
+- tapOn:
+    id: "media-continue"
+- assertVisible:
+    id: "compose-screen"
+- tapOn:
+    id: "interest-option-0"
+- tapOn:
+    id: "caption-input"
+- inputText: "a video from a real device"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "publish-button"
+    direction: DOWN
+- extendedWaitUntil:
+    visible: "Uploaded"
+    timeout: 120000
+- tapOn:
+    id: "publish-button"
+
+- tapOn:
+    id: "tab-profile"
+- extendedWaitUntil:
+    visible: "a video from a real device"
+    timeout: 120000
+- tapOn: "a video from a real device"
+
+# FR-009. The POSTER, before playback - not an empty rectangle. This is the
+# assertion the requirement is actually about.
+- extendedWaitUntil:
+    visible:
+      id: "video-poster"
+    timeout: 120000

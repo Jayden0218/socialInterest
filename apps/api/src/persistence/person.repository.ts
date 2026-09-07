@@ -12,6 +12,12 @@ export interface PersonItem {
   followingCount: number;
   interestFollowCount: number;
   notificationPrefs: Record<string, boolean>;
+  /**
+   * 004/FR-034. A lowercase copy for matching: DynamoDB's `contains` is
+   * case-sensitive, and a people search that only matches the exact casing
+   * somebody typed is not a search.
+   */
+  displayNameLower?: string;
   status: 'active' | 'deleting' | 'deleted';
   createdAt: string;
 }
@@ -29,6 +35,51 @@ export class PersonRepository extends BaseRepository {
       limit: 1,
     });
     return page.items[0] ?? null;
+  }
+
+  /**
+   * A34 / 004/FR-034, FR-036.
+   *
+   * Handle prefix through the index; display name through a bounded filter over
+   * the same partition, because there is no index that answers "contains". Only
+   * ACTIVE people are returned - FR-036 - and the block exclusion is applied by
+   * the service above, never here, so there is one place it can be forgotten
+   * rather than two.
+   */
+  async search(q: string, opts: { limit?: number } = {}): Promise<PersonItem[]> {
+    const needle = q.trim().toLowerCase();
+    if (!needle) return [];
+    const limit = Math.min(opts.limit ?? 10, 25);
+
+    const byHandle = await this.query<PersonItem>('PEOPLE', {
+      indexName: 'gsi3',
+      skPrefix: `HANDLE#${needle}`,
+      limit: limit * 4,
+      ascending: true,
+    });
+
+    // A display name is not in any sort key, so this is a filter. Bounded, and
+    // documented as the thing a search backend replaces.
+    const byName = await this.query<PersonItem>('PEOPLE', {
+      indexName: 'gsi3',
+      skPrefix: 'HANDLE#',
+      limit: 200,
+      ascending: true,
+      filter: {
+        expression: 'contains(#dn, :q)',
+        names: { '#dn': 'displayNameLower' },
+        values: { ':q': needle },
+      },
+    });
+
+    const seen = new Set<string>();
+    const merged: PersonItem[] = [];
+    for (const p of [...byHandle.items, ...byName.items]) {
+      if (seen.has(p.userId) || p.status !== 'active') continue;
+      seen.add(p.userId);
+      merged.push(p);
+    }
+    return merged.slice(0, limit);
   }
 
   /** Atomic counter, so concurrent follows cannot lose an increment. */
@@ -49,9 +100,13 @@ export class PersonRepository extends BaseRepository {
     await this.putItem({
       ...keys.person(userId),
       ...keys.personByHandle(person.handle.toLowerCase()),
+      ...keys.personSearch(person.handle.toLowerCase()),
       type: 'Person',
       ...person,
       ...patch,
+      // Rewritten on every profile edit, or a renamed person stays findable
+      // only under the name they used to have.
+      displayNameLower: (patch.displayName ?? person.displayName).toLowerCase(),
     });
   }
 
@@ -62,8 +117,10 @@ export class PersonRepository extends BaseRepository {
     await this.putItem({
       ...keys.person(userId),
       ...keys.personByHandle(person.handle.toLowerCase()),
+      ...keys.personSearch(person.handle.toLowerCase()),
       type: 'Person',
       ...person,
+      displayNameLower: person.displayName.toLowerCase(),
       status,
     });
   }
@@ -73,8 +130,10 @@ export class PersonRepository extends BaseRepository {
       {
         ...keys.person(person.userId),
         ...keys.personByHandle(person.handle.toLowerCase()),
+        ...keys.personSearch(person.handle.toLowerCase()),
         type: 'Person',
         ...person,
+        displayNameLower: person.displayName.toLowerCase(),
       },
       'attribute_not_exists(pk)',
     );

@@ -1,0 +1,39 @@
+# 004/US4, FR-031. The MESSAGE notification category can be turned off.
+#
+# The control has existed since 001 and has never been driven on a device: the
+# preferences block is inside Edit profile, and no journey opened it. So this
+# flow is as much a first exercise of the existing three categories as it is of
+# the new fourth.
+#
+# Whether a notification was actually suppressed is asserted service-side, after
+# the run - a toggle that flips locally and never reaches the server would
+# satisfy every assertion this file can make.
+appId: app.socialinterest
+---
+- runFlow: 01-sign-in.yaml
+
+- tapOn:
+    id: "tab-profile"
+- assertVisible:
+    id: "open-edit-profile"
+- tapOn:
+    id: "open-edit-profile"
+- assertVisible:
+    id: "edit-profile-screen"
+
+# All four categories are present. Three shipped in 001; `message` is 004's.
+- assertVisible:
+    id: "notification-prefs"
+- assertVisible:
+    id: "pref-reaction"
+- assertVisible:
+    id: "pref-comment"
+- assertVisible:
+    id: "pref-follow"
+- assertVisible:
+    id: "pref-message"
+
+- tapOn:
+    id: "pref-message"
+- tapOn:
+    id: "save-profile"

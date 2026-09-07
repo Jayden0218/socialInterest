@@ -9,6 +9,7 @@ import { PlaceScreen } from '../features/places/PlaceScreen';
 import { CreatePlaceScreen } from '../features/places/CreatePlaceScreen';
 import { PlacePicker } from '../features/places/PlacePicker';
 import type {
+  PublicProfile,
   Conversation,
   ConversationState,
   ConversationSummary,
@@ -81,16 +82,37 @@ export function HomeFeedContainer({
 export function DiscoverContainer({
   onSelect,
   onSelectPlace,
+  onSelectPerson,
 }: {
   onSelect: (interestId: string) => void;
   /** 004/US2. Places live inside Discover rather than taking a sixth tab. */
   onSelectPlace?: (placeId: string) => void;
+  /** 004/FR-034. So do people. */
+  onSelectPerson?: (handle: string) => void;
 }) {
   const data = useData();
   const [query, setQuery] = useState('');
   const [locality, setLocality] = useState('');
   const [places, setPlaces] = useState<PlaceSummary[]>([]);
+  const [people, setPeople] = useState<PublicProfile[]>([]);
   const { state, error } = useInterestSearch(query);
+
+  useEffect(() => {
+    if (!onSelectPerson || query.trim().length === 0) {
+      setPeople([]);
+      return;
+    }
+    let live = true;
+    // Swallowed on failure, like the place lookup: neither may take the
+    // interest search - the product's primary navigation - down with it.
+    void data.people
+      .search(query, { limit: 5 })
+      .then((r) => live && setPeople(r.items))
+      .catch(() => live && setPeople([]));
+    return () => {
+      live = false;
+    };
+  }, [data, query, onSelectPerson]);
 
   useEffect(() => {
     if (!onSelectPlace || query.trim().length === 0 || locality.trim().length === 0) {
@@ -115,9 +137,11 @@ export function DiscoverContainer({
       query={query}
       results={state.items}
       places={places}
+      people={people}
       locality={locality}
       onQueryChange={setQuery}
       {...(onSelectPlace ? { onLocalityChange: setLocality, onSelectPlace } : {})}
+      {...(onSelectPerson ? { onSelectPerson } : {})}
       onSelect={onSelect}
     />
   );

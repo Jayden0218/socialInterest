@@ -97,4 +97,14 @@ if (missing.length) {
   console.error('A selector that matches nothing fails as a timeout, not as a name error.');
   process.exit(1);
 }
+// A dynamic prefix matches ANY suffix, so `media-item-video` passed this check
+// while no such item existed - the flow would have failed twenty minutes into an
+// emulator run as a timeout, which is exactly what this script exists to
+// prevent. It cannot know which indices a list renders, so the limit is
+// reported rather than papered over: prefer ids that carry meaning
+// (`media-item-video-1`) over positional ones a typo can imitate.
+console.log(
+  `NOTE: ${prefixes.size} dynamic prefix(es) are matched by prefix only. ` +
+    'A selector under one of these is NOT verified to exist.',
+);
 console.log('OK: every Maestro selector exists in the app.');

@@ -7,6 +7,7 @@ import { PersonFollowRepository } from '../../persistence/person-follow.reposito
 import { PostRepository } from '../../persistence/post.repository';
 import { PostQueryService } from '../posts/post-query.service';
 import { CATALOGUE_SEARCH, type CatalogueSearch } from '../interests/catalogue.cache';
+import { PersonSearchService } from './person-search.service';
 import { PersonFollowService } from './person-follow.service';
 
 @Controller('people')
@@ -18,9 +19,31 @@ export class PersonController {
     @Inject(PostRepository) private readonly posts: PostRepository,
     @Inject(PostQueryService) private readonly queries: PostQueryService,
     @Inject(CATALOGUE_SEARCH) private readonly catalogue: CatalogueSearch,
+    @Inject(PersonSearchService) private readonly searchService: PersonSearchService,
   ) {}
 
   /** FR-038: profile with counts and the interests this person posts to most. */
+  /**
+   * 004/FR-034 to FR-036. Signed-in only: an anonymous people directory is a
+   * scraping surface, and nothing in the product needs one.
+   */
+  @Get()
+  async search(@Req() req: AppRequest, @Query('q') q?: string, @Query('limit') limit?: string) {
+    const people = await this.searchService.search(
+      req.viewer!.userId,
+      q ?? '',
+      limit ? Math.min(25, Math.max(1, Number(limit) || 10)) : 10,
+    );
+    return {
+      items: people.map((p) => ({
+        userId: p.userId,
+        handle: p.handle,
+        displayName: p.displayName,
+        ...(p.avatarKey ? { avatarUrl: p.avatarKey } : {}),
+      })),
+    };
+  }
+
   @Public()
   @Get(':handle')
   async profile(@Req() req: AppRequest, @Param('handle') handle: string) {

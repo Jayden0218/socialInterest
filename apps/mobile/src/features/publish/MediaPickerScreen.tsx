@@ -88,7 +88,12 @@ export function MediaPickerScreen({
         contentContainerStyle={{ gap: theme.space.sm }}
         renderItem={({ item, index }) => (
           <Pressable
-            testID={`media-item-${index}`}
+            // Kind in the id, not only the index. A flow that wants the video
+            // otherwise has to hard-code a position, and verify-maestro-ids
+            // cannot tell a wrong index from a right one - both match the same
+            // dynamic prefix, which is how a selector for a non-existent item
+            // passed that check.
+            testID={`media-item-${item.kind}-${index}`}
             accessibilityRole="checkbox"
             accessibilityState={{ checked: isSelected(item) }}
             onPress={() => toggle(item)}

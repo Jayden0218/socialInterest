@@ -276,27 +276,27 @@ actually owed is the **new `message` category**, which is two small tasks, not f
 
 ### Tests for User Story 4
 
-- [ ] T103 [P] [US4] Extend `apps/api/tests/integration/us6-manage.spec.ts` (which already covers reaction) to assert **zero rows are written** for each of the four categories independently, `message` included. The three existing ones must pass immediately — if any fails, the regression is the finding. **Only the `message` case may fail**
-- [ ] T104 [P] [US4] Write the people-search journeys, including blocks in both directions and non-active people, in `apps/e2e/journeys/people-search.spec.ts`. **Must fail**
+- [X] T103 [P] [US4] Extend `apps/api/tests/integration/us6-manage.spec.ts` (which already covers reaction) to assert **zero rows are written** for each of the four categories independently, `message` included. The three existing ones must pass immediately — if any fails, the regression is the finding. **Only the `message` case may fail**
+- [X] T104 [P] [US4] Write the people-search journeys, including blocks in both directions and non-active people, in `apps/e2e/journeys/people-search.spec.ts`. **Must fail**
 
 ### Implementation for User Story 4
 
-- [ ] T105 [US4] Add `message` to the `notificationPrefs` zod schema in `apps/api/src/modules/people/me.controller.ts` and to `PersonItem`'s default in `apps/api/src/persistence/person.repository.ts`. **Absent means on**, so there is no backfill — do not write one
-- [ ] T106 [US4] Route the conversation notification from T042 through the existing creation-time refusal in `apps/api/src/modules/notifications/notification.service.ts`. Reuse `recipient.notificationPrefs[kind] === false`; do not add a second check beside it
-- [ ] T107 [US4] Add the `message` switch to the existing preferences block in `apps/mobile/src/features/profile/EditProfileScreen.tsx` and widen the `NotificationPrefs` type in `apps/mobile/src/data/session.ts`
-- [ ] T108 [US4] Implement `GET /people?q=` over a GSI1 handle/display-name prefix query in `apps/api/src/modules/people/person.controller.ts`
-- [ ] T109 [US4] Exclude people blocked in **either** direction and any non-active person, server-side, and test it through the path a modified client would take, in `apps/api/src/modules/people/person-search.service.ts`
-- [ ] T110 [P] [US4] Add `PeopleData.search` to `apps/mobile/src/data/people.ts`
-- [ ] T111 [US4] Reuse the existing edit-profile route for preferences rather than building a `NotificationSettingsScreen`. **Deleted task** — the screen it would have built already exists as the `notification-prefs` block in `apps/mobile/src/features/profile/EditProfileScreen.tsx`. Verify it renders four switches and leave it alone
-- [ ] T112 [US4] Add people results to Discover search in `apps/mobile/src/features/discover/InterestSearchScreen.tsx`
+- [X] T105 [US4] Add `message` to the `notificationPrefs` zod schema in `apps/api/src/modules/people/me.controller.ts` and to `PersonItem`'s default in `apps/api/src/persistence/person.repository.ts`. **Absent means on**, so there is no backfill — do not write one
+- [X] T106 [US4] Route the conversation notification from T042 through the existing creation-time refusal in `apps/api/src/modules/notifications/notification.service.ts`. Reuse `recipient.notificationPrefs[kind] === false`; do not add a second check beside it
+- [X] T107 [US4] Add the `message` switch to the existing preferences block in `apps/mobile/src/features/profile/EditProfileScreen.tsx` and widen the `NotificationPrefs` type in `apps/mobile/src/data/session.ts`
+- [X] T108 [US4] Implement `GET /people?q=` over a GSI1 handle/display-name prefix query in `apps/api/src/modules/people/person.controller.ts`
+- [X] T109 [US4] Exclude people blocked in **either** direction and any non-active person, server-side, and test it through the path a modified client would take, in `apps/api/src/modules/people/person-search.service.ts`
+- [X] T110 [P] [US4] Add `PeopleData.search` to `apps/mobile/src/data/people.ts`
+- [X] T111 [US4] Reuse the existing edit-profile route for preferences rather than building a `NotificationSettingsScreen`. **Deleted task** — the screen it would have built already exists as the `notification-prefs` block in `apps/mobile/src/features/profile/EditProfileScreen.tsx`. Verify it renders four switches and leave it alone
+- [X] T112 [US4] Add people results to Discover search in `apps/mobile/src/features/discover/InterestSearchScreen.tsx`
 
 ### Video — the first time this path has ever run
 
-- [ ] T113 [US4] Point `apps/e2e/journeys/publish-video.spec.ts` at the real `apps/e2e/fixtures/sample.mp4` from T006 and assert transcode completion and a poster frame, rather than a stubbed media record
-- [ ] T114 [US4] Assert the poster frame is a real decoded image using the PNG/JPEG decoder in `scripts/assert-screen-not-blank.mjs`, in `apps/e2e/journeys/publish-video.spec.ts`
-- [ ] T115 [P] [US4] Write `.maestro/19-publish-video.yaml`: publish a video and assert playback started, for **SC-011**
-- [ ] T116 [P] [US4] Write `.maestro/18-notification-settings.yaml`: profile → edit profile → turn **message** notifications off → have another identity send a message → assert no notification arrives. Drives the existing switches, which have never been driven on a device
-- [ ] T117 [US4] Checkpoint: SC-010 and SC-012 measured. **SC-011 remains unverified until an emulator run exists** and must be reported that way — 001/FR-005 and 001/FR-009 have been claimed once already without a run behind them
+- [X] T113 [US4] Point `apps/e2e/journeys/publish-video.spec.ts` at the real `apps/e2e/fixtures/sample.mp4` from T006 and assert transcode completion and a poster frame, rather than a stubbed media record
+- [X] T114 [US4] Assert the poster frame is a real decoded image using the PNG/JPEG decoder in `scripts/assert-screen-not-blank.mjs`, in `apps/e2e/journeys/publish-video.spec.ts`
+- [X] T115 [P] [US4] Write `.maestro/19-publish-video.yaml`: publish a video and assert playback started, for **SC-011**
+- [X] T116 [P] [US4] Write `.maestro/18-notification-settings.yaml`: profile → edit profile → turn **message** notifications off → have another identity send a message → assert no notification arrives. Drives the existing switches, which have never been driven on a device
+- [X] T117 [US4] Checkpoint: SC-010 and SC-012 measured. **The video path was BROKEN and is now fixed** — the poster step seeked to 1s, which fails on any clip shorter than that, so short videos were stuck at `processingState: failed` permanently; and `posterUrl` was never sent by the API at all, so FR-009 reached no client. Both found the first time anything uploaded a real video. **SC-011 (a video PLAYS on a device) remains unverified** — it needs an emulator run, and 001/FR-005 and FR-009 have been claimed twice already without one
 
 ---
 

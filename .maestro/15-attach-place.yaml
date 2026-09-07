@@ -18,7 +18,7 @@ appId: app.socialinterest
       id: "media-picker-screen"
     timeout: 20000
 - tapOn:
-    id: "media-item-0"
+    id: "media-item-image-0"
 - tapOn:
     id: "media-continue"
 - assertVisible:

@@ -20,7 +20,7 @@ appId: app.socialinterest
 - assertVisible:
     id: "media-picker-screen"
 - tapOn:
-    id: "media-item-0"
+    id: "media-item-image-0"
 - tapOn:
     id: "media-continue"
 

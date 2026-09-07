@@ -5,6 +5,7 @@ import { PostRepository, type PostItem } from '../../persistence/post.repository
 import { InterestRepository } from '../../persistence/interest.repository';
 import { rankByEngagement, type EngagedItem } from '../feed/ranking';
 import { PlaceRepository } from '../../persistence/place.repository';
+import { OBJECT_STORE, type ObjectStore } from '../../ports';
 import {
   VisibilityFilter,
   type Decision,
@@ -35,6 +36,7 @@ export class PostQueryService {
     @Inject(InterestRepository) private readonly interests: InterestRepository,
     @Inject(VisibilityFilter) private readonly visibility: VisibilityFilter,
     @Inject(PlaceRepository) private readonly places: PlaceRepository,
+    @Inject(OBJECT_STORE) private readonly store: ObjectStore,
   ) {}
 
   /**
@@ -83,7 +85,7 @@ export class PostQueryService {
       visibility: post.visibility,
       processingState: post.processingState,
       mediaKind: post.mediaKind,
-      media,
+      media: media.map((m) => this.toMediaItem(m)),
       reactionCount: post.reactionCount,
       commentCount: post.commentCount,
       place: place
@@ -95,6 +97,40 @@ export class PostQueryService {
           }
         : null,
       createdAt: post.createdAt,
+    };
+  }
+
+  /**
+   * The contract's MediaItem, from the persistence record.
+   *
+   * This did not exist: `media` was the raw MediaItemRecord, spread straight
+   * into the response. Two consequences, and the first is a shipped defect:
+   *
+   * 1. `posterUrl` was NEVER SENT. The record has `posterKey` - an object-store
+   *    key, not a URL - so FR-009's "display a thumbnail before playback begins"
+   *    reached no client at all. It appears nowhere in the API source.
+   * 2. Internal fields leaked: `postId`, `type`, `ordinal`, `exifStripped` and
+   *    `originalKey` - the storage path of the ORIGINAL, pre-strip upload.
+   *
+   * This is the seventh instance in this repository of a persistence row
+   * escaping as a response. `renditions` gets the same treatment: keys become
+   * URLs, because a client cannot fetch a key.
+   */
+  private toMediaItem(m: Awaited<ReturnType<PostRepository['listMedia']>>[number]): Record<string, unknown> {
+    const url = (key: string | undefined): string | null => (key ? this.store.publicUrl(key) : null);
+    return {
+      kind: m.kind,
+      processingState: m.processingState,
+      ...(m.width !== undefined ? { width: m.width } : {}),
+      ...(m.height !== undefined ? { height: m.height } : {}),
+      ...(m.durationMs !== undefined ? { durationMs: m.durationMs } : {}),
+      posterUrl: url(m.posterKey),
+      renditions: Object.fromEntries(
+        Object.entries(m.renditions ?? {}).map(([name, key]) => [name, this.store.publicUrl(key)]),
+      ),
+      // Part of the contract on purpose: a client can tell a viewer that media
+      // is still being prepared rather than showing an empty frame (FR-010).
+      exifStripped: m.exifStripped,
     };
   }
 

@@ -320,6 +320,7 @@ export function Shell() {
               <DiscoverContainer
                 onSelect={(interestId) => push({ name: 'interest', interestId })}
                 onSelectPlace={(placeId) => push({ name: 'place', placeId })}
+                onSelectPerson={(handle) => push({ name: 'person', handle })}
               />
             );
           case 'chats':

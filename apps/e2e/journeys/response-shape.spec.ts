@@ -96,4 +96,35 @@ describe('no surface returns VisibilityFilter candidates as a response', () => {
       caption,
     );
   }, 180_000);
+
+  /**
+   * MEDIA IS A RESPONSE SHAPE TOO, and it was the seventh instance.
+   *
+   * `media` used to be the raw persistence record, spread into the response.
+   * `posterUrl` - which FR-009 exists for - appears nowhere in the API source,
+   * so no client ever got a thumbnail. And `originalKey` went out with it: the
+   * storage path of the ORIGINAL, pre-EXIF-strip upload.
+   */
+  const INTERNAL_MEDIA_FIELDS = ['postId', 'type', 'ordinal', 'originalKey', 'posterKey'] as const;
+
+  it('media items carry URLs, not storage keys, and leak no internal fields', async () => {
+    const author = await actor('mediaShape');
+    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const postId = await publishReadyImage(author, [interest.interestId], { caption: 'media shape' });
+
+    const post = await author.data.posts.get(postId);
+    const media = post.media ?? [];
+    expect(media.length).toBeGreaterThan(0);
+
+    for (const item of media) {
+      const keys = Object.keys(item as unknown as Record<string, unknown>);
+      const leaked = INTERNAL_MEDIA_FIELDS.filter((f) => keys.includes(f));
+      // `originalKey` is the one that matters most: it names the object holding
+      // the upload as the author sent it, before the server stripped anything.
+      expect({ keys, leaked }).toEqual({ keys, leaked: [] });
+      expect(item.kind).toBeTruthy();
+      expect(typeof item.processingState).toBe('string');
+    }
+  }, 120_000);
 });
+
