@@ -154,7 +154,15 @@ or US2.
 - **The last participant.** A group with one person left is a conversation with nobody to
   talk to; it must behave predictably rather than accidentally.
 - **Adding somebody who is already in the group.** Must be a no-op, not a duplicate.
-- **A person blocked by one participant but not others.** See FR-023 and the open question.
+- **A person blocked by one participant but not others.** The add is refused (FR-023), and
+  the refusal must not say why (FR-023a) — otherwise adding somebody to a group becomes a
+  way to probe who has blocked whom.
+- **A block created after the fact.** Two people already in a group, then one blocks the
+  other: the group is untouched (FR-023b). This is the deliberate cost of the chosen rule —
+  a block cannot retroactively separate people who already share a conversation.
+- **Rejoining after a block.** Somebody who left a group and is later blocked by a
+  remaining participant cannot be re-added, because FR-023 is evaluated at the moment of
+  adding, not at creation.
 - **A review author blocking a reader after writing.** Block severance is computed, not
   stored (004/FR-006), so this must resolve at read time like everything else.
 
@@ -204,9 +212,19 @@ or US2.
 - **FR-022**: An invitation to a group from a person the invitee does not follow MUST wait
   in Requests and MUST NOT generate a notification until accepted — the same rule the
   one-to-one case applies to an unsolicited first message.
-- **FR-023**: The system MUST define and enforce a rule for participants in a blocking
-  relationship with one another. [NEEDS CLARIFICATION: see Question 1 — this has several
-  reasonable answers with materially different privacy consequences and no safe default.]
+- **FR-023**: A person MUST NOT be added to a group that contains anyone they have blocked,
+  or anyone who has blocked them. The attempt MUST be refused.
+- **FR-023a**: The refusal MUST NOT disclose that a block exists, who it involves, or which
+  direction it runs. A person adding a friend to a group learns only that the person cannot
+  be added — never that some other participant blocked them, which would tell them
+  something about two other people's relationship that neither chose to share.
+- **FR-023b**: A block created *after* both people are already in a group MUST leave the
+  group unchanged. Blocking someone MUST NOT remove the blocker from unrelated
+  conversations they are part of.
+- **FR-023c**: Blocking MUST remain absolute between two people in every one-to-one
+  context, unchanged from 004/FR-006. This requirement narrows where two people can
+  *become* group participants together; it does not weaken blocking anywhere it already
+  applies.
 - **FR-024**: A group MUST have a name that participants can set, and that name MUST be
   treated as user-generated content: reportable, moderatable, and subject to the same
   policy as any other text.
@@ -265,6 +283,10 @@ or US2.
   accept, held over a window rather than checked once.
 - **SC-010**: The participant maximum cannot be exceeded by a request that bypasses the
   app.
+- **SC-012**: Adding a blocked person to a group is refused, and the refusal is
+  indistinguishable from the refusal given for any other reason a person cannot be added —
+  compared as literal responses, since a message that differs only in wording still leaks
+  the block.
 - **SC-011**: A person who leaves a group receives no further messages from it, and the
   messages they sent before leaving remain readable to the others.
 

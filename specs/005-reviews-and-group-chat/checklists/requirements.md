@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,10 +31,19 @@
 
 ## Notes
 
-**One marker remains, deliberately: FR-023, blocking inside a group.** It is the single
-question here with several reasonable answers whose privacy consequences differ, and no
-default that is safe to assume on the owner's behalf. Every other gap the description left
-was closed with a documented assumption rather than a question.
+**All items pass.** The one marker — FR-023, blocking inside a group — was put to the
+owner and answered: a person cannot be added to a group containing anyone in a blocking
+relationship with them, and an existing group is left alone if a block happens later.
+
+Answering it surfaced a requirement the question itself did not contain. The obvious
+implementation of "refuse the add" tells the person adding that somebody blocked their
+friend, which discloses a relationship between two OTHER people that neither of them
+chose to share — and turns adding people to a group into a way to probe who has blocked
+whom. FR-023a and SC-012 exist for that, and SC-012 compares the refusals as literal
+responses, because a message that differs only in wording leaks the block just as well.
+
+Every other gap the description left was closed with a documented assumption rather than
+a question.
 
 Two validation notes worth keeping:
 
