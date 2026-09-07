@@ -7,6 +7,7 @@ import { zodBody } from '../../common/http/validation';
 import { Public } from '../../common/auth/auth.guard';
 import { RateLimit } from '../../common/rate-limit/rate-limit.guard';
 import { PostService } from './post.service';
+import { SavedPostRepository } from '../../persistence/saved-post.repository';
 import { ReactionRepository } from '../../persistence/reaction.repository';
 import { PostQueryService } from './post-query.service';
 
@@ -48,6 +49,10 @@ export class PostController {
     @Inject(PostService) private readonly posts: PostService,
     @Inject(PostQueryService) private readonly queries: PostQueryService,
     @Inject(ReactionRepository) private readonly reactions: ReactionRepository,
+    // The REPOSITORY, not SavedService: SavedModule imports PostsModule for the
+    // visibility boundary, so injecting the service here would be a cycle. The
+    // question is a point read and needs no service logic.
+    @Inject(SavedPostRepository) private readonly saved: SavedPostRepository,
   ) {}
 
   /** FR-006, FR-007, FR-013. */
@@ -95,13 +100,19 @@ export class PostController {
      * Deliberately not populated on list surfaces: that would be a lookup per
      * item per page. The field is optional in the contract for that reason.
      */
-    const viewerHasReacted =
-      req.viewer === undefined || req.viewer === null
-        ? false
-        : await this.reactions.exists(postId, req.viewer.userId);
+    const [viewerHasReacted, viewerHasSaved] = await Promise.all([
+      req.viewer ? this.reactions.exists(postId, req.viewer.userId) : Promise.resolve(false),
+      // 004/FR-037, and the same reasoning: the save control rendered unsaved
+      // every time unless the post itself said otherwise.
+      req.viewer ? this.saved.isSaved(req.viewer.userId, postId) : Promise.resolve(false),
+    ]);
     // Not `{ ...result.post }`: that is the persistence row, and spreading it
     // is what shipped authorId/interestIds/type/updatedAt to every client.
-    return { ...(await this.queries.toResponse(result.post, result.media)), viewerHasReacted };
+    return {
+      ...(await this.queries.toResponse(result.post, result.media)),
+      viewerHasReacted,
+      viewerHasSaved,
+    };
   }
 
   /**

@@ -7,6 +7,7 @@ import { InboxScreen } from '../features/conversations/InboxScreen';
 import { ConversationScreen } from '../features/conversations/ConversationScreen';
 import { PlaceScreen } from '../features/places/PlaceScreen';
 import { CreatePlaceScreen } from '../features/places/CreatePlaceScreen';
+import { SavedScreen } from '../features/profile/SavedScreen';
 import { PlacePicker } from '../features/places/PlacePicker';
 import type {
   PublicProfile,
@@ -211,6 +212,7 @@ export function PostDetailContainer({
   onOpenAuthor?: (handle: string) => void;
 }) {
   const data = useData();
+  const [saved, setSaved] = useState(false);
   const [post, setPost] = useState<Post | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [engagement, setEngagement] = useState<EngagementState>({
@@ -246,6 +248,10 @@ export function PostDetailContainer({
           commentCount: p.commentCount,
           viewerHasReacted: p.viewerHasReacted === true,
         });
+        // 004/FR-037. From the SERVER's answer, not a local default - the react
+        // control rendered unreacted on every load for a whole feature for
+        // exactly this reason.
+        setSaved(p.viewerHasSaved === true);
       })
       .catch((e: unknown) => live && setError(e instanceof DataError ? e.message : String(e)));
     return () => {
@@ -273,8 +279,25 @@ export function PostDetailContainer({
     });
   }, [data, post, postId, engagement.viewerHasReacted]);
 
+  /**
+   * 004/FR-037. Optimistic, then reconciled against the server's refusal.
+   *
+   * Saving a post you cannot see is refused (404), so a failure has to put the
+   * star back rather than leave it showing a save that did not happen.
+   */
+  const toggleSave = useCallback(async () => {
+    const next = !saved;
+    setSaved(next);
+    try {
+      await (next ? data.saved.save(postId) : data.saved.unsave(postId));
+    } catch {
+      setSaved(!next);
+    }
+  }, [data, postId, saved]);
+
   if (error) return <Failed message={error} />;
   if (!post) return <View testID="post-loading" />;
+
   return (
     <View style={{ flex: 1 }}>
       <PostDetailScreen post={post} {...(onOpenPlace ? { onOpenPlace } : {})} />
@@ -285,6 +308,8 @@ export function PostDetailContainer({
         onReact={react}
         onOpenComments={() => onOpenComments(postId)}
         onShare={() => onShare(postId)}
+        saved={saved}
+        onToggleSave={() => void toggleSave()}
       />
       <Row style={{ padding: theme.space.sm, gap: theme.space.sm }}>
         {onOpenAuthor ? (
@@ -312,6 +337,7 @@ export function PostDetailContainer({
       </Row>
     </View>
   );
+
 }
 
 export function CommentsContainer({ postId }: { postId: string }) {
@@ -1537,6 +1563,25 @@ export function CreatePlaceContainer({
       onChange={(next) => setDraft((d) => ({ ...d, ...next }))}
       onSubmit={() => void submit()}
       onUseExisting={onCreated}
+    />
+  );
+}
+
+/** FR-038, FR-039. Surface 9 in the app. */
+export function SavedContainer({ onOpenPost }: { onOpenPost: (postId: string) => void }) {
+  const data = useData();
+  const { state, error, loadMore } = usePaged(
+    (cursor) => data.saved.list(cursor ? { cursor } : {}),
+    [],
+  );
+  if (error) return <Failed message={error} />;
+  return (
+    <SavedScreen
+      posts={state}
+      onLoadMore={loadMore}
+      renderPost={(post) => (
+        <PostRow postId={post.postId} caption={post.caption ?? ''} onOpen={onOpenPost} />
+      )}
     />
   );
 }

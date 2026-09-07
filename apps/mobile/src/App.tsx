@@ -25,6 +25,7 @@ import {
   OpenConversationContainer,
   PlaceContainer,
   CreatePlaceContainer,
+  SavedContainer,
 } from './screens';
 import type { ReportSubject } from './features/safety/SafetyActions';
 import { API_BASE_URL } from './config';
@@ -227,6 +228,12 @@ export function Shell() {
               }
             />
           );
+        case 'saved':
+          return signedIn ? (
+            <SavedContainer onOpenPost={(postId) => push({ name: 'post', postId })} />
+          ) : (
+            <SignedOutNotice onSignIn={() => push({ name: 'sign-in' })} />
+          );
         case 'place':
           return (
             <PlaceContainer
@@ -349,6 +356,14 @@ export function Shell() {
                     label="Edit profile"
                     variant="secondary"
                     onPress={() => push({ name: 'edit-profile' })}
+                  />
+                  {/* 004/FR-038. The only route to a saved list - it is reachable
+                      as "mine" and nowhere else. */}
+                  <Button
+                    testID="open-saved"
+                    label="Saved"
+                    variant="secondary"
+                    onPress={() => push({ name: 'saved' })}
                   />
                 </Row>
               </View>

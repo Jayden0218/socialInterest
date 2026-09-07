@@ -382,7 +382,61 @@ describe('browser journeys - the screens the shell could not reach', () => {
     const onPlace = await viewer.data.places.posts(place.placeId, { limit: 10 });
     expect(onPlace.items.map((p) => p.postId)).toContain(postId);
   }, 120_000);
+
+  /**
+   * 004/US5 on the running app.
+   *
+   * The star and the Saved button are the only routes to a saved list, and
+   * SavedContainer is the only thing that mounts SavedScreen. Asserted through
+   * the SERVICE: a star that flips locally satisfies any DOM assertion, and
+   * that is exactly the defect the react control shipped with.
+   */
+  it('004/J-17 saving a post reaches the server and the saved list shows it', async () => {
+    const author = await actor('websaveauthor');
+    const saver = await actor('websaver');
+    const catalogue = await author.data.interests.listTop({ limit: 1 });
+    const interestId = catalogue.items[0]!.interestId;
+    await saver.data.interests.follow(interestId);
+    const postId = await publishReadyImage(author, [interestId], { caption: 'save me' });
+
+    await signInThroughTheScreen(saver.token);
+    await page.click(id('tab-feed'));
+    await page.waitForSelector(id(`post-${postId}`), { timeout: 30_000 });
+    await page.click(id(`post-${postId}`));
+
+    await page.waitForSelector(id('save-button'), { timeout: 20_000 });
+    await page.click(id('save-button'));
+
+    const savedOnServer = await eventuallySaved(saver, postId);
+    expect(savedOnServer).toBe(true);
+
+    // Back lands on the tab this journey came FROM, which is the feed. The
+    // Saved button lives on the profile tab, because the list is reachable as
+    // "mine" and nowhere else (FR-038) - so getting there is a tab away, and a
+    // test that assumed otherwise failed for its own reason rather than the
+    // product's.
+    await page.click(id('nav-back'));
+    await page.click(id('tab-profile'));
+    await page.waitForSelector(id('open-saved'), { timeout: 20_000 });
+    await page.click(id('open-saved'));
+    await page.waitForSelector(id('saved-screen'), { timeout: 20_000 });
+    await page.waitForSelector(id(`post-${postId}`), { timeout: 20_000 });
+  }, 120_000);
 });
+
+async function eventuallySaved(
+  viewer: Awaited<ReturnType<typeof actor>>,
+  postId: string,
+): Promise<boolean> {
+  const deadline = Date.now() + 10_000;
+  for (;;) {
+    const listed = await viewer.data.saved.list({ limit: 20 });
+    if (listed.items.some((p) => p.postId === postId)) return true;
+    if (Date.now() > deadline) return false;
+    await new Promise((r) => setTimeout(r, 250));
+  }
+}
+
 
 async function eventuallyFollowing(
   viewer: Awaited<ReturnType<typeof actor>>,
@@ -395,4 +449,3 @@ async function eventuallyFollowing(
     await new Promise((r) => setTimeout(r, 250));
   }
 }
-

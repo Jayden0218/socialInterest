@@ -29,12 +29,17 @@ export function EngagementBar({
   onReact,
   onOpenComments,
   onShare,
+  saved,
+  onToggleSave,
 }: {
   state: EngagementState;
   pending?: boolean;
   onReact: () => void;
   onOpenComments: () => void;
   onShare: () => void;
+  /** 004/FR-037. Comes from the SERVER, so the control reflects an answer. */
+  saved?: boolean;
+  onToggleSave?: () => void;
 }) {
   return (
     <Row style={{ gap: theme.space.lg }}>
@@ -59,6 +64,25 @@ export function EngagementBar({
       <Pressable testID="share-button" accessibilityRole="button" accessibilityLabel="Share" onPress={onShare}>
         <Text style={{ color: theme.color.muted, fontSize: theme.font.md }}>↗</Text>
       </Pressable>
+
+      {/*
+        004/FR-037. `saved` is read back from the post, not held locally - the
+        react control rendered unreacted on every load for a whole feature
+        because nothing told it otherwise.
+      */}
+      {onToggleSave ? (
+        <Pressable
+          testID="save-button"
+          accessibilityRole="button"
+          accessibilityState={{ selected: saved === true }}
+          accessibilityLabel={saved ? 'Remove from saved' : 'Save'}
+          onPress={onToggleSave}
+        >
+          <Text style={{ color: saved ? theme.color.accent : theme.color.muted, fontSize: theme.font.md }}>
+            {saved ? '★' : '☆'}
+          </Text>
+        </Pressable>
+      ) : null}
     </Row>
   );
 }

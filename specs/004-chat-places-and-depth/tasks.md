@@ -308,19 +308,19 @@ actually owed is the **new `message` category**, which is two small tasks, not f
 
 ### Tests for User Story 5
 
-- [ ] T118 [P] [US5] Write the saved-post journeys, including the **SC-013** case where the saved post's visibility later excludes the saver, in `apps/e2e/journeys/saved.spec.ts`. **Must fail**
+- [X] T118 [P] [US5] Write the saved-post journeys, including the **SC-013** case where the saved post's visibility later excludes the saver, in `apps/e2e/journeys/saved.spec.ts`. **Must fail**
 
 ### Implementation for User Story 5
 
-- [ ] T119 [US5] Implement save and unsave, refusing a post the caller cannot currently see, in `apps/api/src/modules/saved/saved.service.ts`
-- [ ] T120 [US5] Implement `GET /me/saved`, handing the saved rows to `VisibilityFilter` as a candidate set and returning full post responses, in `apps/api/src/modules/saved/saved.controller.ts`. A save is a bookmark, not a copy
-- [ ] T121 [US5] Register `SavedModule` in `apps/api/src/app.module.ts` and add `viewerHasSaved` to post responses in `apps/api/src/modules/posts/post-query.service.ts`
-- [ ] T122 [US5] Flip **surface 9** (saved posts) to `built: true` in `apps/api/tests/visibility/matrix.spec.ts` and make its 42 assertions pass 🔒
-- [ ] T123 [P] [US5] Create the saved data layer in `apps/mobile/src/data/saved.ts` and register it in `apps/mobile/src/data/index.ts` 🔒
-- [ ] T124 [US5] Add a save action to `apps/mobile/src/features/engagement/EngagementBar.tsx`
-- [ ] T125 [US5] Build `SavedScreen` in `apps/mobile/src/features/profile/SavedScreen.tsx`, add its container in `apps/mobile/src/screens/index.tsx`, and reach it from the profile tab in `apps/mobile/src/App.tsx` 🔒
-- [ ] T126 [P] [US5] Write `.maestro/17-saved.yaml`: post → save → profile → saved list
-- [ ] T127 [US5] Checkpoint: `test:visibility` reports **462/462, 0 surfaces unbuilt** — SC-005 closed
+- [X] T119 [US5] Implement save and unsave, refusing a post the caller cannot currently see, in `apps/api/src/modules/saved/saved.service.ts`
+- [X] T120 [US5] Implement `GET /me/saved`, handing the saved rows to `VisibilityFilter` as a candidate set and returning full post responses, in `apps/api/src/modules/saved/saved.controller.ts`. A save is a bookmark, not a copy
+- [X] T121 [US5] Register `SavedModule` in `apps/api/src/app.module.ts` and add `viewerHasSaved` to post responses in `apps/api/src/modules/posts/post-query.service.ts`
+- [X] T122 [US5] Flip **surface 9** (saved posts) to `built: true` in `apps/api/tests/visibility/matrix.spec.ts` and make its 42 assertions pass 🔒
+- [X] T123 [P] [US5] Create the saved data layer in `apps/mobile/src/data/saved.ts` and register it in `apps/mobile/src/data/index.ts` 🔒
+- [X] T124 [US5] Add a save action to `apps/mobile/src/features/engagement/EngagementBar.tsx`
+- [X] T125 [US5] Build `SavedScreen` in `apps/mobile/src/features/profile/SavedScreen.tsx`, add its container in `apps/mobile/src/screens/index.tsx`, and reach it from the profile tab in `apps/mobile/src/App.tsx` 🔒
+- [X] T126 [P] [US5] Write `.maestro/17-saved.yaml`: post → save → profile → saved list
+- [X] T127 [US5] Checkpoint: `test:visibility` reports **462/462 with 0 skipped and every surface probed** — SC-005 closed. The browser case caught a defect the unit tests could not: `toggleSave` was declared AFTER the container's `return`, so the star hit the temporal dead zone and did nothing. Typecheck clean, lint clean, 50 mobile tests green — and the button was inert
 
 ---
 

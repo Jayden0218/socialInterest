@@ -331,6 +331,19 @@ fi
 echo "conversations API served:"
 grep -oE '"method":"[A-Z]+","path":"/v1/conversations[^"?]*"' /tmp/api.log | sort | uniq -c
 
+echo "== 004/US5: did the save reach the server? =="
+# A star that flips locally satisfies every view assertion and is exactly the
+# defect the react control shipped with.
+if ! grep -qE '"method":"PUT","path":"/v1/posts/[^"]*/save"' /tmp/api.log; then
+  echo "FAIL: saving a post did not reach the API"
+  grep -oE '"method":"[A-Z]+","path":"/v1/(posts/[^"]*/save|me/saved)"' /tmp/api.log | sort | uniq -c || true
+  exit 1
+fi
+if ! grep -qE '"path":"/v1/me/saved' /tmp/api.log; then
+  echo "FAIL: the saved list was never fetched"
+  exit 1
+fi
+
 echo "== 004/US2: did the post actually land AT the place? =="
 # A chip rendered from local state satisfies any view assertion. The place page
 # is a SERVER query, so asking it is the only claim worth making.

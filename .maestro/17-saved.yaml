@@ -1,0 +1,49 @@
+# 004/US5, J-17. Post -> save -> profile -> saved list.
+#
+# The star and the Saved button are the ONLY routes to a saved list in the
+# product, so this flow is the guard against the shape this codebase keeps
+# producing: a screen that renders correctly and nothing that opens it.
+#
+# Whether the save reached the server is asserted service-side afterwards. A
+# star that flips locally satisfies every assertion this file can make - and
+# that is precisely the defect the react control shipped with.
+appId: app.socialinterest
+---
+- runFlow: 04-publish-image.yaml
+
+- tapOn:
+    id: "tab-profile"
+- extendedWaitUntil:
+    visible:
+      id: "post-.*"
+    timeout: 30000
+- tapOn:
+    id: "post-.*"
+- assertVisible:
+    id: "post-detail-screen"
+
+- assertVisible:
+    id: "save-button"
+- tapOn:
+    id: "save-button"
+
+# Back lands on the tab this journey came from, and the Saved button lives on
+# the profile tab - the list is reachable as "mine" and nowhere else (FR-038).
+# The browser version of this journey assumed otherwise and failed for its own
+# reason rather than the product's.
+- tapOn:
+    id: "nav-back"
+- tapOn:
+    id: "tab-profile"
+- assertVisible:
+    id: "open-saved"
+- tapOn:
+    id: "open-saved"
+- assertVisible:
+    id: "saved-screen"
+
+# The post is in the list. Empty here would mean the save never left the device.
+- extendedWaitUntil:
+    visible:
+      id: "post-.*"
+    timeout: 30000

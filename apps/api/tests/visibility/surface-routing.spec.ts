@@ -7,6 +7,7 @@ import { NotificationService } from '../../src/modules/notifications/notificatio
 import { FeedService } from '../../src/modules/feed/feed.service';
 import { MessagePresenter } from '../../src/modules/conversations/message-presenter';
 import { PlacePostsService } from '../../src/modules/places/place-posts.service';
+import { SavedService } from '../../src/modules/saved/saved.service';
 import { SURFACES } from './surfaces';
 
 /**
@@ -157,6 +158,21 @@ const PROBES: Probe[] = [
         queries,
       );
       return feed.homeFeed(VIEWER);
+    },
+  },
+  {
+    surface: 'saved posts',
+    // A save is a bookmark, not a copy. The saved ROW is a candidate; the
+    // post's CURRENT state is the answer, so this consults the boundary twice -
+    // once on the candidate set and once per surviving row.
+    run: ({ queries, filter }) => {
+      const service = new SavedService(
+        { list: async () => ({ items: [{ ...post, userId: 'viewer-1', savedAt: 'z' }], nextCursor: null }) } as never,
+        { listMedia: async () => [] } as never,
+        queries,
+        filter,
+      );
+      return service.list(VIEWER.userId);
     },
   },
   {

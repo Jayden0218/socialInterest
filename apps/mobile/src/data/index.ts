@@ -19,6 +19,7 @@ import { SessionData } from './session';
 import { PeopleData } from './people';
 import { ConversationsData } from './conversations';
 import { PlacesData } from './places';
+import { SavedData } from './saved';
 
 export interface AppData {
   client: DataClient;
@@ -32,6 +33,7 @@ export interface AppData {
   notifications: NotificationsData;
   conversations: ConversationsData;
   places: PlacesData;
+  saved: SavedData;
 }
 
 export function createAppData(opts: DataClientOptions): AppData {
@@ -48,6 +50,7 @@ export function createAppData(opts: DataClientOptions): AppData {
     notifications: new NotificationsData(client),
     conversations: new ConversationsData(client),
     places: new PlacesData(client),
+    saved: new SavedData(client),
   };
 }
 
