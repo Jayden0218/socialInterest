@@ -123,7 +123,7 @@ second. Requires nothing from US2 or US3.
 - [X] T036 [P] [US1] Journey in `apps/e2e/journeys/ratings.spec.ts`: rate a place, read the average back as a second person — **SC-001**, asserting the round trip under one second
 - [X] T037 [P] [US1] Journey in `apps/e2e/journeys/ratings.spec.ts` comparing displayed average against the individual ratings for 100 places — **SC-002**
 - [X] T038 [US1] Journey step in `apps/e2e/journeys/ratings.spec.ts` asserting withdrawal recomputes the average — **FR-003**
-- [ ] T039 [US1] Add rating shape assertions to `apps/e2e/journeys/response-shape.spec.ts` — six surfaces in this codebase shipped returning raw candidate rows, and nothing asked
+- [X] T039 [US1] Add rating shape assertions to `apps/e2e/journeys/response-shape.spec.ts` — six surfaces in this codebase shipped returning raw candidate rows, and nothing asked
 
 **Checkpoint**: ratings work end to end. US1 is shippable alone.
 
@@ -139,47 +139,47 @@ remove it as a moderator, confirm it is gone and the log survives.
 
 ### Contract tests first — G4
 
-- [ ] T040 [US2] Write the review decision table from `contracts/visibility-matrix-addendum.md` § 2 into `apps/api/tests/visibility/matrix.spec.ts`: 4 states × 4 viewers
-- [ ] T041 [US2] Add the two blocking assertions to `apps/api/tests/visibility/matrix.spec.ts`, **both directions separately** — a single-direction check passes against an implementation that only looks one way (**SC-004**)
-- [ ] T042 [US2] Add a routing probe for the review path to `apps/api/tests/visibility/surface-routing.spec.ts`, distinct from the place page's post probe
-- [ ] T043 [US2] Run `pnpm --filter @sih/api test tests/visibility/` and confirm T040–T042 **fail** before any review read path exists — a contract test that passes before its implementation is testing nothing
+- [X] T040 [US2] Write the review decision table from `contracts/visibility-matrix-addendum.md` § 2 into `apps/api/tests/visibility/matrix.spec.ts`: 4 states × 4 viewers
+- [X] T041 [US2] Add the two blocking assertions to `apps/api/tests/visibility/matrix.spec.ts`, **both directions separately** — a single-direction check passes against an implementation that only looks one way (**SC-004**)
+- [X] T042 [US2] Add a routing probe for the review path to `apps/api/tests/visibility/surface-routing.spec.ts`, distinct from the place page's post probe
+- [X] T043 [US2] Run `pnpm --filter @sih/api test tests/visibility/` and confirm T040–T042 **fail** before any review read path exists — a contract test that passes before its implementation is testing nothing
 
 ### Tests for US2
 
-- [ ] T044 [P] [US2] Integration test in `apps/api/tests/integration/review-moderation.spec.ts`: report → queue → remove → gone from the place page, log readable afterwards — **SC-006**
-- [ ] T045 [P] [US2] Integration test in `apps/api/tests/integration/review-removal-aggregate.spec.ts` asserting a removed review leaves the average — **FR-016**, research R6
-- [ ] T046 [P] [US2] Negative test in `apps/e2e/journeys/negative.spec.ts` fetching a blocked person's review through a **raw request**, not the data layer — Principle III
+- [X] T044 [P] [US2] Integration test in `apps/api/tests/integration/review-moderation.spec.ts`: report → queue → remove → gone from the place page, log readable afterwards — **SC-006**
+- [X] T045 [P] [US2] Integration test in `apps/api/tests/integration/review-removal-aggregate.spec.ts` asserting a removed review leaves the average — **FR-016**, research R6
+- [X] T046 [P] [US2] Negative test in `apps/e2e/journeys/negative.spec.ts` fetching a blocked person's review through a **raw request**, not the data layer — Principle III
 
 ### Implementation for US2
 
-- [ ] T047 [US2] Add `body` and `removedByModeration` to the rating item in `apps/api/src/persistence/rating.repository.ts`
-- [ ] T048 [US2] Accept optional `body` (max 2000 chars) in `apps/api/src/ratings/rating.service.ts`
+- [X] T047 [US2] Add `body` and `removedByModeration` to the rating item in `apps/api/src/persistence/rating.repository.ts`
+- [X] T048 [US2] Accept optional `body` (max 2000 chars) in `apps/api/src/ratings/rating.service.ts`
 - [X] T049 [US2] **Pulled forward into US1.** The contract's `RatingWithSummary` returns a `Review`, which requires a hydrated author — so US1's `PUT` needed the responder. Building it in US1 was the alternative to US1 growing a second review shape that US2 then replaced, which is the two-responders defect. Created `apps/api/src/ratings/review-query.service.ts` as the **one responder**, hydrating the author — the same argument as one `VisibilityFilter`, applied to the shape rather than the decision
-- [ ] T050 [US2] Route review reads through `decideAuthored()` in `apps/api/src/ratings/review-query.service.ts`
-- [ ] T051 [US2] Add `GET /v1/places/:placeId/reviews` to `apps/api/src/modules/places/place.controller.ts` with **optional auth**, add `'GET /places/:placeId/reviews'` to `EXPECTED_PUBLIC` in `apps/api/tests/integration/auth-surface.spec.ts` (per T015), and confirm the client sends a token on it — 002's third defect was exactly this
-- [ ] T052 [US2] Add cursor pagination to the review list in `apps/api/src/ratings/review-query.service.ts`, sorting by `updatedAt` in memory per data-model.md § A35's stated limit
-- [ ] T053 [US2] Flip the surface row to `built: true` in `apps/api/tests/visibility/surfaces.ts` and update the asserted total to **480**
-- [ ] T054 [US2] Verify `surface-routing.spec.ts` reports `surfaces without a routing probe yet: none`
+- [X] T050 [US2] Route review reads through `decideAuthored()` in `apps/api/src/ratings/review-query.service.ts`
+- [X] T051 [US2] Add `GET /v1/places/:placeId/reviews` to `apps/api/src/modules/places/place.controller.ts` with **optional auth**, add `'GET /places/:placeId/reviews'` to `EXPECTED_PUBLIC` in `apps/api/tests/integration/auth-surface.spec.ts` (per T015), and confirm the client sends a token on it — 002's third defect was exactly this
+- [X] T052 [US2] Add cursor pagination to the review list in `apps/api/src/ratings/review-query.service.ts`, sorting by `updatedAt` in memory per data-model.md § A35's stated limit
+- [X] T053 [US2] Flip the surface row to `built: true` in `apps/api/tests/visibility/surfaces.ts` and update the asserted total to **480**
+- [X] T054 [US2] Verify `surface-routing.spec.ts` reports `surfaces without a routing probe yet: none`
 
 ### Safety for US2 — G2, and inside this story on purpose
 
-- [ ] T055 [US2] Add `review` to the `subjectType` enum in `apps/api/src/modules/safety/safety.controller.ts` and `ReportSubjectType` in `apps/api/src/persistence/report.repository.ts`, **together with** its branch in `apps/api/src/modules/safety/report.service.ts` resolving the compound `<placeId>:<userId>` id — one change, per T014
-- [ ] T056 [US2] Add the `review` branch to `remove_content` in `apps/api/src/modules/moderation/moderation.controller.ts`, setting `removedByModeration` **and** decrementing the place aggregate (research R6)
-- [ ] T057 [US2] Confirm the removal decision is written to the append-only log in `apps/api/src/modules/moderation/moderation.controller.ts`, and that the log survives the review
-- [ ] T058 [US2] Notify the review's author on removal in `apps/api/src/modules/moderation/moderation.controller.ts`, reusing the path FR-045 already uses for posts
+- [X] T055 [US2] Add `review` to the `subjectType` enum in `apps/api/src/modules/safety/safety.controller.ts` and `ReportSubjectType` in `apps/api/src/persistence/report.repository.ts`, **together with** its branch in `apps/api/src/modules/safety/report.service.ts` resolving the compound `<placeId>:<userId>` id — one change, per T014
+- [X] T056 [US2] Add the `review` branch to `remove_content` in `apps/api/src/modules/moderation/moderation.controller.ts`, setting `removedByModeration` **and** decrementing the place aggregate (research R6)
+- [X] T057 [US2] Confirm the removal decision is written to the append-only log in `apps/api/src/modules/moderation/moderation.controller.ts`, and that the log survives the review
+- [X] T058 [US2] Notify the review's author on removal in `apps/api/src/modules/moderation/moderation.controller.ts`, reusing the path FR-045 already uses for posts
 
 ### Mobile for US2
 
-- [ ] T059 [P] [US2] Create `ReviewList` in `apps/mobile/src/features/places/ReviewList.tsx` with testIDs `review-<userId>` and `review-list`
-- [ ] T060 [P] [US2] Add review composition to `apps/mobile/src/features/places/RatingControl.tsx` with testID `review-body-input`
-- [ ] T061 [US2] Wire both into the place container in `apps/mobile/src/screens/index.tsx`
-- [ ] T062 [US2] Add a report affordance for a review in `apps/mobile/src/features/safety/SafetyActions.tsx` with testID `report-review`
+- [X] T059 [P] [US2] Create `ReviewList` in `apps/mobile/src/features/places/ReviewList.tsx` with testIDs `review-<userId>` and `review-list`
+- [X] T060 [P] [US2] Add review composition to `apps/mobile/src/features/places/RatingControl.tsx` with testID `review-body-input`
+- [X] T061 [US2] Wire both into the place container in `apps/mobile/src/screens/index.tsx`
+- [X] T062 [US2] Add a report affordance for a review in `apps/mobile/src/features/safety/SafetyActions.tsx` with testID `report-review`
 
 ### Measuring US2's criteria
 
-- [ ] T063 [P] [US2] Journey in `apps/e2e/journeys/reviews.spec.ts` covering write → read → block both directions → absent — **SC-004**
-- [ ] T064 [US2] Add review shape assertions to `apps/e2e/journeys/response-shape.spec.ts` — hydrated author, score, body, timestamps
-- [ ] T065 [US2] Run `pnpm --filter @sih/api test tests/visibility/matrix.spec.ts` and confirm **480 assertions, zero skipped** — **SC-005**
+- [X] T063 [P] [US2] Journey in `apps/e2e/journeys/reviews.spec.ts` covering write → read → block both directions → absent — **SC-004**
+- [X] T064 [US2] Add review shape assertions to `apps/e2e/journeys/response-shape.spec.ts` — hydrated author, score, body, timestamps
+- [X] T065 [US2] Run `pnpm --filter @sih/api test tests/visibility/matrix.spec.ts` and confirm **480 assertions, zero skipped** — **SC-005**
 
 **Checkpoint**: reviews are readable, blockable, reportable and removable. G2 satisfied.
 

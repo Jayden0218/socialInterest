@@ -7,6 +7,7 @@ import { zodBody } from '../../common/http/validation';
 import { ReportRepository, type ReportState } from '../../persistence/report.repository';
 import { ModerationLogRepository } from '../../persistence/moderation-log.repository';
 import { PostRepository } from '../../persistence/post.repository';
+import { RatingRepository } from '../../persistence/rating.repository';
 import { NotificationRepository } from '../../persistence/notification.repository';
 import { MessageRepository } from '../../persistence/message.repository';
 
@@ -25,6 +26,7 @@ export class ModerationController {
     @Inject(PostRepository) private readonly posts: PostRepository,
     @Inject(MessageRepository) private readonly messages: MessageRepository,
     @Inject(NotificationRepository) private readonly notifications: NotificationRepository,
+    @Inject(RatingRepository) private readonly ratings: RatingRepository,
   ) {}
 
   /**
@@ -60,6 +62,27 @@ export class ModerationController {
     if (removing && report.subjectType === 'post') {
       await this.posts.setRemovedByModeration(report.subjectId);
     }
+    /**
+     * 005/FR-015, FR-016 and research R6. Removing a review takes its RATING
+     * with it - `setRemovedByModeration` decrements the place's aggregate in the
+     * same transaction that marks the row.
+     *
+     * The alternative - keep the score, drop the text - is defensible in
+     * principle and wrong here: the cases that produce a removal (abuse, spam, a
+     * competitor's sabotage) are cases where the score is as untrustworthy as the
+     * words, and leaving a 1-star rating from a removed abusive review makes
+     * removal a partial win for the abuser.
+     *
+     * Consequence, stated rather than hidden: MODERATION CHANGES A PLACE'S PUBLIC
+     * RATING. That is intended, and is why the decision is written to the
+     * append-only log like every other one.
+     */
+    if (removing && report.subjectType === 'review') {
+      const [placeId, raterId] = report.subjectId.split(':');
+      if (placeId && raterId) {
+        await this.ratings.setRemovedByModeration(placeId, raterId);
+      }
+    }
     if (removing && report.subjectType === 'message') {
       const [conversationId, messageId] = report.subjectId.split(':');
       if (conversationId && messageId) {
@@ -84,6 +107,26 @@ export class ModerationController {
       action: decision.action ?? decision.state,
       ...(decision.note ? { note: decision.note } : {}),
     });
+
+    /**
+     * 005/FR-015. The review's author is told, on the same path a post's author
+     * is told.
+     *
+     * This is why the addendum makes a removed review `gone` even to its own
+     * author: they learn of the removal HERE rather than by finding the review
+     * still sitting on the page, which reads as "the removal did not work" and
+     * invites a second submission.
+     */
+    if (removing && report.subjectType === 'review') {
+      const [, raterId] = report.subjectId.split(':');
+      if (raterId) {
+        await this.notifications.create({
+          recipientId: raterId,
+          kind: 'comment',
+          actorId: 'SYSTEM',
+        });
+      }
+    }
 
     // FR-045: the author is told when their content is removed.
     if (removing && report.subjectType === 'post') {

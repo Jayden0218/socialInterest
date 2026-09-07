@@ -126,5 +126,69 @@ describe('no surface returns VisibilityFilter candidates as a response', () => {
       expect(typeof item.processingState).toBe('string');
     }
   }, 120_000);
-});
 
+  /**
+   * 005. Reviews, on the same terms as posts.
+   *
+   * `PostQueryService.listByAuthor` once returned VisibilityFilter's CANDIDATE
+   * rows as the response - caption null, no media, no counts, no author - and
+   * the interest space, the product's primary browse surface, shipped the same
+   * way. Six instances. The filter decides what is VISIBLE; it never decides the
+   * SHAPE of what to send.
+   *
+   * These fields are the persistence row's, and none of them belongs in a
+   * response: `userId` is an id where the contract promises a hydrated profile,
+   * and `removedByModeration` tells a reader that something was moderated here.
+   */
+  const INTERNAL_REVIEW_FIELDS = ['userId', 'removedByModeration', 'type', 'pk', 'sk'] as const;
+
+  it('reviews come back hydrated, on every path that returns one', async () => {
+    const author = await actor('reviewShape');
+    const reader = await actor('reviewShapeReader');
+    const place = await author.data.places.create({
+      name: `Shape ${Math.random().toString(36).slice(2, 8)}`,
+      category: 'cafe',
+      locality: `Shape-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    });
+
+    // Path 1: the response to writing one.
+    const written = await author.data.places.rate(place.placeId, { score: 4, body: 'Shape check.' });
+    // Path 2: the list on the place page, read by somebody else.
+    const listed = (await reader.data.places.reviews(place.placeId)).items;
+    expect(listed).toHaveLength(1);
+
+    for (const review of [written.rating, listed[0]!]) {
+      const keys = Object.keys(review as unknown as Record<string, unknown>);
+      const leaked = INTERNAL_REVIEW_FIELDS.filter((f) => keys.includes(f));
+      expect({ keys, leaked }).toEqual({ keys, leaked: [] });
+
+      // And the fields the contract promises are PRESENT and hydrated - the
+      // half a leak check cannot cover, and the half six surfaces failed.
+      expect(review.placeId).toBe(place.placeId);
+      expect(review.score).toBe(4);
+      expect(review.body).toBe('Shape check.');
+      expect(review.author.handle).toBe(author.handle);
+      expect(review.author.displayName).toEqual(expect.any(String));
+      expect(review.createdAt).toEqual(expect.any(String));
+      expect(review.updatedAt).toEqual(expect.any(String));
+    }
+  });
+
+  /**
+   * The rating summary, which is a different shape defect: an average that
+   * arrives as 0 rather than null makes every unrated place look badly rated,
+   * and no leak check would notice.
+   */
+  it('a place carries a rating summary whose average is null, not zero, when unrated', async () => {
+    const owner = await actor('summaryShape');
+    const place = await owner.data.places.create({
+      name: `Summary ${Math.random().toString(36).slice(2, 8)}`,
+      category: 'shop',
+      locality: `Summary-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    });
+
+    const fetched = await owner.data.places.get(place.placeId);
+    expect(fetched.ratingSummary).toEqual({ average: null, count: 0 });
+    expect(fetched.ratingSummary?.average).not.toBe(0);
+  });
+});

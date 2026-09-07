@@ -45,6 +45,10 @@ describe('the public/authenticated boundary', () => {
     'GET /places',
     'GET /places/:placeId',
     'GET /places/:placeId/posts',
+    // 005: the only new PUBLIC route. Rating, group creation, adding a
+    // participant and leaving are all authenticated, and their absence from this
+    // list is what would make a wrongly-public one fail here.
+    'GET /places/:placeId/reviews',
     'GET /posts/:postId',
     'GET /posts/:postId/comments',
     // There is deliberately no GET /share/:postId. A share link resolves through

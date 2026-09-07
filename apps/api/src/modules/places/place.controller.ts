@@ -52,7 +52,7 @@ export class PlaceController {
     @Inject(PlacePostsService) private readonly placePosts: PlacePostsService,
     @Inject(PlaceRepository) private readonly repo: PlaceRepository,
     @Inject(RatingService) private readonly ratings: RatingService,
-    @Inject(ReviewQueryService) private readonly reviews: ReviewQueryService,
+    @Inject(ReviewQueryService) private readonly reviewQueries: ReviewQueryService,
   ) {}
 
   /** FR-014, FR-022. Readable signed out, like interest search. */
@@ -147,7 +147,7 @@ export class PlaceController {
       body: input.body ?? null,
     });
     return {
-      rating: await this.reviews.responseFor(rating, req.viewer ?? null),
+      rating: await this.reviewQueries.responseFor(rating, req.viewer ?? null),
       summary,
     };
   }
@@ -157,6 +157,31 @@ export class PlaceController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async withdrawRating(@Req() req: AppRequest, @Param('placeId') placeId: string) {
     await this.ratings.withdraw(placeId, req.viewer!.userId);
+  }
+
+  /**
+   * 005/FR-010, FR-012. Surface 12.
+   *
+   * `@Public()` means readable signed out - not that the caller is ignored.
+   * ApiClient sends a token whenever it has one, and the boundary applies blocks
+   * in both directions when it knows who is asking. Gating the header on whether
+   * an endpoint REQUIRES auth is 002's third defect, which made a signed-in
+   * person anonymous on exactly these reads.
+   */
+  @Public()
+  @Get(':placeId/reviews')
+  async reviews(
+    @Req() req: AppRequest,
+    @Param('placeId') placeId: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const place = await this.repo.find(placeId);
+    if (!place) throw new DomainError(HttpStatus.NOT_FOUND, 'No such place');
+    return this.reviewQueries.listByPlace(req.viewer ?? null, placeId, {
+      limit: limit ? Math.min(50, Math.max(1, Number(limit) || 20)) : 20,
+      ...(cursor ? { cursor } : {}),
+    });
   }
 
   /** FR-020. Operators only. A merge carries posts and followers across. */

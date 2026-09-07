@@ -104,3 +104,97 @@ describe('negative journeys - driven as a hostile client', () => {
     expect([401, 403]).toContain(moderation.status);
   });
 });
+
+/**
+ * 005, THROUGH THE PATH A MODIFIED CLIENT WOULD TAKE.
+ *
+ * Constitution principle III: a server-side guarantee tested only through the
+ * well-behaved first-party client is not tested at all - and the modified client
+ * is the one that will exist. Everything here bypasses apps/mobile/src/data.
+ */
+describe('005 - server-side guarantees, asked rudely', () => {
+  const uniqueLocality = (p: string) => `${p}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  const makePlace = async (owner: Awaited<ReturnType<typeof actor>>) =>
+    owner.data.places.create({
+      name: `Rude ${Math.random().toString(36).slice(2, 8)}`,
+      category: 'other',
+      locality: uniqueLocality('rude'),
+    });
+
+  /**
+   * SC-004, but through a raw request rather than the data layer.
+   *
+   * The app filtering a blocked person's review out of a list it received is not
+   * the guarantee. The guarantee is that the server never sends it.
+   */
+  it('N-06 a blocked person\'s review is absent from the raw response, both directions', async () => {
+    const author = await actor('rudeRevAuthor');
+    const viewer = await actor('rudeViewer');
+    const place = await makePlace(author);
+    await author.data.places.rate(place.placeId, { score: 1, body: 'Hidden soon.' });
+
+    const before = await raw(baseUrl(), `/v1/places/${place.placeId}/reviews`, {
+      token: viewer.token,
+    });
+    expect(before.status).toBe(200);
+    expect((before.body as { items: unknown[] }).items).toHaveLength(1);
+
+    await viewer.data.safety.block(author.handle);
+    const afterViewerBlocks = await raw(baseUrl(), `/v1/places/${place.placeId}/reviews`, {
+      token: viewer.token,
+    });
+    expect((afterViewerBlocks.body as { items: unknown[] }).items).toHaveLength(0);
+
+    // The other direction, with a second pair - the same assertion is only worth
+    // making twice if the two blocks are independent.
+    const author2 = await actor('rudeRevAuthor2');
+    const viewer2 = await actor('rudeViewer2');
+    const place2 = await makePlace(author2);
+    await author2.data.places.rate(place2.placeId, { score: 1, body: 'Also hidden.' });
+    await author2.data.safety.block(viewer2.handle);
+
+    const afterAuthorBlocks = await raw(baseUrl(), `/v1/places/${place2.placeId}/reviews`, {
+      token: viewer2.token,
+    });
+    expect((afterAuthorBlocks.body as { items: unknown[] }).items).toHaveLength(0);
+  });
+
+  /**
+   * FR-001 and the general lesson behind FR-031: a constraint enforced only
+   * where the well-behaved client passes through is not enforced. A 7 would
+   * corrupt this place's average permanently, and nothing would ever detect it.
+   */
+  it('N-07 refuses an out-of-range score sent past the client', async () => {
+    const owner = await actor('rudeRater');
+    const place = await makePlace(owner);
+
+    for (const score of [0, 6, 99, -3, 2.5, '5', null]) {
+      const res = await raw(baseUrl(), `/v1/places/${place.placeId}/rating`, {
+        token: owner.token,
+        method: 'PUT',
+        body: JSON.stringify({ score }),
+      });
+      expect([400, 422]).toContain(res.status);
+    }
+
+    const place2 = await owner.data.places.get(place.placeId);
+    expect(place2.ratingSummary).toEqual({ average: null, count: 0 });
+  });
+
+  /**
+   * A review body longer than the contract allows. Not a security boundary, but
+   * an unbounded write into a row every place-page reader fetches.
+   */
+  it('N-08 refuses an oversized review body sent past the client', async () => {
+    const owner = await actor('rudeReviewer');
+    const place = await makePlace(owner);
+
+    const res = await raw(baseUrl(), `/v1/places/${place.placeId}/rating`, {
+      token: owner.token,
+      method: 'PUT',
+      body: JSON.stringify({ score: 4, body: 'x'.repeat(5000) }),
+    });
+    expect([400, 422]).toContain(res.status);
+  });
+});

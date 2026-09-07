@@ -241,8 +241,18 @@ export function Shell() {
               placeId={top.placeId}
               signedIn={signedIn}
               onOpenPost={(postId) => push({ name: 'post', postId })}
+              /**
+               * 005/FR-014. ONE callback, two subject types, told apart by the
+               * shape of the id: a review's is `<placeId>:<userId>`, a place's
+               * is a bare id. That is the same discriminator the API uses, so
+               * the client cannot report a review as a place or the reverse.
+               */
               onReport={(subjectId) =>
-                requireSignIn({ name: 'safety', subject: 'place', subjectId })
+                requireSignIn({
+                  name: 'safety',
+                  subject: subjectId.includes(':') ? 'review' : 'place',
+                  subjectId,
+                })
               }
             />
           );

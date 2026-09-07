@@ -41,6 +41,12 @@ interface Probe {
    * say why.
    */
   returnsNoPosts?: string;
+  /**
+   * 005. This surface reaches the boundary through the second entry point, so
+   * `filter.decide` is correctly never called - the probe asserts on the shared
+   * block check itself instead.
+   */
+  consultsSharedBlockCheck?: boolean;
 }
 
 interface Ctx {
@@ -49,6 +55,14 @@ interface Ctx {
   decide: jest.SpyInstance;
   filterMany: jest.SpyInstance;
   getById: jest.SpyInstance;
+  /**
+   * 005. The block repository itself, spied.
+   *
+   * A review does not call `filter.decide` - it goes through the second entry
+   * point, which delegates to the shared rules. Watching the block repository is
+   * what proves BOTH paths end at the same question.
+   */
+  blocksSpy: jest.SpyInstance;
 }
 
 const VIEWER = { userId: 'viewer-1' };
@@ -65,6 +79,10 @@ const post = {
 function build(): Ctx {
   const follows = { isFollowing: async () => false } as unknown as PersonFollowRepository;
   const blocks = { existsBetween: async () => false } as unknown as BlockRepository;
+  const blocksSpy = jest.spyOn(
+    blocks as unknown as { existsBetween: () => Promise<boolean> },
+    'existsBetween',
+  );
   const filter = new VisibilityFilter(follows, blocks);
 
   const posts = {
@@ -93,6 +111,7 @@ function build(): Ctx {
     decide: jest.spyOn(filter, 'decide'),
     filterMany: jest.spyOn(filter, 'filter'),
     getById: jest.spyOn(queries, 'getById'),
+    blocksSpy,
   };
 }
 
@@ -227,6 +246,55 @@ const PROBES: Probe[] = [
       'response it becomes a real post read path and needs a probe here, not a comment.',
     run: async () => undefined,
   },
+  {
+    surface: 'place reviews',
+    /**
+     * 005/US2, and a DIFFERENT KIND of probe from every other row here.
+     *
+     * The place page is already surface 8 and returns posts; this is its second
+     * read path, returning reviews through the second entry point. Probing only
+     * the post path would report the place page as consulting the boundary while
+     * its review path did not - which is exactly the gap this suite exists to
+     * close, one level down.
+     *
+     * The spy is on the BLOCK REPOSITORY rather than on `filter.decide`: reviews
+     * go through AuthoredContentVisibility, which delegates to the same shared
+     * rules and the same RelationshipCache. `blocksSpy` firing is the proof that
+     * the review path ended at the one place the block question is answered,
+     * which is the whole of research R4.
+     */
+    run: async ({ filter, blocksSpy }) => {
+      const { ReviewQueryService } = jest.requireActual<
+        typeof import('../../src/ratings/review-query.service')
+      >('../../src/ratings/review-query.service');
+      const { AuthoredContentVisibility } = jest.requireActual<
+        typeof import('../../src/visibility/authored-content')
+      >('../../src/visibility/authored-content');
+
+      const service = new ReviewQueryService(
+        {
+          listByPlace: async () => ({
+            items: [
+              {
+                placeId: 'pl1',
+                userId: 'a1',
+                score: 5,
+                body: 'good',
+                createdAt: '2026-01-01T00:00:00Z',
+                updatedAt: '2026-01-01T00:00:00Z',
+              },
+            ],
+            nextCursor: null,
+          }),
+        } as never,
+        { findById: async () => ({ userId: 'a1', handle: 'a', displayName: 'A' }) } as never,
+        new AuthoredContentVisibility(filter),
+      );
+      await service.listByPlace(VIEWER, 'pl1');
+      expect(blocksSpy.mock.calls.length).toBeGreaterThan(0);
+    },
+    consultsSharedBlockCheck: true,
+  },
 ];
 
 describe('every enumerated surface consults the one visibility boundary', () => {
@@ -246,6 +314,15 @@ describe('every enumerated surface consults the one visibility boundary', () => 
 
       const ctx = build();
       await probe!.run(ctx);
+
+      // A surface whose probe asserts on the shared block check has already made
+      // its assertion inside `run`. Requiring `filter.decide` here too would
+      // force the review path to call the post entry point - the exact coupling
+      // research R4 removed.
+      if (probe!.consultsSharedBlockCheck) {
+        expect(ctx.blocksSpy.mock.calls.length).toBeGreaterThan(0);
+        return;
+      }
 
       const consulted =
         ctx.decide.mock.calls.length > 0 ||

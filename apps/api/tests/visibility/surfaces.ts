@@ -15,6 +15,18 @@ export interface Surface {
   /** Enabled by the story that builds it. `false` means SKIPPED, never passed. */
   readonly built: boolean;
   readonly story: string;
+  /**
+   * WHAT KIND OF CONTENT this surface returns, and therefore which decision
+   * table applies to it. Defaults to 'post'.
+   *
+   * 005 added the first surface that is not about posts. Without this the post
+   * matrix - 7 post states x 6 viewers - would run against the review surface,
+   * asserting things like "a followers-only review while processing" about a
+   * thing that has neither a visibility setting nor a processing state. It would
+   * have passed, too, because `decide()` would answer for a candidate built out
+   * of invented fields; the count would have read 504 and meant nothing.
+   */
+  readonly kind?: 'post' | 'review';
 }
 
 export const SURFACES: readonly Surface[] = [
@@ -46,7 +58,7 @@ export const SURFACES: readonly Surface[] = [
   // as `built: true` before the code exists fails the ratchet, and leaving it out
   // entirely lets the suite report a smaller green number while a surface is
   // uncovered. False is the honest value until T053 flips it.
-  { name: 'place reviews', built: false, story: '005/US2 (T053)' },
+  { name: 'place reviews', built: true, story: '005/US2 (T053)', kind: 'review' },
 ] as const;
 
 /**
@@ -77,6 +89,8 @@ export const EVER_BUILT: readonly string[] = [
   'saved posts',
   'shared post in a message',
   'in-interest search',
+  // 005
+  'place reviews',
 ];
 
 export const POST_STATE_COUNT = 7;

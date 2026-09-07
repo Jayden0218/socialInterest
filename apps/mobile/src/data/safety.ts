@@ -22,7 +22,15 @@ export class SafetyData {
      * does not locate a message, and the composite is also the only form a
      * participant can produce, so an outsider cannot fish for ids by reporting.
      */
-    subjectType: 'post' | 'comment' | 'interest' | 'message' | 'place' | 'interest-description';
+    subjectType:
+      | 'post'
+      | 'comment'
+      | 'interest'
+      | 'message'
+      | 'place'
+      | 'interest-description'
+      // 005/FR-014.
+      | 'review';
     subjectId: string;
     reason: ReportReason;
     detail?: string;

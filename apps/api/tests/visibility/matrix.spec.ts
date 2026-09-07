@@ -100,7 +100,7 @@ const skippedSurfaces: string[] = [];
 describe('SC-009 visibility matrix', () => {
   const filter = buildFilter();
 
-  for (const surface of SURFACES) {
+  for (const surface of SURFACES.filter((s) => (s.kind ?? 'post') === 'post')) {
     const run = surface.built ? describe : describe.skip;
     if (!surface.built) skippedSurfaces.push(`${surface.name} (built by ${surface.story})`);
 
@@ -124,10 +124,11 @@ describe('SC-009 visibility matrix', () => {
 
   afterAll(() => {
     const perSurface = Object.keys(POST_STATES).length * Object.keys(VIEWERS).length;
-    const built = SURFACES.filter((s) => s.built).length;
+    const postSurfaces = SURFACES.filter((s) => (s.kind ?? 'post') === 'post');
+    const built = postSurfaces.filter((s) => s.built).length;
     console.log(
-      `\n001/SC-009 + 004/SC-005: ${assertionsRun}/${perSurface * SURFACES.length} assertions run ` +
-        `(${built}/${SURFACES.length} surfaces built).\n` +
+      `\n001/SC-009 + 004/SC-005: ${assertionsRun}/${perSurface * postSurfaces.length} post assertions run ` +
+        `(${built}/${postSurfaces.length} post surfaces built).\n` +
         `Not yet built: ${skippedSurfaces.join(', ') || 'none - every enumerated surface is covered'}\n`,
     );
   });
@@ -158,8 +159,8 @@ describe('SC-009 visibility matrix', () => {
    * And the count must match the surfaces claiming coverage - so a surface
    * cannot be marked built while contributing no assertions.
    */
-  it('every built surface contributes its full set of assertions', () => {
-    const built = SURFACES.filter((s) => s.built).length;
+  it('every built post surface contributes its full set of assertions', () => {
+    const built = SURFACES.filter((s) => (s.kind ?? 'post') === 'post' && s.built).length;
     expect(assertionsRun).toBe(
       Object.keys(POST_STATES).length * Object.keys(VIEWERS).length * built,
     );
@@ -177,5 +178,148 @@ describe('SC-009 visibility matrix', () => {
       console.log(`\n  SURFACES NOT YET COVERED - SC-005 is NOT closed: ${pending.join(', ')}\n`);
     }
     expect(pending.every((p) => !EVER_BUILT.includes(p.split(' (')[0]!))).toBe(true);
+  });
+});
+
+/**
+ * ===========================================================================
+ * THE REVIEW DECISION TABLE (005/US2)
+ * ===========================================================================
+ *
+ * From contracts/visibility-matrix-addendum.md § 2, which is a contract. Written
+ * BEFORE the review read path exists (plan gate G4), so it fails until T050.
+ *
+ * A SMALLER TABLE, AND THAT IS THE POINT. A review has no audience setting - it
+ * is as visible as the place page it sits on - so there is no `followers` or
+ * `private` row to evaluate. 4 states x 4 viewers, plus the two blocking
+ * directions, is the whole of it.
+ *
+ * Running the POST table here instead would have been the easy mistake: 7 post
+ * states x 6 viewers against a thing with neither a visibility setting nor a
+ * processing state. It would have passed, because `decide()` answers for any
+ * candidate you hand it, and the count would have read 504 and meant nothing.
+ * That is why `Surface.kind` exists.
+ */
+const REVIEW_AUTHOR = 'review-author-1';
+
+const REVIEW_VIEWERS = {
+  anonymous: null,
+  author: { userId: REVIEW_AUTHOR },
+  other: { userId: 'review-other-1' },
+  operator: { userId: 'review-operator-1', isOperator: true },
+} satisfies Record<string, Viewer>;
+
+type ReviewViewerKey = keyof typeof REVIEW_VIEWERS;
+
+const REVIEW_STATES = {
+  live: {},
+  removed: { removedByModeration: true },
+  'author-deleting': { authorStatus: 'deleting' as const },
+  'author-deleted': { authorStatus: 'deleted' as const },
+};
+
+type ReviewStateKey = keyof typeof REVIEW_STATES;
+
+/**
+ * Two rows deserve their reasons restated here, because both are places a
+ * reasonable person would implement the opposite:
+ *
+ *  - `removed` is gone to its OWN AUTHOR. A moderated review its author can
+ *    still see reads as "the removal did not work" and invites a second
+ *    submission. They learn of it through the notification FR-015 sends.
+ *  - `removed` is gone to an OPERATOR too. A moderator reviewing a decision
+ *    reads the append-only log, which survives the content; making removed
+ *    content visible on the product surface would be a second, weaker
+ *    moderation view.
+ */
+const REVIEW_EXPECTED: Record<ReviewStateKey, Record<ReviewViewerKey, boolean>> = {
+  live: { anonymous: true, author: true, other: true, operator: true },
+  removed: { anonymous: false, author: false, other: false, operator: false },
+  'author-deleting': { anonymous: false, author: false, other: false, operator: false },
+  'author-deleted': { anonymous: false, author: false, other: false, operator: false },
+};
+
+let reviewAssertionsRun = 0;
+
+describe('SC-005 review visibility (005 addendum)', () => {
+  const reviewSurface = SURFACES.find((s) => s.kind === 'review');
+  const run = reviewSurface?.built ? describe : describe.skip;
+
+  run('surface: place reviews', () => {
+    const build = () => {
+      const filter = buildFilter();
+      const { AuthoredContentVisibility } = jest.requireActual<
+        typeof import('../../src/visibility/authored-content')
+      >('../../src/visibility/authored-content');
+      return new AuthoredContentVisibility(filter);
+    };
+
+    for (const state of Object.keys(REVIEW_STATES) as ReviewStateKey[]) {
+      for (const viewerKey of Object.keys(REVIEW_VIEWERS) as ReviewViewerKey[]) {
+        const expected = REVIEW_EXPECTED[state][viewerKey];
+        it(`${state} / ${viewerKey} -> ${expected ? 'visible' : 'hidden'}`, async () => {
+          const visibility = build();
+          const decision = await visibility.decide(
+            REVIEW_VIEWERS[viewerKey],
+            { authorId: REVIEW_AUTHOR, ...REVIEW_STATES[state] },
+            visibility.newRequestCache(),
+          );
+          expect(decision.visible).toBe(expected);
+          reviewAssertionsRun++;
+        });
+      }
+    }
+
+    /**
+     * FR-013 and SC-004. BOTH DIRECTIONS, ASSERTED SEPARATELY.
+     *
+     * A single-direction check passes against an implementation that only looks
+     * one way - which is a real and asymmetric leak: "people I blocked cannot
+     * see my reviews" and "I cannot see reviews by people who blocked me" are
+     * different guarantees, and shipping one of them looks exactly like
+     * shipping both.
+     */
+    it('a review by somebody the viewer has blocked is gone', async () => {
+      const visibility = build();
+      const decision = await visibility.decide(
+        { userId: 'blocker-1' },
+        { authorId: AUTHOR },
+        visibility.newRequestCache(),
+      );
+      expect(decision.visible).toBe(false);
+      reviewAssertionsRun++;
+    });
+
+    it('a review by somebody who has blocked the viewer is gone', async () => {
+      const visibility = build();
+      const decision = await visibility.decide(
+        { userId: 'blocked-by-1' },
+        { authorId: AUTHOR },
+        visibility.newRequestCache(),
+      );
+      expect(decision.visible).toBe(false);
+      reviewAssertionsRun++;
+    });
+  });
+
+  afterAll(() => {
+    const expectedReview = Object.keys(REVIEW_STATES).length * Object.keys(REVIEW_VIEWERS).length + 2;
+    console.log(
+      `\n005/SC-005: ${reviewAssertionsRun}/${expectedReview} review assertions run ` +
+        `(place reviews ${reviewSurface?.built ? 'built' : 'NOT YET BUILT'}).\n`,
+    );
+  });
+
+  /**
+   * The combined number SC-005 is about: 462 post assertions + 18 review ones.
+   * Asserted only once the review surface is built, so an in-progress feature
+   * reports a gap rather than turning the suite red for forty unrelated tasks.
+   */
+  it('reports the combined SC-005 total', () => {
+    if (!reviewSurface?.built) {
+      console.log('\n  SC-005 is NOT closed: the review surface is still in progress.\n');
+      return;
+    }
+    expect(assertionsRun + reviewAssertionsRun).toBe(480);
   });
 });
