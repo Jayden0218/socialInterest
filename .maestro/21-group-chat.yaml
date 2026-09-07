@@ -1,0 +1,118 @@
+# 005/US3, J-21. Create a group, send into it, add somebody, leave.
+#
+# The whole of US3's premise is that a conversation stops being a derivable pair:
+# the id is a ULID, membership is stored, and adding somebody must NOT change the
+# id (research R1). A flow cannot read an id, so what it CAN establish is that the
+# conversation survives the membership change - the same thread, with the history
+# still in it. `scripts/android-device-pass.sh` checks the API log for the group
+# create 201, the message 201 and the add 204 afterwards.
+#
+# The group is found by its NAME, never by the last-message preview. That is not
+# a style preference: 004's `14-message-request` waited on a preview while
+# `13-send-message` replied into the same conversation, so the preview correctly
+# changed and the flow passed twice on Maestro's incidental ordering. A preview is
+# mutable by definition; assert on what identifies the row.
+appId: app.socialinterest
+---
+- runFlow: 01-sign-in.yaml
+
+- tapOn:
+    id: "tab-chats"
+- assertVisible:
+    id: "inbox-screen"
+
+- tapOn:
+    id: "new-group"
+- assertVisible:
+    id: "new-group-screen"
+
+# FR-018. Two others, so this is genuinely a group: one other person is a PAIR by
+# FR-027 and resolves to the conversation that already exists.
+- tapOn:
+    id: "group-search-input"
+- inputText: "${GROUP_MEMBER_A}"
+- hideKeyboard
+- extendedWaitUntil:
+    visible:
+      id: "group-participant-${GROUP_MEMBER_A}"
+    timeout: 30000
+- tapOn:
+    id: "group-participant-${GROUP_MEMBER_A}"
+
+- tapOn:
+    id: "group-search-input"
+- eraseText
+- inputText: "${GROUP_MEMBER_B}"
+- hideKeyboard
+- extendedWaitUntil:
+    visible:
+      id: "group-participant-${GROUP_MEMBER_B}"
+    timeout: 30000
+- tapOn:
+    id: "group-participant-${GROUP_MEMBER_B}"
+
+# FR-024. A named group is called by its name.
+- tapOn:
+    id: "group-name-input"
+- inputText: "Climbing Tuesday"
+- hideKeyboard
+- tapOn:
+    id: "create-group"
+
+- extendedWaitUntil:
+    visible:
+      id: "conversation-screen"
+    timeout: 30000
+# FR-019. Who is in here, on the screen.
+- assertVisible:
+    id: "group-participants"
+
+- tapOn:
+    id: "message-input"
+- inputText: "first message in the group"
+- hideKeyboard
+- tapOn:
+    id: "send-message"
+- assertVisible: "first message in the group"
+
+# FR-020. Adding somebody must not create a new conversation: the message sent
+# before the add is still here afterwards, in the same thread.
+- tapOn:
+    id: "add-participant-input"
+- inputText: "${GROUP_MEMBER_C}"
+- hideKeyboard
+- tapOn:
+    id: "add-participant"
+- extendedWaitUntil:
+    visible: "first message in the group"
+    timeout: 30000
+
+# The inbox row is found by the group's NAME.
+#
+# `group-row-.*` rather than the slug itself, for the same reason
+# `open-conversation-.*` is used elsewhere: the suffix is built from runtime
+# data, and `verify-maestro-ids` correctly refuses a plain-string selector under
+# a dynamic prefix that resolves against no literal in the source. The prefix
+# asserts the row is rendered AS A GROUP; the text assertion below asserts which
+# group. Between them that is the requirement - identified by name, never by the
+# last-message preview.
+- tapOn:
+    id: "tab-chats"
+- extendedWaitUntil:
+    visible:
+      id: "group-row-.*"
+    timeout: 30000
+- assertVisible: "Climbing Tuesday"
+
+# FR-021. Leaving withdraws you, and the inbox no longer offers it.
+- tapOn:
+    id: "open-conversation-.*"
+- assertVisible:
+    id: "conversation-screen"
+- tapOn:
+    id: "leave-group"
+- extendedWaitUntil:
+    visible:
+      id: "inbox-screen"
+    timeout: 30000
+- assertNotVisible: "Climbing Tuesday"

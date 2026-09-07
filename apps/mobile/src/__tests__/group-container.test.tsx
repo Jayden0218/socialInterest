@@ -384,7 +384,7 @@ describe('InboxContainer — group rows (005/FR-024)', () => {
     // The row is FOUND by its identity. 004's `14-message-request` waited on a
     // last-message preview and passed twice on incidental ordering; a preview is
     // mutable by definition.
-    expect(screen.getByTestId('group-row-Climbing Tuesday')).toBeTruthy();
+    expect(screen.getByTestId('group-row-climbing-tuesday')).toBeTruthy();
   });
 
   it('offers the new-group entry point', async () => {

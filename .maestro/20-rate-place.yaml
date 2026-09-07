@@ -1,0 +1,57 @@
+# 005/US1, J-20. Rate a place on a device, and read the average back.
+#
+# Entered through the app's own navigation - post -> place chip -> place page -
+# rather than deep-linked into the place screen. Four defects in this codebase
+# were a screen that worked correctly and nothing that mounted it, and every one
+# of them passed its own render test.
+#
+# What this flow can and cannot prove:
+#
+#   IT CAN prove the summary the SERVER returned is on screen. `RatingControl`
+#   renders `summary.average` from the reloaded `GET /places/{id}`, not from the
+#   score that was tapped, so "4.0" appearing here means the write landed and was
+#   read back.
+#
+#   IT CANNOT prove the write was persisted rather than optimistically painted -
+#   nothing a flow asserts about a view can. `scripts/android-device-pass.sh`
+#   checks the API log for `PUT /v1/places/.../rating` 200 afterwards, which is
+#   the same division of labour as 13-send-message.
+appId: app.socialinterest
+---
+- runFlow: 16-place-page.yaml
+
+# 16 leaves us on the place page, having followed it.
+- assertVisible:
+    id: "place-screen"
+
+# FR-005. An unrated place says so, and does NOT say 0.0 - "nobody has rated
+# this" and "everybody rated it nothing" are different facts, and the API sends
+# `average: null` precisely to keep them apart. A component rendering
+# `average ?? 0` would undo that in the view.
+- assertVisible:
+    id: "rating-summary"
+- assertVisible: "Not yet rated"
+
+# FR-001, FR-009. The score is the contribution; the text is optional and comes
+# second, so the stars are tapped before anything is typed.
+- tapOn:
+    id: "rating-star-4"
+
+- tapOn:
+    id: "review-body-input"
+- inputText: "Rated from a real device."
+- hideKeyboard
+- tapOn:
+    id: "save-review"
+
+# Read back from the server, not from the tap. One rating, so the average is the
+# score - which is also what makes this readable as a wrong number if the
+# aggregate arithmetic were broken.
+- extendedWaitUntil:
+    visible: "4.0 · 1 rating"
+    timeout: 30000
+
+# FR-010. The review is on the place page, as a review by a person.
+- assertVisible:
+    id: "review-list"
+- assertVisible: "Rated from a real device."

@@ -2,7 +2,9 @@ import { FlatList, Text, View } from 'react-native';
 import type { ConversationState, ConversationSummary } from '@sih/shared';
 import { theme } from '../../ui/theme';
 import { Button, EmptyState, Row, Screen } from '../../ui/primitives';
-import { conversationTitle, isGroup } from './conversation-title';
+import { conversationSlug, conversationTitle, isGroup } from './conversation-title';
+
+const titleStyle = { color: theme.color.text, fontWeight: '600' } as const;
 
 export const INBOXES: { key: ConversationState; label: string }[] = [
   { key: 'accepted', label: 'Messages' },
@@ -90,16 +92,15 @@ export function InboxScreen({
                     Maestro's incidental ordering. A last-message preview is
                     mutable by definition; assert on what identifies the row.
                   */}
-                  <Text
-                    testID={
-                      isGroup(item)
-                        ? `group-row-${conversationTitle(item)}`
-                        : `conversation-title-${item.conversationId}`
-                    }
-                    style={{ color: theme.color.text, fontWeight: '600' }}
-                  >
-                    {conversationTitle(item)}
-                  </Text>
+                  {isGroup(item) ? (
+                    <Text testID={`group-row-${conversationSlug(item)}`} style={titleStyle}>
+                      {conversationTitle(item)}
+                    </Text>
+                  ) : (
+                    <Text testID={`conversation-title-${item.conversationId}`} style={titleStyle}>
+                      {conversationTitle(item)}
+                    </Text>
+                  )}
                   <Text numberOfLines={1} style={{ color: theme.color.muted }}>
                     {item.lastMessagePreview ?? 'No messages yet'}
                   </Text>

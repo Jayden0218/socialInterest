@@ -42,3 +42,26 @@ export function conversationTitle(c: ConversationSummary | Conversation): string
 export function isGroup(c: ConversationSummary | Conversation): boolean {
   return c.kind === 'group';
 }
+
+/**
+ * The identity of a conversation, slugged for a testID.
+ *
+ * The title is what a person reads and contains spaces and punctuation; a
+ * Maestro selector is a REGEX, so a raw title tokenises badly and reads as a
+ * pattern. The row is still identified by WHAT IT IS - never by the last-message
+ * preview, which is mutable by definition.
+ *
+ * This returns only the SUFFIX, deliberately. `verify-maestro-ids` reads dynamic
+ * prefixes off the leading literal of a template in a `testID=` position, so a
+ * helper returning the whole id makes every `group-row-.*` selector match
+ * nothing in the source - the guard cannot see through a function call, and a
+ * selector that matches nothing fails as a timeout rather than as a name error.
+ * The prefix therefore stays in the JSX, where the guard reads it.
+ */
+export function conversationSlug(c: ConversationSummary | Conversation): string {
+  const slug = conversationTitle(c)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+  return slug || c.conversationId;
+}

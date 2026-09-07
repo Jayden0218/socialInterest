@@ -11,7 +11,7 @@
  * rather than rendering, because the point is to catch a name that no longer
  * exists anywhere, not to re-test the UI.
  */
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, extname } from 'node:path';
 
 const SRC = 'apps/mobile/src';
@@ -205,6 +205,36 @@ for (const entry of ids) {
   }
 }
 
+/**
+ * EVERY ${VAR} A FLOW USES MUST BE PASSED BY THE SCRIPT THAT RUNS IT.
+ *
+ * Maestro does not fail on an undefined variable - it substitutes the literal
+ * text `${GROUP_MEMBER_A}` and then waits thirty seconds for an element with
+ * that name. So a flow referencing a variable the runner never passes fails as a
+ * TIMEOUT, twenty minutes into a 25-minute emulator run, looking exactly like a
+ * broken screen. That is the same failure shape this whole script exists to move
+ * from an expensive run to a two-second check, and it is a gap the selector
+ * checks above cannot see: the selector is fine, the substitution is not.
+ *
+ * The check is deliberately one-directional. A variable PASSED but unused is
+ * harmless (and normal while a flow is being written); a variable USED but not
+ * passed is a guaranteed timeout.
+ */
+const RUNNER = 'scripts/android-device-pass.sh';
+const missingVars = [];
+if (existsSync(RUNNER)) {
+  const runner = readFileSync(RUNNER, 'utf8');
+  const passed = new Set(
+    [...runner.matchAll(/-e\s+([A-Z][A-Z0-9_]*)=/g)].map((m) => m[1]),
+  );
+  for (const file of readdirSync(FLOWS).filter((f) => f.endsWith('.yaml'))) {
+    const text = readFileSync(join(FLOWS, file), 'utf8');
+    for (const m of text.matchAll(/\$\{([A-Z][A-Z0-9_]*)\}/g)) {
+      if (!passed.has(m[1])) missingVars.push(`${file}: \${${m[1]}} is never passed by android-device-pass.sh`);
+    }
+  }
+}
+
 console.log(`checked ${ids.size} selector(s) across ${readdirSync(FLOWS).filter((f) => f.endsWith('.yaml')).length} flow(s)`);
 console.log(`app declares ${known.size} testID literal(s) and ${prefixes.size} dynamic prefix(es)`);
 if (foreign.length) {
@@ -221,7 +251,12 @@ if (unresolved.length) {
   for (const m of unresolved) console.error('  ' + m);
   console.error('This is how pref-message passed while the switch did not exist.');
 }
-if (missing.length || unresolved.length) process.exit(1);
+if (missingVars.length) {
+  console.error('FAIL: these Maestro flows use a variable the device runner never passes:');
+  for (const m of missingVars) console.error('  ' + m);
+  console.error('Maestro substitutes the literal text and then times out looking for it.');
+}
+if (missing.length || unresolved.length || missingVars.length) process.exit(1);
 // What is still NOT verified, stated plainly rather than left to be discovered.
 //
 // A dynamic prefix used to match ANY suffix, which let `media-item-video` pass

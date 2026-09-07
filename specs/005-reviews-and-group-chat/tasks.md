@@ -261,12 +261,12 @@ remove it as a moderator, confirm it is gone and the log survives.
 
 ## Phase 6: Polish and cross-cutting
 
-- [ ] T107 [P] Add `.maestro/20-rate-place.yaml` driving rate → read the average back
-- [ ] T108 [P] Add `.maestro/21-group-chat.yaml` driving create → send → add → leave
-- [ ] T109 Run `node scripts/verify-maestro-ids.mjs` and confirm every new selector resolves — the dynamic-prefix hole is closed, so a selector under a prefix must now resolve against real literals
-- [ ] T110 Extend `scripts/android-device-pass.sh` to assert both new flows **through the service**: a `PUT /v1/places/:placeId/rating` 200 and a group message 201 in the API log
-- [ ] T111 [P] Seed a group fixture in `apps/e2e/scripts/seed-group-fixture.ts`, printing what the flows need and **asserting the fixture produced it** before the flows depend on it
-- [ ] T112 Add `verify:register` and the new suites to `.github/workflows/ci.yml`
+- [X] T107 [P] Add `.maestro/20-rate-place.yaml` driving rate → read the average back
+- [X] T108 [P] Add `.maestro/21-group-chat.yaml` driving create → send → add → leave
+- [X] T109 Run `node scripts/verify-maestro-ids.mjs` and confirm every new selector resolves — the dynamic-prefix hole is closed, so a selector under a prefix must now resolve against real literals
+- [X] T110 Extend `scripts/android-device-pass.sh` to assert both new flows **through the service**: a `PUT /v1/places/:placeId/rating` 200 and a group message 201 in the API log
+- [X] T111 [P] Seed a group fixture in `apps/e2e/scripts/seed-group-fixture.ts`, printing what the flows need and **asserting the fixture produced it** before the flows depend on it
+- [X] T112 **Already covered, checked rather than assumed.** `verify:register` has been a CI step since 004, and every 005 suite lives inside `@sih/api test`, `@sih/mobile test` or `@sih/e2e test`, which CI already runs - adding steps would have duplicated them. The real gap was elsewhere and is now closed: `verify-maestro-ids` fails when a flow uses a `${VAR}` that `android-device-pass.sh` never passes. Maestro does not error on an undefined variable; it substitutes the literal text and times out looking for it, twenty minutes into a 25-minute emulator run, looking exactly like a broken screen
 - [ ] T113 [P] Update `CLAUDE.md` with what 005 established and what it did not
 - [ ] T114 Write the run record in `docs/verification/runs/`, listing each criterion **with the command that measured it**, and each criterion not met
 - [ ] T115 Dispatch `.github/workflows/android-emulator.yml` and record the result — free on this public repository, and the only place native behaviour is observed

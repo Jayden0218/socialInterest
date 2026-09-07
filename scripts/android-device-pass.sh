@@ -269,6 +269,19 @@ PLACE_ID="$(echo "$PLACE" | sed -n 's/^PLACE_ID=//p')"
 [ -n "$PLACE_NAME" ] && [ -n "$PLACE_LOCALITY" ] && [ -n "$PLACE_ID" ] \
   || { echo "FAIL: the place fixture did not print what the flows need"; exit 1; }
 
+# 005/US3. Three other people, because a group needs more than the device can
+# drive. They FOLLOW the device person: FR-022 keys the invitation state on the
+# INVITEE's follow, so without this every invitation would be a request and the
+# flow would exercise a different path while still passing.
+echo "== seed the group fixture (005/US3) =="
+GROUP="$(cd apps/e2e && E2E_BASE_URL=http://127.0.0.1:3000 npx tsx scripts/seed-group-fixture.ts "$TOKEN")"
+echo "$GROUP"
+GROUP_MEMBER_A="$(echo "$GROUP" | sed -n 's/^GROUP_MEMBER_A=//p')"
+GROUP_MEMBER_B="$(echo "$GROUP" | sed -n 's/^GROUP_MEMBER_B=//p')"
+GROUP_MEMBER_C="$(echo "$GROUP" | sed -n 's/^GROUP_MEMBER_C=//p')"
+[ -n "$GROUP_MEMBER_A" ] && [ -n "$GROUP_MEMBER_B" ] && [ -n "$GROUP_MEMBER_C" ] \
+  || { echo "FAIL: the group fixture did not print what the flows need"; exit 1; }
+
 # ---------------------------------------------------------------------------
 # A SAMPLER, because run 26 died in a way nothing here could see.
 #
@@ -363,6 +376,8 @@ MAESTRO_ENV=(
   -e REQUESTER="$REQUESTER" -e FRIEND="$FRIEND" -e FRIEND_NAME="$FRIEND_NAME"
   -e REQUEST_BODY="$REQUEST_BODY" -e FRIEND_BODY="$FRIEND_BODY"
   -e PLACE_NAME="$PLACE_NAME" -e PLACE_LOCALITY="$PLACE_LOCALITY"
+  -e GROUP_MEMBER_A="$GROUP_MEMBER_A" -e GROUP_MEMBER_B="$GROUP_MEMBER_B"
+  -e GROUP_MEMBER_C="$GROUP_MEMBER_C"
 )
 
 # Sorted, so the order is the same on every run and a failure is comparable
@@ -574,5 +589,56 @@ if ! grep -qE '"method":"PUT","path":"/v1/places/[^"]*/follow"' /tmp/api.log; th
 fi
 echo "places API served:"
 grep -oE '"method":"[A-Z]+","path":"/v1/places[^"?]*"' /tmp/api.log | sort | uniq -c
+
+echo "== 005/US1: did the rating actually reach the server? =="
+# A star filled in locally satisfies any view assertion, and `RatingControl`
+# renders the summary from the reloaded place - so the flow's "4.0 - 1 rating"
+# is already a server-shaped claim. This is the other half: the WRITE happened,
+# with a 200, over HTTP, from the device.
+if ! grep -qE '"method":"PUT","path":"/v1/places/[^"]*/rating"' /tmp/api.log; then
+  echo "FAIL: rating a place did not reach the API"
+  grep -oE '"method":"[A-Z]+","path":"/v1/places[^"]*"' /tmp/api.log | sort | uniq -c || true
+  exit 1
+fi
+# And the review is READABLE on the place page, by asking the server rather than
+# the screen. Six surfaces in this codebase shipped returning candidate rows
+# because nothing asked for the response.
+REVIEWS="$(curl -s "http://127.0.0.1:3000/v1/places/$PLACE_ID/reviews?limit=20")"
+if ! echo "$REVIEWS" | grep -q "Rated from a real device."; then
+  echo "FAIL: the review written on the device is not on the place page"
+  echo "$REVIEWS" | head -c 2000
+  exit 1
+fi
+# FR-010: hydrated, not a persistence row. A review whose author is a bare id is
+# the defect this project has now shipped six times.
+if ! echo "$REVIEWS" | grep -q '"author"'; then
+  echo "FAIL: the review response carries no author"
+  echo "$REVIEWS" | head -c 2000
+  exit 1
+fi
+
+echo "== 005/US3: did the group actually exist on the server? =="
+if ! grep -qE '"method":"POST","path":"/v1/conversations/groups"' /tmp/api.log; then
+  echo "FAIL: creating a group did not reach the API"
+  grep -oE '"method":"[A-Z]+","path":"/v1/conversations[^"?]*"' /tmp/api.log | sort | uniq -c || true
+  exit 1
+fi
+if ! grep -qE '"method":"POST","path":"/v1/conversations/[^"]*/participants"' /tmp/api.log; then
+  echo "FAIL: adding a participant did not reach the API"
+  exit 1
+fi
+if ! grep -qE '"method":"POST","path":"/v1/conversations/[^"]*/leave"' /tmp/api.log; then
+  echo "FAIL: leaving the group did not reach the API"
+  exit 1
+fi
+# FR-021, asked of the SERVER. The flow saw the row disappear from a list it had
+# just re-fetched, which is good evidence and not proof; this is the claim.
+GROUPS_AFTER="$(curl -s -H "Authorization: Bearer $TOKEN" \
+  "http://127.0.0.1:3000/v1/conversations?state=accepted&limit=50")"
+if echo "$GROUPS_AFTER" | grep -q "Climbing Tuesday"; then
+  echo "FAIL: the group is still in the inbox after leaving it"
+  echo "$GROUPS_AFTER" | head -c 2000
+  exit 1
+fi
 
 echo "PASS: the real APK ran on Android, exercised the real API, and completed the journeys."
