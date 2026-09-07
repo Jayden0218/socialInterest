@@ -61,6 +61,22 @@ async function main(): Promise<void> {
     await page.waitForTimeout(400);
   };
 
+  /**
+   * Back to the tab root, however deep we are.
+   *
+   * The tab bar exists only at the root of the stack, so `tab-feed` is simply
+   * not on a pushed screen - the same fact that cost two Android runs on
+   * 21-group-chat. Popping until `nav-back` is gone means this script never has
+   * to know how deep it went.
+   */
+  const backToTabs = async (): Promise<void> => {
+    for (let i = 0; i < 6; i++) {
+      if ((await page.locator(id('nav-back')).count()) === 0) return;
+      await page.click(id('nav-back'));
+      await page.waitForTimeout(400);
+    }
+  };
+
   // ---- data, so no screen is captured empty and pretending to be the product
   const me = await actor('shotowner');
   const friend = await actor('shotfriend');
@@ -81,10 +97,11 @@ async function main(): Promise<void> {
   });
   await friend.data.engagement.comment(postId, 'Looks like a great hold.');
 
+  const locality = `Singapore-${Date.now().toString(36)}`;
   const place = await me.data.places.create({
     name: 'Tiong Bahru Bakery',
     category: 'cafe',
-    locality: `Singapore-${Date.now().toString(36)}`,
+    locality,
   });
   await me.data.places.rate(place.placeId, { score: 5, body: 'The kaya toast is worth the queue.' });
   await friend.data.places.rate(place.placeId, { score: 4, body: 'Busy but good.' });
@@ -111,13 +128,15 @@ async function main(): Promise<void> {
   await settle('interest-search-screen');
   await shot('discover-search');
 
-  await page.fill(id('search-input'), interest.name.slice(0, 4));
+  await page.fill(id('interest-search-input'), interest.name.slice(0, 4));
   await page.waitForTimeout(900);
   await shot('discover-results');
-  await click('search-result-0');
+  const firstInterest = page.locator('[data-testid^="search-result-"]').first();
+  if (await firstInterest.count()) await firstInterest.click();
   await settle('interest-screen');
   await shot('interest-space');
 
+  await backToTabs();
   await click('tab-feed');
   await page.waitForTimeout(600);
   await click(`post-${postId}`);
@@ -126,15 +145,17 @@ async function main(): Promise<void> {
   await click('comments-button');
   await settle('comments-screen');
   await shot('comments');
-  await click('nav-back');
-  await page.waitForTimeout(400);
+  await backToTabs();
 
   // ---- places and reviews (005/US1, US2)
   await page.goto(web.url, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(900);
   await click('tab-discover');
-  await page.fill(id('search-input'), 'Tiong');
-  await page.waitForTimeout(1000);
+  await page.fill(id('interest-search-input'), 'Tiong');
+  // 004/FR-014: place search is scoped by locality, so the second field is not
+  // optional decoration - without it the screen correctly finds no places.
+  await page.fill(id('place-search-locality'), locality);
+  await page.waitForTimeout(1200);
   await shot('discover-place-result');
   const placeResult = page.locator('[data-testid^="place-result-"]').first();
   if (await placeResult.count()) {
@@ -142,6 +163,7 @@ async function main(): Promise<void> {
     await settle('place-screen');
     await shot('place-with-rating-and-reviews');
   }
+  await backToTabs();
 
   // ---- chat (004/US1) and groups (005/US3)
   await click('tab-chats');
@@ -152,8 +174,9 @@ async function main(): Promise<void> {
     await openPair.click();
     await settle('conversation-screen');
     await shot('conversation');
-    await click('nav-back');
-    await page.waitForTimeout(400);
+    await backToTabs();
+    await click('tab-chats');
+    await settle('inbox-screen');
   }
 
   await click('new-group');
@@ -172,7 +195,7 @@ async function main(): Promise<void> {
   await click('send-message');
   await page.waitForTimeout(700);
   await shot('group-conversation');
-  await click('nav-back');
+  await backToTabs();
   await settle('inbox-screen');
   await shot('chats-inbox-with-group');
 
@@ -189,16 +212,18 @@ async function main(): Promise<void> {
     await saved.click();
     await settle('saved-screen');
     await shot('saved');
-    await click('nav-back');
-    await page.waitForTimeout(400);
+    await backToTabs();
+    await click('tab-profile');
+    await page.waitForTimeout(600);
   }
   const edit = page.locator(id('open-edit-profile'));
   if (await edit.count()) {
     await edit.click();
     await settle('edit-profile-screen');
     await shot('edit-profile');
-    await click('nav-back');
-    await page.waitForTimeout(400);
+    await backToTabs();
+    await click('tab-profile');
+    await page.waitForTimeout(600);
   }
 
   // ---- compose (001/US1)
