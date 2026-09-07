@@ -204,7 +204,7 @@ remove it as a moderator, confirm it is gone and the log survives.
 - [X] T072 [US3] Move the `state` authority to the participant row in `apps/api/src/persistence/conversation.repository.ts`, leaving the conversation item's field in place and unread (research R2, R9)
 - [ ] T073 [US3] Write `apps/api/scripts/backfill-conversation-state.ts` copying each conversation's `state` onto its participant rows
 - [ ] T074 [US3] Run `apps/api/scripts/backfill-conversation-state.ts`, then `tests/integration/conversation-migration.spec.ts`, and confirm it passes — **SC-008**
-- [ ] T075 [US3] Add `tests/unit/conversation-state-authority.spec.ts` asserting no read path consults the conversation item's `state`, so the removed authority cannot come back
+- [X] T075 [US3] Add `tests/unit/conversation-state-authority.spec.ts` asserting no read path consults the conversation item's `state`, so the removed authority cannot come back
 
 ### ConversationAccess for N participants
 

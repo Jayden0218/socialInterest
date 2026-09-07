@@ -154,9 +154,19 @@ export class ConversationAccess {
    * One accessor rather than `?? ` at six call sites: the precedence rule is a
    * decision, and a decision repeated six times is a decision that will
    * eventually be made differently in one of them.
+   *
+   * PUBLIC, because the service needs the same answer. It asked `view.state`
+   * directly at three sites - the reply-accepts rule, its message count, and
+   * accept/decline - each of which was right for a pair and read the meta item's
+   * placeholder for a group. That is precisely the failure 005/R2's guard
+   * describes, and it was live until the guard was run.
    */
-  private stateFor(conversation: ConversationForAccess): ConversationState {
+  stateOf(conversation: ConversationForAccess): ConversationState {
     return conversation.viewerState ?? conversation.state;
+  }
+
+  private stateFor(conversation: ConversationForAccess): ConversationState {
+    return this.stateOf(conversation);
   }
 
   private isParticipant(viewerId: string, conversation: ConversationForAccess): boolean {

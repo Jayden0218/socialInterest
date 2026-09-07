@@ -271,7 +271,9 @@ export class ConversationService {
     if (!this.access.canWrite(viewerId, view)) this.refuse(viewerId, view);
 
     const initiatorMessageCount =
-      view.state === 'requested' ? await this.messages.countBy(conversationId, item.initiatorId) : 0;
+      this.access.stateOf(view) === 'requested'
+        ? await this.messages.countBy(conversationId, item.initiatorId)
+        : 0;
     if (!this.access.canSendNow(viewerId, view, { initiatorMessageCount })) {
       throw new DomainError(
         HttpStatus.CONFLICT,
@@ -294,10 +296,9 @@ export class ConversationService {
      * against the request rules caught it, because each of them sent one message
      * and asserted the refusal.
      */
-    if (view.state === 'requested' && viewerId !== item.initiatorId) {
-      await this.conversations.setState(item, 'accepted');
-      item.state = 'accepted';
-      view = { ...view, state: 'accepted' };
+    if (this.access.stateOf(view) === 'requested' && viewerId !== item.initiatorId) {
+      await this.acceptFor(viewerId, item, view);
+      view = this.accepted(view);
     }
 
     const now = new Date().toISOString();
@@ -360,8 +361,59 @@ export class ConversationService {
     // The initiator accepting their own request would be a way to bypass the
     // control entirely, so it is a 404 rather than a 403 - same rule as above.
     if (view.initiatorId === viewerId) throw new DomainError(HttpStatus.NOT_FOUND, 'Not found');
-    if (view.state !== 'requested') return;
-    await this.conversations.setState(item, decision);
+    if (this.access.stateOf(view) !== 'requested') return;
+    await this.setStateFor(viewerId, item, view, decision);
+  }
+
+  /**
+   * 005/R2. WHOSE STATE IS THIS.
+   *
+   * For a pair, the conversation's state and both people's are the same fact,
+   * and `setState` writes the meta item and both participant rows together -
+   * which is also what a legacy row needs (FR-026).
+   *
+   * For a GROUP it is one person's, and only theirs. `setState` there would
+   * write every participant row, so one invitee accepting would accept on behalf
+   * of the four people who had not looked and the one who declined - a decision
+   * nobody made, taken silently, and invisible to any test that only holds
+   * pairs.
+   */
+  private async setStateFor(
+    viewerId: string,
+    item: ConversationItem,
+    view: ConversationForAccess,
+    state: ConversationState,
+  ): Promise<void> {
+    if (view.kind === 'group') {
+      await this.conversations.setParticipantState(
+        viewerId,
+        item.conversationId,
+        state,
+        item.lastMessageAt,
+      );
+      return;
+    }
+    await this.conversations.setState(item, state);
+    item.state = state;
+  }
+
+  private acceptFor(
+    viewerId: string,
+    item: ConversationItem,
+    view: ConversationForAccess,
+  ): Promise<void> {
+    return this.setStateFor(viewerId, item, view, 'accepted');
+  }
+
+  /**
+   * The in-memory view after an accept, kept consistent with which field the
+   * write above actually touched - so the rest of `send` decides from the same
+   * authority the row now carries.
+   */
+  private accepted(view: ConversationForAccess): ConversationForAccess {
+    return view.kind === 'group'
+      ? { ...view, viewerState: 'accepted' }
+      : { ...view, state: 'accepted', ...(view.viewerState ? { viewerState: 'accepted' } : {}) };
   }
 
   /** FR-010. */

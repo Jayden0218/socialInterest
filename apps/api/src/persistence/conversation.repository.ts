@@ -492,6 +492,26 @@ export class ConversationRepository extends BaseRepository {
     });
   }
 
+  /**
+   * 005/R9. Used only by the backfill.
+   *
+   * Writes the participant's state AND its inbox partition key together - the
+   * two must move as one, or the row says `accepted` while still sitting in the
+   * requests partition, and the inbox query would disagree with the row it
+   * returned.
+   */
+  async setParticipantState(
+    userId: string,
+    conversationId: string,
+    state: ConversationState,
+    lastMessageAt: string,
+  ): Promise<void> {
+    await this.updateItem(keys.conversationParticipant(userId, conversationId), {
+      state,
+      gsi5pk: keys.conversationInbox(userId, state, lastMessageAt).gsi5pk,
+    });
+  }
+
   /** 005/R2. This person's own state, which is the authority. */
   async participantState(userId: string, conversationId: string): Promise<ConversationState | null> {
     const row = await this.findParticipant(userId, conversationId);
