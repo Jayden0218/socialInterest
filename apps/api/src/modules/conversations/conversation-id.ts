@@ -1,3 +1,4 @@
+import { ulid } from 'ulid';
 import { createHash } from 'node:crypto';
 
 /**
@@ -26,4 +27,23 @@ export function conversationIdFor(a: string, b: string): string {
 export function participantPair(a: string, b: string): [string, string] {
   const [x, y] = [a, b].sort();
   return [x!, y!];
+}
+
+/**
+ * A GROUP's id (005/R1). A ULID, like every other entity here.
+ *
+ * NOT derived from the participant set, and the reason is structural rather than
+ * awkward: FR-020 lets somebody be added to an existing group, and a derived id
+ * would CHANGE when they were. The conversation everyone was reading would cease
+ * to exist and a new empty one would appear, and every message would have to be
+ * rewritten under the new key on every add.
+ *
+ * The idempotency the derived id buys is also not something a group needs.
+ * "Open a conversation with Sam" is a lookup that should always land in the same
+ * place; "start a group with Sam, Alex and Jo" is a deliberate act of creation,
+ * and doing it twice genuinely means two groups - the way two documents with the
+ * same title are two documents.
+ */
+export function newGroupConversationId(): string {
+  return ulid();
 }

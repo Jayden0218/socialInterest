@@ -91,4 +91,32 @@ export class ConversationsData {
       body: { upToMessageId },
     });
   }
+
+  // ---------------------------------------------------------------- feature 005
+
+  /**
+   * 005/FR-018, FR-027. Start a group - or resolve to an existing pair.
+   *
+   * A single handle is not an error: the server routes it to the pair path, so
+   * this never creates a second conversation alongside the one-to-one thread
+   * with that person. The response's `kind` says which happened.
+   */
+  createGroup(input: { participantHandles: string[]; name?: string | null }): Promise<Conversation> {
+    return this.client.call<Conversation>('postConversationsGroups', { body: input });
+  }
+
+  /** 005/FR-020. Idempotent for somebody already present. */
+  addParticipant(conversationId: string, handle: string): Promise<void> {
+    return this.client.call<void>('postConversationsByConversationIdParticipants', {
+      params: { conversationId },
+      body: { handle },
+    });
+  }
+
+  /** 005/FR-021. Messages already sent remain readable to the rest. */
+  leave(conversationId: string): Promise<void> {
+    return this.client.call<void>('postConversationsByConversationIdLeave', {
+      params: { conversationId },
+    });
+  }
 }

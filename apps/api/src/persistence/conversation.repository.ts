@@ -7,31 +7,79 @@ export interface ConversationItem {
   conversationId: string;
   participantIds: string[];
   initiatorId: string;
+  /**
+   * 005/R2. NO LONGER THE AUTHORITY - kept, written, and never read for a
+   * decision.
+   *
+   * A group has no single state: Alice accepted, Bob has not looked, Jo
+   * declined. There is no value this field could hold that is not false about
+   * somebody, so the authority moved to the participant row, which already
+   * carried a copy and already keys the inbox by it (GSI5).
+   *
+   * Left in place rather than deleted so a legacy row is never half-read: an
+   * item written before 005 has it, and nothing new depends on it.
+   */
   state: ConversationState;
   lastMessageAt: string;
   createdAt: string;
+  /** 005/R1. Explicit, because the two kinds derive their ids differently. */
+  kind?: 'pair' | 'group';
+  /** 005/FR-024. User-generated content: reportable, moderatable. */
+  name?: string | null;
+  /** 005/R8. Set when a moderator blanks the name; the conversation survives. */
+  nameRemovedByModeration?: boolean;
+  /**
+   * Who started it. Recorded for the moderation log, NOT used for authority -
+   * nobody may remove another participant (spec Assumptions), so there is no
+   * decision this field makes.
+   */
+  creatorId?: string;
 }
 
 export interface ConversationParticipantItem {
   conversationId: string;
   userId: string;
-  otherUserId: string;
+  /** Null for a group, which has no single other person. */
+  otherUserId: string | null;
+  /**
+   * 005/R2. THE AUTHORITY for this person's relationship to this conversation.
+   *
+   * Per participant, because that is the only level at which the question has an
+   * answer. `left` (FR-021) exists only here for the same reason: one person
+   * leaving a group of four does not put the conversation in a state.
+   */
   state: ConversationState;
   lastMessageAt: string;
   lastReadAt: string | null;
   unreadCount: number;
   lastMessagePreview: string | null;
+  /** 005/FR-030. When they joined, and when they left - membership is history. */
+  joinedAt?: string;
+  leftAt?: string | null;
+  addedBy?: string;
 }
 
 /**
- * The meta item is the AUTHORITY for `state`; the two participant rows carry a
- * copy so an inbox renders from one Query. On disagreement the meta item wins,
- * and ConversationAccess is only ever handed the meta item.
+ * THE PARTICIPANT ROW IS THE AUTHORITY for `state` (005/R2).
  *
- * Every state change writes all three in ONE TransactWriteItems. The set is
- * fixed at three, so it is always inside DynamoDB's limits - unlike a design
- * where the participant set can grow, which is one of the reasons group chat is
- * out of scope rather than "later".
+ * It used to be the meta item, with the participant rows carrying a copy so an
+ * inbox renders from one Query. That worked because a pair has exactly ONE
+ * shared state. A group does not - Alice accepted, Bob has not looked, Jo
+ * declined - so there is no value the meta item could hold that is not a lie
+ * about somebody.
+ *
+ * The storage for this already existed and was already the right shape: the
+ * participant row carried `state`, and GSI5 puts it in the PARTITION KEY, which
+ * is what makes "my inbox" and "my requests" one query each. So 005 removed a
+ * denormalised copy that only stayed honest for two people; it did not add a
+ * mechanism.
+ *
+ * A state change still writes every row in ONE TransactWriteItems. This comment
+ * used to name a growing participant set as a reason group chat was out of scope,
+ * and that concern was RIGHT: DynamoDB caps a transaction at 100 items. It is
+ * answered by the cap rather than by avoidance - 20 participants means a worst
+ * case of 21 items (research R3), which is why FR-031 is enforced server-side
+ * and why raising the cap is a correctness decision, not a product one.
  */
 @Injectable()
 export class ConversationRepository extends BaseRepository {
@@ -237,5 +285,216 @@ export class ConversationRepository extends BaseRepository {
         },
       })),
     ]);
+  }
+
+  // ---------------------------------------------------------------- feature 005
+
+  /**
+   * Creates a GROUP: the meta item, one inbox row and one member row per person.
+   *
+   * 1 + 2N items. At the cap of 20 that is 41, inside DynamoDB's limit of 100 -
+   * which is what research R3 means by the cap being a correctness constraint
+   * rather than a preference. Above roughly 49 participants this transaction
+   * stops being atomic, and a partial membership write leaves somebody able to
+   * read a conversation they are not in.
+   *
+   * No conditional put and no idempotency: unlike a pair, "start a group with
+   * these people" twice genuinely means two groups (research R1).
+   */
+  async createGroup(input: {
+    conversationId: string;
+    creatorId: string;
+    name: string | null;
+    members: { userId: string; state: ConversationState }[];
+    now: string;
+  }): Promise<void> {
+    const { conversationId, creatorId, name, members, now } = input;
+    const participantIds = members.map((m) => m.userId);
+
+    await this.transact([
+      {
+        Put: {
+          TableName: this.tableName,
+          Item: {
+            ...keys.conversation(conversationId),
+            type: 'Conversation',
+            conversationId,
+            participantIds,
+            initiatorId: creatorId,
+            creatorId,
+            kind: 'group',
+            name,
+            // Written but never read for a decision - the participant rows are
+            // the authority (005/R2). Present so a reader that has not been
+            // migrated cannot find the field missing.
+            state: 'accepted' as ConversationState,
+            lastMessageAt: now,
+            createdAt: now,
+          },
+          ConditionExpression: 'attribute_not_exists(pk)',
+        },
+      },
+      ...members.flatMap((m) => [
+        {
+          Put: {
+            TableName: this.tableName,
+            Item: {
+              ...keys.conversationParticipant(m.userId, conversationId),
+              ...keys.conversationInbox(m.userId, m.state, now),
+              type: 'ConversationParticipant',
+              conversationId,
+              userId: m.userId,
+              // Null: a group has no single other person.
+              otherUserId: null,
+              state: m.state,
+              lastMessageAt: now,
+              lastReadAt: null,
+              unreadCount: 0,
+              lastMessagePreview: null,
+              joinedAt: now,
+              leftAt: null,
+              addedBy: creatorId,
+            },
+          },
+        },
+        {
+          Put: {
+            TableName: this.tableName,
+            Item: {
+              ...keys.conversationMember(conversationId, m.userId),
+              type: 'ConversationMember',
+              conversationId,
+              userId: m.userId,
+              state: m.state,
+              joinedAt: now,
+            },
+          },
+        },
+      ]),
+    ]);
+  }
+
+  /**
+   * A40. Every participant of a conversation.
+   *
+   * The member rows exist for exactly this: participation was stored only under
+   * the PERSON's partition, which answers "am I in this?" but cannot list a
+   * conversation's members without already knowing them. Fine for a pair, where
+   * `participantIds` on the meta item IS the answer; not fine for a group whose
+   * membership changes.
+   */
+  async listMembers(conversationId: string): Promise<{ userId: string; state: ConversationState; joinedAt: string }[]> {
+    const page = await this.query<{ userId: string; state: ConversationState; joinedAt: string }>(
+      `CONV#${conversationId}`,
+      { skPrefix: SK_PREFIX.conversationMember, limit: 50, ascending: true },
+    );
+    return page.items;
+  }
+
+  /** FR-020. Adds one person: their inbox row, their member row, and the roster. */
+  async addMember(input: {
+    conversationId: string;
+    userId: string;
+    addedBy: string;
+    state: ConversationState;
+    participantIds: string[];
+    now: string;
+  }): Promise<void> {
+    const { conversationId, userId, addedBy, state, participantIds, now } = input;
+    await this.transact([
+      {
+        Update: {
+          TableName: this.tableName,
+          Key: keys.conversation(conversationId),
+          UpdateExpression: 'SET participantIds = :p',
+          ExpressionAttributeValues: { ':p': [...participantIds, userId] },
+        },
+      },
+      {
+        Put: {
+          TableName: this.tableName,
+          Item: {
+            ...keys.conversationParticipant(userId, conversationId),
+            ...keys.conversationInbox(userId, state, now),
+            type: 'ConversationParticipant',
+            conversationId,
+            userId,
+            otherUserId: null,
+            state,
+            lastMessageAt: now,
+            lastReadAt: null,
+            unreadCount: 0,
+            lastMessagePreview: null,
+            joinedAt: now,
+            leftAt: null,
+            addedBy,
+          },
+        },
+      },
+      {
+        Put: {
+          TableName: this.tableName,
+          Item: {
+            ...keys.conversationMember(conversationId, userId),
+            type: 'ConversationMember',
+            conversationId,
+            userId,
+            state,
+            joinedAt: now,
+          },
+        },
+      },
+    ]);
+  }
+
+  /**
+   * FR-021. Leaving.
+   *
+   * The rows are MARKED, not deleted. A deleted participant row would take the
+   * person's `joinedAt` and `addedBy` with it, and FR-030 makes membership part
+   * of the conversation's history rather than a mutable set. It also keeps their
+   * messages attributable to somebody the conversation knows about.
+   */
+  async markLeft(conversationId: string, userId: string, now: string): Promise<void> {
+    await this.transact([
+      {
+        Update: {
+          TableName: this.tableName,
+          Key: keys.conversationParticipant(userId, conversationId),
+          UpdateExpression: 'SET #s = :left, leftAt = :now, gsi5pk = :pk',
+          ExpressionAttributeNames: { '#s': 'state' },
+          ExpressionAttributeValues: {
+            ':left': 'left',
+            ':now': now,
+            // Moves them out of their accepted inbox partition, which is what
+            // makes "stop receiving it" true at the query rather than by filter.
+            ':pk': keys.conversationInbox(userId, 'left', now).gsi5pk,
+          },
+        },
+      },
+      {
+        Update: {
+          TableName: this.tableName,
+          Key: keys.conversationMember(conversationId, userId),
+          UpdateExpression: 'SET #s = :left, leftAt = :now',
+          ExpressionAttributeNames: { '#s': 'state' },
+          ExpressionAttributeValues: { ':left': 'left', ':now': now },
+        },
+      },
+    ]);
+  }
+
+  /** FR-024 and R8. Blanks a group's name without touching the conversation. */
+  async removeName(conversationId: string): Promise<void> {
+    await this.updateItem(keys.conversation(conversationId), {
+      name: null,
+      nameRemovedByModeration: true,
+    });
+  }
+
+  /** 005/R2. This person's own state, which is the authority. */
+  async participantState(userId: string, conversationId: string): Promise<ConversationState | null> {
+    const row = await this.findParticipant(userId, conversationId);
+    return row?.state ?? null;
   }
 }

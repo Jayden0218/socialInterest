@@ -9,6 +9,7 @@ import {
 import { PostRepository } from '../../persistence/post.repository';
 import { CommentRepository } from '../../persistence/comment.repository';
 import { PlaceRepository } from '../../persistence/place.repository';
+import { ConversationRepository } from '../../persistence/conversation.repository';
 import { RatingRepository } from '../../persistence/rating.repository';
 import { MessageRepository } from '../../persistence/message.repository';
 import { CATALOGUE_SEARCH, type CatalogueSearch } from '../interests/catalogue.cache';
@@ -40,6 +41,7 @@ export class ReportService {
     @Inject(PlaceRepository) private readonly places: PlaceRepository,
     @Inject(MessageRepository) private readonly messages: MessageRepository,
     @Inject(RatingRepository) private readonly ratings: RatingRepository,
+    @Inject(ConversationRepository) private readonly conversations: ConversationRepository,
   ) {}
 
   async file(input: {
@@ -100,6 +102,22 @@ export class ReportService {
       // produce from what the place page showed them.
       case 'review':
         return this.reviewExists(id);
+      /**
+       * 005/FR-024. A group's NAME, reported by the conversation's id.
+       *
+       * Only a named group is reportable: there is nothing to moderate about a
+       * conversation identified by who is in it, and accepting the report would
+       * put an undecidable item in the queue.
+       */
+      case 'conversation-name': {
+        const conversation = await this.conversations.find(id);
+        return (
+          conversation !== null &&
+          conversation.kind === 'group' &&
+          !!conversation.name &&
+          !conversation.nameRemovedByModeration
+        );
+      }
     }
   }
 

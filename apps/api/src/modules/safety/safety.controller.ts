@@ -18,6 +18,7 @@ const reportSchema = z.object({
     // moderation - review safety EXTENDS machinery rather than inventing it
     // (research R7), and reporting that honestly is more useful than inflating it.
     'review',
+    'conversation-name',
   ]),
   subjectId: z.string().min(1),
   reason: z.enum(REPORT_REASONS),

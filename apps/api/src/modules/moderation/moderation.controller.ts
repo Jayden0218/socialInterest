@@ -7,6 +7,7 @@ import { zodBody } from '../../common/http/validation';
 import { ReportRepository, type ReportState } from '../../persistence/report.repository';
 import { ModerationLogRepository } from '../../persistence/moderation-log.repository';
 import { PostRepository } from '../../persistence/post.repository';
+import { ConversationRepository } from '../../persistence/conversation.repository';
 import { RatingRepository } from '../../persistence/rating.repository';
 import { NotificationRepository } from '../../persistence/notification.repository';
 import { MessageRepository } from '../../persistence/message.repository';
@@ -27,6 +28,7 @@ export class ModerationController {
     @Inject(MessageRepository) private readonly messages: MessageRepository,
     @Inject(NotificationRepository) private readonly notifications: NotificationRepository,
     @Inject(RatingRepository) private readonly ratings: RatingRepository,
+    @Inject(ConversationRepository) private readonly conversations: ConversationRepository,
   ) {}
 
   /**
@@ -82,6 +84,18 @@ export class ModerationController {
       if (placeId && raterId) {
         await this.ratings.setRemovedByModeration(placeId, raterId);
       }
+    }
+    /**
+     * 005/FR-024 and research R8. BLANKS the name; the conversation survives.
+     *
+     * The same rule 004 set for a message: removing one withholds its body and
+     * leaves the thread readable, because silently deleting a conversation is
+     * indistinguishable from a bug to the people in it. A group whose name was
+     * abusive is still a group of people who were talking, and destroying it
+     * punishes everyone for one person's text.
+     */
+    if (removing && report.subjectType === 'conversation-name') {
+      await this.conversations.removeName(report.subjectId);
     }
     if (removing && report.subjectType === 'message') {
       const [conversationId, messageId] = report.subjectId.split(':');

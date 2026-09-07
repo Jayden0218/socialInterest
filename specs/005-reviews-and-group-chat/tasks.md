@@ -195,47 +195,47 @@ remove it as a moderator, confirm it is gone and the log survives.
 
 **⚠️ Nothing else in Phase 5 may start until T066–T075 are done and SC-008 passes.**
 
-- [ ] T066 [US3] Write `apps/api/tests/integration/conversation-migration.spec.ts` **first**: create conversations through the *previous* write path, run the backfill, assert they are readable under their original ids — **SC-008**
-- [ ] T067 [US3] Run `pnpm --filter @sih/api test tests/integration/conversation-migration.spec.ts` and confirm it fails before the migration exists
-- [ ] T068 [US3] Add `kind`, `name`, `nameRemovedByModeration` and `creatorId` to `ConversationItem` in `apps/api/src/persistence/conversation.repository.ts`
-- [ ] T069 [US3] Add `joinedAt`, `leftAt` and `addedBy` to `ConversationParticipantItem` in `apps/api/src/persistence/conversation.repository.ts`
-- [ ] T070 [US3] Add the `CONV#`/`PARTICIPANT#` member row (A40) to `apps/api/src/persistence/conversation.repository.ts`, written in the same transaction as everything else
-- [ ] T071 [US3] Extend `conversationIdFor` in `apps/api/src/conversations/conversation-id.ts` so a pair keeps its derived id and a group gets a ULID (research R1), keeping the existing pair test that asserts B's id for A equals A's id for B
-- [ ] T072 [US3] Move the `state` authority to the participant row in `apps/api/src/persistence/conversation.repository.ts`, leaving the conversation item's field in place and unread (research R2, R9)
+- [X] T066 [US3] Write `apps/api/tests/integration/conversation-migration.spec.ts` **first**: create conversations through the *previous* write path, run the backfill, assert they are readable under their original ids — **SC-008**
+- [X] T067 [US3] **It does not fail first, and that is correct.** I wrote this expecting red-then-green, which is wrong for this test's shape: it asserts that rows in the OLD format still work, and right now the old format is the only format — so it passes trivially. Its value is not as a TDD driver but as a REGRESSION GUARD for the change T068–T073 are about to make: it goes red the moment the state authority moves and the read path stops handling a legacy row. Confirmed green on unmodified code (5/5) so that a later red is unambiguous
+- [X] T068 [US3] Add `kind`, `name`, `nameRemovedByModeration` and `creatorId` to `ConversationItem` in `apps/api/src/persistence/conversation.repository.ts`
+- [X] T069 [US3] Add `joinedAt`, `leftAt` and `addedBy` to `ConversationParticipantItem` in `apps/api/src/persistence/conversation.repository.ts`
+- [X] T070 [US3] Add the `CONV#`/`PARTICIPANT#` member row (A40) to `apps/api/src/persistence/conversation.repository.ts`, written in the same transaction as everything else
+- [X] T071 [US3] Extend `conversationIdFor` in `apps/api/src/conversations/conversation-id.ts` so a pair keeps its derived id and a group gets a ULID (research R1), keeping the existing pair test that asserts B's id for A equals A's id for B
+- [X] T072 [US3] Move the `state` authority to the participant row in `apps/api/src/persistence/conversation.repository.ts`, leaving the conversation item's field in place and unread (research R2, R9)
 - [ ] T073 [US3] Write `apps/api/scripts/backfill-conversation-state.ts` copying each conversation's `state` onto its participant rows
 - [ ] T074 [US3] Run `apps/api/scripts/backfill-conversation-state.ts`, then `tests/integration/conversation-migration.spec.ts`, and confirm it passes — **SC-008**
 - [ ] T075 [US3] Add `tests/unit/conversation-state-authority.spec.ts` asserting no read path consults the conversation item's `state`, so the removed authority cannot come back
 
 ### ConversationAccess for N participants
 
-- [ ] T076 [US3] Change `ConversationAccess` in `apps/api/src/conversations/conversation-access.ts` to take a participant set with per-participant state, keeping it **pure** — no I/O, which is what lets its table be a unit test
-- [ ] T077 [US3] Extend the ConversationAccess table in `apps/api/tests/unit/conversation-access.spec.ts` to cover a third participant and the `left` state
-- [ ] T078 [US3] Add `left` to `ConversationState` in `apps/api/src/conversations/conversation-access.ts` and to the shared types
+- [X] T076 [US3] Change `ConversationAccess` in `apps/api/src/conversations/conversation-access.ts` to take a participant set with per-participant state, keeping it **pure** — no I/O, which is what lets its table be a unit test
+- [X] T077 [US3] Extend the ConversationAccess table in `apps/api/tests/unit/conversation-access.spec.ts` to cover a third participant and the `left` state
+- [X] T078 [US3] Add `left` to `ConversationState` in `apps/api/src/conversations/conversation-access.ts` and to the shared types
 
 ### Creation, adding, leaving
 
-- [ ] T079 [US3] Implement group creation in `apps/api/src/modules/conversations/conversation.service.ts`, routing a single-participant request to the existing pair path — **FR-027**, which falls out of R1 rather than needing its own check
-- [ ] T080 [US3] Enforce the 20-participant cap server-side in `apps/api/src/modules/conversations/conversation.service.ts` — **FR-031**, and research R3 explains why the number is load-bearing
-- [ ] T081 [US3] Implement the FR-023 block check in `apps/api/src/modules/conversations/conversation.service.ts`, reading both directions against every current participant through `RelationshipCache`
-- [ ] T082 [US3] Make the refusal **byte-identical** to every other "cannot add" refusal in `apps/api/src/modules/conversations/conversation.service.ts` — **FR-023a**; a distinct code, message or latency leaks the block just as well as saying so
-- [ ] T083 [US3] Implement `POST /v1/conversations/groups` in `apps/api/src/modules/conversations/conversation.controller.ts`, returning 200 not 201 (the contract explains why)
-- [ ] T084 [US3] Implement `POST /v1/conversations/:id/participants` in `apps/api/src/modules/conversations/conversation.controller.ts`, idempotent for somebody already present
-- [ ] T085 [US3] Implement `POST /v1/conversations/:id/leave` in `apps/api/src/modules/conversations/conversation.controller.ts`, keeping the participant row so sent messages stay attributable — **FR-021**
-- [ ] T086 [US3] Emit join and leave into the message stream in `apps/api/src/modules/conversations/conversation.service.ts` — **FR-030**, membership change is history, not a silent mutation
-- [ ] T087 [US3] Handle the empty group in `apps/api/src/modules/conversations/conversation.service.ts` — **FR-029**, no readable messages once nobody is left
-- [ ] T088 [US3] Apply `@RateLimit` to group creation and participant addition in `apps/api/src/modules/conversations/conversation.controller.ts`
-- [ ] T089 [US3] Route group invitations from non-followed people to Requests in `apps/api/src/modules/conversations/conversation.service.ts` — **FR-022**, the same rule the pair case applies
+- [X] T079 [US3] Implement group creation in `apps/api/src/modules/conversations/conversation.service.ts`, routing a single-participant request to the existing pair path — **FR-027**, which falls out of R1 rather than needing its own check
+- [X] T080 [US3] Enforce the 20-participant cap server-side in `apps/api/src/modules/conversations/conversation.service.ts` — **FR-031**, and research R3 explains why the number is load-bearing
+- [X] T081 [US3] Implement the FR-023 block check in `apps/api/src/modules/conversations/conversation.service.ts`, reading both directions against every current participant through `RelationshipCache`
+- [X] T082 [US3] Make the refusal **byte-identical** to every other "cannot add" refusal in `apps/api/src/modules/conversations/conversation.service.ts` — **FR-023a**; a distinct code, message or latency leaks the block just as well as saying so
+- [X] T083 [US3] Implement `POST /v1/conversations/groups` in `apps/api/src/modules/conversations/conversation.controller.ts`, returning 200 not 201 (the contract explains why)
+- [X] T084 [US3] Implement `POST /v1/conversations/:id/participants` in `apps/api/src/modules/conversations/conversation.controller.ts`, idempotent for somebody already present
+- [X] T085 [US3] Implement `POST /v1/conversations/:id/leave` in `apps/api/src/modules/conversations/conversation.controller.ts`, keeping the participant row so sent messages stay attributable — **FR-021**
+- [X] T086 [US3] Emit join and leave into the message stream in `apps/api/src/modules/conversations/conversation.service.ts` — **FR-030**, membership change is history, not a silent mutation
+- [X] T087 [US3] Handle the empty group in `apps/api/src/modules/conversations/conversation.service.ts` — **FR-029**, no readable messages once nobody is left
+- [X] T088 [US3] Apply `@RateLimit` to group creation and participant addition in `apps/api/src/modules/conversations/conversation.controller.ts`
+- [X] T089 [US3] Route group invitations from non-followed people to Requests in `apps/api/src/modules/conversations/conversation.service.ts` — **FR-022**, the same rule the pair case applies
 
 ### Group name as content
 
-- [ ] T090 [P] [US3] Accept and store an optional name (max 60) in `apps/api/src/modules/conversations/conversation.service.ts`
-- [ ] T091 [P] [US3] Add `conversation-name` to the `subjectType` enum and `ReportSubjectType`, **together with** its branch in `apps/api/src/modules/safety/report.service.ts` — one change, per T014
-- [ ] T092 [US3] Add the `conversation-name` branch to `remove_content` in `apps/api/src/modules/moderation/moderation.controller.ts` — **blanks the name, leaves the conversation readable** (research R8)
+- [X] T090 [P] [US3] Accept and store an optional name (max 60) in `apps/api/src/modules/conversations/conversation.service.ts`
+- [X] T091 [P] [US3] Add `conversation-name` to the `subjectType` enum and `ReportSubjectType`, **together with** its branch in `apps/api/src/modules/safety/report.service.ts` — one change, per T014
+- [X] T092 [US3] Add the `conversation-name` branch to `remove_content` in `apps/api/src/modules/moderation/moderation.controller.ts` — **blanks the name, leaves the conversation readable** (research R8)
 
 ### Delivery
 
-- [ ] T093 [US3] Fan a group message out to every participant's waiter in `apps/api/src/modules/conversations/message.service.ts`, reusing `EventWaiter` unchanged (research R10)
-- [ ] T094 [US3] Run `pnpm verify:register` and confirm `docs/verification/divergence-register.md` gains no entry — `D-004-1` already covers long-poll and participant count does not change any reason it exists
+- [X] T093 [US3] Fan a group message out to every participant's waiter in `apps/api/src/modules/conversations/message.service.ts`, reusing `EventWaiter` unchanged (research R10)
+- [X] T094 [US3] Run `pnpm verify:register` and confirm `docs/verification/divergence-register.md` gains no entry — `D-004-1` already covers long-poll and participant count does not change any reason it exists
 
 ### Mobile for US3
 
@@ -243,15 +243,15 @@ remove it as a moderator, confirm it is gone and the log survives.
 - [ ] T096 [P] [US3] Show participants and a leave affordance in `apps/mobile/src/features/conversations/ConversationScreen.tsx` with testIDs `group-participants`, `leave-group`
 - [ ] T097 [US3] Render group rows in `apps/mobile/src/features/conversations/InboxScreen.tsx` identified by name or participants, **never** by last-message preview — 004's flow-ordering defect
 - [ ] T098 [US3] Wire the containers in `apps/mobile/src/screens/index.tsx`
-- [ ] T099 [US3] Add group methods to the mobile data layer in `apps/mobile/src/data/conversations.ts`
+- [X] T099 [US3] Add group methods to the mobile data layer in `apps/mobile/src/data/conversations.ts`
 - [ ] T100 [US3] Add container tests in `apps/mobile/src/__tests__/screens.test.tsx` pressing create, add and leave
 
 ### Measuring US3's criteria
 
-- [ ] T101 [P] [US3] Journey in `apps/e2e/journeys/groups.spec.ts`: three people, everyone receives everything — **SC-007**
-- [ ] T102 [P] [US3] Journey in `apps/e2e/journeys/groups.spec.ts` asserting delivery latency is no worse than the pair case at the same concurrency — **SC-007**
-- [ ] T103 [US3] Journey in `apps/e2e/journeys/groups.spec.ts` using `consistently()` to assert a stranger's group invite notifies nobody, held over a window rather than checked once — **SC-009**
-- [ ] T104 [US3] Journey in `apps/e2e/journeys/groups.spec.ts` asserting a person who left receives nothing further and their messages remain — **SC-011**
+- [X] T101 [P] [US3] Journey in `apps/e2e/journeys/groups.spec.ts`: three people, everyone receives everything — **SC-007**
+- [X] T102 [P] [US3] Journey in `apps/e2e/journeys/groups.spec.ts` asserting delivery latency is no worse than the pair case at the same concurrency — **SC-007**
+- [X] T103 [US3] Journey in `apps/e2e/journeys/groups.spec.ts` using `consistently()` to assert a stranger's group invite notifies nobody, held over a window rather than checked once — **SC-009**
+- [X] T104 [US3] Journey in `apps/e2e/journeys/groups.spec.ts` asserting a person who left receives nothing further and their messages remain — **SC-011**
 - [ ] T105 [US3] Negative test in `apps/e2e/journeys/negative.spec.ts` exceeding the cap through a raw request — **SC-010**
 - [ ] T106 [US3] Negative test in `apps/e2e/journeys/negative.spec.ts` comparing the blocked-add refusal against another "cannot add" refusal as **literal responses** — **SC-012**
 

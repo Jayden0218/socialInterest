@@ -35,6 +35,15 @@ const readSchema = z.object({ upToMessageId: z.string().min(1) });
 const clamp = (value: string | undefined, max: number, fallback: number): number =>
   value ? Math.min(max, Math.max(1, Number(value) || fallback)) : fallback;
 
+const groupCreateSchema = z.object({
+  // 1 is allowed and is not an error: FR-027 routes a "group" of two to the
+  // existing pair conversation. 19 others plus the creator is the cap.
+  participantHandles: z.array(z.string().min(1)).min(1).max(19),
+  name: z.string().max(60).nullable().optional(),
+});
+
+const addParticipantSchema = z.object({ handle: z.string().min(1) });
+
 @Controller('conversations')
 export class ConversationController {
   constructor(
@@ -146,5 +155,48 @@ export class ConversationController {
   ) {
     const { upToMessageId } = zodBody(readSchema, body);
     await this.conversations.markRead(req.viewer!.userId, conversationId, upToMessageId);
+  }
+
+  // ------------------------------------------------------------- feature 005
+  //
+  // APPENDED. Inserting above an existing route moves its decorators onto the
+  // new method - the @Public() displacement that happened twice in 004. None of
+  // these is public, and auth-surface.spec.ts checks that in both directions.
+
+  /**
+   * 005/FR-018. 200 rather than 201, and the contract says why: FR-027 means
+   * this can resolve to an EXISTING pair conversation, and reporting "created"
+   * for something already there makes a client's cache wrong.
+   */
+  @Post('groups')
+  @RateLimit({ capacity: 5, refillPerSecond: 0.05 })
+  async createGroup(@Req() req: AppRequest, @Body() body: unknown) {
+    const input = zodBody(groupCreateSchema, body);
+    const conversation = await this.conversations.createGroup(
+      req.viewer!.userId,
+      input.participantHandles,
+      input.name ?? null,
+    );
+    return this.conversations.get(req.viewer!.userId, conversation.conversationId);
+  }
+
+  /** 005/FR-020. */
+  @Post(':conversationId/participants')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @RateLimit({ capacity: 10, refillPerSecond: 0.1 })
+  async addParticipant(
+    @Req() req: AppRequest,
+    @Param('conversationId') conversationId: string,
+    @Body() body: unknown,
+  ) {
+    const { handle } = zodBody(addParticipantSchema, body);
+    await this.conversations.addParticipant(req.viewer!.userId, conversationId, handle);
+  }
+
+  /** 005/FR-021. */
+  @Post(':conversationId/leave')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async leave(@Req() req: AppRequest, @Param('conversationId') conversationId: string) {
+    await this.conversations.leave(req.viewer!.userId, conversationId);
   }
 }
