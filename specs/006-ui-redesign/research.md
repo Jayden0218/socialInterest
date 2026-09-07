@@ -36,6 +36,28 @@ reinforcement, never the identifier.
 
 ---
 
+## R1b — The brand is a dark green, expressed as a HUE
+
+**Decision** (owner's, 2026-09-07): the theme is dark green. Implemented as a
+single `BRAND_HUE = 152` from which every green in the product derives —
+surfaces, accent, success, and the tint under an interest chip.
+
+**Rationale**: a hex per green produces six greens that nearly match. One hue at
+different lightness and chroma is a family by construction. Dark is the default
+palette, because a brand that only appears after a setting is found is not one.
+
+**Consequence, and the reason R1 had to change**: an interest hue that ignored
+the brand would fight it. Interest colours keep the full 360° hue range —
+FR-011 needs interests to be distinguishable — but take their **lightness and
+chroma from the palette**, so every chip sits at the same depth as the green
+surfaces around it and none of them shouts.
+
+**Measured, not asserted**: with lightness fixed, all **720** generated interest
+colours (360 hues × 2 depths) pass WCAG AA against `text.onInterest`, in both
+palettes. The contrast test checks all of them, every run.
+
+---
+
 ## R2 — Extend `theme.ts` into a token module with two palettes; do not add a styling library
 
 **Decision**: grow `apps/mobile/src/ui/theme.ts` into semantic tokens

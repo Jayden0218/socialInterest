@@ -49,7 +49,16 @@ import { conversationTitle } from '../features/conversations/conversation-title'
 function PostRow({ postId, caption, onOpen }: { postId: string; caption: string; onOpen: (id: string) => void }) {
   return (
     <Pressable testID={`post-${postId}`} onPress={() => onOpen(postId)}>
-      <Text testID="post-caption">{caption}</Text>
+      {/*
+        AN EXPLICIT COLOUR, because a bare `Text` inherits the platform's black.
+        On the old white theme that was invisible luck; against the dark green
+        surface it rendered near-black on near-black. Nothing caught it: the
+        contrast test checks the TOKENS, and a token nobody applies is a colour
+        nobody sees. Only looking at the screenshot did.
+      */}
+      <Text testID="post-caption" style={{ color: theme.color.text, fontSize: theme.font.md }}>
+        {caption}
+      </Text>
     </Pressable>
   );
 }

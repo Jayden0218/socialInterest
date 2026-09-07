@@ -1,7 +1,13 @@
 <!doctype html>
 <html>
   <head><meta charset="utf-8" /><title>socialInterest</title>
-    <style>html,body,#root{height:100%;margin:0}</style>
+    <style>html,body,#root{height:100%;margin:0}/* #root must be a FLEX container: react-native-web renders the app root as a
+   `flex: 1` div, and a flex child in a BLOCK parent sizes to its content
+   instead of stretching. The app therefore stopped at the last element and
+   the page below it was the browser's white - invisible under the old white
+   theme, obvious under a dark green one. A harness detail, not a product
+   defect: on Android the native root always fills the screen. Fixed here so
+   the browser captures show what a device shows. */#root{display:flex;flex-direction:column}</style>
   </head>
   <body><div id="root"></div><script src="/bundle.js"></script></body>
 </html>

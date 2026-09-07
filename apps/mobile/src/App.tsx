@@ -78,6 +78,21 @@ export type Route =
   | { name: 'people-search' }
   | { name: 'safety'; subject: ReportSubject; subjectId: string; authorHandle?: string };
 
+/**
+ * The root fills the viewport AND paints the surface.
+ *
+ * `flex: 1` alone sized to content, so everything below the last element was the
+ * page's own white - invisible while the theme was white, and the first thing
+ * you notice against a dark green one. `minHeight: '100%'` makes the root fill
+ * under react-native-web without changing native behaviour, where flex already
+ * did the right thing.
+ */
+const appRootStyle = {
+  flex: 1,
+  minHeight: '100%',
+  backgroundColor: theme.color.bg,
+} as const;
+
 function Header({ title, onBack }: { title: string; onBack: () => void }) {
   return (
     <Row
@@ -327,7 +342,7 @@ export function Shell() {
     })();
 
     return (
-      <View testID="app-root" style={{ flex: 1 }}>
+      <View testID="app-root" style={appRootStyle}>
         <Header title={top.name} onBack={pop} />
         {body}
       </View>
@@ -335,7 +350,7 @@ export function Shell() {
   }
 
   return (
-    <View testID="app-root" style={{ flex: 1 }}>
+    <View testID="app-root" style={appRootStyle}>
       {/*
         An EXHAUSTIVE switch, not a chain of `tab === 'x' ? ... : null`.
 

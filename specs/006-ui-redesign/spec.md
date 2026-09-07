@@ -35,6 +35,8 @@ That is the gap this feature closes.
 - Q: What should the redesign feel like? → **A: Interest-first identity.** Each
   interest carries a colour and is the visual anchor; the product's premise is
   made visible rather than imitating a person-centred feed.
+- Q: What colour? → **A: A dark green theme.** Implemented as one brand hue
+  (`152`) that every green derives from, with dark as the default palette.
 - Q: How far should it go? → **A: Visual system + show the media.** New theme,
   typography, cards and avatars, and actually render images on browse surfaces.
   **No navigation restructure**, so every screen and every testID stays where it

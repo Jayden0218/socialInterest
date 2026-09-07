@@ -17,6 +17,7 @@
  *
  * Usage: npx tsx apps/e2e/scripts/capture-screens.ts
  */
+import { execFileSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { Page } from 'playwright';
@@ -35,6 +36,24 @@ async function main(): Promise<void> {
   mkdirSync(OUT, { recursive: true });
   ensureJwtSecret();
   resetStore();
+
+  /**
+   * BUILD THE BUNDLE, or capture yesterday's pixels.
+   *
+   * `startWebServer` serves `apps/mobile/web`, which is a build ARTEFACT. The
+   * first version of this script did not build it, so after changing the entire
+   * theme it produced twenty screenshots of the previous design - a result that
+   * looked exactly like evidence and showed nothing. jest's globalSetup builds
+   * it for the browser journeys; a standalone script has to do it itself.
+   *
+   * Relative API base for the same reason globalSetup uses one: an absolute URL
+   * baked in by an earlier manual build points the page at the wrong API.
+   */
+  execFileSync('pnpm', ['--filter', '@sih/mobile', 'build:web'], {
+    cwd: resolve(__dirname, '../../..'),
+    env: { ...process.env, EXPO_PUBLIC_API_BASE_URL: '/v1' },
+    stdio: 'pipe',
+  });
 
   const apiUrl = await startApi(3117);
   process.env['E2E_BASE_URL'] = apiUrl;
