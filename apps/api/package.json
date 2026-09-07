@@ -16,7 +16,8 @@
     "bench:upload": "tsx bench/upload.bench.ts",
     "bench:transcode": "tsx bench/transcode.bench.ts",
     "bench:feed-load": "tsx bench/feed-load.bench.ts",
-    "bench:ceiling": "tsx bench/ceiling.bench.ts"
+    "bench:ceiling": "tsx bench/ceiling.bench.ts",
+    "bench:chat": "tsx bench/chat.bench.ts"
   },
   "dependencies": {
     "@aws-sdk/client-cognito-identity-provider": "^3.1127.0",

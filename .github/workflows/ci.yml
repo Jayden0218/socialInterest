@@ -92,3 +92,8 @@ jobs:
       # requires explicit approval (plan.md Cost Posture), so CI can never do it.
       - run: pnpm --filter @sih/infra verify:stack
       - run: pnpm --filter @sih/infra synth
+      # 004. Every Constitution V divergence needs its fields filled and may not
+      # claim verification without a run record naming it. Cheap, and it is the
+      # check that stops "verified: yes" being written by somebody who meant
+      # "it works locally".
+      - run: pnpm verify:register

@@ -307,4 +307,41 @@ describe('004/US1 - two people can talk', () => {
       { forMs: 1000, describe: "a messaged stranger's post staying out of the feed" },
     );
   });
+
+  /**
+   * T133. THE REQUEST COUNT, not only the latency.
+   *
+   * If the handler failed to await the event bus and just returned an empty
+   * page, the client would re-issue immediately and SC-001's latency assertion
+   * would still pass at small scale - it would be fixed-interval polling with no
+   * interval. The load characteristic would be silently wrong, which is the
+   * whole reason long-poll was chosen over polling (research R1), and against a
+   * datastore measured at 882 req/s it is the entire margin.
+   *
+   * So this counts requests rather than timing one: over a quiet conversation, a
+   * correct long poll BLOCKS, and three seconds of waiting costs one request.
+   */
+  it('FR-011 a long poll over a quiet conversation is ONE request, not a spin', async () => {
+    const a = await actor('spinA');
+    const b = await actor('spinB');
+    await b.data.people.follow(a.handle);
+    const conv = await a.data.conversations.open(b.handle);
+
+    const started = Date.now();
+    const deadline = started + 2500;
+    let requests = 0;
+    // A correct handler blocks for the full `waitSeconds`, so the first request
+    // outlives the deadline and the loop runs once. A spinning one returns
+    // immediately and racks up hundreds.
+    while (Date.now() < deadline && requests < 50) {
+      requests++;
+      await b.data.conversations.messages(conv.conversationId, { waitSeconds: 3 });
+    }
+
+    expect(requests).toBe(1);
+    // And it blocked rather than failing fast - an error path would also be one
+    // request, and would also be wrong.
+    expect(Date.now() - started).toBeGreaterThan(2500);
+  }, 60_000);
 });
+

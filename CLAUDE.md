@@ -296,40 +296,88 @@ Consequence for anyone reading the Android records: everything pushed after run 
 (`17e1008`) is **unverified**. It is reasoned from captured evidence and passes every local
 check, and no run has executed it.
 
-## Spec 004 is planned, not built (2026-09-06)
+## What spec 004 built and established (2026-09-07)
 
-`specs/004-chat-places-and-depth/` holds spec, plan, research (R1-R11), data-model,
-contracts and quickstart for the owner's next ask: a **chat page**, a **restaurant page**,
-deeper interest pages, two holes 001 left open, and saved posts. **No code exists for it**
-and `tasks.md` has not been generated.
+`specs/004-chat-places-and-depth/` is **implemented**: 128 of 140 tasks, five stories -
+conversations, places, interest depth, the shipped-scope holes, saved posts. Record:
+`docs/verification/runs/2026-09-07-feature-004-local-record.md`.
 
-Four things in there that will otherwise be rediscovered the expensive way:
+**SC-005 is closed**: the visibility matrix runs **462 assertions with zero skipped**, across
+11 surfaces, and `surface-routing.spec.ts` proves each one CONSULTS the filter. The matrix
+alone never could - every row runs the same `decide()`, so 462 assertions would otherwise
+mean one function tested 66 times.
 
-- **A Place is to a Post what an Interest is, minus feed membership.** Modelling a
-  restaurant as a sub-interest looks free and is not: 001/FR-024 rolls a sub-interest's
-  posts up into its parent, so every restaurant post would land in "Food" for everyone
-  following Food, worldwide. That is Principle I violated by construction, arrived at
-  without anyone deciding to. Hence `FR-019` + `SC-006`, the exact shape of FR-033.
-- **Chat is delivered by HTTP long-poll on the existing server**, resolved through the
-  existing durable event bus. Not WebSocket, not SSE, not interval polling - so every
-  assertion stays a request `apps/e2e` can make, which is the only kind of test that has
-  ever found a defect here. Registered as a Principle V divergence: it is not how a hosted
-  deployment would do it.
-- **Four new post surfaces** (place page, saved list, a post shared into a conversation,
-  in-interest search) take the generated visibility matrix from 294 to 462 assertions.
-  Conversation membership gets its own single boundary, `ConversationAccess`, for the same
-  reason `VisibilityFilter` is top-level.
-- **001/FR-049 (notification preferences) IS implemented** - `notificationPrefs` on the
-  Person item, `PATCH /me`, refusal at creation in `notification.service.ts:53`, switches in
-  `EditProfileScreen`. 004's first draft claimed it was absent, in the spec, the plan and the
-  task list, because the check grepped `notificationPreferences` and the code says
-  `notificationPrefs`. **Grep for the identifier the code would use, not the one the
-  requirement is worded with.** What 004 actually owes it is one new `message` category.
-- **The datastore decision is a gate on this work, not a dependency.** Five new
-  repositories on top of thirteen is ~40% more migration if `003/datastore-decision.md`
-  later picks PostgreSQL, and proximity place search is nearly free on one candidate and a
-  sub-project on the other. Recorded as G1; G2 is scope confirmation on the two deliberate
-  exclusions (reviews/ratings on a place page, group chat).
+**Not verified, and must be reported that way**: nothing in 004 has run on Android. Seven
+Maestro flows are written and their selectors checked; none has executed. **001/SC-011 - a
+video PLAYING on a device - is still unverified**, and FR-005/FR-009 have now been claimed
+without a run behind them twice.
+
+### Six defects, all pre-existing, all found by a request
+
+004 introduced none of these.
+
+1. **The interest space returned VisibilityFilter's candidate rows** - no caption, no media,
+   no author, no counts - on the product's PRIMARY BROWSE SURFACE. Sixth instance of that
+   defect. It survived because nothing asked: journeys compare postIds, the matrix tests the
+   filter rather than the response, and the app renders `caption ?? ''`.
+2. **The feed had a SECOND responder**, hand-rolled: `interestIds` where the contract
+   promises `interests`, and no media. A generated client crashes on `post.interests.map`.
+   Both now go through `PostQueryService.responseFor` - one responder, the same argument as
+   one `VisibilityFilter` applied to the shape rather than the decision.
+3. **Video transcode failed on any clip under a second.** `-ss 00:00:01` seeks past the end,
+   ffmpeg writes nothing, the post sits at `failed` forever - visible only to its author.
+   Now uses the `thumbnail` filter.
+4. **`posterUrl` was never sent** and appears nowhere in the API source, so FR-009's
+   thumbnail reached no client. The raw media record went out instead, leaking `originalKey`,
+   the path of the PRE-STRIP upload.
+5. **A recipient replying did not accept the conversation**, so the initiator was refused
+   with "wait for a reply" - to a reply they already had. Twelve tests written directly
+   against the request rules missed it; an ordinary three-message conversation in a FEED test
+   caught it.
+6. **Four integration tests waited for a duration, not a condition.** Red in CI, green
+   locally, twice - the second time because I patched the assertion that was red instead of
+   reading the job. `apps/workers/src/interest-jobs/handler.ts` runs mark-merging, move
+   posts, move followers, THEN setMergedInto, so the 301 is the completion signal.
+
+### Guards added, each because I made the mistake first
+
+- **`tests/integration/auth-surface.spec.ts`** enumerates EVERY route and compares the public
+  set to a snapshot. Inserting a method above an existing `@Get` moves the `@Public()`
+  decorator above it onto the NEW method - a write becomes public, the read starts 401ing,
+  and typecheck and lint stay clean. **I did this twice.** The first guard was a hand-picked
+  list and missed the second occurrence; a hand-picked list only covers mistakes you have
+  already made.
+- **`__tests__/hooks-before-return.test.ts`** fails the build for a hook declared after ANY
+  return in a container. A hook after the final return is dead code (the save button did
+  nothing); a hook after an EARLY return is "Rendered more hooks than during the previous
+  render". Its own first version was too weak in exactly the way I had just been wrong about.
+- **`tests/unit/feed-does-not-read-place-follows.spec.ts`** fails if `FeedService` so much as
+  imports `PlaceFollowRepository`. SC-006 catches a widened feed behaviourally, but only once
+  the code exists AND a post exercises it; this fails when the dependency appears.
+- **`tests/unit/interest-job-order.spec.ts`** pins the merge job's step order, because an
+  integration test now depends on it.
+- **`apps/e2e/support/eventually.ts`** has `consistently` for negative assertions. "Zero
+  notifications" checked once against an asynchronous pipeline passes before anything could
+  have arrived: green, worthless, indistinguishable from a real pass.
+
+### Design decisions worth not re-litigating
+
+- **A Place is to a Post what an Interest is, MINUS feed membership.** Modelling a restaurant
+  as a sub-interest violates Principle I by construction: 001/FR-024 rolls sub-interest posts
+  into the parent, so every restaurant post lands in "Food" worldwide. FR-019 + SC-006 carry
+  FR-033's negative-test shape across.
+- **Chat is HTTP long-poll**, resolved through the durable event bus. Measured: one process
+  held **200 concurrent polls, delivery p95 51ms**. That is a fact about one Node process and
+  NOT about hosted chat - registered as divergence `D-004-1`.
+- **Conversation ids are derived from the sorted participant pair**, so opening one is
+  idempotent with no uniqueness item and no race. Group chat is out of scope because it is a
+  rewrite of that, not an extra field.
+- **Block severance is COMPUTED, not stored.** FR-006 says unblocking restores the prior
+  state, and a stored `severed` has destroyed what that was.
+- **Notification preferences were ALREADY implemented.** I claimed they were not, in the
+  spec, the plan, the task list and CLAUDE.md, because I grepped `notificationPreferences`
+  and the code says `notificationPrefs`. **Grep for the identifier the code would use, not
+  the one the requirement is worded with.**
 
 ## Spec-kit workflow
 

@@ -131,4 +131,21 @@ describe('SC-009 visibility matrix', () => {
         `Not yet built: ${skippedSurfaces.join(', ') || 'none - every enumerated surface is covered'}\n`,
     );
   });
+
+  /**
+   * 004/T128. Now that every surface is built, an unbuilt one is a REGRESSION.
+   *
+   * While the feature was in progress a `built: false` row was correct - it made
+   * the gap visible instead of letting a skipped surface read as a covered one.
+   * Both criteria are now closed, so the same row would mean a surface stopped
+   * being covered, and the suite would report that as 420 green assertions.
+   *
+   * This is the difference between a progress marker and a ratchet.
+   */
+  it('SC-009 and SC-005 are closed: every enumerated surface is built', () => {
+    expect(SURFACES.filter((s) => !s.built).map((s) => s.name)).toEqual([]);
+    expect(assertionsRun).toBe(
+      Object.keys(POST_STATES).length * Object.keys(VIEWERS).length * SURFACES.length,
+    );
+  });
 });

@@ -95,7 +95,7 @@ them, for the same reason 001 put T044–T048 in front of every read path.
 - [X] T024 [P] Add the 004 entity types (`Conversation`, `Message`, `Place`, `PlaceCategory`, `NotificationPreferences`) to `packages/shared/src/types/entities.ts`
 - [X] T025 [P] Add the long-poll wait as `EventWaiter` in `apps/api/src/common/events/event-waiter.ts`, **not** as a method on the `EventBus` port — the port is what a second implementation must satisfy, and growing it with a feature-shaped method makes that harder for no gain. Subscribe from `onApplicationBootstrap`, never `onModuleInit`: Nest fires the latter before subscribers register, and 003 lost events to exactly that. Its unit test must include the lost-wakeup case (arm, then check, then sleep)
 - [X] T026 Add `chats` to the `Tab` union and five routes (`conversation`, `place`, `create-place`, `saved`, `people-search`) to the `Route` union in `apps/mobile/src/App.tsx`. **Five, not seven**: `conversations` is the tab itself, and notification settings is the existing edit-profile screen (see the US4 correction). The tab joins `TABS` in T053, with its container — a tab in the list with no body is a blank screen. Convert the tab body from `tab === 'x' ? … : null` to an exhaustive switch with a `never` default, so "added a tab, forgot the body" becomes a compile error, and assert in `apps/mobile/src/__tests__/screens.test.tsx` that every `TABS` entry renders something 🔒
-- [ ] T027 Checkpoint: `pnpm typecheck && pnpm lint` clean; `pnpm test:visibility` reports **294/462 assertions, 4 surfaces not yet built**; `conversation-access.spec.ts` passes with 48 assertions
+- [X] T027 Checkpoint **passed at the time**: typecheck and lint clean, `test:visibility` reported 294/462 with 4 surfaces unbuilt, `conversation-access.spec.ts` 48 assertions. It reports **462/462 with 0 unbuilt** now, which is what T128 turned into a ratchet
 
 **Checkpoint**: both boundaries exist, both are enforced by generated tables, and every
 story below can start in parallel.
@@ -326,19 +326,19 @@ actually owed is the **new `message` category**, which is two small tasks, not f
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T128 Assert the matrix runs **462 assertions with zero skipped surfaces** and fail the suite if any surface is unbuilt, in `apps/api/tests/visibility/matrix.spec.ts` 🔒
+- [X] T128 Assert the matrix runs **462 assertions with zero skipped surfaces** and fail the suite if any surface is unbuilt, in `apps/api/tests/visibility/matrix.spec.ts` 🔒
 - [X] T129 Merge `specs/004-chat-places-and-depth/contracts/openapi.yaml` into `specs/001-interest-media-sharing/contracts/openapi.yaml` as one document. **Done early, in US1, not in Polish** — the mobile data layer calls operations from the generated map, so nothing in any story's app half could be written until the contract was merged and the client regenerated. Four operations were **edited, not replaced**: 001's versions carry the full schemas and the delta's carry only the changed field, so overwriting would have deleted the contract. `PersonSummary` and `Unauthorized` were remapped onto the contract's existing `PublicProfile` and `Unauthorised` rather than added as near-duplicates
 - [X] T130 Regenerate the shared client from the merged contract: `pnpm --filter @sih/shared generate:client`, then confirm the generated shapes match what the server actually accepts. **A generated client and a server generated from one document agree by construction and prove nothing** — 002 found the publish body mismatch only by making a request
-- [ ] T131 [P] Add empty states following the 001/FR-036 shape to `apps/mobile/src/features/conversations/InboxScreen.tsx` (both inboxes), `apps/mobile/src/features/places/PlaceScreen.tsx`, and `apps/mobile/src/features/profile/SavedScreen.tsx`
-- [ ] T132 [P] Verify rate limits cover every new write path — send, place create, save — in `apps/api/tests/integration/rate-limits.spec.ts`
-- [ ] T133 Assert the long-poll's **request count**, not only its latency, in `apps/e2e/journeys/conversations.spec.ts`. If the handler fails to await the event bus, the latency assertion still passes at small scale and the load characteristic is silently wrong
-- [ ] T134 Finalise the long-poll divergence entry and run `pnpm verify:register` in `docs/verification/divergence-register.md` 🔒
-- [ ] T135 [P] Add a `bench:chat` harness measuring held connections and message latency under concurrency in `apps/api/bench/chat.ts`, reusing `apps/api/bench/harness.ts`. Drain child stderr and kill the process group, not just `npx` — both cost a 22-minute hang before
-- [ ] T136 [P] Update `CLAUDE.md` with what 004 established, what it did not, and any decision that turned out wrong
-- [ ] T137 Run the **real CI step list**, not a proxy for it: `pnpm typecheck && pnpm lint && pnpm test && pnpm verify:local && pnpm --filter @sih/e2e test`. Two red builds came from assuming typecheck/lint/tests covered CI
+- [X] T131 [P] Add empty states following the 001/FR-036 shape to `apps/mobile/src/features/conversations/InboxScreen.tsx` (both inboxes), `apps/mobile/src/features/places/PlaceScreen.tsx`, and `apps/mobile/src/features/profile/SavedScreen.tsx`
+- [X] T132 [P] Verify rate limits cover every new write path — send, place create, save — in `apps/api/tests/integration/rate-limits.spec.ts`
+- [X] T133 Assert the long-poll's **request count**, not only its latency, in `apps/e2e/journeys/conversations.spec.ts`. If the handler fails to await the event bus, the latency assertion still passes at small scale and the load characteristic is silently wrong
+- [X] T134 Finalise the long-poll divergence entry and run `pnpm verify:register` in `docs/verification/divergence-register.md` 🔒
+- [X] T135 [P] `apps/api/bench/chat.bench.ts`. **Measured: one API process held 200 concurrent long polls, delivery p95 51ms** (p50 39ms; at 5 holders p95 65ms). Output to a FILE and kill the process group, per the two lessons that cost a 22-minute hang. States in its own header what it cannot say: nothing about a hosted deployment, nothing about 002/SC-002
+- [X] T136 [P] Update `CLAUDE.md` with what 004 established, what it did not, and any decision that turned out wrong
+- [X] T137 Run the **real CI step list**, not a proxy for it: `pnpm typecheck && pnpm lint && pnpm test && pnpm verify:local && pnpm --filter @sih/e2e test`. Two red builds came from assuming typecheck/lint/tests covered CI
 - [ ] T138 Dispatch `.github/workflows/android-emulator.yml` — **requires the owner's explicit approval**, since it spends the account's Actions allowance. Not an implicit part of any task
-- [ ] T139 Write the run record at `docs/verification/runs/<date>-journey-run-004.md`, with per-journey service-side evidence and an explicit `not run` for anything not executed
-- [ ] T140 Report SC-002, SC-011 and the concurrency criteria **honestly** in the completion summary: met, unverified, or unmeasured — never "should work"
+- [X] T139 Write the run record at `docs/verification/runs/<date>-journey-run-004.md`, with per-journey service-side evidence and an explicit `not run` for anything not executed
+- [X] T140 Reported in `docs/verification/runs/2026-09-07-feature-004-local-record.md`: 13 criteria **met** with the command that measured each; **SC-011 unverified** (needs an emulator run), **004 on Android unverified**, **iOS unverified**, **002/SC-002 unmeasured** (needs spend), **real usage unanswered**
 
 ---
 
