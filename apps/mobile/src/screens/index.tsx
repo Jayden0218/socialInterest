@@ -426,16 +426,23 @@ export function InterestContainer({
   interestId,
   onOpenSubInterest,
   onOpenPost,
+  onReportDescription,
 }: {
   interestId: string;
   onOpenSubInterest: (id: string) => void;
   onOpenPost: (postId: string) => void;
+  /** 004/FR-030. A description is content, so it is reportable. */
+  onReportDescription?: (interestId: string) => void;
 }) {
   const data = useData();
   const [detail, setDetail] = useState<InterestScreenData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [followedCount, setFollowedCount] = useState(0);
-  const { state, loadMore } = useInterestPosts(interestId);
+  // 004/FR-027, FR-029. Debounced by usePaged's dependency change, which
+  // restarts paging - see useInterestPosts.
+  const [order, setOrder] = useState<'new' | 'top'>('new');
+  const [query, setQuery] = useState('');
+  const { state, loadMore } = useInterestPosts(interestId, { order, q: query });
 
   useEffect(() => {
     let live = true;
@@ -479,9 +486,14 @@ export function InterestContainer({
       data={detail}
       posts={state}
       followedCount={followedCount}
+      order={order}
+      query={query}
       onLoadMore={loadMore}
       onToggleFollow={toggleFollow}
       onOpenSubInterest={onOpenSubInterest}
+      onOrderChange={setOrder}
+      onQueryChange={setQuery}
+      {...(onReportDescription ? { onReportDescription: () => onReportDescription(interestId) } : {})}
       renderPost={(post) => (
         <PostRow postId={post.postId} caption={post.caption ?? ''} onOpen={onOpenPost} />
       )}

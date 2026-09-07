@@ -170,6 +170,9 @@ export function Shell() {
                 interestId={top.interestId}
                 onOpenSubInterest={(id) => push({ name: 'interest', interestId: id })}
                 onOpenPost={(postId) => push({ name: 'post', postId })}
+                onReportDescription={(subjectId) =>
+                  requireSignIn({ name: 'safety', subject: 'interest-description', subjectId })
+                }
               />
               <Row style={{ padding: theme.space.sm }}>
                 <Button

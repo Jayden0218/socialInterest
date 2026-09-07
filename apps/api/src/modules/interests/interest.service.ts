@@ -100,4 +100,17 @@ export class InterestService {
     }
     return `${base}-${ulid().slice(-6).toLowerCase()}`;
   }
+
+  /**
+   * 004/FR-025, the edit half.
+   *
+   * Refreshes the catalogue afterwards, because the cache is what every read
+   * goes through - a description written to the item and not to the cache would
+   * be invisible until the next restart, which is the kind of "saved but not
+   * showing" that reads as data loss.
+   */
+  async setDescription(interestId: string, description: string): Promise<void> {
+    await this.repo.setDescription(interestId, description, new Date().toISOString());
+    await this.cache.refresh();
+  }
 }

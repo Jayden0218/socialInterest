@@ -32,7 +32,7 @@ export const SURFACES: readonly Surface[] = [
   { name: 'place page', built: true, story: '004/US2 (T071)' },
   { name: 'saved posts', built: false, story: '004/US5 (T122)' },
   { name: 'shared post in a message', built: true, story: '004/US1 (T040)' },
-  { name: 'in-interest search', built: false, story: '004/US3 (T096)' },
+  { name: 'in-interest search', built: true, story: '004/US3 (T096)' },
 ] as const;
 
 export const POST_STATE_COUNT = 7;

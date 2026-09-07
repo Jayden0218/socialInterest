@@ -56,10 +56,31 @@ export class InterestsData {
     return this.client.call<void>('deleteInterestsByInterestIdFollow', { params: { interestId } });
   }
 
-  posts(interestId: string, opts: { limit?: number; cursor?: string } = {}): Promise<PostPage> {
+  /**
+   * 004/FR-025, FR-030. Operators for a top-level interest; the creator or an
+   * operator for a sub-interest. The server decides - the app does not hide the
+   * control based on a guess, it reports the refusal.
+   */
+  setDescription(interestId: string, description: string): Promise<void> {
+    return this.client.call<void>('putInterestsByInterestIdDescription', {
+      params: { interestId },
+      body: { description },
+    });
+  }
+
+  /**
+   * 004/FR-027 to FR-029.
+   *
+   * `order` REORDERS what `new` returns and never changes which posts come
+   * back; `q` matches captions after the visibility filter, never before.
+   */
+  posts(
+    interestId: string,
+    opts: { limit?: number; cursor?: string; order?: 'new' | 'top'; q?: string } = {},
+  ): Promise<PostPage> {
     return this.client.call<PostPage>('getInterestsByInterestIdPosts', {
       params: { interestId },
-      query: { limit: opts.limit, cursor: opts.cursor },
+      query: { limit: opts.limit, cursor: opts.cursor, order: opts.order, q: opts.q },
     });
   }
 }

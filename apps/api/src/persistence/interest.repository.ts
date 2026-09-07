@@ -11,6 +11,8 @@ export interface InterestItem {
   parentId?: string;
   createdBy: string;
   description?: string;
+  /** 004/FR-025. Only the SET half shipped in 001; this is the edit half. */
+  descriptionUpdatedAt?: string;
   postCount: number;
   followerCount: number;
   state: 'active' | 'merging' | 'merged' | 'retired';
@@ -31,6 +33,14 @@ export class InterestRepository extends BaseRepository {
    * concurrent creation - so the write itself is conditional on the item not
    * existing. The uniqueness that matters is enforced here, not in memory.
    */
+  /** 004/FR-025. Edit, as distinct from set-at-creation. */
+  async setDescription(interestId: string, description: string, now: string): Promise<void> {
+    await this.updateItem(keys.interest(interestId), {
+      description,
+      descriptionUpdatedAt: now,
+    });
+  }
+
   async createSubInterest(item: InterestItem): Promise<void> {
     await this.putItem(
       {

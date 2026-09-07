@@ -225,31 +225,38 @@ an intention.
 **Goal**: an interest page shows what the interest is, how big it is, what is under it, and
 lets you sort and search within it.
 
+**What was ALREADY there, checked before building** (the FR-049 lesson applied): the
+`description` field exists on the interest item, is settable at CREATION, and is returned
+by `GET /interests/{id}`; `followerCount` and `postCount` are returned and already rendered
+by `InterestScreen`; `subInterests` are returned for a top-level interest and rendered as a
+list. What is genuinely missing is **editing** a description after creation, **`order=top`**,
+**in-interest search**, and the app affordances for all three.
+
 **Independent test**: `pnpm --filter @sih/e2e test -- interest-depth` against the existing
 interest fixtures. No dependency on US1 or US2.
 
 ### Tests for User Story 3
 
-- [ ] T089 [P] [US3] Write the interest-depth journeys in `apps/e2e/journeys/interest-depth.spec.ts`. **Must fail**
-- [ ] T090 [P] [US3] Write the **SC-009** test asserting `order=new` and `order=top` return **identical id sets** — compare sets across all pages, not first pages — in `apps/api/tests/integration/interest-order.spec.ts`
+- [X] T089 [P] [US3] Write the interest-depth journeys in `apps/e2e/journeys/interest-depth.spec.ts`. **Must fail**
+- [X] T090 [P] [US3] Write the **SC-009** test asserting `order=new` and `order=top` return **identical id sets** — compare sets across all pages, not first pages — in `apps/api/tests/integration/interest-order.spec.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T091 [P] [US3] Add `description` and `descriptionUpdatedAt` to the Interest item and `InterestRepository` in `apps/api/src/persistence/interest.repository.ts`
-- [ ] T092 [US3] Implement `PUT /interests/{id}/description` with its permission rules — operators for a top-level interest, creator or operator for a sub-interest — in `apps/api/src/modules/interests/interest.controller.ts`
-- [ ] T093 [US3] Make interest descriptions reportable as `interest-description` in `apps/api/src/modules/safety/safety.controller.ts`
-- [ ] T094 [US3] Implement `order=top` by reordering the candidate set the recency query already produced, **after** `VisibilityFilter`, reusing `apps/api/src/modules/feed/ranking.ts` — no second query, in `apps/api/src/modules/interests/interest-posts.controller.ts`
-- [ ] T095 [US3] Implement in-interest post search, matching **after** filtering so a caption cannot leak through a count, in `apps/api/src/modules/interests/interest-posts.controller.ts`
-- [ ] T096 [US3] Flip **surface 11** (in-interest search) to `built: true` in `apps/api/tests/visibility/matrix.spec.ts` and make its 42 assertions pass 🔒
-- [ ] T097 [US3] Add follower count and the sub-interest list to the interest response in `apps/api/src/modules/interests/interest.controller.ts`
+- [X] T091 [P] [US3] **`description` already exists** on `InterestItem` and is set at creation. Add `descriptionUpdatedAt` and a repository method to EDIT it in `apps/api/src/persistence/interest.repository.ts` — FR-025 says set *and* edit, and only the first half shipped
+- [X] T092 [US3] Implement `PUT /interests/{id}/description` with its permission rules — operators for a top-level interest, creator or operator for a sub-interest — in `apps/api/src/modules/interests/interest.controller.ts`
+- [X] T093 [US3] Make interest descriptions reportable as `interest-description` in `apps/api/src/modules/safety/safety.controller.ts`
+- [X] T094 [US3] Implement `order=top` by reordering the candidate set the recency query already produced, **after** `VisibilityFilter`, reusing `apps/api/src/modules/feed/ranking.ts` — no second query, in `apps/api/src/modules/interests/interest-posts.controller.ts`
+- [X] T095 [US3] Implement in-interest post search, matching **after** filtering so a caption cannot leak through a count, in `apps/api/src/modules/interests/interest-posts.controller.ts`
+- [X] T096 [US3] Flip **surface 11** (in-interest search) to `built: true` in `apps/api/tests/visibility/matrix.spec.ts` and make its 42 assertions pass 🔒
+- [X] T097 [US3] **Already returned** — `followerCount` via `toRef` and `subInterests` for top-level interests, both already rendered by `InterestScreen`. Verify, and add only the `descriptionUpdatedAt` passthrough
 
 ### Mobile for User Story 3
 
-- [ ] T098 [P] [US3] Extend `apps/mobile/src/data/interests.ts` with `description`, `order`, and in-interest `q`
-- [ ] T099 [US3] Render description, follower count and a sub-interest grid in `apps/mobile/src/features/discover/InterestScreen.tsx`
-- [ ] T100 [US3] Add the New/Top control and the in-interest search field to `apps/mobile/src/features/discover/InterestScreen.tsx`, wired through `InterestContainer` in `apps/mobile/src/screens/index.tsx` 🔒
-- [ ] T101 [US3] Add "Report this description" to `apps/mobile/src/features/safety/SafetyActions.tsx`
-- [ ] T102 [US3] Checkpoint: `test:visibility` reports **420/462, 1 surface unbuilt**; SC-009 measured on id sets
+- [X] T098 [P] [US3] Extend `apps/mobile/src/data/interests.ts` with `description`, `order`, and in-interest `q`
+- [X] T099 [US3] Render description, follower count and a sub-interest grid in `apps/mobile/src/features/discover/InterestScreen.tsx`
+- [X] T100 [US3] Add the New/Top control and the in-interest search field to `apps/mobile/src/features/discover/InterestScreen.tsx`, wired through `InterestContainer` in `apps/mobile/src/screens/index.tsx` 🔒
+- [X] T101 [US3] Add "Report this description" to `apps/mobile/src/features/safety/SafetyActions.tsx`
+- [X] T102 [US3] Checkpoint: `test:visibility` reports **420/462, 1 surface unbuilt**; SC-009 measured on id SETS across the whole listing, in both directions (engaged and quiet). Two things beyond the plan: `tests/integration/auth-surface.spec.ts` pins which endpoints are public, added after inserting a method above `@Get(':interestId')` silently moved its `@Public()` decorator onto the new WRITE endpoint — the read became 401 for everyone signed out and the write became public, with typecheck and lint clean. Verified the guard catches it by reintroducing the mistake
 
 ---
 

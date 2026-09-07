@@ -7,6 +7,8 @@ import {
   Post,
   Body,
   Query,
+  Put,
+  HttpCode,
   Req,
   Res,
 } from '@nestjs/common';
@@ -150,6 +152,47 @@ export class InterestController {
     }
   }
 
+  /**
+   * 004/FR-025, FR-030.
+   *
+   * Operators for a top-level interest; the CREATOR or an operator for a
+   * sub-interest. The asymmetry matches who is accountable for each: top-level
+   * interests are curated (001/FR-021), sub-interests are made by people
+   * (001/FR-022).
+   *
+   * The description is CONTENT, so it is reportable as `interest-description`
+   * and the same content policy applies (Constitution IV: user-generated names
+   * and text are content).
+   */
+  @Put(':interestId/description')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async setDescription(
+    @Req() req: AppRequest,
+    @Param('interestId') interestId: string,
+    @Body() body: unknown,
+  ): Promise<void> {
+    const { description } = zodBody(
+      z.object({ description: z.string().max(500) }),
+      body,
+    );
+    const interest = this.catalogue.byId(interestId);
+    if (!interest) throw new DomainError(HttpStatus.NOT_FOUND, 'No such interest');
+
+    const isOperator = req.viewer?.isOperator === true;
+    const isCreator = interest.level === 'sub' && interest.createdBy === req.viewer?.userId;
+    if (!isOperator && !isCreator) {
+      throw new DomainError(
+        HttpStatus.FORBIDDEN,
+        'Not permitted to describe this interest',
+        interest.level === 'top'
+          ? 'Top-level interests are curated by operators.'
+          : 'Only the person who created a sub-interest, or an operator, can describe it.',
+      );
+    }
+
+    await this.interests.setDescription(interestId, description);
+  }
+
   /** FR-025, and FR-030's redirect for a merged interest. */
   @Public()
   @Get(':interestId')
@@ -169,6 +212,7 @@ export class InterestController {
     return {
       ...base,
       ...(interest.description ? { description: interest.description } : {}),
+      ...(interest.descriptionUpdatedAt ? { descriptionUpdatedAt: interest.descriptionUpdatedAt } : {}),
       // Sub-interests are listed for a top-level interest only (FR-020).
       ...(interest.level === 'top'
         ? {

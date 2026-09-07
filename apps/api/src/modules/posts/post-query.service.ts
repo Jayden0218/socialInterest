@@ -3,6 +3,7 @@ import { PersonRepository } from '../../persistence/person.repository';
 import { PostInterestIndexRepository } from '../../persistence/post-interest-index.repository';
 import { PostRepository, type PostItem } from '../../persistence/post.repository';
 import { InterestRepository } from '../../persistence/interest.repository';
+import { rankByEngagement, type EngagedItem } from '../feed/ranking';
 import { PlaceRepository } from '../../persistence/place.repository';
 import {
   VisibilityFilter,
@@ -150,7 +151,14 @@ export class PostQueryService {
   async listByInterest(
     viewer: Viewer,
     interestId: string,
-    opts: { limit?: number; cursor?: string | null } = {},
+    opts: {
+      limit?: number;
+      cursor?: string | null;
+      /** 004/FR-027. Reorders the admitted set; never a different query. */
+      order?: 'new' | 'top';
+      /** 004/FR-029. Matched AFTER filtering - see below. */
+      q?: string;
+    } = {},
   ): Promise<{ items: PostSummary[]; nextCursor: string | null }> {
     const page = await this.index.listByInterest(interestId, opts);
     const cache = this.visibility.newRequestCache();
@@ -165,7 +173,31 @@ export class PostQueryService {
       })),
       cache,
     );
-    return { items: await this.hydrate(visible), nextCursor: page.nextCursor };
+    const hydrated = await this.hydrate(visible);
+
+    /**
+     * 004/FR-029. SURFACE 11.
+     *
+     * Matched AFTER the filter, never before. Matching first and filtering
+     * after would leak through the count - "3 results" for a person who may see
+     * one of them tells them two exist - and that is a leak the response body
+     * never shows.
+     */
+    const matched = opts.q ? hydrated.filter((p) => matchesQuery(p, opts.q!)) : hydrated;
+
+    /**
+     * 004/FR-027, FR-028. Reorders what is already there.
+     *
+     * Applied to `matched`, which is the set `order=new` would return. SC-009
+     * asserts the id sets are identical between orderings, so a version of this
+     * that ran its own query would fail rather than merely be wrong.
+     */
+    const ordered =
+      opts.order === 'top'
+        ? (rankByEngagement(matched as unknown as EngagedItem[]) as unknown as PostSummary[])
+        : matched;
+
+    return { items: ordered, nextCursor: page.nextCursor };
   }
 
   /**
@@ -244,4 +276,17 @@ export class PostQueryService {
       nextCursor: string | null;
     };
   }
+}
+
+/**
+ * 004/FR-029. What "matches" means for an in-interest post search.
+ *
+ * Caption only. Deliberately not the author's name or the interest's - a search
+ * within an interest that matched interest names would return everything, and
+ * matching a handle would make a person findable through content they did not
+ * write. Post-content search across the product is 001/D3's later work.
+ */
+function matchesQuery(post: unknown, q: string): boolean {
+  const caption = (post as { caption?: string }).caption ?? '';
+  return caption.toLowerCase().includes(q.trim().toLowerCase());
 }

@@ -30,6 +30,8 @@ export class InterestPostsController {
     @Param('interestId') interestId: string,
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
+    @Query('order') order?: string,
+    @Query('q') q?: string,
   ) {
     const interest = this.catalogue.byId(interestId);
     if (!interest) throw new DomainError(HttpStatus.NOT_FOUND, 'No such interest');
@@ -41,6 +43,10 @@ export class InterestPostsController {
     const page = await this.queries.listByInterest(req.viewer ?? null, effectiveId, {
       limit: limit ? Math.min(50, Math.max(1, Number(limit))) : 20,
       cursor: cursor ?? null,
+      // 004/FR-027: anything other than `top` is `new`, so a typo orders by
+      // recency rather than by whatever a mis-parsed value happened to mean.
+      order: order === 'top' ? 'top' : 'new',
+      ...(q && q.trim() ? { q } : {}),
     });
 
     return {
@@ -49,7 +55,14 @@ export class InterestPostsController {
         // FR-035: an opaque cursor, never an offset - paging must preserve
         // position when posts are published mid-scroll.
         nextCursor: page.nextCursor,
-        emptyStateHint: page.items.length === 0 ? 'interest_has_no_posts' : null,
+        // 004/FR-029: "no posts here" and "nothing matched your search" are
+        // different states and must not read the same.
+        emptyStateHint:
+          page.items.length === 0
+            ? q && q.trim()
+              ? 'no_search_results'
+              : 'interest_has_no_posts'
+            : null,
       },
       interest: {
         interestId: interest.interestId,

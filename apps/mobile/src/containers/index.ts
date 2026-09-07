@@ -16,9 +16,29 @@ export function useInterestSearch(query: string): PagedResult<Interest> {
   );
 }
 
-export function useInterestPosts(interestId: string): PagedResult<Post> {
+/**
+ * 004/FR-027 to FR-029.
+ *
+ * `order` and `q` are in the dependency list, so changing either RESTARTS the
+ * paging rather than appending a differently-ordered page onto the one already
+ * on screen - which would produce a list that is neither ordering.
+ */
+export function useInterestPosts(
+  interestId: string,
+  opts: { order?: 'new' | 'top'; q?: string } = {},
+): PagedResult<Post> {
   const data = useData();
-  return usePaged<Post>((cursor) => data.interests.posts(interestId, cursor ? { cursor } : {}), [interestId]);
+  const order = opts.order ?? 'new';
+  const q = opts.q ?? '';
+  return usePaged<Post>(
+    (cursor) =>
+      data.interests.posts(interestId, {
+        ...(cursor ? { cursor } : {}),
+        order,
+        ...(q.trim() ? { q } : {}),
+      }),
+    [interestId, order, q],
+  );
 }
 
 export function useNotifications(): PagedResult<Notification> {

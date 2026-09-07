@@ -196,6 +196,13 @@ const PROBES: Probe[] = [
     },
   },
   {
+    surface: 'in-interest search',
+    // The same method as the interest space, with `q`. That is the point:
+    // matching happens AFTER the filter, on its output, so search cannot be a
+    // second read path with its own predicate.
+    run: ({ queries }) => queries.listByInterest(VIEWER, 'i1', { q: 'anything' }),
+  },
+  {
     surface: 'interest search',
     returnsNoPosts:
       'GET /interests?q= returns interest refs only - no post content and no post counts - ' +
