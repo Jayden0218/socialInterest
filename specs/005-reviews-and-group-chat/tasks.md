@@ -60,24 +60,24 @@ code they guard.
 
 ### Keys and persistence primitives
 
-- [ ] T005 Add `rating`, `ratingByPerson`, `ratingPrefix`, `conversationMember` and `conversationMemberPrefix` key builders to `apps/api/src/persistence/keys.ts` per data-model.md § Key builders
-- [ ] T006 Add `rating: 'RATING#'` and `conversationMember: 'PARTICIPANT#'` to `SK_PREFIX` in `apps/api/src/persistence/keys.ts`
-- [ ] T007 Add `rating` to `ITEM_TYPE_005` in `apps/api/src/persistence/keys.ts`
-- [ ] T008 [P] Unit-test the key builders in `apps/api/tests/unit/keys-005.spec.ts`, asserting the exact strings from data-model.md — a key mismatch is silent, a query simply returns nothing
+- [X] T005 Add `rating`, `ratingByPerson`, `ratingPrefix`, `conversationMember` and `conversationMemberPrefix` key builders to `apps/api/src/persistence/keys.ts` per data-model.md § Key builders
+- [X] T006 Add `rating: 'RATING#'` and `conversationMember: 'PARTICIPANT#'` to `SK_PREFIX` in `apps/api/src/persistence/keys.ts`
+- [X] T007 Add `rating` to `ITEM_TYPE_005` in `apps/api/src/persistence/keys.ts`
+- [X] T008 [P] Unit-test the key builders in `apps/api/tests/unit/keys-005.spec.ts`, asserting the exact strings from data-model.md — a key mismatch is silent, a query simply returns nothing
 
 ### The shared visibility boundary (research R4)
 
-- [ ] T009 Extract the both-directions block check from `VisibilityFilter.decide` into a single exported function in `apps/api/src/visibility/visibility.filter.ts`, changing no behaviour
-- [ ] T010 Run `pnpm --filter @sih/api test tests/visibility/matrix.spec.ts` and confirm the existing 462 assertions pass unchanged after T009 — a refactor of the boundary that alters a decision is the defect this feature must not introduce
-- [ ] T011 Create `apps/api/src/visibility/authored-content.ts` with a `decideAuthored()` entry point that calls the function from T009 and **does not import `BlockRepository`**, per contracts/visibility-matrix-addendum.md § 4.2
+- [X] T009 Extract the both-directions block check from `VisibilityFilter.decide` into a single exported function in `apps/api/src/visibility/visibility.filter.ts`, changing no behaviour
+- [X] T010 Run `pnpm --filter @sih/api test tests/visibility/matrix.spec.ts` and confirm the existing 462 assertions pass unchanged after T009 — a refactor of the boundary that alters a decision is the defect this feature must not introduce
+- [X] T011 Create `apps/api/src/visibility/authored-content.ts` with a `decideAuthored()` entry point that calls the function from T009 and **does not import `BlockRepository`**, per contracts/visibility-matrix-addendum.md § 4.2
 
 ### Guards, before the code they guard
 
-- [ ] T012 **[G3]** Extend `apps/api/tests/unit/feed-does-not-read-place-follows.spec.ts` so it also fails if `FeedService` imports `RatingRepository`, mentions reviews, or changes arity — Principle I, and it must fail on the dependency appearing rather than on a behaviour
-- [ ] T013 [P] Add a unit test in `apps/api/tests/unit/authored-content-shares-blocks.spec.ts` asserting `authored-content.ts` does not import `BlockRepository` — two entry points each reading blocks are the two predicates Principle II forbids
-- [ ] T014 [P] Add `review` and `conversation-name` to the `subjectType` enum in `apps/api/src/modules/safety/safety.controller.ts` and to `ReportSubjectType` in `apps/api/src/persistence/report.repository.ts`
-- [ ] T015 Update the route snapshot in `apps/api/tests/integration/auth-surface.spec.ts` for every route this feature adds, in both directions — inserting a method above an existing `@Get` moves its `@Public()` decorator, and this happened twice in 004
-- [ ] T016 Add the twelfth surface row `{ name: 'place reviews', built: false, story: '005/US2' }` to `apps/api/tests/visibility/surfaces.ts` — **`built: false` deliberately**, so the 004/T128 ratchet reports a real gap while the work is in progress instead of a smaller green number
+- [X] T012 **[G3]** Extend `apps/api/tests/unit/feed-does-not-read-place-follows.spec.ts` so it also fails if `FeedService` imports `RatingRepository`, mentions reviews, or changes arity — Principle I, and it must fail on the dependency appearing rather than on a behaviour
+- [X] T013 [P] Add a unit test in `apps/api/tests/unit/authored-content-shares-blocks.spec.ts` asserting `authored-content.ts` does not import `BlockRepository` — two entry points each reading blocks are the two predicates Principle II forbids
+- [X] T014 **Re-scoped, and the reason is a real dependency I had missed.** The enum entries were to land here; they cannot. `subjectExists` in `apps/api/src/modules/safety/report.service.ts` is an exhaustive switch with no `default`, so adding a member is a compile error until its branch exists — and the `review` branch needs `RatingRepository`, which is T021 in US1. Adding the entry alone would either break the build or force a branch returning `false`, which silently rejects every review report. **The enum entry and its branch are one change**: `review` moves into T055 (US2), `conversation-name` into T091 (US3)
+- [X] T015 **Re-scoped for the same reason as T014, and the pattern is worth stating.** `auth-surface.spec.ts` compares the public set to the snapshot **in both directions**, so an entry added before its route exists fails as surely as a missing one. The rule that falls out: **a guard asserting ABSENCE can precede the code it guards; a guard asserting PRESENCE cannot.** T012 and T013 assert absence and belong here; this asserts presence and moves to the route — `GET /places/:placeId/reviews` is 005's only new public route, so its snapshot entry lands in T051 (US2). The authenticated routes need no snapshot entry, which is exactly what makes a wrongly-public one fail here
+- [X] T016 Add the twelfth surface row `{ name: 'place reviews', built: false, story: '005/US2' }` to `apps/api/tests/visibility/surfaces.ts` — **`built: false` deliberately**, so the 004/T128 ratchet reports a real gap while the work is in progress instead of a smaller green number
 
 **Checkpoint**: keys exist, the boundary has one block check with two callers, and three guards fail for the right reasons.
 
@@ -156,14 +156,14 @@ remove it as a moderator, confirm it is gone and the log survives.
 - [ ] T048 [US2] Accept optional `body` (max 2000 chars) in `apps/api/src/ratings/rating.service.ts`
 - [ ] T049 [US2] Create `apps/api/src/ratings/review-query.service.ts` as the **one responder** for review shape, hydrating the author — the same argument as one `VisibilityFilter`, applied to the shape rather than the decision
 - [ ] T050 [US2] Route review reads through `decideAuthored()` in `apps/api/src/ratings/review-query.service.ts`
-- [ ] T051 [US2] Add `GET /v1/places/:placeId/reviews` to `apps/api/src/modules/places/place.controller.ts` with **optional auth**, and confirm the client sends a token on it — 002's third defect was exactly this
+- [ ] T051 [US2] Add `GET /v1/places/:placeId/reviews` to `apps/api/src/modules/places/place.controller.ts` with **optional auth**, add `'GET /places/:placeId/reviews'` to `EXPECTED_PUBLIC` in `apps/api/tests/integration/auth-surface.spec.ts` (per T015), and confirm the client sends a token on it — 002's third defect was exactly this
 - [ ] T052 [US2] Add cursor pagination to the review list in `apps/api/src/ratings/review-query.service.ts`, sorting by `updatedAt` in memory per data-model.md § A35's stated limit
 - [ ] T053 [US2] Flip the surface row to `built: true` in `apps/api/tests/visibility/surfaces.ts` and update the asserted total to **480**
 - [ ] T054 [US2] Verify `surface-routing.spec.ts` reports `surfaces without a routing probe yet: none`
 
 ### Safety for US2 — G2, and inside this story on purpose
 
-- [ ] T055 [US2] Add the `review` branch to `assertSubjectExists` in `apps/api/src/modules/safety/report.service.ts`, resolving the compound `<placeId>:<userId>` id
+- [ ] T055 [US2] Add `review` to the `subjectType` enum in `apps/api/src/modules/safety/safety.controller.ts` and `ReportSubjectType` in `apps/api/src/persistence/report.repository.ts`, **together with** its branch in `apps/api/src/modules/safety/report.service.ts` resolving the compound `<placeId>:<userId>` id — one change, per T014
 - [ ] T056 [US2] Add the `review` branch to `remove_content` in `apps/api/src/modules/moderation/moderation.controller.ts`, setting `removedByModeration` **and** decrementing the place aggregate (research R6)
 - [ ] T057 [US2] Confirm the removal decision is written to the append-only log in `apps/api/src/modules/moderation/moderation.controller.ts`, and that the log survives the review
 - [ ] T058 [US2] Notify the review's author on removal in `apps/api/src/modules/moderation/moderation.controller.ts`, reusing the path FR-045 already uses for posts
@@ -229,7 +229,7 @@ remove it as a moderator, confirm it is gone and the log survives.
 ### Group name as content
 
 - [ ] T090 [P] [US3] Accept and store an optional name (max 60) in `apps/api/src/modules/conversations/conversation.service.ts`
-- [ ] T091 [P] [US3] Add the `conversation-name` branch to `assertSubjectExists` in `apps/api/src/modules/safety/report.service.ts`
+- [ ] T091 [P] [US3] Add `conversation-name` to the `subjectType` enum and `ReportSubjectType`, **together with** its branch in `apps/api/src/modules/safety/report.service.ts` — one change, per T014
 - [ ] T092 [US3] Add the `conversation-name` branch to `remove_content` in `apps/api/src/modules/moderation/moderation.controller.ts` — **blanks the name, leaves the conversation readable** (research R8)
 
 ### Delivery

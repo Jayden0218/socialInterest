@@ -22,6 +22,65 @@ export type Decision =
   | { visible: true }
   | { visible: false; reason: 'gone' | 'not_for_you' };
 
+/** The minimum ANY author-attributed content must carry. A post is a superset. */
+export interface AuthoredCandidate {
+  authorId: string;
+  deletedAt?: string | null;
+  removedByModeration?: boolean;
+  authorStatus?: 'active' | 'deleting' | 'deleted';
+}
+
+/**
+ * THE RULES EVERY AUTHOR-ATTRIBUTED THING SHARES, in one function.
+ *
+ * Returns a Decision when these rules settle it, and `null` when they do not -
+ * meaning the caller's own rules take over. A post then evaluates its audience;
+ * a review has none and is simply visible.
+ *
+ * WHY THIS EXISTS RATHER THAN A SECOND PREDICATE (005/R4). Principle II's whole
+ * rationale is that "six independently written predicates give six chances to
+ * leak". Reviews need blocks, deletion and author status - a strict subset of
+ * the post rules - and the tempting shortcut is a second small check inside the
+ * review path. Two checks that agree today are one refactor away from
+ * disagreeing, and the disagreement is silent and privacy-affecting.
+ *
+ * So `decide()` DELEGATES here rather than keeping its own copy. The post path
+ * cannot drift from the review path because there is nothing to drift from.
+ * `authored-content.ts` calls this too and is forbidden from importing
+ * BlockRepository, which is asserted by a unit test.
+ */
+export async function decideAuthoredRules(
+  viewer: Viewer,
+  candidate: AuthoredCandidate,
+  cache: RelationshipCache,
+): Promise<Decision | null> {
+  const isAuthor = viewer !== null && viewer.userId === candidate.authorId;
+
+  // Gone for everyone, the author included.
+  if (candidate.deletedAt) return { visible: false, reason: 'gone' };
+  if (candidate.removedByModeration) return { visible: false, reason: 'gone' };
+  /**
+   * FR-003 (T157). A non-active author has no followers for visibility purposes,
+   * so their followers-only content becomes inaccessible the moment deletion is
+   * requested - before the purge job has removed anything. The purge only has to
+   * finish eventually; it does not have to win a race.
+   */
+  if (candidate.authorStatus && candidate.authorStatus !== 'active') {
+    return { visible: false, reason: 'gone' };
+  }
+
+  // A block overrides everything, including `public`, and in BOTH directions.
+  // Reported as `gone`, not `not_for_you`: a 403 would confirm the content exists
+  // and thereby disclose the block (see the contract's error-distinction table).
+  if (viewer !== null && !isAuthor) {
+    if (await cache.isBlockedBetween(viewer.userId, candidate.authorId)) {
+      return { visible: false, reason: 'gone' };
+    }
+  }
+
+  return null;
+}
+
 /**
  * THE SINGLE VISIBILITY BOUNDARY (research D6, constitution principle II).
  *
@@ -52,27 +111,15 @@ export class VisibilityFilter {
   ): Promise<Decision> {
     const isAuthor = viewer !== null && viewer.userId === candidate.authorId;
 
-    // Gone for everyone, the author included.
-    if (candidate.deletedAt) return { visible: false, reason: 'gone' };
-    if (candidate.removedByModeration) return { visible: false, reason: 'gone' };
     /**
-     * FR-003 (T157). A non-active author has no followers for visibility
-     * purposes, so their followers-only content becomes inaccessible the moment
-     * deletion is requested - before the purge job has removed anything. The
-     * purge only has to finish eventually; it does not have to win a race.
+     * The rules that apply to ANY author-attributed content, applied first.
+     *
+     * Delegated rather than duplicated - see decideAuthoredRules below. This
+     * call is what makes reviews and posts share one predicate instead of two
+     * that agree today (005/R4, constitution principle II).
      */
-    if (candidate.authorStatus && candidate.authorStatus !== 'active') {
-      return { visible: false, reason: 'gone' };
-    }
-
-    // A block overrides everything, including `public`, and in BOTH directions.
-    // Reported as `gone`, not `not_for_you`: a 403 would confirm the post exists
-    // and thereby disclose the block (see the contract's error-distinction table).
-    if (viewer !== null && !isAuthor) {
-      if (await cache.isBlockedBetween(viewer.userId, candidate.authorId)) {
-        return { visible: false, reason: 'gone' };
-      }
-    }
+    const shared = await decideAuthoredRules(viewer, candidate, cache);
+    if (shared) return shared;
 
     // The author sees their own post while it is still processing; nobody else does.
     if (isAuthor) return { visible: true };
