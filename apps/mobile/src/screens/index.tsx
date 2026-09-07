@@ -3,6 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import { HomeFeedScreen } from '../features/feed/HomeFeedScreen';
 import { InterestSearchScreen } from '../features/discover/InterestSearchScreen';
 import { NotificationsScreen } from '../features/notifications/NotificationsScreen';
+import { PostCard } from '../components/PostCard';
 import { InboxScreen } from '../features/conversations/InboxScreen';
 import { ConversationScreen } from '../features/conversations/ConversationScreen';
 import { NewGroupScreen } from '../features/conversations/NewGroupScreen';
@@ -36,33 +37,6 @@ import { conversationTitle } from '../features/conversations/conversation-title'
  * A failed load renders its own error, never an empty list - showing "nothing
  * here yet" for a dropped connection is the mistake this shape prevents.
  */
-/**
- * A post in a list.
- *
- * Pressable, and that is the whole point: the feed used to render posts as bare
- * Text, so tapping one did nothing and post detail - with comments, report and
- * block behind it - was unreachable from every list in the app. The render tests
- * could not see it (they assert the caption is on screen, which it was) and
- * neither could the data-layer journeys (they never render). Only clicking it
- * in a browser did.
- */
-function PostRow({ postId, caption, onOpen }: { postId: string; caption: string; onOpen: (id: string) => void }) {
-  return (
-    <Pressable testID={`post-${postId}`} onPress={() => onOpen(postId)}>
-      {/*
-        AN EXPLICIT COLOUR, because a bare `Text` inherits the platform's black.
-        On the old white theme that was invisible luck; against the dark green
-        surface it rendered near-black on near-black. Nothing caught it: the
-        contrast test checks the TOKENS, and a token nobody applies is a colour
-        nobody sees. Only looking at the screenshot did.
-      */}
-      <Text testID="post-caption" style={{ color: theme.color.text, fontSize: theme.font.md }}>
-        {caption}
-      </Text>
-    </Pressable>
-  );
-}
-
 function Failed({ message }: { message: string }) {
   return (
     <View testID="load-error" style={{ padding: theme.space.md }}>
@@ -86,7 +60,7 @@ export function HomeFeedContainer({
       onLoadMore={loadMore}
       onEmptyAction={onEmptyAction}
       renderPost={(post) => (
-        <PostRow postId={post.postId} caption={post.caption ?? ''} onOpen={onOpenPost} />
+        <PostCard post={post} onOpen={onOpenPost} />
       )}
     />
   );
@@ -557,7 +531,7 @@ export function InterestContainer({
       onQueryChange={setQuery}
       {...(onReportDescription ? { onReportDescription: () => onReportDescription(interestId) } : {})}
       renderPost={(post) => (
-        <PostRow postId={post.postId} caption={post.caption ?? ''} onOpen={onOpenPost} />
+        <PostCard post={post} onOpen={onOpenPost} />
       )}
     />
   );
@@ -685,7 +659,7 @@ export function ProfileContainer({
         : {})}
       onLoadMore={loadMore}
       renderPost={(post) => (
-        <PostRow postId={post.postId} caption={post.caption ?? ''} onOpen={onOpenPost} />
+        <PostCard post={post} onOpen={onOpenPost} />
       )}
     />
   );
@@ -1736,7 +1710,7 @@ export function PlaceContainer({
       // new addressing scheme.
       onReportReview={(p, authorId) => onReport(`${p}:${authorId}`)}
       renderPost={(post) => (
-        <PostRow postId={post.postId} caption={post.caption ?? ''} onOpen={onOpenPost} />
+        <PostCard post={post} onOpen={onOpenPost} />
       )}
     />
   );
@@ -1826,7 +1800,7 @@ export function SavedContainer({ onOpenPost }: { onOpenPost: (postId: string) =>
       posts={state}
       onLoadMore={loadMore}
       renderPost={(post) => (
-        <PostRow postId={post.postId} caption={post.caption ?? ''} onOpen={onOpenPost} />
+        <PostCard post={post} onOpen={onOpenPost} />
       )}
     />
   );

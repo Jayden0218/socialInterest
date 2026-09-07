@@ -38,8 +38,10 @@ describe('every control is reliably tappable', () => {
    * something that slips in because it happened to match a regex.
    */
   const ALLOWED = new Set([
-    // Whole-row targets: the press area is the card, which is far taller than 44.
-    'src/screens/index.tsx',
+    // Whole-row targets: the press area is the card or the row, which is far
+    // taller than 44 by construction - adding a minHeight would state a floor
+    // that the content already clears several times over.
+    'src/components/PostCard.tsx',
     'src/features/discover/InterestSearchScreen.tsx',
     'src/features/discover/InterestScreen.tsx',
     'src/features/posts/PostDetailScreen.tsx',

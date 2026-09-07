@@ -17,9 +17,16 @@ export async function publishReadyImage(
     withGps?: boolean;
     /** 004/FR-015. Optional - a post with no place behaves exactly as before. */
     placeId?: string;
+    /**
+     * 006. Supply the image bytes.
+     *
+     * Defaults to the suite's 1x1 pixel, which is right for asserting that a
+     * byte reached storage and useless for a screenshot anyone will look at.
+     */
+    bytes?: Buffer;
   } = {},
 ): Promise<string> {
-  const bytes = opts.withGps ? jpegWithGps() : jpegPlain();
+  const bytes = opts.bytes ?? (opts.withGps ? jpegWithGps() : jpegPlain());
   const target = await who.data.posts.createUploadTarget({
     kind: 'image',
     contentType: 'image/jpeg',

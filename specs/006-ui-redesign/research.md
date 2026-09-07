@@ -145,6 +145,43 @@ full-size, and MUST NOT report FR-008 as met.
 
 ---
 
+## R4b — MEDIA CANNOT BE FETCHED BY A CLIENT AT ALL. SC-002 is blocked.
+
+**Found 2026-09-07, by `PostCard` being the first thing that ever put an image on
+a browse surface.** The frame rendered and stayed empty.
+
+`MinioObjectStore.publicUrl(key)` returns an **unsigned** URL, and the local
+MinIO bucket is private, so every `<img src>` gets 403. Media has therefore never
+displayed anywhere — not in the browser, and not on Android, where the device
+flows assert API calls rather than pixels and `PostDetailScreen`'s `Image` was
+never looked at.
+
+**I tried the obvious fix and it was wrong.** Granting the local bucket anonymous
+`s3:GetObject` made the images appear — and broke `N-04`, which asserts that an
+unsigned fetch of a **private** post's media key is refused. That is Principle III
+enforced server-side, and a screenshot is not worth a privacy regression. Reverted,
+and N-04 is green again.
+
+**The real gap this exposes**: `publicUrl` is only correct where something else
+authorises the read — a CDN with signed URLs, which is what the deleted `aws`
+adapters would have done. On the local profile nothing does, so the product has
+no working media read path. Two honest options, both API work and both outside
+006's stated scope:
+
+1. **Presigned GET URLs**, generated only for a viewer who already passed
+   `VisibilityFilter`, time-limited. Smallest change; keeps the object store the
+   only thing serving bytes.
+2. **A media endpoint that consults `VisibilityFilter`** and streams. One more
+   read path, which Principle II says must be enumerated in the matrix.
+
+**Consequence for this feature, stated rather than worked around**: FR-001 is
+implemented and `PostCard` renders whatever URL it is given — provable by unit
+test — but **SC-002 ("media is reachable from every browse surface, verified by
+rendering") is NOT MET** and cannot be until the above is decided. It must be
+reported that way.
+
+---
+
 ## R5 — Avatars are generated from identity; no upload path is added
 
 **Decision**: an `Avatar` component rendering the person's initials on their

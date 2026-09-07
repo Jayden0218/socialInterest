@@ -107,22 +107,22 @@ what it shows, on the first screen anyone sees. `PostRow` is currently a
 
 ### Tests for US1
 
-- [ ] T013 [P] [US1] Test in `apps/mobile/src/__tests__/post-card.test.tsx` that `PostCard` renders media, author, avatar, interest and counts for a ready post — FR-001 to FR-004
-- [ ] T014 [P] [US1] Test in `apps/mobile/src/__tests__/post-card.test.tsx` that a `pending` post renders a skeleton occupying the **same height** as a ready one, asserted as a measured height rather than by eye — FR-005, **SC-006**
-- [ ] T015 [P] [US1] Test in `apps/mobile/src/__tests__/post-card.test.tsx` that a post with no media renders a text card and a `failed` post says so, rather than either showing an empty frame — FR-007
-- [ ] T016 [P] [US1] Test in `apps/mobile/src/__tests__/post-card.test.tsx` that a video renders its `posterUrl` and is identifiable as a video without playing — FR-006
-- [ ] T017 [US1] Guard in `apps/mobile/src/__tests__/post-card-reads-nothing.test.ts` failing if `PostCard.tsx` imports from `src/data/`, calls `fetch`, or takes a callback that does — **G2, G3**; fails on the dependency appearing, like `feed-does-not-read-place-follows.spec.ts`
+- [X] T013 [P] [US1] Test in `apps/mobile/src/__tests__/post-card.test.tsx` that `PostCard` renders media, author, avatar, interest and counts for a ready post — FR-001 to FR-004
+- [X] T014 [P] [US1] Test in `apps/mobile/src/__tests__/post-card.test.tsx` that a `pending` post renders a skeleton occupying the **same height** as a ready one, asserted as a measured height rather than by eye — FR-005, **SC-006**
+- [X] T015 [P] [US1] Test in `apps/mobile/src/__tests__/post-card.test.tsx` that a post with no media renders a text card and a `failed` post says so, rather than either showing an empty frame — FR-007
+- [X] T016 [P] [US1] Test in `apps/mobile/src/__tests__/post-card.test.tsx` that a video renders its `posterUrl` and is identifiable as a video without playing — FR-006
+- [X] T017 [US1] Guard in `apps/mobile/src/__tests__/post-card-reads-nothing.test.ts` failing if `PostCard.tsx` imports from `src/data/`, calls `fetch`, or takes a callback that does — **G2, G3**; fails on the dependency appearing, like `feed-does-not-read-place-follows.spec.ts`
 
 ### Implementation for US1
 
-- [ ] T018 [P] [US1] Create `apps/mobile/src/components/Skeleton.tsx` — a shaped placeholder, sized by the caller, no spinner
-- [ ] T019 [P] [US1] Create `apps/mobile/src/components/Avatar.tsx` — initials on the person's derived colour, seeded by `userId`, no network request ever (R5, G3)
-- [ ] T020 [US1] Create `apps/mobile/src/components/PostCard.tsx` reading ONLY the fields data-model.md § "What the card may read" enumerates, reserving space from `media.width`/`height` with a fallback ratio (R6), and keeping `post-${postId}` and `post-caption` on the same elements they are on today
-- [ ] T021 [US1] Replace `PostRow` with `PostCard` in `apps/mobile/src/screens/index.tsx` — **single-owner file**, sequential
-- [ ] T022 [US1] Adopt `PostCard` on the interest space and profile surfaces in `apps/mobile/src/screens/index.tsx` — sequential after T021
-- [ ] T023 [US1] Adopt `PostCard` on the saved and place-page surfaces in `apps/mobile/src/screens/index.tsx` — sequential after T022; **SC-001 requires all five, with zero left rendering a bare caption**
-- [ ] T024 [US1] Render skeletons for the loading state in `apps/mobile/src/components/PagedPostList.tsx` instead of a spinner on an empty screen — FR-023
-- [ ] T025 [US1] Verify `docs/screens/03-home-feed.png`, recaptured, shows media and authors — and record that list images are **full-size** because no smaller rendition exists (R4)
+- [X] T018 [P] [US1] Create `apps/mobile/src/components/Skeleton.tsx` — a shaped placeholder, sized by the caller, no spinner
+- [X] T019 [P] [US1] Create `apps/mobile/src/components/Avatar.tsx` — initials on the person's derived colour, seeded by `userId`, no network request ever (R5, G3)
+- [X] T020 [US1] Create `apps/mobile/src/components/PostCard.tsx` reading ONLY the fields data-model.md § "What the card may read" enumerates, reserving space from `media.width`/`height` with a fallback ratio (R6), and keeping `post-${postId}` and `post-caption` on the same elements they are on today
+- [X] T021 [US1] Replace `PostRow` with `PostCard` in `apps/mobile/src/screens/index.tsx` — **single-owner file**, sequential
+- [X] T022 [US1] Adopt `PostCard` on the interest space and profile surfaces in `apps/mobile/src/screens/index.tsx` — sequential after T021
+- [X] T023 [US1] Adopt `PostCard` on the saved and place-page surfaces in `apps/mobile/src/screens/index.tsx` — sequential after T022; **SC-001 requires all five, with zero left rendering a bare caption**
+- [X] T024 [US1] Render skeletons for the loading state in `apps/mobile/src/components/PagedPostList.tsx` instead of a spinner on an empty screen — FR-023
+- [X] T025 [US1] Verify `docs/screens/03-home-feed.png`, recaptured, shows media and authors. **Card, avatar, author, interest chip and counts all render. The IMAGE does not**: `publicUrl` is unsigned and the bucket is private, so every fetch is 403 (R4b). Granting anonymous read made images appear and broke `N-04` — a privacy regression — so it was reverted. **SC-002 is NOT MET** and needs an API decision. List images are also full-size (R4)
 
 **Checkpoint**: the feed shows what was posted. FR-008 remains **not met** and must be reported that way.
 
@@ -147,7 +147,7 @@ interest-space chrome are independent of it.
 
 ### Implementation for US2
 
-- [ ] T029 [P] [US2] Create `apps/mobile/src/components/InterestChip.tsx` — the derived colour with the name always present, meeting the touch target when it is pressable
+- [X] T029 [P] [US2] Create `apps/mobile/src/components/InterestChip.tsx` — the derived colour with the name always present, meeting the touch target when it is pressable
 - [ ] T030 [US2] Render interest chips on `PostCard` in `apps/mobile/src/components/PostCard.tsx` — FR-003, FR-013
 - [ ] T031 [US2] Carry the interest's identity into the interest space chrome in `apps/mobile/src/features/discover/InterestScreen.tsx`, and **do not** give a place or a person the same treatment — **G1**. `place-follow-hint` stays visible and stays words, not an icon
 - [ ] T032 [US2] Show interest colours in discovery results in `apps/mobile/src/features/discover/InterestSearchScreen.tsx` — FR-013
