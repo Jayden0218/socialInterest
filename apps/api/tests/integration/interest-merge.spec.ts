@@ -1,4 +1,5 @@
 import request from 'supertest';
+import { eventually } from './eventually';
 import { bootHarness, type Harness } from './harness';
 import { randomUUID } from 'node:crypto';
 
@@ -69,10 +70,14 @@ describe('FR-030 — interest merge, re-parent and retire', () => {
       .send({ action: 'merge', mergeIntoId: target });
     expect(job.status).toBe(202);
 
-    await new Promise((r) => setTimeout(r, 800));
-
-    // Posts moved: nothing orphaned.
-    const onTarget = await request(h.app.getHttpServer()).get(`/v1/interests/${target}/posts?limit=50`);
+    // The merge is an ASYNCHRONOUS job. Wait for the outcome, not for a
+    // duration: a fixed sleep here passed locally and went red in CI the moment
+    // the API did marginally more work per request.
+    const onTarget = await eventually(
+      () => request(h.app.getHttpServer()).get(`/v1/interests/${target}/posts?limit=50`),
+      (r) => (r.body.items as { postId: string }[]).some((i) => i.postId === postId),
+      { describe: 'the merged post appearing on the survivor' },
+    );
     expect(onTarget.body.items.map((i: { postId: string }) => i.postId)).toContain(postId);
 
     // Followers carried across.
@@ -81,8 +86,15 @@ describe('FR-030 — interest merge, re-parent and retire', () => {
     const me = await request(h.app.getHttpServer()).get('/v1/me').set('authorization', `Bearer ${userToken}`);
     expect(await follows.isFollowing(me.body.userId, target)).toBe(true);
 
-    // Reads redirect rather than 404, so existing links keep working.
-    const detail = await request(h.app.getHttpServer()).get(`/v1/interests/${source}`);
+    // Reads redirect rather than 404, so existing links keep working. The
+    // catalogue cache is refreshed by the same async job, so this waits for the
+    // redirect rather than assuming the job finished - which is the assertion
+    // that actually failed in CI.
+    const detail = await eventually(
+      () => request(h.app.getHttpServer()).get(`/v1/interests/${source}`),
+      (r) => r.status === 301,
+      { describe: 'the merged interest redirecting to its survivor' },
+    );
     expect(detail.status).toBe(301);
     expect(detail.headers.location).toContain(target);
   }, 180_000);
@@ -100,7 +112,11 @@ describe('FR-030 — interest merge, re-parent and retire', () => {
         .set('authorization', `Bearer ${operatorToken}`)
         .send({ action: 'merge', mergeIntoId: target })
         .catch(() => undefined);
-      await new Promise((r) => setTimeout(r, 600));
+      await eventually(
+        () => request(h.app.getHttpServer()).get(`/v1/interests/${source}`),
+        (r) => r.status === 301,
+        { describe: `merge ${i + 1} completing` },
+      );
     }
 
     const targetDetail = await request(h.app.getHttpServer()).get(`/v1/interests/${target}`);
@@ -126,9 +142,12 @@ describe('FR-030 — interest merge, re-parent and retire', () => {
       .set('authorization', `Bearer ${operatorToken}`)
       .send({ action: 'reparent', newParentId: otherTopId });
     expect(res.status).toBe(202);
-    await new Promise((r) => setTimeout(r, 600));
 
-    const detail = await request(h.app.getHttpServer()).get(`/v1/interests/${sub}`);
+    const detail = await eventually(
+      () => request(h.app.getHttpServer()).get(`/v1/interests/${sub}`),
+      (r) => r.body?.parent?.interestId === otherTopId,
+      { describe: 'the re-parent landing in the catalogue' },
+    );
     expect(detail.body.parent.interestId).toBe(otherTopId);
   }, 120_000);
 
@@ -189,12 +208,15 @@ describe('FR-030 — rewrites land on the new key, not the old one', () => {
       .patch(`/v1/moderation/interests/${subId}`)
       .set('authorization', `Bearer ${operatorToken}`)
       .send({ action: 'reparent', newParentId: otherTopId });
-    await new Promise((r) => setTimeout(r, 800));
 
     // Read through the hierarchy index (gsi3), not the item's own field.
     const { InterestRepository } = await import('../../src/persistence/interest.repository');
     const repo = h.module.get(InterestRepository);
-    const newChildren = await repo.listChildren(otherTopId, { limit: 200 });
+    const newChildren = await eventually(
+      () => repo.listChildren(otherTopId, { limit: 200 }),
+      (page) => page.items.some((i) => i.interestId === subId),
+      { describe: 'the re-parented interest appearing under its new parent in gsi3' },
+    );
     const oldChildren = await repo.listChildren(topId, { limit: 200 });
     expect(newChildren.items.map((i) => i.interestId)).toContain(subId);
     expect(oldChildren.items.map((i) => i.interestId)).not.toContain(subId);
