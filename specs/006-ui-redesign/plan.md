@@ -15,9 +15,12 @@ This feature does two things and deliberately not a third:
 
 1. **Shows the content** — a shared `PostCard` with media, author, avatar,
    interest chip and counts, on all five surfaces that list posts.
-2. **Gives interests a visual identity** — a colour derived from the interest id,
+2. **Gives the product a brand** — a **dark green** theme (owner's direction,
+   2026-09-07), expressed as one hue every green in the app derives from, with
+   dark as the default palette.
+3. **Gives interests a visual identity** — a colour derived from the interest id,
    consistent everywhere, with sub-interests visibly related to their parent.
-3. **Changes no navigation, no screen, no testID, no API call.** That is what
+4. **Changes no navigation, no screen, no testID, no API call.** That is what
    keeps 19 Maestro flows and every browser journey passing, and it is the
    constraint the whole approach is built around.
 
@@ -29,6 +32,19 @@ This feature does two things and deliberately not a third:
 remote avatar service. If any dependency is proposed later it must be installed
 with `expo install` if native — `pnpm add` took an incompatible module version
 once and killed the app at registration.
+
+**Colour space**: OKLCH, converted to sRGB at module load by ~90 lines in
+`ui/color.ts`. Not a preference — an interest's colour is generated from a hash
+(R1), and HSL's `L` is a coordinate rather than lightness, so a fixed-`L` HSL
+palette gives some interests legible chips and others not, decided by their id.
+OKLab is perceptually uniform, which is what makes SC-004 hold by construction
+instead of by luck. Gamut fitting reduces **chroma**, never clamps channels —
+clamping shifts the hue and silently breaks the sub-interest families FR-012
+depends on.
+
+**Brand**: `BRAND_HUE = 152`, a deep forest green. Every green — surfaces,
+accent, success, the tint under an interest chip — derives from it, because a hex
+per green produces six greens that nearly match. Dark is the default palette.
 
 **Storage**: N/A — no schema, no migration, no new field. Interest colour and
 avatars are derived (R1, R5).
@@ -132,14 +148,51 @@ construction rather than by review.
 The order is forced by two things: the guard must exist before the change it
 guards, and the shared card must exist before five surfaces adopt it.
 
-| Phase | Contents | Gate to the next |
-|---|---|---|
-| **1. Guards first** | testID snapshot (R3), contrast test (R7), touch-target test (SC-007) | All three pass against the CURRENT code, so a later failure means the redesign broke something rather than that the guard is wrong |
-| **2. Tokens** | palettes, type scale, spacing, elevation, `useTheme`, interest colour | Contrast test passes over the whole generated space |
-| **3. Primitives** | Button, Banner, EmptyState, Row, Screen on tokens | Every existing mobile test still passes; testID snapshot unchanged |
-| **4. The card** | `Avatar`, `InterestChip`, `Skeleton`, `PostCard` | `post-card.test.tsx` proves it renders media, author, interest and counts, and imports nothing from `data/` |
-| **5. Adoption** | five post surfaces, then conversations, reviews, places, profile | testID snapshot unchanged; browser journeys pass |
-| **6. Evidence** | recapture 20 screens; full CI step list; **emulator run** | G5 — not complete without the device run |
+| Phase | Contents | Status | Gate to the next |
+|---|---|---|---|
+| **1. Guards first** | contrast test (R7), colourless-`Text` guard, testID snapshot (R3), touch-target test | **Partly done** — contrast and `text-has-colour` exist and pass; testID snapshot and touch-target **not written** | All must pass against the CURRENT code, so a later failure means the redesign broke something rather than that the guard is wrong |
+| **2. Tokens** | palettes, type scale, spacing, radius, elevation, interest colour | **Done** | Contrast test passes over the whole generated space — 720 colours, both palettes |
+| **3. Primitives** | Button, Banner, EmptyState, Row, Screen on tokens | **Not started.** `theme.ts` aliases the palette, so the primitives are already *green*, but they read the old flat names and not the semantic tokens | Every existing mobile test still passes; testID snapshot unchanged |
+| **4. The card** | `Avatar`, `InterestChip`, `Skeleton`, `PostCard` | **Not started** — this is the phase that closes SC-001, the largest gap | `post-card.test.tsx` proves it renders media, author, interest and counts, and imports nothing from `data/` |
+| **5. Adoption** | five post surfaces, then conversations, reviews, places, profile | **Not started** | testID snapshot unchanged; browser journeys pass |
+| **6. Evidence** | recapture 20 screens; full CI step list; **emulator run** | Screens recaptured; **no device run** | G5 — not complete without the device run |
+
+### What actually exists, as of 2026-09-07
+
+Recorded here because a plan that describes only intentions is the thing this
+project keeps finding out is wrong. Committed and green:
+
+| | |
+|---|---|
+| `ui/color.ts` | OKLCH→sRGB, gamut fitting, WCAG contrast, `stableHash` (FNV-1a) |
+| `ui/tokens.ts` | Both palettes, type scale, space, radius, elevation, `MIN_TOUCH_TARGET` |
+| `ui/interest-colour.ts` | Hue from id, parent hue for sub-interests, whole-space enumeration |
+| `ui/theme.ts` | Alias layer, so ~40 files went dark green in one diff |
+| `__tests__/contrast.test.ts` | Both palettes + all 720 interest colours |
+| `__tests__/text-has-colour.test.ts` | Every `<Text>` chooses a colour |
+
+Verified: 86 mobile tests, 129 e2e across 21 suites, typecheck, lint,
+`verify-maestro-ids`. **Not verified: anything on a device** (G5).
+
+### Two defects found by looking at a screenshot
+
+Both are recorded because neither was catchable by the contrast test, and the
+distinction is the useful part.
+
+1. **`PostRow`'s caption had no style at all**, so it inherited the platform's
+   black — invisible luck under the old white theme, near-black on near-black
+   against green. The contrast test checks that TOKENS are legible against each
+   other; a token nobody applies is a colour nobody sees. `text-has-colour`
+   closes that half.
+2. **The page below the app was white.** `#root` in the hand-rolled web shell is
+   a block container, and react-native-web renders the app root as `flex: 1`,
+   which sizes to content in a block parent. **A harness artefact, not a product
+   defect** — the native root always fills — fixed so captures show what a device
+   shows.
+
+And one process failure worth the same treatment: `capture-screens.ts` did not
+build the bundle it served, so the first capture after changing the entire theme
+produced twenty screenshots of the *old* design. It looked exactly like evidence.
 
 **Note on phase 1**: a guard that asserts ABSENCE can precede the code it guards;
 one that asserts PRESENCE cannot. All three phase-1 guards assert properties of
