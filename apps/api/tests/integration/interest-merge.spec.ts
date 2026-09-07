@@ -70,14 +70,29 @@ describe('FR-030 — interest merge, re-parent and retire', () => {
       .send({ action: 'merge', mergeIntoId: target });
     expect(job.status).toBe(202);
 
-    // The merge is an ASYNCHRONOUS job. Wait for the outcome, not for a
-    // duration: a fixed sleep here passed locally and went red in CI the moment
-    // the API did marginally more work per request.
-    const onTarget = await eventually(
-      () => request(h.app.getHttpServer()).get(`/v1/interests/${target}/posts?limit=50`),
-      (r) => (r.body.items as { postId: string }[]).some((i) => i.postId === postId),
-      { describe: 'the merged post appearing on the survivor' },
+    /**
+     * WAIT FOR THE JOB'S LAST STEP, THEN ASSERT EVERYTHING.
+     *
+     * apps/workers/src/interest-jobs/handler.ts runs: mark merging -> move
+     * posts -> move followers -> setMergedInto. Only the last of those makes
+     * GET /interests/{source} answer 301, so the redirect IS the completion
+     * signal, and nothing that happened earlier can still be in flight once it
+     * appears.
+     *
+     * A previous fix here waited on the POST move and then asserted the
+     * FOLLOWER move immediately - which is a step later in the same job. It
+     * turned one race into a different one and went red in CI on the very next
+     * run. The lesson is the one this project keeps relearning: read the thing
+     * that already works before deciding what to wait for.
+     */
+    await eventually(
+      () => request(h.app.getHttpServer()).get(`/v1/interests/${source}`),
+      (r) => r.status === 301,
+      { describe: 'the merge job completing (its final step is the redirect)' },
     );
+
+    // Posts moved: nothing orphaned.
+    const onTarget = await request(h.app.getHttpServer()).get(`/v1/interests/${target}/posts?limit=50`);
     expect(onTarget.body.items.map((i: { postId: string }) => i.postId)).toContain(postId);
 
     // Followers carried across.
@@ -86,15 +101,8 @@ describe('FR-030 — interest merge, re-parent and retire', () => {
     const me = await request(h.app.getHttpServer()).get('/v1/me').set('authorization', `Bearer ${userToken}`);
     expect(await follows.isFollowing(me.body.userId, target)).toBe(true);
 
-    // Reads redirect rather than 404, so existing links keep working. The
-    // catalogue cache is refreshed by the same async job, so this waits for the
-    // redirect rather than assuming the job finished - which is the assertion
-    // that actually failed in CI.
-    const detail = await eventually(
-      () => request(h.app.getHttpServer()).get(`/v1/interests/${source}`),
-      (r) => r.status === 301,
-      { describe: 'the merged interest redirecting to its survivor' },
-    );
+    // And the redirect points at the survivor.
+    const detail = await request(h.app.getHttpServer()).get(`/v1/interests/${source}`);
     expect(detail.status).toBe(301);
     expect(detail.headers.location).toContain(target);
   }, 180_000);
