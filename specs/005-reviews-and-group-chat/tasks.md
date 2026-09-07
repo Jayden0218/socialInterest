@@ -239,12 +239,12 @@ remove it as a moderator, confirm it is gone and the log survives.
 
 ### Mobile for US3
 
-- [ ] T095 [P] [US3] Create group creation in `apps/mobile/src/features/conversations/NewGroupScreen.tsx` with testIDs `new-group`, `group-participant-<handle>`, `group-name-input`, `create-group`
-- [ ] T096 [P] [US3] Show participants and a leave affordance in `apps/mobile/src/features/conversations/ConversationScreen.tsx` with testIDs `group-participants`, `leave-group`
-- [ ] T097 [US3] Render group rows in `apps/mobile/src/features/conversations/InboxScreen.tsx` identified by name or participants, **never** by last-message preview — 004's flow-ordering defect
-- [ ] T098 [US3] Wire the containers in `apps/mobile/src/screens/index.tsx`
+- [X] T095 [P] [US3] Create group creation in `apps/mobile/src/features/conversations/NewGroupScreen.tsx` with testIDs `new-group`, `group-participant-<handle>`, `group-name-input`, `create-group`
+- [X] T096 [P] [US3] Show participants and a leave affordance in `apps/mobile/src/features/conversations/ConversationScreen.tsx` with testIDs `group-participants`, `leave-group`
+- [X] T097 [US3] Render group rows in `apps/mobile/src/features/conversations/InboxScreen.tsx` identified by name or participants, **never** by last-message preview — 004's flow-ordering defect
+- [X] T098 [US3] Wire the containers in `apps/mobile/src/screens/index.tsx`
 - [X] T099 [US3] Add group methods to the mobile data layer in `apps/mobile/src/data/conversations.ts`
-- [ ] T100 [US3] Add container tests in `apps/mobile/src/__tests__/screens.test.tsx` pressing create, add and leave
+- [X] T100 [US3] Add container tests in `apps/mobile/src/__tests__/screens.test.tsx` pressing create, add and leave
 
 ### Measuring US3's criteria
 

@@ -2,7 +2,7 @@ import { FlatList, Text, View } from 'react-native';
 import type { ConversationState, ConversationSummary } from '@sih/shared';
 import { theme } from '../../ui/theme';
 import { Button, EmptyState, Row, Screen } from '../../ui/primitives';
-import { conversationTitle } from './conversation-title';
+import { conversationTitle, isGroup } from './conversation-title';
 
 export const INBOXES: { key: ConversationState; label: string }[] = [
   { key: 'accepted', label: 'Messages' },
@@ -31,11 +31,14 @@ export function InboxScreen({
   conversations,
   onSelectInbox,
   onOpen,
+  onNewGroup,
 }: {
   state: ConversationState;
   conversations: ConversationSummary[];
   onSelectInbox: (next: ConversationState) => void;
   onOpen: (conversation: ConversationSummary) => void;
+  /** 005/FR-018. */
+  onNewGroup?: () => void;
 }) {
   const empty = emptyInboxCopy(state);
   return (
@@ -50,6 +53,8 @@ export function InboxScreen({
             onPress={() => onSelectInbox(i.key)}
           />
         ))}
+        <View style={{ flex: 1 }} />
+        {onNewGroup ? <Button testID="new-group" label="New group" onPress={onNewGroup} /> : null}
       </Row>
 
       {conversations.length === 0 ? (
@@ -70,7 +75,29 @@ export function InboxScreen({
             >
               <Row style={{ alignItems: 'center', gap: theme.space.sm }}>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: theme.color.text, fontWeight: '600' }}>
+                  {/*
+                    005/FR-024. A group row is found by WHO OR WHAT IT IS.
+
+                    `conversationTitle` is the group's name, or the people in it,
+                    and never the last message. The preview below is still shown -
+                    it is useful - but it identifies nothing, and the testID that
+                    a flow selects on is built from the title.
+
+                    That is not a style preference. 004's `14-message-request`
+                    waited on a seeded message's text in the inbox while
+                    `13-send-message` replied into the same conversation, so the
+                    preview correctly changed and the flow passed twice on
+                    Maestro's incidental ordering. A last-message preview is
+                    mutable by definition; assert on what identifies the row.
+                  */}
+                  <Text
+                    testID={
+                      isGroup(item)
+                        ? `group-row-${conversationTitle(item)}`
+                        : `conversation-title-${item.conversationId}`
+                    }
+                    style={{ color: theme.color.text, fontWeight: '600' }}
+                  >
                     {conversationTitle(item)}
                   </Text>
                   <Text numberOfLines={1} style={{ color: theme.color.muted }}>
