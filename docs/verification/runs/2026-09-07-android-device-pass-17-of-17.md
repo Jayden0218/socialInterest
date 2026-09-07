@@ -160,9 +160,17 @@ by definition; the assertion now reads the participant's name.
 - **A service-side FR-031 check.** `18-notification-settings`' own header claimed the
   preference change was asserted server-side. It was not — the evidence was a
   `PATCH /v1/me` 200, and a switch bound to the wrong key sends a perfectly valid patch.
-  The script now reads the value before and after and asserts it **changed**; asserting a
-  hardcoded `false` would have been my bug, since a new person's prefs start empty and the
-  toggle's direction is not knowable in advance.
+  The script now reads the value before and after and asserts it **changed**. Run 31
+  reports `before: "message":true  after: "message":false`, so the toggle reaches the
+  server and persists.
+
+  I got the reasoning for that check wrong twice and the code right both times, which is
+  worth recording. First I wrote it against a hardcoded `false`; then I replaced that with
+  a before/after comparison, justified by "a new person's prefs start empty". They do not —
+  `mint-device-token.ts` writes all four as `true`, which run 31 then confirmed. The
+  before/after form is still the right one, because it does not depend on knowing the
+  default; but I argued for it from a default I had not checked, having just written a
+  paragraph about checking defaults before asserting on them.
 
 ## What this run does NOT establish
 

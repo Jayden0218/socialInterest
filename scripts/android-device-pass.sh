@@ -309,11 +309,18 @@ sample_resources & SAMPLER_PID=$!
 trap 'kill "$SAMPLER_PID" 2>/dev/null || true' EXIT
 
 # FR-031's before-value, read now because the flows are about to change it.
-# `|| true` is LOAD-BEARING, and I proved that rather than assuming it: under
-# `set -euo pipefail` a command substitution whose pipeline ends in a grep that
-# matches nothing makes the ASSIGNMENT fail, and the script dies here - before a
-# single journey runs. An absent `message` key is the expected initial state, so
-# without this the check I added to verify FR-031 would have aborted every pass.
+# `|| true` is load-bearing, and the reason is NOT the one I first wrote here.
+#
+# The mechanism is real and I proved it: under `set -euo pipefail`, a command
+# substitution whose pipeline ends in a grep that matches nothing makes the
+# ASSIGNMENT fail, and the script dies at this line before a single journey runs.
+#
+# But I justified it by claiming an absent `message` key is the expected initial
+# state. It is not. `mint-device-token.ts` writes all four preferences as `true`,
+# and run 31 read back `before: "message":true`. So this would NOT have aborted
+# every pass, as I said it would - it guards a state that does not arise on this
+# path today, and would arise the moment a person is created any other way.
+# Correct to keep, wrong to have argued from a default I never checked.
 PREFS_BEFORE="$(curl -s -H "Authorization: Bearer $TOKEN" http://127.0.0.1:3000/v1/me \
   | grep -oE '"message"[[:space:]]*:[[:space:]]*(true|false)' | head -1 || true)"
 
