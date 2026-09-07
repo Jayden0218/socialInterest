@@ -307,14 +307,104 @@ sample_resources & SAMPLER_PID=$!
 trap 'kill "$SAMPLER_PID" 2>/dev/null || true' EXIT
 
 echo "== journeys =="
-maestro test .maestro/ -e TOKEN="$TOKEN" -e PRESENT="$PRESENT" -e ABSENT="$ABSENT" \
-  -e AUTHOR="$AUTHOR" \
-  -e REQUESTER="$REQUESTER" -e FRIEND="$FRIEND" \
-  -e REQUEST_BODY="$REQUEST_BODY" -e FRIEND_BODY="$FRIEND_BODY" \
-  -e PLACE_NAME="$PLACE_NAME" -e PLACE_LOCALITY="$PLACE_LOCALITY" \
-  --format junit --output "$OUT/maestro-junit.xml" \
-  --debug-output "$OUT/maestro-debug" || {
-    echo "FAIL: a journey did not pass"
+
+# ONE FLOW PER INVOCATION, not `maestro test .maestro/`.
+#
+# Runs 26 and 27 both lost the device at the twelfth flow, ~10.5 minutes into a
+# single Maestro session, mid-`inputText`:
+#
+#   DeviceServerDiedException: Device server died during 'inputText'
+#   ... Caused by: java.io.IOException: ... device offline
+#
+# The sampler added after run 26 ruled out every guess anyone had: disk was flat
+# at ~99.8 GB free, available memory flat at ~11.5 GB of 16, swap zero, qemu RSS
+# flat at 2.7 GB, and `adb get-state` read `device` in the sample immediately
+# before. qemu was still running at the failure, and logcat read fine seconds
+# later, showing the guest's adbd re-handshaking a fresh host connection:
+#
+#   I adbd: host-13: read thread spawning
+#   I adbd: host-13: already offline
+#
+# So the device drops off adb TRANSIENTLY and comes back within seconds. Nothing
+# is exhausted and nothing crashes.
+#
+# WHY adbd drops is still not established, and this does not pretend to fix it.
+# What it fixes is the COST: one directory-wide invocation holds a single
+# connection for the whole suite, so a momentary drop at flow 12 took out flow 12
+# and every flow after it - five failures in 10-40ms each, all collateral, in
+# both runs. Per-flow invocations give each flow its own connection, so a drop
+# costs one flow and the next one reconnects.
+#
+# The retry below fires ONLY on a device-transport error, never on an assertion.
+# That distinction is the whole point: retrying an assertion failure would hide
+# exactly the product defects this pass exists to find, and this project has
+# already shipped seven defects that a green suite could not see.
+MAESTRO_ENV=(
+  -e TOKEN="$TOKEN" -e PRESENT="$PRESENT" -e ABSENT="$ABSENT"
+  -e AUTHOR="$AUTHOR"
+  -e REQUESTER="$REQUESTER" -e FRIEND="$FRIEND"
+  -e REQUEST_BODY="$REQUEST_BODY" -e FRIEND_BODY="$FRIEND_BODY"
+  -e PLACE_NAME="$PLACE_NAME" -e PLACE_LOCALITY="$PLACE_LOCALITY"
+)
+
+# Sorted, so the order is the same on every run and a failure is comparable
+# across runs. Safe to reorder: 09-report-and-block asserts the block affordance
+# but never blocks, so no flow hides content from a later one.
+mapfile -t FLOWS < <(find .maestro -maxdepth 1 -name '*.yaml' | sort)
+echo "[journeys] ${#FLOWS[@]} flows, one Maestro session each"
+
+FAILED=()
+RETRIED=()
+for flow in "${FLOWS[@]}"; do
+  name="$(basename "$flow" .yaml)"
+  attempt=1
+  while :; do
+    flog="$OUT/flow-$name-attempt$attempt.log"
+    if maestro test "$flow" "${MAESTRO_ENV[@]}" \
+         --format junit --output "$OUT/junit-$name.xml" \
+         --debug-output "$OUT/debug-$name" > "$flog" 2>&1; then
+      echo "[journeys] PASS $name (attempt $attempt)"
+      break
+    fi
+
+    # A transport error is not a failed assertion. Only the former is retried.
+    if [ "$attempt" -eq 1 ] \
+       && grep -qE 'DeviceServerDiedException|device offline|device .emulator-[0-9]+. not found' "$flog"; then
+      echo "[journeys] $name LOST THE DEVICE - transport error, not an assertion. Reconnecting."
+      grep -oE 'DeviceServerDiedException[^\\]{0,160}' "$flog" | head -2 || true
+      # wait-for-device first: the evidence says adbd comes back on its own, so
+      # restarting the host server is the heavier fallback rather than the
+      # opening move.
+      timeout 90 adb wait-for-device || {
+        echo "[journeys] device did not return in 90s; restarting the adb server"
+        adb kill-server >/dev/null 2>&1 || true
+        adb start-server >/dev/null 2>&1 || true
+        timeout 120 adb wait-for-device || true
+      }
+      timeout 120 adb shell 'while [ "$(getprop sys.boot_completed)" != 1 ]; do sleep 1; done' \
+        >/dev/null 2>&1 || true
+      echo "[journeys] device state now: $(adb get-state 2>&1 | tr -d '\r' | head -1)"
+      RETRIED+=("$name")
+      attempt=2
+      continue
+    fi
+
+    echo "[journeys] FAIL $name"
+    tail -30 "$flog" || true
+    FAILED+=("$name")
+    break
+  done
+done
+
+echo "[journeys] passed $(( ${#FLOWS[@]} - ${#FAILED[@]} ))/${#FLOWS[@]}"
+[ ${#RETRIED[@]} -eq 0 ] || echo "[journeys] retried after a device drop: ${RETRIED[*]}"
+
+# Merged for the workflow's evidence step, which knows one path.
+cat "$OUT"/junit-*.xml > "$OUT/maestro-junit.xml" 2>/dev/null || true
+
+if [ ${#FAILED[@]} -ne 0 ]; then
+  {
+    echo "FAIL: a journey did not pass: ${FAILED[*]}"
     # Maestro's summary names the flow and the failed assertion but not the STEP
     # it reached. The junit report does, and it is the difference between "this
     # journey failed" and "it failed at step 7 of 12, here is what preceded it".
@@ -333,9 +423,15 @@ maestro test .maestro/ -e TOKEN="$TOKEN" -e PRESENT="$PRESENT" -e ABSENT="$ABSEN
     # the fix for an unreadable failure is not more output, it is less of the
     # right output.
     echo "=============== maestro: failed commands ==============="
-    find "$OUT/maestro-debug" -name 'maestro.log' -exec \
-      grep -hE 'FAILED|Assertion is false|Element not found|No visible element' {} \; 2>/dev/null \
-      | head -40 || true
+    # Only the flows that actually failed: per-flow debug output means the
+    # directory now holds seventeen of these, and sixteen passing ones is the
+    # "quarter of a megabyte of INFO chatter" problem again.
+    for name in "${FAILED[@]}"; do
+      echo "-- $name --"
+      find "$OUT/debug-$name" -name 'maestro.log' -exec \
+        grep -hE 'FAILED|Assertion is false|Element not found|No visible element' {} \; 2>/dev/null \
+        | head -20 || true
+    done
     # WAS THE DEVICE STILL THERE? Answered first, because if it was not then
     # every "assertion failed" above is collateral and reading them as findings
     # is how a run gets diagnosed backwards. Run 26 lost the device at flow 12
@@ -374,8 +470,9 @@ maestro test .maestro/ -e TOKEN="$TOKEN" -e PRESENT="$PRESENT" -e ABSENT="$ABSEN
     adb shell cat /sdcard/fail.xml 2>/dev/null \
       | grep -oE 'resource-id="[^"]*"|text="[^"]{1,50}"' | grep -v '=""' | sort -u | head -40 || true
     echo "==================================================="
-    exit 1
   }
+  exit 1
+fi
 
 # ---------------------------------------------------------------------------
 # Every journey's effect is asserted through the SERVICE, not the view
