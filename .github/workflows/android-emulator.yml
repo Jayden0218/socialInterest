@@ -1,8 +1,17 @@
 name: Android device pass (emulator)
 
-# Manual only. The repository is private, so Actions minutes come out of the
-# account's monthly allowance, and the cost posture in plan.md says nothing
-# spends without a deliberate decision.
+# Manual only.
+#
+# The reason USED to be cost: the repository was private, so every minute came
+# out of the account's monthly allowance and the cost posture in plan.md says
+# nothing spends without a deliberate decision. That premise is gone - the
+# repository is public (verified 2026-09-07), and GitHub-hosted standard runners
+# are free on public repositories.
+#
+# It stays workflow_dispatch anyway, for a different and better reason: this job
+# takes ~20 minutes, boots an emulator, and is the ONLY place native behaviour is
+# observed. Running it on every push would make it a thing people wait out rather
+# than read. It is dispatched when there is something native to verify.
 on:
   workflow_dispatch:
 
