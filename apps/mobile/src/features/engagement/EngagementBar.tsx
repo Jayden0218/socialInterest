@@ -1,5 +1,5 @@
 import { Pressable, Text } from 'react-native';
-import { theme } from '../../ui/theme';
+import { touchTarget, theme } from '../../ui/theme';
 import { Row } from '../../ui/primitives';
 
 export interface EngagementState {
@@ -44,6 +44,7 @@ export function EngagementBar({
   return (
     <Row style={{ gap: theme.space.lg }}>
       <Pressable
+        style={touchTarget}
         testID="react-button"
         accessibilityRole="button"
         accessibilityState={{ selected: state.viewerHasReacted }}
@@ -57,11 +58,13 @@ export function EngagementBar({
         </Text>
       </Pressable>
 
-      <Pressable testID="comments-button" accessibilityRole="button" onPress={onOpenComments}>
+      <Pressable
+        style={touchTarget} testID="comments-button" accessibilityRole="button" onPress={onOpenComments}>
         <Text style={{ color: theme.color.muted, fontSize: theme.font.md }}>💬 {state.commentCount}</Text>
       </Pressable>
 
-      <Pressable testID="share-button" accessibilityRole="button" accessibilityLabel="Share" onPress={onShare}>
+      <Pressable
+        style={touchTarget} testID="share-button" accessibilityRole="button" accessibilityLabel="Share" onPress={onShare}>
         <Text style={{ color: theme.color.muted, fontSize: theme.font.md }}>↗</Text>
       </Pressable>
 
@@ -72,6 +75,7 @@ export function EngagementBar({
       */}
       {onToggleSave ? (
         <Pressable
+        style={touchTarget}
           testID="save-button"
           accessibilityRole="button"
           accessibilityState={{ selected: saved === true }}

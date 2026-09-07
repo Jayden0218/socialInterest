@@ -77,8 +77,8 @@ cannot. All four below assert properties of what already exists, so they go firs
 
 - [X] T003 Add `apps/mobile/src/__tests__/contrast.test.ts` checking WCAG AA for both palettes and **all 720 generated interest colours** — **done**. Failed on its first run (light `text.muted` 4.24 vs 4.5) and the token was darkened; SC-004
 - [X] T004 Add `apps/mobile/src/__tests__/text-has-colour.test.ts` failing on any `<Text>` that chooses no colour — **done**, and verified by reverting the caption fix and watching it name the line. Contrast checks that TOKENS are legible; this checks one was applied
-- [ ] T005 [P] Add `apps/mobile/src/__tests__/touch-target.test.ts` asserting every `Pressable`/`Button` presents at least `MIN_TOUCH_TARGET` (44) including padding — **SC-007**, FR-020
-- [ ] T006 Add `apps/mobile/src/__tests__/testid-snapshot.test.ts` extracting every `testID` literal and dynamic prefix from `apps/mobile/src` and comparing to a committed snapshot, per `contracts/testid-preservation.md` — additions pass, removals and renames fail. **Verify it fails** by renaming one testID before committing; **SC-005**
+- [X] T005 [P] Add `apps/mobile/src/__tests__/touch-target.test.tsx` asserting every `Pressable`/`Button` presents at least `MIN_TOUCH_TARGET` (44) including padding — **SC-007**, FR-020. **Found five real violations**: the reaction, comment and share buttons under every post had no style at all, making them ~20pt. Fixed with a shared `touchTarget` token
+- [X] T006 Add `apps/mobile/src/__tests__/testid-snapshot.test.ts` extracting every `testID` literal and dynamic prefix from `apps/mobile/src` and comparing to a committed snapshot, per `contracts/testid-preservation.md` — additions pass, removals and renames fail; **SC-005**. **Done**: 176 literals, 39 prefixes, and verified by renaming `place-name`, which it named exactly
 
 ### The token layer
 
@@ -86,8 +86,8 @@ cannot. All four below assert properties of what already exists, so they go firs
 - [X] T008 Add `apps/mobile/src/ui/tokens.ts` — `BRAND_HUE = 152`, both palettes, five type roles, space, radius, elevation, `MIN_TOUCH_TARGET` — **done**
 - [X] T009 Add `apps/mobile/src/ui/interest-colour.ts` — hue from id, parent's hue for a sub-interest, and `everyInterestColour()` for T003 — **done**
 - [X] T010 Re-point `apps/mobile/src/ui/theme.ts` at the palette as an alias layer, so ~40 files turn dark green in one diff — **done**
-- [ ] T011 Add `apps/mobile/src/ui/useTheme.ts` resolving `light`/`dark` from the platform colour scheme, defaulting to dark — **FR-017**. Every token must exist in both palettes; a token defined in one only is a build failure, not a fallback
-- [ ] T012 Pin `stableHash` in `apps/mobile/src/__tests__/stable-hash.test.ts` with literal expected values — it decides every interest's colour, so changing it recolours every screenshot, bug report and person's memory at once
+- [X] T011 Add `apps/mobile/src/ui/useTheme.ts` resolving `light`/`dark` from the platform colour scheme, defaulting to dark — **FR-017**. Every token must exist in both palettes; a token defined in one only is a build failure, not a fallback
+- [X] T012 Pin `stableHash` in `apps/mobile/src/__tests__/stable-hash.test.ts` with literal expected values — it decides every interest's colour, so changing it recolours every screenshot, bug report and person's memory at once
 
 **Checkpoint**: tokens exist, four guards pass against current code, and a lost testID now fails the build.
 

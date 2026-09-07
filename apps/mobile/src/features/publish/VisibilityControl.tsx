@@ -1,6 +1,6 @@
 import { Pressable, Text, View } from 'react-native';
 import type { Visibility } from '@sih/shared';
-import { theme } from '../../ui/theme';
+import { touchTarget, theme } from '../../ui/theme';
 
 export interface VisibilityControlProps {
   value: Visibility;
@@ -32,6 +32,7 @@ export function VisibilityControl({ value, onChange }: VisibilityControlProps) {
               accessibilityHint={option.hint}
               onPress={() => onChange(option.value)}
               style={{
+        ...touchTarget,
                 paddingVertical: theme.space.sm,
                 paddingHorizontal: theme.space.md,
                 borderRadius: theme.radius.pill,

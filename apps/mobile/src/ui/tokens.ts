@@ -153,3 +153,22 @@ export const elevation = {
 
 /** 006/FR-020. Below this, a control is not reliably tappable. */
 export const MIN_TOUCH_TARGET = 44;
+
+/**
+ * The style every small control wears.
+ *
+ * A heart, a comment count, a chip - each is a few points of glyph, and a
+ * `Pressable` with no style is exactly as big as its text. The reaction, comment
+ * and share buttons under every post were about 20 points until this existed,
+ * which is a shipped accessibility defect rather than a rough edge: it was not
+ * visible in any screenshot and no test asked.
+ *
+ * Padding does not have to be visible for the target to be real, which is the
+ * point - the art stays small and the target does not.
+ */
+export const touchTarget = {
+  minHeight: MIN_TOUCH_TARGET,
+  minWidth: MIN_TOUCH_TARGET,
+  justifyContent: 'center',
+  alignItems: 'center',
+} as const;

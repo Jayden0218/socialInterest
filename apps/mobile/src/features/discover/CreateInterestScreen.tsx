@@ -1,6 +1,6 @@
 import { Pressable, Text, TextInput, View } from 'react-native';
 import type { Interest } from '@sih/shared';
-import { theme } from '../../ui/theme';
+import { touchTarget, theme } from '../../ui/theme';
 import { Banner, Button, Screen } from '../../ui/primitives';
 
 export interface SimilarCandidate {
@@ -93,6 +93,7 @@ export function CreateInterestScreen({
               accessibilityRole="button"
               onPress={() => onJoinExisting(c.interest.interestId)}
               style={{
+        ...touchTarget,
                 padding: theme.space.md,
                 borderWidth: 1,
                 borderColor: theme.color.border,

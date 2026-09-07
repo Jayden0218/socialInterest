@@ -1,5 +1,5 @@
 import { Pressable, Text, View, type ViewStyle } from 'react-native';
-import { theme } from './theme';
+import { MIN_TOUCH_TARGET, theme } from './theme';
 
 export function Button({
   label,
@@ -32,6 +32,15 @@ export function Button({
         paddingHorizontal: theme.space.lg,
         borderRadius: theme.radius.md,
         alignItems: 'center',
+        /**
+         * 006/FR-020. An explicit floor, not padding that happens to add up.
+         *
+         * Padding plus a line height is ~46 today, which is a number that moves
+         * whenever the type scale does. A minimum states the requirement instead
+         * of coincidentally meeting it.
+         */
+        minHeight: MIN_TOUCH_TARGET,
+        justifyContent: 'center',
       }}
     >
       <Text style={{ color: fg, fontSize: theme.font.md, fontWeight: '600' }}>{label}</Text>

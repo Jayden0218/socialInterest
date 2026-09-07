@@ -1,5 +1,5 @@
 import { Pressable, Text, View } from 'react-native';
-import { theme } from '../../ui/theme';
+import { touchTarget, theme } from '../../ui/theme';
 import { Banner, Button, Screen } from '../../ui/primitives';
 
 /**
@@ -89,6 +89,7 @@ export function SafetyActions({
             accessibilityState={{ selected: selectedReason === r.value }}
             onPress={() => onSelectReason(r.value)}
             style={{
+        ...touchTarget,
               padding: theme.space.md,
               borderWidth: 1,
               borderRadius: theme.radius.md,

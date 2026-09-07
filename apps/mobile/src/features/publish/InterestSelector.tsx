@@ -1,6 +1,6 @@
 import { FlatList, Pressable, Text, View } from 'react-native';
 import type { InterestRef } from '@sih/shared';
-import { theme } from '../../ui/theme';
+import { touchTarget, theme } from '../../ui/theme';
 
 export interface InterestSelectorProps {
   selected: InterestRef[];
@@ -46,6 +46,7 @@ export function InterestSelector({ selected, options, onChange }: InterestSelect
               accessibilityState={{ checked: isSelected }}
               onPress={() => toggle(item)}
               style={{
+        ...touchTarget,
                 paddingVertical: theme.space.sm,
                 paddingHorizontal: theme.space.md,
                 borderRadius: theme.radius.pill,
