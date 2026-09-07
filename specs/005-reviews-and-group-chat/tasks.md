@@ -252,8 +252,8 @@ remove it as a moderator, confirm it is gone and the log survives.
 - [X] T102 [P] [US3] Journey in `apps/e2e/journeys/groups.spec.ts` asserting delivery latency is no worse than the pair case at the same concurrency — **SC-007**
 - [X] T103 [US3] Journey in `apps/e2e/journeys/groups.spec.ts` using `consistently()` to assert a stranger's group invite notifies nobody, held over a window rather than checked once — **SC-009**
 - [X] T104 [US3] Journey in `apps/e2e/journeys/groups.spec.ts` asserting a person who left receives nothing further and their messages remain — **SC-011**
-- [ ] T105 [US3] Negative test in `apps/e2e/journeys/negative.spec.ts` exceeding the cap through a raw request — **SC-010**
-- [ ] T106 [US3] Negative test in `apps/e2e/journeys/negative.spec.ts` comparing the blocked-add refusal against another "cannot add" refusal as **literal responses** — **SC-012**
+- [X] T105 [US3] Negative test in `apps/e2e/journeys/negative.spec.ts` exceeding the cap through a raw request — **SC-010**
+- [X] T106 [US3] Negative test in `apps/e2e/journeys/negative.spec.ts` comparing the blocked-add refusal against another "cannot add" refusal as **literal responses** — **SC-012**
 
 **Checkpoint**: all three stories independently functional.
 

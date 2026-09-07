@@ -197,4 +197,131 @@ describe('005 - server-side guarantees, asked rudely', () => {
     });
     expect([400, 422]).toContain(res.status);
   });
+
+  /**
+   * SC-010. THE CAP IS THE SERVER'S, NOT THE SCREEN'S.
+   *
+   * `NewGroupScreen` disables its button past the cap, and that is a courtesy.
+   * The rule is the server's refusal, and the reason it is a rule rather than a
+   * preference is `TransactWriteItems`: it caps at 100 items and a group write
+   * is 1 meta + 2N participant rows, so 20 people is 41 and the next size up
+   * would not be a bigger group but a silently truncated one.
+   *
+   * So this never goes near the client. It asks for 25 in one request, and then
+   * asks to exceed a full group one person at a time - the two ways past a cap
+   * that is only checked in one of them.
+   */
+  it('N-09 refuses a group over the cap, whichever way it is exceeded (SC-010, FR-031)', async () => {
+    const creator = await actor('capRude');
+
+    // Twenty-five in a single create. A cap enforced only on `addParticipant`
+    // passes every incremental test and loses six people here.
+    const tooMany: string[] = [];
+    for (let i = 0; i < 25; i++) tooMany.push((await actor('capRudeMember')).handle);
+
+    const atOnce = await raw(baseUrl(), '/v1/conversations/groups', {
+      token: creator.token,
+      method: 'POST',
+      body: JSON.stringify({ participantHandles: tooMany, name: 'Too Many' }),
+    });
+    expect([400, 409, 422]).toContain(atOnce.status);
+
+    // And nothing was written. A refusal that half-created the group would be
+    // worse than one that created all of it.
+    const inbox = await raw(baseUrl(), '/v1/conversations?state=accepted&limit=50', {
+      token: creator.token,
+    });
+    const named = (inbox.body as { items: { name: string | null }[] }).items.filter(
+      (c) => c.name === 'Too Many',
+    );
+    expect(named).toHaveLength(0);
+
+    // Exactly the cap is ALLOWED - 19 others plus the creator - so the refusal
+    // above is about the cap and not about groups being refused generally.
+    const atCap: string[] = [];
+    for (let i = 0; i < 19; i++) atCap.push((await actor('capRudeOk')).handle);
+    const full = await raw(baseUrl(), '/v1/conversations/groups', {
+      token: creator.token,
+      method: 'POST',
+      body: JSON.stringify({ participantHandles: atCap, name: 'Exactly Full' }),
+    });
+    expect(full.status).toBe(201);
+    const conversationId = (full.body as { conversationId: string }).conversationId;
+
+    // One more, one at a time, past the client entirely.
+    const overflow = await actor('capRudeOverflow');
+    const added = await raw(baseUrl(), `/v1/conversations/${conversationId}/participants`, {
+      token: creator.token,
+      method: 'POST',
+      body: JSON.stringify({ handle: overflow.handle }),
+    });
+    expect([400, 409, 422]).toContain(added.status);
+
+    // And they really are not in it.
+    const reread = await raw(baseUrl(), `/v1/conversations/${conversationId}`, {
+      token: creator.token,
+    });
+    const participants = (reread.body as { participants: { person: { handle: string } }[] })
+      .participants;
+    expect(participants).toHaveLength(20);
+    expect(participants.some((p) => p.person.handle === overflow.handle)).toBe(false);
+  });
+
+  /**
+   * SC-012. TWO REFUSALS THAT MUST BE THE SAME BYTES.
+   *
+   * FR-023 refuses a group containing a blocking pair. If that refusal is
+   * distinguishable from any other "cannot add" refusal, it discloses the block
+   * - which is the one thing the whole blocking design withholds, and the same
+   * reason 001 makes a blocked post a 404 rather than a 403.
+   *
+   * "Both are 409" is not the assertion. The bodies are compared LITERALLY,
+   * because a title that reads "That person has blocked you" is also a 409.
+   */
+  it('N-10 the blocked-add refusal is byte-identical to an ordinary cannot-add refusal (SC-012)', async () => {
+    const creator = await actor('blockRefusalCreator');
+    const member = await actor('blockRefusalMember');
+    const filler = await actor('blockRefusalFiller');
+    const blocked = await actor('blockRefusalTarget');
+
+    await member.data.people.follow(creator.handle);
+    await filler.data.people.follow(creator.handle);
+
+    const group = await creator.data.conversations.createGroup({
+      participantHandles: [member.handle, filler.handle],
+      name: 'Refusal Comparison',
+    });
+
+    // Refusal A: a block exists between a member and the person being added.
+    await member.data.safety.block(blocked.handle);
+    const blockedAdd = await raw(baseUrl(), `/v1/conversations/${group.conversationId}/participants`, {
+      token: creator.token,
+      method: 'POST',
+      body: JSON.stringify({ handle: blocked.handle }),
+    });
+
+    /**
+     * Refusal B: NO BLOCK ANYWHERE - the handle simply does not exist.
+     *
+     * That is the right comparison, and picking it took a wrong one first: the
+     * creator's own handle is already a participant, which is an idempotent
+     * no-op returning 204 (J-36), not a refusal at all. The pairing that
+     * matters is "there is no such person" against "you have been blocked",
+     * because those are exactly the two answers an attacker is trying to tell
+     * apart.
+     */
+    const ordinary = await raw(baseUrl(), `/v1/conversations/${group.conversationId}/participants`, {
+      token: creator.token,
+      method: 'POST',
+      body: JSON.stringify({ handle: `nobody-${Date.now()}` }),
+    });
+
+    expect(blockedAdd.status).toBe(ordinary.status);
+    // The BODIES, literally. Anything that varies between them - a title, a
+    // detail, an extension member - is a channel that answers "did they block
+    // me?" to anyone willing to try both.
+    expect(blockedAdd.text).toBe(ordinary.text);
+    // And neither of them names the block.
+    expect(blockedAdd.text.toLowerCase()).not.toMatch(/block/);
+  });
 });
