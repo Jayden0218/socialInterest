@@ -130,7 +130,23 @@ export class PostQueryService {
     return decision;
   }
 
-  /** Surface: interest space (A4). */
+  /**
+   * Surface: interest space (A4).
+   *
+   * HYDRATED. It was not, until 004/US3 probed it with a real request: this
+   * returned VisibilityFilter's CANDIDATE rows - postId, authorId, visibility,
+   * processingState, createdAt - so every post in every interest space had no
+   * caption, no media, no author and no counts.
+   *
+   * That is the SIXTH instance of this defect here. The feed, post detail, both
+   * comment paths, notifications and a person's own profile all shipped it
+   * first. It survived on the product's PRIMARY BROWSE SURFACE because nothing
+   * asked: the journeys compared postIds, the matrix tests the filter rather
+   * than the response, and the app renders `caption ?? ''` - so a blank caption
+   * looks like a post without one.
+   *
+   * The filter decides WHAT is visible. It was never the shape of what to send.
+   */
   async listByInterest(
     viewer: Viewer,
     interestId: string,
@@ -149,7 +165,37 @@ export class PostQueryService {
       })),
       cache,
     );
-    return { items: visible, nextCursor: page.nextCursor };
+    return { items: await this.hydrate(visible), nextCursor: page.nextCursor };
+  }
+
+  /**
+   * Candidates in, responses out.
+   *
+   * One place, so the next surface cannot get it wrong in a seventh way. A
+   * candidate whose post has vanished between the query and the fetch is
+   * dropped rather than returned half-formed.
+   */
+  private async hydrate(candidates: { postId: string }[]): Promise<PostSummary[]> {
+    const items = await Promise.all(candidates.map((c) => this.responseFor(c.postId)));
+    return items.filter((p): p is NonNullable<typeof p> => p !== null) as unknown as PostSummary[];
+  }
+
+  /**
+   * The contract's Post, by id. THE one responder.
+   *
+   * Exists because the feed had grown its OWN hydration - a second shape with
+   * `interestIds` (raw ids) where the contract promises `interests` (refs with
+   * names), and no media at all. A client generated from the contract crashes on
+   * `post.interests.map`, which is precisely the defect 002 recorded for post
+   * detail, reproduced independently on a different endpoint.
+   *
+   * Two hand-written responders is two chances to diverge from the document
+   * both sides are generated from. This is the same argument as VisibilityFilter,
+   * applied to the shape rather than to the decision.
+   */
+  async responseFor(postId: string): Promise<Record<string, unknown> | null> {
+    const found = await this.posts.findWithMedia(postId);
+    return found ? this.toResponse(found.post, found.media) : null;
   }
 
   /** Surface: profile (A5). */

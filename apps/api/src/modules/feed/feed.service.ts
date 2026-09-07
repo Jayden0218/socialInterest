@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PostInterestIndexRepository } from '../../persistence/post-interest-index.repository';
-import { PostRepository } from '../../persistence/post.repository';
+import { PostQueryService } from '../posts/post-query.service';
 import { VisibilityFilter, type Viewer } from '../../visibility/visibility.filter';
 import { PersonRepository } from '../../persistence/person.repository';
 import { InterestFollowService } from '../interests/interest-follow.service';
@@ -28,18 +28,16 @@ export interface FeedCandidate {
  * which a client cannot render. It now follows the contract's Post, so a feed
  * displays without a second request per item.
  */
-export interface FeedItem {
-  postId: string;
-  author: { userId: string; handle: string; displayName: string };
-  caption?: string;
-  interestIds: string[];
-  visibility: 'public' | 'followers' | 'private';
-  processingState: 'pending' | 'processing' | 'ready' | 'failed';
-  mediaKind: 'images' | 'video';
-  reactionCount: number;
-  commentCount: number;
-  createdAt: string;
-}
+/**
+ * A feed item is the contract's Post, built by the one responder.
+ *
+ * Deliberately NOT a hand-written interface any more. The previous one declared
+ * `interestIds: string[]` where the contract promises `interests: InterestRef[]`,
+ * and omitted `media` entirely - so the feed satisfied its own type and not the
+ * document both sides are generated from. A structural type here is what let the
+ * two drift; PostQueryService.toResponse is now the single definition.
+ */
+export type FeedItem = Record<string, unknown>;
 
 export interface FeedPage {
   items: FeedItem[];
@@ -80,7 +78,7 @@ export class FeedService {
     @Inject(InterestFollowService) private readonly follows: InterestFollowService,
     @Inject(FollowExpansion) private readonly expansion: FollowExpansion,
     @Inject(PersonFollowService) private readonly personFollows: PersonFollowService,
-    @Inject(PostRepository) private readonly posts: PostRepository,
+    @Inject(PostQueryService) private readonly postQueries: PostQueryService,
   ) {}
 
   async homeFeed(
@@ -177,32 +175,17 @@ export class FeedService {
      *
      * One batched read for the page, after visibility has already narrowed the
      * set, so the cost is bounded by `limit` rather than by the fan-in width.
+     *
+     * Through PostQueryService.responseFor, NOT a shape built here. This method
+     * used to hand-roll its own: `interestIds` (raw ids) where the contract
+     * promises `interests` (refs with names), and no media. A client generated
+     * from the contract crashes on `post.interests.map` - which is exactly the
+     * defect 002 recorded for post detail, reproduced on a second endpoint
+     * because a second responder existed to reproduce it in.
      */
-    const items = await Promise.all(
-      page.map(async (row) => {
-        const [post, author] = await Promise.all([
-          this.posts.findById(row.postId),
-          this.people.findById(row.authorId),
-        ]);
-        if (!post) return null;
-        return {
-          postId: post.postId,
-          author: {
-            userId: row.authorId,
-            handle: author?.handle ?? '',
-            displayName: author?.displayName ?? '',
-          },
-          ...(post.caption !== undefined ? { caption: post.caption } : {}),
-          interestIds: post.interestIds,
-          visibility: post.visibility,
-          processingState: post.processingState,
-          mediaKind: post.mediaKind,
-          reactionCount: post.reactionCount,
-          commentCount: post.commentCount,
-          createdAt: post.createdAt,
-        };
-      }),
-    ).then((rows) => rows.filter((r): r is NonNullable<typeof r> => r !== null));
+    const items = await Promise.all(page.map((row) => this.postQueries.responseFor(row.postId))).then(
+      (rows) => rows.filter((r): r is NonNullable<typeof r> => r !== null),
+    );
 
     return {
       items,

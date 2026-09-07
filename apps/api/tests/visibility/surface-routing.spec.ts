@@ -144,7 +144,7 @@ const PROBES: Probe[] = [
     surface: 'home feed',
     // The feed applies visibility LAST, on current state - never to a stored or
     // ranked copy. Ranking may reorder the admitted set; it may never widen it.
-    run: ({ filter }) => {
+    run: ({ filter, queries }) => {
       const index = { listByInterest: async () => ({ items: [{ ...post, interestId: 'i1' }], nextCursor: null }) };
       const feed = new FeedService(
         index as never,
@@ -153,7 +153,7 @@ const PROBES: Probe[] = [
         { followedIds: async () => ['i1'] } as never,
         { expand: () => ['i1'] } as never,
         { followedAuthorIds: async () => new Set<string>() } as never,
-        { findById: async () => post, listMedia: async () => [] } as never,
+        queries,
       );
       return feed.homeFeed(VIEWER);
     },
