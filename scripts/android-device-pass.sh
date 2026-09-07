@@ -309,8 +309,13 @@ sample_resources & SAMPLER_PID=$!
 trap 'kill "$SAMPLER_PID" 2>/dev/null || true' EXIT
 
 # FR-031's before-value, read now because the flows are about to change it.
+# `|| true` is LOAD-BEARING, and I proved that rather than assuming it: under
+# `set -euo pipefail` a command substitution whose pipeline ends in a grep that
+# matches nothing makes the ASSIGNMENT fail, and the script dies here - before a
+# single journey runs. An absent `message` key is the expected initial state, so
+# without this the check I added to verify FR-031 would have aborted every pass.
 PREFS_BEFORE="$(curl -s -H "Authorization: Bearer $TOKEN" http://127.0.0.1:3000/v1/me \
-  | grep -oE '"message"[[:space:]]*:[[:space:]]*(true|false)' | head -1)"
+  | grep -oE '"message"[[:space:]]*:[[:space:]]*(true|false)' | head -1 || true)"
 
 echo "== journeys =="
 
@@ -535,7 +540,7 @@ echo "== 004/US4, FR-031: was the message preference actually turned off? =="
 # direction the tap moves it is not knowable here, and writing `false` in would
 # have failed the whole pass for my own reason rather than the product's.
 PREFS_AFTER="$(curl -s -H "Authorization: Bearer $TOKEN" http://127.0.0.1:3000/v1/me \
-  | grep -oE '"message"[[:space:]]*:[[:space:]]*(true|false)' | head -1)"
+  | grep -oE '"message"[[:space:]]*:[[:space:]]*(true|false)' | head -1 || true)"
 echo "message preference before: ${PREFS_BEFORE:-(absent)}  after: ${PREFS_AFTER:-(absent)}"
 if [ -z "$PREFS_AFTER" ]; then
   echo "FAIL: the flow saved, but no 'message' key exists on the profile."
