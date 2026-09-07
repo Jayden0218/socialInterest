@@ -1,0 +1,39 @@
+# The local runtime profile. Both services keep their data on a named volume:
+# without one the datastore ran `-inMemory` and lost every post on restart, and
+# object storage wrote into the container's writable layer and lost every upload
+# when the container was recreated.
+#
+# Verified 2026-09-06, after the ownership fix below: an item written through the
+# DynamoDB API, then `docker compose rm -sf dynamodb` (destroyed, not restarted),
+# then `up -d`, reads back with its value intact. The same check before the fix
+# could not even write.
+services:
+  dynamodb:
+    image: amazon/dynamodb-local:latest
+    # `user: root` is not decoration. The image runs as uid 1000
+    # (dynamodblocal), but Docker creates a named volume's mountpoint owned by
+    # root, so DynamoDB Local cannot open its SQLite file at /data:
+    #
+    #   SQLiteException: [14] unable to open database file
+    #   SQLiteQueue[shared-local-instance.db]: stopped abnormally, reincarnating
+    #
+    # It does not exit. It answers 400 to a bare GET - so a health probe passes -
+    # and then HANGS every real request forever. That is how this looked healthy
+    # while `db:create-local` sat for 180s and the durability run never returned.
+    user: root
+    command: ["-jar", "DynamoDBLocal.jar", "-dbPath", "/data", "-sharedDb"]
+    volumes: ["sih-dynamodb:/data"]
+    ports: ["8000:8000"]
+
+  s3:
+    image: minio/minio:latest
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: localkey
+      MINIO_ROOT_PASSWORD: localsecret
+    volumes: ["sih-minio:/data"]
+    ports: ["9000:9000", "9001:9001"]
+
+volumes:
+  sih-dynamodb:
+  sih-minio:

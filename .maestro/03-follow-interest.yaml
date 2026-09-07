@@ -1,0 +1,38 @@
+# J-03 follow an interest, and J-07 the interest space it opens.
+appId: app.socialinterest
+---
+- runFlow: 01-sign-in.yaml
+- tapOn:
+    id: "tab-discover"
+- tapOn:
+    id: "interest-search-input"
+- inputText: "clim"
+
+# The keyboard is up and the results list re-renders as the query resolves.
+# Run 16 showed the tap not reaching the row: the search screen was still
+# visible afterwards, so no navigation happened. The app itself is not at
+# fault - a container test drives this same press through the shell and the
+# interest screen opens - so this is about the tap landing, not the wiring.
+- hideKeyboard
+- tapOn:
+    id: "search-result-0"
+
+# Two different failures look identical from `interest-screen is not visible`,
+# and run 13 could not tell them apart. This separates them: if the search
+# screen is gone we navigated and the interest screen did not load; if it is
+# still there the tap did nothing.
+- assertNotVisible:
+    id: "interest-search-screen"
+
+# InterestContainer renders `interest-loading` until three parallel requests
+# resolve. On a software-rendered emulator that can exceed Maestro's default
+# assertion window, so the wait is explicit rather than assumed.
+- extendedWaitUntil:
+    visible:
+      id: "interest-screen"
+    timeout: 30000
+- tapOn:
+    id: "follow-toggle"
+# FR-034: the server owns the 200-interest cap, so the control reverts if the
+# follow was refused. Asserting the followed state is asserting the API agreed.
+- assertVisible: "Following"

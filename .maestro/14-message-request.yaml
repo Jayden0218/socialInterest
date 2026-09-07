@@ -1,0 +1,55 @@
+# 004/US1, J-14. FR-003 and FR-004: an unsolicited first message waits in
+# Requests and notifies nobody.
+#
+# BOTH halves, for the same reason 12-interest-follow-does-not-widen asserts
+# both: a flow that only checked "the request is in Requests" would pass against
+# an app that put EVERY conversation there, and a flow that only checked the
+# notification absence would pass against an inbox that failed to load.
+appId: app.socialinterest
+---
+- runFlow: 01-sign-in.yaml
+
+- tapOn:
+    id: "tab-chats"
+- assertVisible:
+    id: "inbox-screen"
+
+# The main inbox holds the followed sender and NOT the stranger.
+#
+# Asserted on the sender's NAME, not their message. The row shows the last
+# message as a preview, and 13-send-message replies into this very conversation,
+# so the preview is whatever was sent most recently - correctly. Reading it here
+# made this flow depend on running before 13, which it did by luck for two runs.
+- extendedWaitUntil:
+    visible: "${FRIEND_NAME}"
+    timeout: 30000
+- assertNotVisible: "${REQUEST_BODY}"
+
+# The Requests inbox holds the stranger.
+- tapOn:
+    id: "inbox-requested"
+- extendedWaitUntil:
+    visible: "${REQUEST_BODY}"
+    timeout: 30000
+
+# FR-004. A request generates no notification until it is accepted, so the
+# Activity tab must not be showing one for it.
+- tapOn:
+    id: "tab-notifications"
+- assertVisible:
+    id: "notifications-screen"
+- assertNotVisible: "sent you a message"
+
+# Accept it, and only then does the conversation move to the main inbox.
+- tapOn:
+    id: "tab-chats"
+- tapOn:
+    id: "inbox-requested"
+- tapOn:
+    id: "open-conversation-.*"
+- assertVisible:
+    id: "accept-request"
+- tapOn:
+    id: "accept-request"
+- assertVisible:
+    id: "message-input"

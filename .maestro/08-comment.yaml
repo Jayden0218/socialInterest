@@ -1,0 +1,30 @@
+# J-08 comment on a post.
+appId: app.socialinterest
+---
+- runFlow: 04-publish-image.yaml
+
+# The post is opened from the author's own profile, not the home feed. The feed
+# is composed only from FOLLOWED interests (FR-032), and compose offers
+# suggested ones - so a freshly published post is correctly absent from its own
+# author's feed. 04-publish-image leaves the app on this tab already.
+- tapOn:
+    id: "tab-profile"
+- extendedWaitUntil:
+    visible:
+      id: "post-.*"
+    timeout: 30000
+- tapOn:
+    id: "post-.*"
+- assertVisible:
+    id: "comments-button"
+- tapOn:
+    id: "comments-button"
+- assertVisible:
+    id: "comments-screen"
+- tapOn:
+    id: "comment-input"
+- inputText: "a comment from a cloud device"
+- tapOn:
+    id: "comment-submit"
+- assertVisible:
+    id: "comment-list"

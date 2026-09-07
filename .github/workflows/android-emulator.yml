@@ -1,0 +1,241 @@
+name: Android device pass (emulator)
+
+# Manual only.
+#
+# The reason USED to be cost: the repository was private, so every minute came
+# out of the account's monthly allowance and the cost posture in plan.md says
+# nothing spends without a deliberate decision. That premise is gone - the
+# repository is public (verified 2026-09-07), and GitHub-hosted standard runners
+# are free on public repositories.
+#
+# It stays workflow_dispatch anyway, for a different and better reason: this job
+# takes ~20 minutes, boots an emulator, and is the ONLY place native behaviour is
+# observed. Running it on every push would make it a thing people wait out rather
+# than read. It is dispatched when there is something native to verify.
+on:
+  workflow_dispatch:
+
+jobs:
+  android:
+    # NOT ubuntu-latest. That is Ubuntu 24.04, where the emulator has known AVD
+    # path problems. This pin was NOT the cause of the six failures in feature
+    # 002 - see below - but it is still the tested configuration.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - run: pnpm install --frozen-lockfile
+
+      # LOCAL_JWT_SECRET has no default any more (003/FR-007): the old one was a
+      # constant in this repository, so anyone who read it could mint a token the
+      # service accepted. Every step that BOOTS the API needs one, so it is
+      # generated once here rather than repeated per step. It is a per-run value
+      # and never leaves the runner - not a GitHub secret, which would be a
+      # long-lived shared credential doing the same job worse.
+      - name: Generate a per-run JWT secret
+        run: |
+          SECRET="$(openssl rand -hex 32)"
+          # ::add-mask:: BEFORE it is exported, or it is too late.
+          #
+          # GitHub redacts registered secrets from logs; a value generated at
+          # runtime into GITHUB_ENV is not one, so it was printed in full in the
+          # `env:` block of every step. That was survivable while the repository
+          # was private and is not the habit to keep now that it is public - a
+          # JWT signing key in a world-readable log is the shape of defect
+          # FR-007 exists to remove, even when what it signs for is an ephemeral
+          # API on a runner with no public route.
+          echo "::add-mask::$SECRET"
+          echo "LOCAL_JWT_SECRET=$SECRET" >> "$GITHUB_ENV"
+
+      # The emulator and the API run on ONE machine, so the app reaches the
+      # server at 10.0.2.2 with no inbound route, no tunnel and no allowlist.
+      - run: docker compose up -d
+      - name: Wait for DynamoDB Local and MinIO
+        run: |
+          for _ in $(seq 1 60); do
+            # No -f on the DynamoDB probe: it answers a bare GET / with 400.
+            if curl -sf http://127.0.0.1:9000/minio/health/live \
+               && curl -so /dev/null http://127.0.0.1:8000; then exit 0; fi
+            sleep 2
+          done
+          echo "backing services never became ready"; docker compose logs; exit 1
+      - run: pnpm --filter @sih/infra db:create-local
+      - run: pnpm --filter @sih/infra s3:create-local
+      - run: pnpm --filter @sih/infra seed:catalogue
+
+      # ONE address that both clients can reach.
+      #
+      # A presigned signature covers the Host header, so the URL must be signed
+      # against the address the client will send - it cannot be rewritten after
+      # signing. But there are TWO clients here: the app, inside the emulator,
+      # where 10.0.2.2 is the host alias; and the FR-033 fixture, which runs on
+      # this runner, where 10.0.2.2 means nothing at all. Run 14 died exactly
+      # there: `fixture failed: TypeError: fetch failed`.
+      #
+      # Mapping 10.0.2.2 to loopback on the runner gives both clients the same
+      # name for MinIO. Both then send `Host: 10.0.2.2:9000`, both signatures
+      # validate, and neither needs to know how the other resolves it. The
+      # emulator resolves 10.0.2.2 internally and is unaffected by this file.
+      - name: Give the runner the emulator's host alias as a real address
+        run: |
+          # NOT an /etc/hosts entry. `10.0.2.2` is an IP literal, and resolvers
+          # short-circuit literals before any name lookup, so a hosts line
+          # mapping it is never consulted - the connection goes to the real
+          # 10.0.2.2 on the network and hangs. (The `getent hosts 10.0.2.2`
+          # check I paired with it failed for the same reason: getent reads an
+          # IP literal as an address and does a reverse lookup.)
+          #
+          # Adding the address to loopback makes the runner genuinely own it, so
+          # a connection to 10.0.2.2:9000 reaches the MinIO that Docker
+          # published on 0.0.0.0. The emulator's own 10.0.2.2 lives on QEMU's
+          # internal network and is untouched by this.
+          sudo ip addr add 10.0.2.2/32 dev lo || true
+          ip addr show lo | grep -q '10\.0\.2\.2' || { echo "alias not added"; exit 1; }
+          # Proved, not assumed: MinIO must actually answer on that address.
+          curl -sf --max-time 10 http://10.0.2.2:9000/minio/health/live \
+            && echo "MinIO answers on 10.0.2.2:9000" \
+            || { echo "MinIO does not answer on 10.0.2.2:9000"; exit 1; }
+
+      - name: Start the API on the runner
+        run: |
+          cd apps/api
+          # S3_PUBLIC_ENDPOINT is what makes uploads possible from the device.
+          # The API reaches MinIO at 127.0.0.1:9000; the emulator cannot - there
+          # 127.0.0.1 is the DEVICE's own loopback. Presigned URLs must be signed
+          # against 10.0.2.2:9000, the emulator's alias for the host, or the
+          # bytes never land and publish never fires. Run 13 showed exactly that:
+          # three upload targets created, zero posts published.
+          RUNTIME_PROFILE=local API_PORT=3000 \
+          S3_PUBLIC_ENDPOINT=http://10.0.2.2:9000 \
+            npx tsx src/main.ts > /tmp/api.log 2>&1 &
+          for _ in $(seq 1 60); do
+            if curl -sf -o /dev/null "http://127.0.0.1:3000/v1/interests?q=a"; then exit 0; fi
+            sleep 2
+          done
+          echo "API never became ready"; cat /tmp/api.log; exit 1
+
+      # EXPO_PUBLIC_API_BASE_URL is inlined into the JS bundle at build time.
+      - name: Build the APK against the runner's API
+        run: |
+          pnpm --filter @sih/mobile exec expo prebuild --platform android --no-install
+          cd apps/mobile/android
+          EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:3000/v1 \
+            ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=x86_64
+
+      # THIS IS THE FIX FOR THE SIX FAILURES IN FEATURE 002.
+      #
+      # The emulator needs ~7.4 GB free to create its userdata partition, and it
+      # checks AFTER the SDK install, the Gradle build and the Docker images have
+      # taken their share. When the check fails it exits FATALLY:
+      #
+      #   FATAL | Not enough space to create userdata partition.
+      #           Available: 6278.66 MB, need 7372.80 MB.
+      #
+      # It is not launched in the foreground, so that fatal error surfaced only
+      # as "Timeout waiting for emulator to boot" with no device ever appearing -
+      # which is exactly what all six attempts showed. Found by running
+      # scripts/emulator-launch.sh locally, which captures the emulator's own
+      # output; six CI runs never did.
+      - name: Free disk for the emulator
+        run: |
+          echo "before:"; df -h / | tail -1
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android/sdk/ndk \
+                      /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL \
+                      /usr/local/share/boost /usr/share/swift || true
+          docker image prune -af || true
+          echo "after:"; df -h / | tail -1
+
+      # /dev/kvm exists on the runner but is not world-writable by default.
+      # Without it the emulator refuses outright:
+      #   ERROR | x86_64 emulation currently requires hardware acceleration!
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          ls -l /dev/kvm
+
+      # Launched by our own script, not by an action, for one reason: the script
+      # captures the emulator's own stdout and stderr on every path. That is the
+      # whole difference between this attempt and the six before it.
+      - name: Boot the emulator
+        env:
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+          EMULATOR_API: '30'
+          EMULATOR_TARGET: default
+          EMULATOR_ABI: x86_64
+          EMULATOR_BOOT_TIMEOUT: '900'
+        run: ./scripts/emulator-launch.sh
+
+      # A failure here must say what failed. The script tees to
+      # artifacts/android-device-pass/device-pass.log and its ERR trap names the
+      # line, so this step can no longer fail identically for every reason.
+      - name: Drive the app
+        env:
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+        run: |
+          ./scripts/android-device-pass.sh || {
+            rc=$?
+            echo "=============== device-pass log ==============="
+            cat artifacts/android-device-pass/device-pass.log || true
+            echo "=============================================="
+            exit $rc
+          }
+
+      # The artifact is uploaded too, but it CANNOT BE READ from the agent
+      # sandbox: artifact downloads are served from an Azure blob host the
+      # environment's egress policy denies. So the evidence that matters is
+      # printed into the job log, which is retrievable. Otherwise a failure here
+      # is once again a failure nobody can observe - which is the whole reason
+      # runs 1-6 were wasted.
+      - name: Collect evidence
+        if: always()
+        run: |
+          mkdir -p artifacts/android-device-pass
+          cp /tmp/api.log artifacts/android-device-pass/api.log || true
+          df -h / | tail -1 > artifacts/android-device-pass/disk-free.txt || true
+          # An AGGREGATE of every request, not a tail. The tail covers only the
+          # end of the last flow; this says what the app asked for across the
+          # whole run and what it got back - which is how run 13's two real
+          # findings surfaced (no POST /v1/posts at all, and no
+          # GET /v1/interests/:interestId at all).
+          echo "=============== API requests: whole run, by path and status ==============="
+          grep -oE '"method":"[A-Z]+","path":"[^"]+","status":[0-9]+' /tmp/api.log 2>/dev/null \
+            | sort | uniq -c | sort -rn || echo "(no api log)"
+          echo "=============== API request log (tail) ==============="
+          tail -40 /tmp/api.log || echo "(no api log)"
+          echo "=============== activity launch result ==============="
+          cat artifacts/android-device-pass/launch.txt || echo "(no launch record)"
+          # PRINTED, not only written to disk-free.txt. Run 26 lost the device
+          # ten minutes into the journeys with host memory and disk the leading
+          # suspects, and the file that would have answered it went into the
+          # artifact - which is served from a host this environment's egress
+          # denies. A number nobody can fetch settles nothing.
+          echo "=============== host resources sampled during the run ==============="
+          cat artifacts/android-device-pass/resource-samples.txt || echo "(no samples)"
+          echo "-- at collection --"; df -h / | tail -1; free -m | head -3
+          echo "=============== logcat: fatal entries ==============="
+          # logcat.txt is captured BEFORE the journeys; logcat-after.txt after
+          # them. Both are searched, and which one an entry came from matters:
+          # the first covers launch, the second covers the run.
+          grep -iE "AndroidRuntime|FATAL EXCEPTION|beginning of crash|Force finishing|lowmemorykiller" \
+            artifacts/android-device-pass/logcat.txt | tail -40 || echo "(none)"
+          echo "=============== logcat AFTER the journeys (tail) ==============="
+          tail -80 artifacts/android-device-pass/logcat-after.txt \
+            || echo "(none - either the run passed or the device was unreadable)"
+          echo "=============== emulator's own output (tail) ==============="
+          tail -40 artifacts/android-device-pass/runtime-output.log || echo "(no emulator log)"
+          echo "====================================================="
+      # if: always() - the emulator's output is the deliverable when it fails,
+      # so it must survive the failure.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-device-pass
+          path: artifacts/android-device-pass/

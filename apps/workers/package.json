@@ -1,0 +1,22 @@
+{
+  "name": "@sih/workers",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "report:outcomes": "tsx src/reports/outcome-report.ts",
+    "test": "jest --passWithNoTests"
+  },
+  "dependencies": {
+    "@sih/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "tsx": "^4.19.2",
+    "@types/node": "^22.10.2",
+    "@types/jest": "^29.5.14",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5"
+  }
+}

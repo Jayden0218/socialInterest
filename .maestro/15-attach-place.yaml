@@ -1,0 +1,74 @@
+# 004/US2, J-15. Compose -> place picker -> publish, and the place sticks.
+#
+# The place step is OPTIONAL, so this flow proves two things at once: that it
+# can be used, and that using it does not change how publishing works. A step
+# that made every post harder would be a regression dressed as a feature.
+#
+# Whether the post actually landed AT the place is asserted service-side, after
+# the run, in scripts/android-device-pass.sh. A chip rendered from local state
+# would satisfy anything this file could assert.
+appId: app.socialinterest
+---
+- runFlow: 01-sign-in.yaml
+
+- tapOn:
+    id: "open-compose"
+- extendedWaitUntil:
+    visible:
+      id: "media-picker-screen"
+    timeout: 20000
+- tapOn:
+    id: "media-item-image-0"
+- tapOn:
+    id: "media-continue"
+- assertVisible:
+    id: "compose-screen"
+
+# FR-006 keeps publish disabled until an interest is chosen, so this is part of
+# the journey rather than setup.
+- tapOn:
+    id: "interest-option-0"
+
+# The optional place step. Locality first: a place search without one cannot
+# dedupe, and would offer the wrong "Joe's" from another city.
+- assertVisible:
+    id: "place-picker"
+- tapOn:
+    id: "place-locality-input"
+- inputText: "${PLACE_LOCALITY}"
+- hideKeyboard
+- tapOn:
+    id: "place-search-input"
+- inputText: "${PLACE_NAME}"
+- hideKeyboard
+
+# FR-014: the existing place is offered BEFORE the create action. Tapping the
+# match rather than Create is the behaviour that prevents duplicates.
+- extendedWaitUntil:
+    visible:
+      id: "place-match-.*"
+    timeout: 30000
+- tapOn:
+    id: "place-match-.*"
+- assertVisible:
+    id: "place-selected"
+
+- tapOn:
+    id: "caption-input"
+- inputText: "published from a real device, at a place"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "publish-button"
+    direction: DOWN
+- extendedWaitUntil:
+    visible: "Uploaded"
+    timeout: 60000
+- tapOn:
+    id: "publish-button"
+
+- tapOn:
+    id: "tab-profile"
+- extendedWaitUntil:
+    visible: "published from a real device, at a place"
+    timeout: 60000

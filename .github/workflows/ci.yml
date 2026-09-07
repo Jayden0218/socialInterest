@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+# No cloud credentials. Everything runs on the local runtime profile (research D9);
+# a test that cannot run here is not a test this project relies on.
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+
+      # LOCAL_JWT_SECRET has no default any more (003/FR-007): the old one was a
+      # constant in this repository, so anyone who read it could mint a token the
+      # service accepted. Every step that BOOTS the API needs one, so it is
+      # generated once here rather than repeated per step. It is a per-run value
+      # and never leaves the runner - not a GitHub secret, which would be a
+      # long-lived shared credential doing the same job worse.
+      - name: Generate a per-run JWT secret
+        run: |
+          SECRET="$(openssl rand -hex 32)"
+          # ::add-mask:: BEFORE it is exported, or it is too late.
+          #
+          # GitHub redacts registered secrets from logs; a value generated at
+          # runtime into GITHUB_ENV is not one, so it was printed in full in the
+          # `env:` block of every step. That was survivable while the repository
+          # was private and is not the habit to keep now that it is public - a
+          # JWT signing key in a world-readable log is the shape of defect
+          # FR-007 exists to remove, even when what it signs for is an ephemeral
+          # API on a runner with no public route.
+          echo "::add-mask::$SECRET"
+          echo "LOCAL_JWT_SECRET=$SECRET" >> "$GITHUB_ENV"
+      - run: pnpm typecheck
+      - run: pnpm lint
+      # The same compose file the local profile uses, so CI runs the configuration
+      # a developer runs. Not `services:` — those cannot pass a command, and both
+      # images need one: DynamoDB Local needs `-sharedDb`, MinIO needs `server /data`
+      # (without it the entrypoint prints usage and exits).
+      - run: docker compose up -d
+      - name: Wait for DynamoDB Local and MinIO
+        run: |
+          for _ in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:9000/minio/health/live \
+               && curl -so /dev/null http://127.0.0.1:8000; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose logs
+          exit 1
+      - run: pnpm --filter @sih/infra db:create-local
+      - run: pnpm --filter @sih/infra s3:create-local
+      - run: pnpm --filter @sih/infra seed:catalogue
+      - run: pnpm --filter @sih/api test
+      - run: pnpm --filter @sih/mobile test
+      - run: pnpm --filter @sih/workers test
+      # The Maestro flows cannot run here - there is no emulator - but their
+      # selectors can be checked against the app in seconds. A selector that
+      # matches nothing fails as a timeout inside a 25-minute emulator run,
+      # which is the most expensive place to discover a renamed testID.
+      - run: node scripts/verify-maestro-ids.mjs
+      # The contract between the app and the service. Regenerating the client and
+      # failing on a diff is what makes an OpenAPI change that nobody propagated a
+      # build failure instead of a runtime 400 (002/FR-003).
+      - run: pnpm --filter @sih/shared generate:client
+      # Only the generated file: client.ts is hand-written and lives beside it.
+      - run: git diff --exit-code packages/shared/src/client/operations.generated.ts
+      # Journeys over real HTTP against a real API. --passWithNoTests keeps this
+      # green until Phase 3 fills it; an empty jest run otherwise exits non-zero.
+      # The sandbox ships a pinned Chromium; a CI runner does not, so fetch one.
+      # apps/e2e/support/browser.ts prefers a preinstalled build when present.
+      - run: pnpm --filter @sih/e2e exec playwright install --with-deps chromium
+      - run: pnpm --filter @sih/e2e test
+      # Boots under the production runner (tsx), which does not emit decorator
+      # metadata the way ts-jest does. Catches DI that works in tests and
+      # returns 500 in production.
+      - run: pnpm --filter @sih/api smoke:boot
+      # Durability runs in its own jest invocation, and LAST among the steps that
+      # need the stack. It stops and restarts the containers everything else
+      # shares - run alongside the journeys it pulls the datastore out from
+      # under them, which hung the whole e2e run and timed out the API suite in
+      # a separate process. Placed here so nothing after it depends on the stack.
+      - run: pnpm --filter @sih/e2e test:durability
+      # Synth only. `cdk synth` needs no account and no credentials; deploying
+      # requires explicit approval (plan.md Cost Posture), so CI can never do it.
+      - run: pnpm --filter @sih/infra verify:stack
+      - run: pnpm --filter @sih/infra synth
+      # 004. Every Constitution V divergence needs its fields filled and may not
+      # claim verification without a run record naming it. Cheap, and it is the
+      # check that stops "verified: yes" being written by somebody who meant
+      # "it works locally".
+      - run: pnpm verify:register

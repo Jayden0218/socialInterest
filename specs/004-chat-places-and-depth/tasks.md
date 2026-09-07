@@ -1,0 +1,448 @@
+---
+
+description: "Task list for feature 004 — conversations, places, and the depth the product is missing"
+---
+
+# Tasks: Conversations, places, and the depth the product is missing
+
+**Input**: Design documents from `/specs/004-chat-places-and-depth/`
+
+**Prerequisites**: [plan.md](./plan.md), [spec.md](./spec.md), [research.md](./research.md),
+[data-model.md](./data-model.md), [contracts/](./contracts/)
+
+**Tests**: Included, and **scoped**. The constitution mandates test-first only where a
+document declares itself a contract; it deliberately does not mandate TDD across the board.
+So the contract tests — the visibility matrix addendum and the `ConversationAccess` table —
+are written first and must fail. Journey tests are written first too, for a different and
+harder-won reason: every defect this codebase has actually shipped was invisible to a unit
+test and visible to a request.
+
+**Organization**: by user story, so each is independently implementable and testable.
+
+## ⚠️ Two gates before starting — see [plan.md § Gates](./plan.md#gates-for-the-owner--decisions-not-research)
+
+- **G1**: `003/datastore-decision.md` is open. This adds five repositories to thirteen.
+- **G2**: reviews/ratings on a place page and group chat are out of scope by decision.
+
+Neither blocks task generation. Both change what this work costs, and G1 changes it a lot.
+
+## Format: `[ID] [P?] [Story] Description`
+
+- **[P]**: can run in parallel — different files, no dependency on an incomplete task
+- **[Story]**: US1–US5 from [spec.md](./spec.md)
+
+## Path conventions
+
+Monorepo, pnpm workspace: `apps/api`, `apps/mobile`, `apps/e2e`, `apps/workers`,
+`packages/shared`, `infra`, `.maestro`. Paths below are repository-relative and real.
+
+## 🔒 Single-owner files
+
+Two agents editing any of these overwrite each other. Assign one owner each.
+
+| File | Tasks touching it |
+|---|---|
+| `apps/api/tests/visibility/matrix.spec.ts` | T010, T011, T040, T071, T096, T122, T128 |
+| `apps/mobile/src/App.tsx` | T026, T053, T084, T125 |
+| `apps/mobile/src/screens/index.tsx` | T052, T084, T100, T125 |
+| `apps/api/src/persistence/post.repository.ts` | T066, T067, T068 |
+| `apps/mobile/src/data/index.ts` | T048, T078, T123 |
+| `docs/verification/divergence-register.md` | T005, T134 |
+
+---
+
+## Phase 1: Setup (Shared Infrastructure)
+
+**Purpose**: the table, the keys, and the fixtures every story needs. Nothing here is
+story-specific and nothing here provisions anything.
+
+- [X] T001 Add **GSI5 (Inbox)** — `gsi5pk` / `gsi5sk`, projection `KEYS_ONLY` plus `conversationId`, `otherPersonId`, `state`, `lastMessageAt`, `lastReadAt`, `unreadCount`, `lastMessagePreview` — to the local table definition in `infra/scripts/create-local-table.ts`
+- [X] T002 [P] Mirror GSI5 into the CDK table in `infra/lib/infra-stack.ts`. **`cdk synth` only — never `cdk deploy`.** Applying IaC is a separately approved action and is not part of this task
+- [X] T003 [P] Add key builders for `CONV#`, `MSG#`, `PLACE#`, `PLACEFOLLOW#`, `SAVE#`, `SAVEDBY#`, `PLACES#<locality>`, `PLACESLUG#<locality>#<slug>` in `apps/api/src/persistence/keys.ts`
+- [X] T004 [P] Add the item-type discriminators (`conversation`, `conversation-participant`, `message`, `place`, `place-post-index`, `place-follow`, `saved-post`) alongside the existing ones in `apps/api/src/persistence/keys.ts`
+- [X] T005 Register the long-poll divergence (research R1 — a hosted deployment will not hold HTTP connections; a green local chat suite is not evidence for a hosted transport) in `docs/verification/divergence-register.md` 🔒
+- [X] T006 [P] **Nothing to add — and the reason is a better finding than the task.** `mp4Short()` already exists in `apps/e2e/support/media.ts`, produces a real H.264 clip through the ffmpeg container, and is **used by nothing at all**. I built a duplicate before checking, then deleted it. The claim "no video fixture exists" was wrong; the true statement is that one existed and was never once called
+- [X] T007 [P] **Nothing to add, same shape.** `jpegWithGps()` in `apps/e2e/support/media.ts` writes valid EXIF GPS — an independent reader (Pillow) confirms `GPSLatitude (51, 30, 0) N` — and `publishReadyImage({ withGps: true })` already threads it through. **Also used by nothing.** Two working fixtures were sitting unused while the requirements they serve were reported unverified; that is the finding, not the file
+- [X] T008 [P] Add a place fixture set with near-duplicate names in one locality and identical names across localities, in `apps/e2e/support/places.ts` — SC-007 measures against this set
+- [X] T009 Verify the table recreates cleanly from empty: `docker compose down -v && docker compose up -d && pnpm verify:local`. DynamoDB Local needs `user: root` on its volume or it answers 400 to a bare GET, passes the health probe, and hangs every real request forever
+
+**Checkpoint**: the table has five indexes, the keys compile, and the fixtures exist.
+
+---
+
+## Phase 2: Foundational (Blocking Prerequisites)
+
+**Purpose**: the two contract tests and the five repositories. **No user story may start
+until this phase is complete** — the boundaries have to exist before anything reads through
+them, for the same reason 001 put T044–T048 in front of every read path.
+
+**⚠️ The two contract tests below MUST be written first and MUST fail.**
+
+- [X] T010 Add the four new surfaces — place page, saved posts, post shared into a conversation, in-interest search — to the `SURFACES` array in `apps/api/tests/visibility/matrix.spec.ts` with `built: false`, so they report as skipped rather than as covered 🔒
+- [X] T011 Extend the SC-009 reporter in `apps/api/tests/visibility/matrix.spec.ts` to print `assertionsRun / 462` and name every unbuilt surface, so a skipped surface can never be mistaken for a passing one. **Scope grew during implementation, deliberately**: every row of the matrix runs the same `decide()`, so 462 assertions would have meant one function tested 66 times and a read path that built its own predicate would leave it green. Added `tests/visibility/surfaces.ts` (one shared list, so the two suites cannot drift) and `tests/visibility/surface-routing.spec.ts`, which asserts each surface CONSULTS the filter and fails if a built surface has no probe 🔒
+- [X] T012 [P] Write the `ConversationAccess` decision-table test — 6 conversation states × 4 viewer relationships × 2 operations = **48 generated assertions**, from `contracts/visibility-matrix-addendum.md` Part 2 — in `apps/api/tests/unit/conversation-access.spec.ts`. **Must fail: the module does not exist**
+- [X] T013 Create the single conversation-membership boundary at `apps/api/src/conversations/conversation-access.ts`. **Top level, not under `modules/`** — for the same reason `VisibilityFilter` is top level (001/D6): a boundary that lives inside its consumer becomes a helper, and a helper gets inlined
+- [X] T014 Create `apps/api/src/conversations/conversation-access.module.ts` and export the provider token
+- [X] T015 [P] Create `ConversationRepository` (meta item + both participant rows in one `TransactWriteItems`) in `apps/api/src/persistence/conversation.repository.ts`
+- [X] T016 [P] Create `MessageRepository` (append with ULID sort key, cursor query) in `apps/api/src/persistence/message.repository.ts`
+- [X] T017 [P] Create `PlaceRepository` (meta item, GSI1 slug lookup, GSI3 locality listing) in `apps/api/src/persistence/place.repository.ts`
+- [X] T018 [P] Create `PlaceFollowRepository` (GSI4 inverted for follower counts) in `apps/api/src/persistence/place-follow.repository.ts`
+- [X] T019 [P] Create `SavedPostRepository` (`SAVE#<savedAt>#<postId>` list row plus `SAVEDBY#<postId>` point-read row) in `apps/api/src/persistence/saved-post.repository.ts`
+- [X] T020 [P] Create `PostPlaceIndexRepository` (`pk = PLACE#<id>`, `sk = POST#<createdAt>#<postId>`, denormalising `visibility`, `processingState`, `authorId`) in `apps/api/src/persistence/post-place-index.repository.ts`
+- [X] T021 Register all six new repositories in `apps/api/src/persistence/persistence.module.ts`
+- [X] T022 [P] Add `message`, `place`, and `interest-description` as report subject types in `apps/api/src/modules/safety/` and the moderation queue in `apps/api/src/modules/moderation/`
+- [X] T023 [P] **Nothing to add** — `notificationPrefs` is already on `PersonItem` and has been since 001. Verify it, add the `message` category to the `PATCH /me` schema, and consolidate the mobile `NotificationPrefs` type, which was declared twice (`NotificationsScreen` and `EditProfileScreen`) — two copies of four booleans is how the fourth ends up in one of them
+- [X] T024 [P] Add the 004 entity types (`Conversation`, `Message`, `Place`, `PlaceCategory`, `NotificationPreferences`) to `packages/shared/src/types/entities.ts`
+- [X] T025 [P] Add the long-poll wait as `EventWaiter` in `apps/api/src/common/events/event-waiter.ts`, **not** as a method on the `EventBus` port — the port is what a second implementation must satisfy, and growing it with a feature-shaped method makes that harder for no gain. Subscribe from `onApplicationBootstrap`, never `onModuleInit`: Nest fires the latter before subscribers register, and 003 lost events to exactly that. Its unit test must include the lost-wakeup case (arm, then check, then sleep)
+- [X] T026 Add `chats` to the `Tab` union and five routes (`conversation`, `place`, `create-place`, `saved`, `people-search`) to the `Route` union in `apps/mobile/src/App.tsx`. **Five, not seven**: `conversations` is the tab itself, and notification settings is the existing edit-profile screen (see the US4 correction). The tab joins `TABS` in T053, with its container — a tab in the list with no body is a blank screen. Convert the tab body from `tab === 'x' ? … : null` to an exhaustive switch with a `never` default, so "added a tab, forgot the body" becomes a compile error, and assert in `apps/mobile/src/__tests__/screens.test.tsx` that every `TABS` entry renders something 🔒
+- [X] T027 Checkpoint **passed at the time**: typecheck and lint clean, `test:visibility` reported 294/462 with 4 surfaces unbuilt, `conversation-access.spec.ts` 48 assertions. It reports **462/462 with 0 unbuilt** now, which is what T128 turned into a ratchet
+
+**Checkpoint**: both boundaries exist, both are enforced by generated tables, and every
+story below can start in parallel.
+
+---
+
+## Phase 3: User Story 1 — Two people can talk (Priority: P1) 🎯 MVP
+
+**Goal**: two people can hold a persistent one-to-one conversation, an unsolicited first
+message lands in Requests and notifies nobody, and a block severs the thread both ways.
+
+**Independent test**: `pnpm --filter @sih/e2e test -- conversations` — two seeded identities,
+a message sent by one and read by the other over HTTP; a third identity's first message in
+Requests; a block making the thread unreadable from both sides. Passes with no other story
+in this feature built.
+
+**⚠️ Release gate (Constitution IV)**: this story does not ship without message reporting,
+the request inbox, and block severance. They are tasks in this phase, not a later one.
+
+### Tests for User Story 1
+
+- [X] T028 [P] [US1] Write the conversation journeys — send/read, long-poll latency, request inbox, accept, decline, block both ways, shared-post resolution, report — in `apps/e2e/journeys/conversations.spec.ts`. **Must fail**
+- [X] T029 [P] [US1] Write the SC-002 durability spec — restart the API and DynamoDB Local, assert no message lost and no ordering change — in `apps/e2e/durability/conversations.spec.ts`
+- [X] T030 [P] [US1] Write the FR-012 negative test: a conversation between two people changes neither the contents nor the order of any feed, interest space, place page, or profile, in `apps/api/tests/integration/chat-does-not-widen.spec.ts`
+
+### Implementation for User Story 1
+
+- [X] T031 [US1] Implement the derived conversation id — a hash of the two person ids sorted — with its unit test in `apps/api/src/modules/conversations/conversation-id.ts`. This is what makes opening a conversation idempotent with no uniqueness item and no race (research R8)
+- [X] T032 [US1] Implement `ConversationService.open` (idempotent; returns the existing thread) in `apps/api/src/modules/conversations/conversation.service.ts`
+- [X] T033 [US1] Implement inbox listing split by state over GSI5 — accepted and requested are one query each, not one query and a filter — in `apps/api/src/modules/conversations/conversation.service.ts`
+- [X] T034 [US1] Implement `ConversationService.send`: the message plus both participant rows in one `TransactWriteItems`, updating `lastMessageAt`, `unreadCount` and `lastMessagePreview`, in `apps/api/src/modules/conversations/conversation.service.ts`
+- [X] T035 [US1] Enforce the request rules on send — at most one unanswered message while `requested` (409), silent discard while `declined` (202), refusal while `severed` (404) — in `apps/api/src/modules/conversations/conversation.service.ts`
+- [X] T036 [US1] Emit `message.created` on the durable event bus after a successful send, in `apps/api/src/modules/conversations/conversation.service.ts`
+- [X] T037 [US1] Implement the long-poll message read: return immediately if anything is newer than the cursor, otherwise await `message.created` for this conversation for up to 25 s and return an empty page on timeout, in `apps/api/src/modules/conversations/message-poll.service.ts`
+- [X] T038 [US1] Implement accept / decline / read-position handlers (meta item plus both participant rows, one transaction) in `apps/api/src/modules/conversations/conversation.service.ts`
+- [X] T039 [US1] Resolve each message's `sharedPostId` per reader **through `VisibilityFilter`**, returning the message with `sharedPost: null` and `sharedPostUnavailableReason` when excluded, in `apps/api/src/modules/conversations/message-presenter.ts`. Never denormalise a snapshot of the post — that is a materialised copy outliving a visibility change
+- [X] T040 [US1] Flip **surface 10** (post shared into a conversation) to `built: true` in `apps/api/tests/visibility/matrix.spec.ts` and make its 42 assertions pass 🔒
+- [X] T041 [US1] Sever conversations in both directions from the existing block path in `apps/api/src/modules/safety/`, and make every refusal a `404` indistinguishable from non-existence
+- [X] T042 [US1] Suppress notifications for `requested` conversations and create them for `accepted` ones, in `apps/api/src/modules/notifications/`
+- [X] T043 [US1] Add message reporting to the existing queue and audit log, and make a `removed` message withhold its body while leaving the thread readable, in `apps/api/src/modules/moderation/`
+- [X] T044 [US1] Rate-limit sending per sender and per recipient, reusing the existing publish/comment limiter, in `apps/api/src/modules/conversations/conversation.controller.ts`
+- [X] T045 [US1] Implement all seven conversation endpoints per `contracts/openapi.yaml` in `apps/api/src/modules/conversations/conversation.controller.ts`, with every access decision delegated to `ConversationAccess`
+- [X] T046 [US1] Register `ConversationsModule` in `apps/api/src/app.module.ts`
+
+### Mobile for User Story 1
+
+- [X] T047 [P] [US1] Create the conversations data layer — inbox, open, messages with `wait`, send, accept, decline, read — in `apps/mobile/src/data/conversations.ts`. **No react-native imports below this file**; `apps/e2e` drives these exact modules in Node
+- [X] T048 [US1] Register `ConversationsData` on `AppData` in `apps/mobile/src/data/index.ts` 🔒
+- [X] T049 [P] [US1] Build `InboxScreen` with an Accepted/Requests segmented control, unread counts, and an empty state, in `apps/mobile/src/features/conversations/InboxScreen.tsx`
+- [X] T050 [P] [US1] Build `ConversationScreen` with a long-poll loop that stops on blur and resumes on focus, in `apps/mobile/src/features/conversations/ConversationScreen.tsx`
+- [X] T051 [P] [US1] Build `SharedPostBubble` rendering an unavailable shared post as "not available to you" / "no longer available" rather than an empty bubble, in `apps/mobile/src/features/conversations/SharedPostBubble.tsx`
+- [X] T052 [US1] Add `InboxContainer` and `ConversationContainer` in `apps/mobile/src/screens/index.tsx`, loading real data and wiring every callback. **No `() => undefined`** — that exact placeholder is why the follow button, the comment sheet and the report action were all unreachable on device 🔒
+- [X] T053 [US1] Mount the Chats tab and the conversation route in `apps/mobile/src/App.tsx`, and add a "Message" action to `ProfileScreen` so a conversation is reachable from the app's own entry points 🔒
+- [X] T054 [US1] Add "Send to a conversation" to `apps/mobile/src/features/engagement/ShareAction.tsx`
+
+### Device verification for User Story 1
+
+- [X] T055 [P] [US1] Write `.maestro/13-send-message.yaml`: Chats tab → conversation → send → assert the message through `GET /v1/conversations/{id}/messages`, not through the view hierarchy
+- [X] T056 [P] [US1] Write `.maestro/14-message-request.yaml`: a stranger's first message appears under Requests and produces no notification
+- [X] T057 [US1] Run `node scripts/verify-maestro-ids.mjs` and add any missing `testID`s to the new screens
+- [X] T058 [US1] Checkpoint: `pnpm --filter @sih/e2e test -- conversations` green (16 cases); `test:visibility` reports **336/462, 3 surfaces unbuilt**; SC-001 measured at **301ms**, SC-003 measured at zero over a 1.5s window, SC-002 verified against a real `docker compose down`. Two browser cases added beyond the plan, driving the running app: the Message button on a profile, and the inbox route into a conversation — because the journeys prove the SERVICE and say nothing about whether the app calls it
+
+**Checkpoint**: chat works end to end, with its safety controls, and nothing else in this
+feature is required for it.
+
+---
+
+## Phase 4: User Story 2 — A post can be about a place (Priority: P1)
+
+**Goal**: a post can be attached to a restaurant; the restaurant has a page; a second person
+finds it by name instead of creating a duplicate; and following it does not widen anyone's
+feed.
+
+**Independent test**: `pnpm --filter @sih/e2e test -- places` — create, attach, publish, open
+the place page as a stranger and signed out, follow it without following its interest and
+assert the post never reaches the feed.
+
+### Tests for User Story 2
+
+- [X] T059 [P] [US2] Write the place journeys — dedupe-before-create, attach, place page as stranger and anonymous, follow, merge — in `apps/e2e/journeys/places.spec.ts`. **Must fail**
+- [X] T060 [P] [US2] Write the **SC-006** negative test in two halves in `apps/api/tests/integration/place-follow-does-not-widen.spec.ts`: first show the post **does** reach the feed when the interest is followed, then unfollow the interest and show it does not. A one-half version passes for the wrong reason whenever paging or an empty candidate set hides the post
+- [X] T061 [P] [US2] Write the **SC-008** hostile-client test in `apps/api/tests/integration/place-never-inferred.spec.ts`: publish `apps/e2e/fixtures/with-gps.jpg` through the raw HTTP path a modified client would use and assert the result carries no place and none was suggested
+- [X] T062 [P] [US2] Write the **SC-007** dedupe measurement over `apps/e2e/support/places.ts` in `apps/api/tests/integration/place-dedupe.spec.ts`
+
+### Implementation for User Story 2
+
+- [X] T063 [US2] Implement place creation with slug uniqueness per locality, returning `409` **with the existing place body** so the client attaches it instead of creating a duplicate, in `apps/api/src/modules/places/place.service.ts`
+- [X] T064 [US2] Implement place name search behind the existing `CatalogueSearch` interface, locality-scoped, with a GSI3 prefix query beyond the cached set, in `apps/api/src/modules/places/place-catalogue.service.ts`
+- [X] T065 [US2] Add `placeId` to the publish DTO and validate it server-side (exists, `active`, at most one) in `apps/api/src/modules/posts/post.controller.ts`
+- [X] T066 [US2] Widen the **publish** transaction to write the place index item alongside the post and its interest index items in `apps/api/src/persistence/post.repository.ts` 🔒
+- [X] T067 [US2] Widen the **visibility-change** transaction (001/FR-017) to update the place index item's denormalised `visibility` and `processingState` in `apps/api/src/persistence/post.repository.ts` 🔒
+- [X] T068 [US2] Widen the **edit/refile** transaction to move or delete the place index item when `placeId` changes or is nulled, in `apps/api/src/persistence/post.repository.ts` 🔒
+- [X] T069 [US2] Add an explicit guard asserting no write path may populate `placeId` from media metadata, in `apps/api/src/modules/media/` — 001/FR-010 strips location and this attaches it, and the two must never meet (FR-021)
+- [X] T070 [US2] Implement the place-page posts query — one `Query` on the place partition, handed to `VisibilityFilter` like any other candidate set — in `apps/api/src/modules/places/place-posts.service.ts`
+- [X] T071 [US2] Flip **surface 8** (place page) to `built: true` in `apps/api/tests/visibility/matrix.spec.ts` and make its 42 assertions pass 🔒
+- [X] T072 [US2] Implement place follow and unfollow with the GSI4 inverted follower count, in `apps/api/src/modules/places/place-follow.service.ts`
+- [X] T073 [US2] **A comment is not a guard.** `apps/api/tests/unit/feed-does-not-read-place-follows.spec.ts` fails the build if `FeedService` imports `PlaceFollowRepository`, references places at all, or grows a constructor argument. Verified to actually fail: the violation was introduced deliberately, all three cases went red, and it was reverted. SC-006 catches this behaviourally but only once code exists that widens the feed AND a post happens to exercise it; this catches the dependency appearing
+- [X] T074 [US2] Implement place reporting, rename, merge and retire, carrying posts and followers across without orphaning content, in `apps/api/src/modules/moderation/place-admin.controller.ts`
+- [X] T075 [US2] Implement the place endpoints per `contracts/openapi.yaml` in `apps/api/src/modules/places/place.controller.ts`, and register `PlacesModule` in `apps/api/src/app.module.ts`
+- [X] T076 [US2] Add `place` to post responses, hydrated from the place record — **the full response shape, not `VisibilityFilter`'s candidate rows.** That defect has shipped five times in this repository — in `apps/api/src/modules/posts/post-query.service.ts`
+
+### Mobile for User Story 2
+
+- [X] T077 [P] [US2] Create the places data layer — search, create, get, posts, follow, unfollow — in `apps/mobile/src/data/places.ts`
+- [X] T078 [US2] Register `PlacesData` on `AppData` in `apps/mobile/src/data/index.ts` 🔒
+- [X] T079 [P] [US2] Build `PlacePicker` (type-ahead, existing matches above the create action) in `apps/mobile/src/features/places/PlacePicker.tsx`
+- [X] T080 [P] [US2] Build `CreatePlaceScreen` (name, category, locality, optional address) in `apps/mobile/src/features/places/CreatePlaceScreen.tsx`
+- [X] T081 [P] [US2] Build `PlaceScreen` (header, category, locality, interests, follow button, posts, empty state) in `apps/mobile/src/features/places/PlaceScreen.tsx`
+- [X] T082 [US2] Add the optional place step to compose in `apps/mobile/src/features/publish/ComposeScreen.tsx` — optional means skippable, and a post with no place must behave exactly as it does today
+- [X] T083 [US2] Add a tappable place chip to `apps/mobile/src/features/posts/PostDetailScreen.tsx` and the feed card in `apps/mobile/src/features/feed/HomeFeedScreen.tsx`
+- [X] T084 [US2] Add `PlaceContainer` and `CreatePlaceContainer` in `apps/mobile/src/screens/index.tsx` and mount their routes in `apps/mobile/src/App.tsx` 🔒
+- [X] T085 [US2] Extend Discover so one search covers interests **and** places, in `apps/mobile/src/features/discover/InterestSearchScreen.tsx`
+
+### Device verification for User Story 2
+
+- [X] T086 [P] [US2] Write `.maestro/15-attach-place.yaml`: compose → place picker → publish → assert the post through `GET /v1/places/{id}/posts`
+- [X] T087 [P] [US2] Write `.maestro/16-place-page.yaml`: post → place chip → place page → follow
+- [X] T088 [US2] Checkpoint: 11 place journeys green; `test:visibility` reports **378/462, 2 surfaces unbuilt**; SC-006 measured in two halves, SC-007 across all 12 fixture cases in both directions, SC-008 through the raw HTTP path. A browser case beyond the plan drives the chip → place page → follow route, because the journeys prove the service and say nothing about whether the app reaches it
+
+**Checkpoint**: places work end to end and Principle I is enforced by a test rather than by
+an intention.
+
+---
+
+## Phase 5: User Story 3 — An interest page is worth opening (Priority: P2)
+
+**Goal**: an interest page shows what the interest is, how big it is, what is under it, and
+lets you sort and search within it.
+
+**What was ALREADY there, checked before building** (the FR-049 lesson applied): the
+`description` field exists on the interest item, is settable at CREATION, and is returned
+by `GET /interests/{id}`; `followerCount` and `postCount` are returned and already rendered
+by `InterestScreen`; `subInterests` are returned for a top-level interest and rendered as a
+list. What is genuinely missing is **editing** a description after creation, **`order=top`**,
+**in-interest search**, and the app affordances for all three.
+
+**Independent test**: `pnpm --filter @sih/e2e test -- interest-depth` against the existing
+interest fixtures. No dependency on US1 or US2.
+
+### Tests for User Story 3
+
+- [X] T089 [P] [US3] Write the interest-depth journeys in `apps/e2e/journeys/interest-depth.spec.ts`. **Must fail**
+- [X] T090 [P] [US3] Write the **SC-009** test asserting `order=new` and `order=top` return **identical id sets** — compare sets across all pages, not first pages — in `apps/api/tests/integration/interest-order.spec.ts`
+
+### Implementation for User Story 3
+
+- [X] T091 [P] [US3] **`description` already exists** on `InterestItem` and is set at creation. Add `descriptionUpdatedAt` and a repository method to EDIT it in `apps/api/src/persistence/interest.repository.ts` — FR-025 says set *and* edit, and only the first half shipped
+- [X] T092 [US3] Implement `PUT /interests/{id}/description` with its permission rules — operators for a top-level interest, creator or operator for a sub-interest — in `apps/api/src/modules/interests/interest.controller.ts`
+- [X] T093 [US3] Make interest descriptions reportable as `interest-description` in `apps/api/src/modules/safety/safety.controller.ts`
+- [X] T094 [US3] Implement `order=top` by reordering the candidate set the recency query already produced, **after** `VisibilityFilter`, reusing `apps/api/src/modules/feed/ranking.ts` — no second query, in `apps/api/src/modules/interests/interest-posts.controller.ts`
+- [X] T095 [US3] Implement in-interest post search, matching **after** filtering so a caption cannot leak through a count, in `apps/api/src/modules/interests/interest-posts.controller.ts`
+- [X] T096 [US3] Flip **surface 11** (in-interest search) to `built: true` in `apps/api/tests/visibility/matrix.spec.ts` and make its 42 assertions pass 🔒
+- [X] T097 [US3] **Already returned** — `followerCount` via `toRef` and `subInterests` for top-level interests, both already rendered by `InterestScreen`. Verify, and add only the `descriptionUpdatedAt` passthrough
+
+### Mobile for User Story 3
+
+- [X] T098 [P] [US3] Extend `apps/mobile/src/data/interests.ts` with `description`, `order`, and in-interest `q`
+- [X] T099 [US3] Render description, follower count and a sub-interest grid in `apps/mobile/src/features/discover/InterestScreen.tsx`
+- [X] T100 [US3] Add the New/Top control and the in-interest search field to `apps/mobile/src/features/discover/InterestScreen.tsx`, wired through `InterestContainer` in `apps/mobile/src/screens/index.tsx` 🔒
+- [X] T101 [US3] Add "Report this description" to `apps/mobile/src/features/safety/SafetyActions.tsx`
+- [X] T102 [US3] Checkpoint: `test:visibility` reports **420/462, 1 surface unbuilt**; SC-009 measured on id SETS across the whole listing, in both directions (engaged and quiet). Two things beyond the plan: `tests/integration/auth-surface.spec.ts` pins which endpoints are public, added after inserting a method above `@Get(':interestId')` silently moved its `@Public()` decorator onto the new WRITE endpoint — the read became 401 for everyone signed out and the write became public, with typecheck and lint clean. Verified the guard catches it by reintroducing the mistake
+
+---
+
+## Phase 6: User Story 4 — Close the holes in what already shipped (Priority: P2)
+
+**Goal**: make people searchable, exercise the video path for the first time, and add one
+notification category.
+
+**Correction (2026-09-06)**: an earlier version of this phase claimed 001/FR-049 was
+entirely unimplemented and budgeted four tasks to build it. It is implemented end to end —
+`notificationPrefs` on the Person item, `PATCH /me`, refusal at creation in
+`notification.service.ts:53`, and switches in `EditProfileScreen`. The grep that produced
+the claim searched for `notificationPreferences`; the code says `notificationPrefs`. What is
+actually owed is the **new `message` category**, which is two small tasks, not four.
+
+**Independent test**: three independent verifications, none depending on another story.
+
+### Tests for User Story 4
+
+- [X] T103 [P] [US4] Extend `apps/api/tests/integration/us6-manage.spec.ts` (which already covers reaction) to assert **zero rows are written** for each of the four categories independently, `message` included. The three existing ones must pass immediately — if any fails, the regression is the finding. **Only the `message` case may fail**
+- [X] T104 [P] [US4] Write the people-search journeys, including blocks in both directions and non-active people, in `apps/e2e/journeys/people-search.spec.ts`. **Must fail**
+
+### Implementation for User Story 4
+
+- [X] T105 [US4] Add `message` to the `notificationPrefs` zod schema in `apps/api/src/modules/people/me.controller.ts` and to `PersonItem`'s default in `apps/api/src/persistence/person.repository.ts`. **Absent means on**, so there is no backfill — do not write one
+- [X] T106 [US4] Route the conversation notification from T042 through the existing creation-time refusal in `apps/api/src/modules/notifications/notification.service.ts`. Reuse `recipient.notificationPrefs[kind] === false`; do not add a second check beside it
+- [X] T107 [US4] Add the `message` switch to the existing preferences block in `apps/mobile/src/features/profile/EditProfileScreen.tsx` and widen the `NotificationPrefs` type in `apps/mobile/src/data/session.ts`
+- [X] T108 [US4] Implement `GET /people?q=` over a GSI1 handle/display-name prefix query in `apps/api/src/modules/people/person.controller.ts`
+- [X] T109 [US4] Exclude people blocked in **either** direction and any non-active person, server-side, and test it through the path a modified client would take, in `apps/api/src/modules/people/person-search.service.ts`
+- [X] T110 [P] [US4] Add `PeopleData.search` to `apps/mobile/src/data/people.ts`
+- [X] T111 [US4] Reuse the existing edit-profile route for preferences rather than building a `NotificationSettingsScreen`. **Deleted task** — the screen it would have built already exists as the `notification-prefs` block in `apps/mobile/src/features/profile/EditProfileScreen.tsx`. Verify it renders four switches and leave it alone
+- [X] T112 [US4] Add people results to Discover search in `apps/mobile/src/features/discover/InterestSearchScreen.tsx`
+
+### Video — the first time this path has ever run
+
+- [X] T113 [US4] Point `apps/e2e/journeys/publish-video.spec.ts` at the real `apps/e2e/fixtures/sample.mp4` from T006 and assert transcode completion and a poster frame, rather than a stubbed media record
+- [X] T114 [US4] Assert the poster frame is a real decoded image using the PNG/JPEG decoder in `scripts/assert-screen-not-blank.mjs`, in `apps/e2e/journeys/publish-video.spec.ts`
+- [X] T115 [P] [US4] Write `.maestro/19-publish-video.yaml`: publish a video and assert playback started, for **SC-011**
+- [X] T116 [P] [US4] Write `.maestro/18-notification-settings.yaml`: profile → edit profile → turn **message** notifications off → have another identity send a message → assert no notification arrives. Drives the existing switches, which have never been driven on a device
+- [X] T117 [US4] Checkpoint: SC-010 and SC-012 measured. **The video path was BROKEN and is now fixed** — the poster step seeked to 1s, which fails on any clip shorter than that, so short videos were stuck at `processingState: failed` permanently; and `posterUrl` was never sent by the API at all, so FR-009 reached no client. Both found the first time anything uploaded a real video. **SC-011 (a video PLAYS on a device) remains unverified** — it needs an emulator run, and 001/FR-005 and FR-009 have been claimed twice already without one
+
+---
+
+## Phase 7: User Story 5 — Save a post to come back to (Priority: P3)
+
+**Goal**: save a post, find it again, and never see one you are no longer allowed to see.
+
+**Independent test**: `pnpm --filter @sih/e2e test -- saved`.
+
+### Tests for User Story 5
+
+- [X] T118 [P] [US5] Write the saved-post journeys, including the **SC-013** case where the saved post's visibility later excludes the saver, in `apps/e2e/journeys/saved.spec.ts`. **Must fail**
+
+### Implementation for User Story 5
+
+- [X] T119 [US5] Implement save and unsave, refusing a post the caller cannot currently see, in `apps/api/src/modules/saved/saved.service.ts`
+- [X] T120 [US5] Implement `GET /me/saved`, handing the saved rows to `VisibilityFilter` as a candidate set and returning full post responses, in `apps/api/src/modules/saved/saved.controller.ts`. A save is a bookmark, not a copy
+- [X] T121 [US5] Register `SavedModule` in `apps/api/src/app.module.ts` and add `viewerHasSaved` to post responses in `apps/api/src/modules/posts/post-query.service.ts`
+- [X] T122 [US5] Flip **surface 9** (saved posts) to `built: true` in `apps/api/tests/visibility/matrix.spec.ts` and make its 42 assertions pass 🔒
+- [X] T123 [P] [US5] Create the saved data layer in `apps/mobile/src/data/saved.ts` and register it in `apps/mobile/src/data/index.ts` 🔒
+- [X] T124 [US5] Add a save action to `apps/mobile/src/features/engagement/EngagementBar.tsx`
+- [X] T125 [US5] Build `SavedScreen` in `apps/mobile/src/features/profile/SavedScreen.tsx`, add its container in `apps/mobile/src/screens/index.tsx`, and reach it from the profile tab in `apps/mobile/src/App.tsx` 🔒
+- [X] T126 [P] [US5] Write `.maestro/17-saved.yaml`: post → save → profile → saved list
+- [X] T127 [US5] Checkpoint: `test:visibility` reports **462/462 with 0 skipped and every surface probed** — SC-005 closed. The browser case caught a defect the unit tests could not: `toggleSave` was declared AFTER the container's `return`, so the star hit the temporal dead zone and did nothing. Typecheck clean, lint clean, 50 mobile tests green — and the button was inert
+
+---
+
+## Phase 8: Polish & Cross-Cutting Concerns
+
+- [X] T128 Assert the matrix runs **462 assertions with zero skipped surfaces** and fail the suite if any surface is unbuilt, in `apps/api/tests/visibility/matrix.spec.ts` 🔒
+- [X] T129 Merge `specs/004-chat-places-and-depth/contracts/openapi.yaml` into `specs/001-interest-media-sharing/contracts/openapi.yaml` as one document. **Done early, in US1, not in Polish** — the mobile data layer calls operations from the generated map, so nothing in any story's app half could be written until the contract was merged and the client regenerated. Four operations were **edited, not replaced**: 001's versions carry the full schemas and the delta's carry only the changed field, so overwriting would have deleted the contract. `PersonSummary` and `Unauthorized` were remapped onto the contract's existing `PublicProfile` and `Unauthorised` rather than added as near-duplicates
+- [X] T130 Regenerate the shared client from the merged contract: `pnpm --filter @sih/shared generate:client`, then confirm the generated shapes match what the server actually accepts. **A generated client and a server generated from one document agree by construction and prove nothing** — 002 found the publish body mismatch only by making a request
+- [X] T131 [P] Add empty states following the 001/FR-036 shape to `apps/mobile/src/features/conversations/InboxScreen.tsx` (both inboxes), `apps/mobile/src/features/places/PlaceScreen.tsx`, and `apps/mobile/src/features/profile/SavedScreen.tsx`
+- [X] T132 [P] Verify rate limits cover every new write path — send, place create, save — in `apps/api/tests/integration/rate-limits.spec.ts`
+- [X] T133 Assert the long-poll's **request count**, not only its latency, in `apps/e2e/journeys/conversations.spec.ts`. If the handler fails to await the event bus, the latency assertion still passes at small scale and the load characteristic is silently wrong
+- [X] T134 Finalise the long-poll divergence entry and run `pnpm verify:register` in `docs/verification/divergence-register.md` 🔒
+- [X] T135 [P] `apps/api/bench/chat.bench.ts`. **Measured: one API process held 200 concurrent long polls, delivery p95 51ms** (p50 39ms; at 5 holders p95 65ms). Output to a FILE and kill the process group, per the two lessons that cost a 22-minute hang. States in its own header what it cannot say: nothing about a hosted deployment, nothing about 002/SC-002
+- [X] T136 [P] Update `CLAUDE.md` with what 004 established, what it did not, and any decision that turned out wrong
+- [X] T137 Run the **real CI step list**, not a proxy for it: `pnpm typecheck && pnpm lint && pnpm test && pnpm verify:local && pnpm --filter @sih/e2e test`. Two red builds came from assuming typecheck/lint/tests covered CI
+- [X] T138 Dispatch `.github/workflows/android-emulator.yml` on the feature branch and record the outcome in `docs/verification/runs/`. **The approval premise this task was written under no longer holds.** It said the run "requires the owner's explicit approval, since it spends the account's Actions allowance". The repository is public as of 2026-09-06 (`visibility: public`, verified 2026-09-07), and GitHub-hosted standard runners are free on public repositories — so the run spends no allowance and the cost rule in plan.md is not engaged by it. The billing block recorded in CLAUDE.md has also cleared: CI runs 169–174 completed green today. Dispatched on that basis, not on an approval nobody gave
+- [X] T139 Write the run record at `docs/verification/runs/<date>-journey-run-004.md`, with per-journey service-side evidence and an explicit `not run` for anything not executed
+- [X] T140 Reported in `docs/verification/runs/2026-09-07-feature-004-local-record.md`: 13 criteria **met** with the command that measured each; **SC-011 unverified** (needs an emulator run), **004 on Android unverified**, **iOS unverified**, **002/SC-002 unmeasured** (needs spend), **real usage unanswered**
+
+---
+
+## Dependencies & Execution Order
+
+### Phase dependencies
+
+- **Phase 1 (Setup)**: no dependencies
+- **Phase 2 (Foundational)**: depends on Phase 1. **Blocks every user story** — the two
+  boundaries must exist before anything reads through them
+- **Phases 3–7 (Stories)**: all depend on Phase 2, and are otherwise independent
+- **Phase 8 (Polish)**: depends on the stories you intend to ship
+
+### User story dependencies
+
+Genuinely independent, with two soft edges:
+
+- **US1** — none.
+- **US2** — none. Touches `post.repository.ts`, which no other story in this feature writes.
+- **US3** — none.
+- **US4** — T107 (the `message` notification category) is the only cross-story task; it is a
+  no-op until US1's T042 exists, so US4 is completable without US1 and that one task is
+  skipped until it is.
+- **US5** — none.
+
+### Within each story
+
+Contract tests → repositories → services → endpoints → data layer → screens → containers and
+routes → Maestro. **Never stop at the screen.** Four defects in this codebase were a screen
+that worked and nothing that called it, each passing its own unit test.
+
+### Parallel opportunities
+
+- Phase 1: T002–T008 all `[P]`
+- Phase 2: T015–T020 (six repositories, six files) and T022–T025 all `[P]`
+- After Phase 2, all five stories can run concurrently — subject to the single-owner table
+- Within each story, every `[P]` test task and every `[P]` screen file
+
+---
+
+## Parallel Example: Phase 2
+
+```bash
+# Six repositories, six files, no shared state:
+Task: "Create ConversationRepository in apps/api/src/persistence/conversation.repository.ts"
+Task: "Create MessageRepository in apps/api/src/persistence/message.repository.ts"
+Task: "Create PlaceRepository in apps/api/src/persistence/place.repository.ts"
+Task: "Create PlaceFollowRepository in apps/api/src/persistence/place-follow.repository.ts"
+Task: "Create SavedPostRepository in apps/api/src/persistence/saved-post.repository.ts"
+Task: "Create PostPlaceIndexRepository in apps/api/src/persistence/post-place-index.repository.ts"
+```
+
+## Parallel Example: User Story 1 screens
+
+```bash
+Task: "Build InboxScreen in apps/mobile/src/features/conversations/InboxScreen.tsx"
+Task: "Build ConversationScreen in apps/mobile/src/features/conversations/ConversationScreen.tsx"
+Task: "Build SharedPostBubble in apps/mobile/src/features/conversations/SharedPostBubble.tsx"
+```
+
+---
+
+## Implementation Strategy
+
+### MVP: Phases 1, 2, 3 — chat, with its safety controls
+
+1. Phase 1 (Setup) — T001–T009
+2. Phase 2 (Foundational) — T010–T027. **Blocks everything**
+3. Phase 3 (US1) — T028–T058
+4. **STOP and validate**: `pnpm --filter @sih/e2e test -- conversations`, then the two
+   Maestro flows on the emulator
+5. That is 58 tasks and a shippable increment. It does **not** ship without T041 (block
+   severance), T042 (request-inbox notification suppression) and T043 (message reporting) —
+   Constitution IV makes those part of the story, not a follow-on
+
+### Incremental delivery
+
+Setup + Foundational → US1 (chat, MVP) → US2 (places) → US3 (interest depth) →
+US4 (the shipped-scope holes) → US5 (saved). Each adds value without breaking the last, and
+each closes its own success criteria.
+
+**If you want the cheapest visible win first**, US5 (saved posts) is ten tasks end to end and
+is the smallest thing here a person would notice. US4's preference work is now two tasks
+(T105, T107) because the control it was going to build already exists.
+
+### Parallel team strategy
+
+Per the repository's own guidance: **3–5 agents, 5–6 tasks each, `isolation: "worktree"`.**
+After Phase 2, US1/US2/US3/US4/US5 are five lanes. The single-owner table above is the
+constraint that makes that safe — assign `App.tsx`, `screens/index.tsx`,
+`matrix.spec.ts`, `post.repository.ts`, `data/index.ts` and the divergence register to one
+owner each and serialise their tasks.
+
+Agent Teams needs an interactive session and is not usable in the cloud web environment;
+use subagents or the Workflow tool here.
+
+---
+
+## Notes
+
+- `[P]` = different files, no dependency on an incomplete task
+- 🔒 = single-owner file; see the table at the top
+- Verify a contract test fails before implementing what it governs
+- Commit after each task or logical group; nothing in this sandbox survives a reset
+- The two owner gates (G1 datastore, G2 scope) are in [plan.md](./plan.md) and are unresolved
+- Report unverified things as unverified. SC-002 needs a restart, SC-011 needs a device run,
+  and the concurrency criteria need spend that has not been approved

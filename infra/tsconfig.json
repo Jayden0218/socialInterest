@@ -1,0 +1,1 @@
+{ "extends": "../tsconfig.base.json", "compilerOptions": { "noEmit": true, "types": ["node"] }, "include": ["scripts/**/*.ts", "bin/**/*.ts", "lib/**/*.ts"] }

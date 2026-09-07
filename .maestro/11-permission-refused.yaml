@@ -1,0 +1,45 @@
+# 003/FR-012: the app must never silently publish media the person did not choose.
+#
+# The original assertion here was `library-permission-denied is visible`, and it
+# failed on runs 11-16. Run 16 says why: on API 30 the picker hands off to
+# `com.android.documentsui`, Android's own file picker, which needs no storage
+# permission at all. So denying permissions does not produce a refusal - there
+# is nothing to refuse - and the banner correctly never appears.
+#
+# That is a fact about the platform, not a defect, and asserting the banner here
+# was asserting something this device cannot produce. The DENIAL branch is
+# covered where it can be: apps/mobile/src/__tests__/navigation.test.tsx drives
+# it directly and asserts the person is told and compose is not entered.
+#
+# What this flow asserts instead is the requirement that DOES hold on any
+# platform, and it is the one that matters: whatever the library does or does
+# not do, the app must not proceed into compose carrying media the person never
+# chose. A silent fallback is worse than an error, because nothing tells them.
+appId: app.socialinterest
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: deny
+- assertVisible:
+    id: "app-root"
+- tapOn:
+    id: "open-sign-in"
+- tapOn:
+    id: "sign-in-token"
+- inputText: ${TOKEN}
+- tapOn:
+    id: "sign-in-submit"
+- assertNotVisible:
+    id: "open-sign-in"
+
+- tapOn:
+    id: "open-compose"
+- assertVisible:
+    id: "media-picker-screen"
+- tapOn:
+    id: "open-library"
+
+# The requirement. Nothing was chosen, so nothing may be composed.
+- assertNotVisible:
+    id: "compose-screen"

@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // T012. Workspace root, not apps/e2e: this package imports the mobile data
+    // layer by source, and rootDir must contain every input file. Cross-package
+    // imports broke the build once in feature 001; settling it here is the point
+    // of the task.
+    "rootDir": "../..",
+    "noEmit": true,
+    "types": ["node", "jest"],
+    "paths": {
+      "@sih/shared": ["../../packages/shared/src/index.ts"],
+      "@sih/mobile/data": ["../mobile/src/data/index.ts"]
+    }
+  },
+  "include": ["support/**/*.ts", "journeys/**/*.ts", "durability/**/*.ts", "browser/**/*.ts", "scripts/**/*.ts", "jest.config.ts", "jest.durability.config.ts"]
+}

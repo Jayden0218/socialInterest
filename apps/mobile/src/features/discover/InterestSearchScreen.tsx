@@ -1,0 +1,158 @@
+import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
+import type { InterestRef, PlaceSummary, PublicProfile } from '@sih/shared';
+import { theme } from '../../ui/theme';
+import { EmptyState, Screen } from '../../ui/primitives';
+import { labelWithParent } from './InterestScreen';
+
+/**
+ * FR-026: results appear as the person types, across both levels, each
+ * sub-interest labelled with its parent — "portraits" under Photography must be
+ * distinguishable from "portraits" under Painting.
+ */
+export const TYPEAHEAD_DEBOUNCE_MS = 150;
+export const MIN_QUERY_LENGTH = 1;
+
+export function shouldQuery(input: string): boolean {
+  return input.trim().length >= MIN_QUERY_LENGTH;
+}
+
+export function resultLabel(ref: InterestRef): string {
+  return labelWithParent(ref);
+}
+
+/**
+ * 004/US2 lives HERE rather than in a sixth tab.
+ *
+ * Five tabs is the ceiling (research R6), and one search across interests and
+ * places is also the honest model: a person looking for "Tiong Bahru Bakery"
+ * does not first decide whether it is an interest or a place. Places are shown
+ * in their own section, and only when a locality is known - a place search
+ * without one cannot dedupe and would return the wrong "Joe's".
+ */
+export function InterestSearchScreen({
+  query,
+  results,
+  places,
+  people,
+  locality,
+  onQueryChange,
+  onLocalityChange,
+  onSelect,
+  onSelectPlace,
+  onSelectPerson,
+}: {
+  query: string;
+  results: InterestRef[];
+  places?: PlaceSummary[];
+  people?: PublicProfile[];
+  locality?: string;
+  onQueryChange: (next: string) => void;
+  onLocalityChange?: (next: string) => void;
+  onSelect: (interestId: string) => void;
+  onSelectPlace?: (placeId: string) => void;
+  onSelectPerson?: (handle: string) => void;
+}) {
+  return (
+    <Screen testID="interest-search-screen">
+      <TextInput
+        testID="interest-search-input"
+        accessibilityLabel="Search interests"
+        placeholder="Search interests"
+        value={query}
+        onChangeText={onQueryChange}
+        autoCorrect={false}
+        style={{
+          borderWidth: 1,
+          borderColor: theme.color.border,
+          borderRadius: theme.radius.md,
+          padding: theme.space.md,
+          fontSize: theme.font.md,
+          color: theme.color.text,
+        }}
+      />
+
+      {onLocalityChange ? (
+        <TextInput
+          testID="place-search-locality"
+          accessibilityLabel="City or area, to search places"
+          placeholder="City or area (to find places)"
+          value={locality ?? ''}
+          onChangeText={onLocalityChange}
+          autoCorrect={false}
+          style={{
+            borderWidth: 1,
+            borderColor: theme.color.border,
+            borderRadius: theme.radius.md,
+            padding: theme.space.md,
+            fontSize: theme.font.md,
+            color: theme.color.text,
+          }}
+        />
+      ) : null}
+
+      {places && places.length > 0 && onSelectPlace ? (
+        <View testID="place-results" style={{ gap: theme.space.xs }}>
+          <Text style={{ fontSize: theme.font.sm, color: theme.color.muted }}>Places</Text>
+          {places.map((p) => (
+            <Pressable
+              key={p.placeId}
+              testID={`place-result-${p.placeId}`}
+              accessibilityRole="button"
+              onPress={() => onSelectPlace(p.placeId)}
+              style={{ paddingVertical: theme.space.sm }}
+            >
+              <Text style={{ fontSize: theme.font.md, color: theme.color.text }}>
+                {`${p.name} · ${p.category} · ${p.locality}`}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+
+      {people && people.length > 0 && onSelectPerson ? (
+        <View testID="people-results" style={{ gap: theme.space.xs }}>
+          <Text style={{ fontSize: theme.font.sm, color: theme.color.muted }}>People</Text>
+          {people.map((p) => (
+            <Pressable
+              key={p.handle}
+              testID={`person-result-${p.handle}`}
+              accessibilityRole="button"
+              onPress={() => onSelectPerson(p.handle)}
+              style={{ paddingVertical: theme.space.sm }}
+            >
+              <Text style={{ fontSize: theme.font.md, color: theme.color.text }}>
+                {`${p.displayName} · @${p.handle}`}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+
+      {shouldQuery(query) && results.length === 0 ? (
+        <EmptyState
+          testID="search-empty"
+          title="No interests match"
+          body="Try a shorter word, or create a sub-interest for it."
+        />
+      ) : (
+        <FlatList
+          testID="interest-list"
+          data={results}
+          keyExtractor={(i) => i.interestId}
+          contentContainerStyle={{ gap: theme.space.sm }}
+          renderItem={({ item, index }) => (
+            <Pressable
+              testID={`search-result-${index}`}
+              accessibilityRole="button"
+              onPress={() => onSelect(item.interestId)}
+              style={{ paddingVertical: theme.space.md, borderBottomWidth: 1, borderBottomColor: theme.color.border }}
+            >
+              {/* Always parent-qualified, so two same-named interests are distinguishable. */}
+              <Text style={{ fontSize: theme.font.md, color: theme.color.text }}>{resultLabel(item)}</Text>
+            </Pressable>
+          )}
+        />
+      )}
+    </Screen>
+  );
+}

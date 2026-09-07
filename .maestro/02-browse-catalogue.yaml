@@ -1,0 +1,15 @@
+# J-02 browse the interest catalogue.
+appId: app.socialinterest
+---
+- launchApp
+- tapOn:
+    id: "tab-discover"
+- assertVisible:
+    id: "interest-search-screen"
+- tapOn:
+    id: "interest-search-input"
+- inputText: "clim"
+# The catalogue is served by the API; results appearing means the request went
+# out and came back, not that a list rendered empty.
+- assertVisible:
+    id: "interest-list"

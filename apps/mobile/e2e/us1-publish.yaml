@@ -1,0 +1,45 @@
+# Maestro flow for the US1 publish journey (research D8).
+# Run: pnpm --filter @sih/mobile test:e2e
+appId: app.socialinterest
+name: US1 - publish media to an interest
+---
+- launchApp:
+    clearState: true
+
+- tapOn: 'Sign in'
+- inputText: 'e2e@example.com'
+- tapOn: 'Continue'
+
+# FR-006: publish stays disabled until an interest is chosen.
+- tapOn: 'Create'
+- tapOn: 'Choose photo'
+- tapOn:
+    id: 'media-item-0'
+- assertVisible:
+    id: 'publish-button'
+    enabled: false
+
+- tapOn: 'Choose an interest'
+- tapOn:
+    id: 'interest-option-0'
+
+# FR-013: visibility defaults to public without the person touching it.
+- assertVisible:
+    id: 'visibility-control'
+    text: 'Public'
+
+- inputText: 'my first post'
+- assertVisible:
+    id: 'publish-button'
+    enabled: true
+- tapOn:
+    id: 'publish-button'
+
+# Acceptance scenario 1: the post appears in the interest's space and on the profile.
+- assertVisible: 'Published'
+- tapOn: 'View in interest'
+- assertVisible:
+    id: 'post-card-0'
+- tapOn: 'Profile'
+- assertVisible:
+    id: 'post-card-0'

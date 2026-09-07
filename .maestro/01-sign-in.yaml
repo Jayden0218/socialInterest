@@ -1,0 +1,26 @@
+# J-01 sign in.
+#
+# Through the screen, not by seeding a token into storage. A pass that injected
+# the token behind the UI would prove the token store works and prove nothing
+# about signing in - and signing in is the journey.
+appId: app.socialinterest
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: "app-root"
+- tapOn:
+    id: "open-sign-in"
+- assertVisible:
+    id: "sign-in-screen"
+- tapOn:
+    id: "sign-in-token"
+- inputText: ${TOKEN}
+- tapOn:
+    id: "sign-in-submit"
+# Back on the tabs, and the sign-in affordance is gone - which only happens if
+# the API accepted the token, since signIn calls GET /v1/me before storing it.
+- assertNotVisible:
+    id: "sign-in-screen"
+- assertNotVisible:
+    id: "open-sign-in"

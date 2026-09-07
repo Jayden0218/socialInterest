@@ -1,0 +1,26 @@
+{
+  "name": "socialinterest",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint .",
+    "test": "pnpm --filter @sih/api test && pnpm --filter @sih/mobile test",
+    "test:unit": "pnpm --filter @sih/api test:unit",
+    "test:contract": "pnpm --filter @sih/api test:contract",
+    "test:visibility": "pnpm --filter @sih/api test:visibility",
+    "test:integration": "pnpm --filter @sih/api test:integration",
+    "verify:local": "pnpm --filter @sih/infra verify:local && pnpm verify:register",
+    "verify:register": "node scripts/verify-divergence-register.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "eslint": "^10.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.69.0"
+  }
+}

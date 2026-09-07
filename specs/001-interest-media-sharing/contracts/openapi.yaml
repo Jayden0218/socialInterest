@@ -1,0 +1,1601 @@
+openapi: 3.1.0
+info:
+  title: Interest-Centred Media Sharing API
+  version: 0.1.0
+  description: >
+    HTTP contract for the interest-centred media sharing app.
+    Derived from specs/001-interest-media-sharing/spec.md; every operation cites the
+    functional requirements it serves.
+
+    Visibility note: every response that can contain posts has already passed through
+    the single visibility boundary described in research.md D6. A caller never receives
+    a post excluded by FR-014 to FR-016, on any endpoint (FR-018, SC-009).
+
+servers:
+  - url: https://api.example.com/v1
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Auth
+  - name: People
+  - name: Interests
+  - name: Posts
+  - name: Media
+  - name: Feed
+  - name: Engagement
+  - name: Safety
+  - name: Notifications
+  - name: Moderation
+
+paths:
+
+  /me:
+    get:
+      tags: [People]
+      summary: Current person's profile and preferences
+      description: Serves FR-002, FR-049.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SelfProfile' }
+        '401': { $ref: '#/components/responses/Unauthorised' }
+    patch:
+      tags: [People]
+      summary: Update display name, avatar, bio, or notification preferences
+      description: Serves FR-002, FR-049.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProfileUpdate' }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SelfProfile' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    delete:
+      tags: [People]
+      summary: Delete the current account
+      description: >
+        Serves FR-003. Returns immediately with the retention outcome; content removal
+        and comment anonymisation proceed asynchronously. Followers-only content becomes
+        inaccessible as soon as this returns.
+      responses:
+        '202':
+          description: Deletion accepted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeletionOutcome' }
+
+  /people/{handle}:
+    get:
+      tags: [People]
+      summary: A person's public profile
+      description: >
+        Serves FR-038. Includes follower and following counts and the interests they
+        post to most. Posts are fetched separately via /people/{handle}/posts.
+      parameters:
+        - $ref: '#/components/parameters/Handle'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PublicProfile' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /people/{handle}/posts:
+    get:
+      tags: [People, Posts]
+      summary: A person's posts, newest first
+      description: Serves FR-038. Filtered to what the caller may see.
+      parameters:
+        - $ref: '#/components/parameters/Handle'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PostPage' }
+
+  /people/{handle}/follow:
+    put:
+      tags: [People]
+      summary: Follow a person
+      description: >
+        Serves FR-037. Idempotent. Following a person does not by itself add their
+        posts to the caller's home feed — see FR-033 and GET /feed/home.
+      parameters:
+        - $ref: '#/components/parameters/Handle'
+      responses:
+        '204': { description: Following }
+        '409':
+          description: Blocked in either direction (FR-044)
+    delete:
+      tags: [People]
+      summary: Unfollow a person
+      description: Serves FR-037. Idempotent.
+      parameters:
+        - $ref: '#/components/parameters/Handle'
+      responses:
+        '204': { description: Not following }
+
+  /interests:
+    get:
+      tags: [Interests]
+      summary: Browse or search interests
+      description: >
+        Serves FR-025, FR-026. With `q`, performs type-ahead matching across both
+        levels, returning each sub-interest with its parent. With `level=top` and no
+        `q`, returns the curated catalogue.
+      security: []
+      parameters:
+        - name: q
+          in: query
+          schema: { type: string, minLength: 1, maxLength: 50 }
+          description: Partial name; results returned as the caller types.
+        - name: level
+          in: query
+          schema: { type: string, enum: [top, sub] }
+        - name: parentId
+          in: query
+          schema: { type: string }
+          description: Restrict to sub-interests of this parent (FR-020).
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InterestPage' }
+    post:
+      tags: [Interests]
+      summary: Create a sub-interest
+      description: >
+        Serves FR-022. Any signed-in person may create a sub-interest beneath exactly
+        one top-level parent. Rate limited per FR-046. Creating a top-level interest
+        requires operator authority (FR-021) and is not exposed here.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InterestCreate' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Interest' }
+        '409':
+          description: >
+            A sufficiently similar sub-interest already exists under this parent
+            (FR-023). The response carries the candidates so the caller can join one
+            instead of creating a duplicate.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DuplicateInterestCandidates' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /interests/similar:
+    get:
+      tags: [Interests]
+      summary: Near-duplicate check before creating a sub-interest
+      description: >
+        Serves FR-023. Called as the person types a new sub-interest name so the
+        warning appears before submission rather than as a rejection. SC-008 measures
+        whether this is effective.
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema: { type: string, minLength: 2, maxLength: 50 }
+        - name: parentId
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DuplicateInterestCandidates' }
+
+  /interests/{interestId}:
+    get:
+      tags: [Interests]
+      summary: An interest, with its sub-interests when top-level
+      description: >
+        Serves FR-025. A merged interest (FR-030) responds 301 to its survivor.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/InterestId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InterestDetail' }
+        '301':
+          description: Interest was merged into another (FR-030)
+          headers:
+            Location: { schema: { type: string } }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /interests/{interestId}/posts:
+    get:
+      tags: [Interests, Posts]
+      summary: Posts in an interest, newest first
+      description: >
+        Serves FR-024, FR-025. For a top-level interest the response includes posts
+        published to its sub-interests. Empty results carry an empty-state hint
+        (FR-036).
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/InterestId'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        # 004/FR-027, FR-028: `top` REORDERS the set `new` returns. It must not
+        # change WHICH posts are returned - SC-009 asserts identical id sets.
+        - { name: order, in: query, schema: { type: string, enum: [new, top], default: new } }
+        # 004/FR-029: with `q` this is surface 11 of the visibility matrix.
+        # Matching happens AFTER filtering, never before.
+        - { name: q, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PostPage' }
+
+  /interests/{interestId}/follow:
+    put:
+      tags: [Interests]
+      summary: Follow an interest
+      description: >
+        Serves FR-027. Following a top-level interest covers all its sub-interests,
+        including ones created later (FR-028). Idempotent.
+      parameters:
+        - $ref: '#/components/parameters/InterestId'
+      responses:
+        '204': { description: Following }
+        '409':
+          description: Follow cap reached
+    delete:
+      tags: [Interests]
+      summary: Unfollow an interest
+      description: Serves FR-027. Idempotent.
+      parameters:
+        - $ref: '#/components/parameters/InterestId'
+      responses:
+        '204': { description: Not following }
+
+  /interests/suggested:
+    get:
+      tags: [Interests]
+      summary: Interests the caller may want to follow
+      description: Serves FR-029, and the onboarding path measured by SC-006.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InterestPage' }
+
+  /media/uploads:
+    post:
+      tags: [Media]
+      summary: Request a presigned upload target
+      description: >
+        Serves FR-004, FR-005, FR-008. Size and duration caps are validated here,
+        before any bytes move, so the caller learns of a limit up front rather than
+        after a long upload. The returned uploadId is quoted when creating the post,
+        which is what allows a failed upload to be retried without re-selecting media.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UploadRequest' }
+      responses:
+        '201':
+          description: Upload target issued
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UploadTarget' }
+        '413':
+          description: Exceeds the size or duration cap (FR-005)
+        '415':
+          description: Unsupported media type
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /posts:
+    post:
+      tags: [Posts]
+      summary: Publish a post
+      description: >
+        Serves FR-004 to FR-007 and FR-013. At least one interest is required; a
+        request without one is rejected. Visibility defaults to public. The post is
+        created in a processing state and becomes visible to others only once
+        derivation completes (FR-009), including the server-side EXIF strip (FR-010).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PostCreate' }
+      responses:
+        '201':
+          description: Created, processing
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Post' }
+        '422':
+          description: >
+            Validation failed — includes the case of no interest assigned (FR-006).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /posts/{postId}:
+    get:
+      tags: [Posts]
+      summary: A single post
+      description: >
+        Serves FR-041, FR-042. This is also the share-link target. A post the caller
+        may not see returns 404 when it is gone and 403 when it exists but excludes
+        them, so the client can show "no longer available" versus "not available to
+        you" distinctly.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Post' }
+        '403':
+          description: Exists but the caller is not permitted (FR-015, FR-042)
+        '404':
+          description: Deleted, or never existed (FR-042)
+    patch:
+      tags: [Posts]
+      summary: Edit caption, interests, or visibility
+      description: >
+        Serves FR-011 and FR-017. A visibility change takes effect on every surface
+        immediately, and outstanding share links resolve against the new value.
+        Re-filing to a different interest moves the post in one atomic step.
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PostUpdate' }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Post' }
+        '403': { description: Not the author }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    delete:
+      tags: [Posts]
+      summary: Delete a post
+      description: >
+        Serves FR-012. Removes the post from every interest space, feed, and profile.
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      responses:
+        '204': { description: Deleted }
+        '403': { description: Not the author }
+
+  /feed/home:
+    get:
+      tags: [Feed]
+      summary: The caller's home feed
+      description: >
+        Serves FR-032, FR-033, FR-034, FR-035. Composed from followed interests only.
+        Posts by followed people are ranked higher **within those interests**; a
+        followed person's post in an unfollowed interest never appears. When the caller
+        follows nothing, returns an empty page with an onboarding hint (FR-036).
+        SC-005 sets the latency budget for this endpoint.
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PostPage' }
+
+  /posts/{postId}/reaction:
+    put:
+      tags: [Engagement]
+      summary: React to a post
+      description: >
+        Serves FR-039. Idempotent — at most one reaction per person per post, so a
+        repeated call does not inflate the count.
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      responses:
+        '200':
+          description: Reacted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReactionState' }
+        '403': { description: Post not visible to the caller }
+    delete:
+      tags: [Engagement]
+      summary: Remove a reaction
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      responses:
+        '200':
+          description: Reaction removed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReactionState' }
+
+  /posts/{postId}/comments:
+    get:
+      tags: [Engagement]
+      summary: Comments on a post
+      description: Serves FR-040. Readable exactly when the post is.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CommentPage' }
+        '403': { description: Post not visible to the caller }
+    post:
+      tags: [Engagement]
+      summary: Comment on a post
+      description: Serves FR-040. Rate limited per FR-046.
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CommentCreate' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Comment' }
+        '403': { description: Post not visible to the caller }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /posts/{postId}/share-link:
+    post:
+      tags: [Engagement]
+      summary: Generate a shareable link
+      description: >
+        Serves FR-041. The link is a stable URL resolving to GET /posts/{postId}; it
+        confers no access of its own and is always evaluated against the post's current
+        visibility (FR-042).
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      responses:
+        '201':
+          description: Link issued
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ShareLink' }
+        '403': { description: Post not visible to the caller }
+
+  /reports:
+    post:
+      tags: [Safety]
+      summary: Report a post, comment, or interest name
+      description: Serves FR-043. All three subject types are reportable.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReportCreate' }
+      responses:
+        '201':
+          description: Report filed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Report' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /blocks/{handle}:
+    put:
+      tags: [Safety]
+      summary: Block a person
+      description: >
+        Serves FR-044. Hides content in both directions, severs any follow either way,
+        and prevents further interaction. Previously visible followers-only content is
+        withdrawn as a consequence.
+      parameters:
+        - $ref: '#/components/parameters/Handle'
+      responses:
+        '204': { description: Blocked }
+    delete:
+      tags: [Safety]
+      summary: Unblock a person
+      parameters:
+        - $ref: '#/components/parameters/Handle'
+      responses:
+        '204': { description: Unblocked }
+
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: The caller's notifications
+      description: >
+        Serves FR-048. Generation respects both notification preferences and post
+        visibility, so a notification never reveals content the recipient cannot open.
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationPage' }
+
+  /moderation/reports:
+    get:
+      tags: [Moderation]
+      summary: The moderation queue, oldest first
+      description: >
+        Operator only. Serves FR-045; the ordering is what makes SC-010 (95% decided
+        within 24h) measurable.
+      parameters:
+        - name: state
+          in: query
+          schema: { type: string, enum: [open, under_review, actioned, dismissed] }
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReportPage' }
+        '403': { description: Not an operator }
+
+  /moderation/reports/{reportId}:
+    patch:
+      tags: [Moderation]
+      summary: Record a moderation decision
+      description: >
+        Operator only. Serves FR-045 and FR-047 — the decision is written to an
+        append-only audit log, and the author is notified when their content is removed.
+      parameters:
+        - name: reportId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ModerationDecision' }
+      responses:
+        '200':
+          description: Recorded
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Report' }
+        '403': { description: Not an operator }
+
+  /moderation/interests/{interestId}:
+    patch:
+      tags: [Moderation, Interests]
+      summary: Re-parent, merge, or retire an interest
+      description: >
+        Operator only. Serves FR-030. Merge and re-parent carry posts and followers
+        across and run asynchronously, so this returns 202 with a job to poll.
+        Retiring a top-level interest that still has live sub-interests is refused —
+        posts are never orphaned.
+      parameters:
+        - $ref: '#/components/parameters/InterestId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InterestAdminAction' }
+      responses:
+        '202':
+          description: Job accepted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InterestJob' }
+        '409':
+          description: Refused — would orphan posts, or interest already merging
+        '403': { description: Not an operator }
+
+
+  # ============================ feature 004 ============================
+  # specs/004-chat-places-and-depth/contracts/openapi.yaml, merged.
+
+  /conversations:
+    get:
+      tags: [Conversations]
+      summary: The signed-in person's inbox
+      description: Serves FR-003. `state=requested` is the separate requests inbox.
+      parameters:
+        - { name: state, in: query, schema: { type: string, enum: [accepted, requested], default: accepted } }
+        - { name: cursor, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        '200':
+          description: Conversations, most recent message first
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/ConversationSummary' } }
+                  nextCursor: { type: string, nullable: true }
+        '401': { $ref: '#/components/responses/Unauthorised' }
+
+  /conversations/with/{handle}:
+    put:
+      tags: [Conversations]
+      summary: Open (or fetch) the conversation with a person
+      description: >
+        Serves FR-001. Idempotent: the conversation id is derived from the participant pair
+        (research R8), so there is exactly one thread per pair and repeat calls return it.
+        Returns 404 — never 403 — when the other person has blocked the caller, so a block
+        is not disclosed (FR-006).
+      parameters:
+        - { name: handle, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: The conversation
+          content: { application/json: { schema: { $ref: '#/components/schemas/Conversation' } } }
+        '401': { $ref: '#/components/responses/Unauthorised' }
+        '404': { $ref: '#/components/responses/NotFoundOpaque' }
+
+  /conversations/{conversationId}:
+    get:
+      tags: [Conversations]
+      summary: One conversation's state
+      description: Serves FR-001, FR-041. Access decided by ConversationAccess.
+      parameters: [ { $ref: '#/components/parameters/ConversationId' } ]
+      responses:
+        '200':
+          content: { application/json: { schema: { $ref: '#/components/schemas/Conversation' } } }
+          description: The conversation
+        '401': { $ref: '#/components/responses/Unauthorised' }
+        '404': { $ref: '#/components/responses/NotFoundOpaque' }
+
+  /conversations/{conversationId}/messages:
+    get:
+      tags: [Conversations]
+      summary: Messages, with optional long-poll
+      description: >
+        Serves FR-001, FR-010, FR-011. With `wait` set, the server holds the request open
+        until a message newer than `after` exists or the wait elapses, then returns
+        (research R1). An empty `items` with a 200 is a normal timeout, not an error.
+
+        Each message's `sharedPostId` is resolved per reader through the post visibility
+        boundary (FR-009). `sharedPost` is null when the reader may not see it, and
+        `sharedPostUnavailableReason` distinguishes "gone" from "not for you" using 001's
+        error table.
+      parameters:
+        - { $ref: '#/components/parameters/ConversationId' }
+        - { name: after, in: query, schema: { type: string }, description: Message id cursor }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
+        - name: wait
+          in: query
+          schema: { type: integer, minimum: 0, maximum: 25, default: 0 }
+          description: Seconds to hold the request open. 0 returns immediately.
+      responses:
+        '200':
+          description: Messages in creation order
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/Message' } }
+                  nextCursor: { type: string, nullable: true }
+        '401': { $ref: '#/components/responses/Unauthorised' }
+        '404': { $ref: '#/components/responses/NotFoundOpaque' }
+    post:
+      tags: [Conversations]
+      summary: Send a message
+      description: >
+        Serves FR-001, FR-008, FR-009. A send into a `declined` conversation returns 202 and
+        stores nothing — the sender is not told they were declined (FR-005). A send into a
+        `severed` conversation returns 404.
+      parameters: [ { $ref: '#/components/parameters/ConversationId' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                body: { type: string, maxLength: 2000 }
+                sharedPostId: { type: string, nullable: true }
+              anyOf:
+                - { required: [body] }
+                - { required: [sharedPostId] }
+      responses:
+        '201':
+          description: Created
+          content: { application/json: { schema: { $ref: '#/components/schemas/Message' } } }
+        '202': { description: Accepted and discarded — conversation is declined (FR-005) }
+        '401': { $ref: '#/components/responses/Unauthorised' }
+        '404': { $ref: '#/components/responses/NotFoundOpaque' }
+        '409': { description: One unanswered message already sent into a requested conversation (FR-005) }
+        '429': { description: Rate limited (FR-008) }
+
+  /conversations/{conversationId}/accept:
+    post:
+      tags: [Conversations]
+      summary: Accept a message request
+      description: Serves FR-005. Only the recipient may call it.
+      parameters: [ { $ref: '#/components/parameters/ConversationId' } ]
+      responses:
+        '204': { description: Accepted }
+        '401': { $ref: '#/components/responses/Unauthorised' }
+        '404': { $ref: '#/components/responses/NotFoundOpaque' }
+
+  /conversations/{conversationId}/decline:
+    post:
+      tags: [Conversations]
+      summary: Decline a message request
+      description: Serves FR-005. The sender is not notified and cannot detect this.
+      parameters: [ { $ref: '#/components/parameters/ConversationId' } ]
+      responses:
+        '204': { description: Declined }
+        '401': { $ref: '#/components/responses/Unauthorised' }
+        '404': { $ref: '#/components/responses/NotFoundOpaque' }
+
+  /conversations/{conversationId}/read:
+    put:
+      tags: [Conversations]
+      summary: Mark read up to a message
+      description: Serves FR-010.
+      parameters: [ { $ref: '#/components/parameters/ConversationId' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [upToMessageId], properties: { upToMessageId: { type: string } } }
+      responses:
+        '204': { description: Read position updated }
+        '401': { $ref: '#/components/responses/Unauthorised' }
+        '404': { $ref: '#/components/responses/NotFoundOpaque' }
+
+  # ---------------------------------------------------------------------- Places (US2)
+
+  /places:
+    get:
+      tags: [Places]
+      summary: Search places by name
+      description: >
+        Serves FR-014, FR-022. Results appear as the caller types. `locality` narrows the
+        search and is what makes the dedupe in FR-014 meaningful — two "Joe's" in different
+        cities are two places; two in one city are probably one.
+      security: []
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 1 } }
+        - { name: locality, in: query, schema: { type: string } }
+        - { name: category, in: query, schema: { $ref: '#/components/schemas/PlaceCategory' } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 25, default: 10 } }
+      responses:
+        '200':
+          description: Matching places
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/PlaceSummary' } }
+    post:
+      tags: [Places]
+      summary: Create a place
+      description: >
+        Serves FR-013. Returns 409 with the existing place when an active place with the
+        same slug exists in the same locality, so the client attaches that one instead of
+        creating a duplicate (FR-014). The name is content and is reportable (FR-020).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, category, locality]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 120 }
+                category: { $ref: '#/components/schemas/PlaceCategory' }
+                locality: { type: string, minLength: 1, maxLength: 120 }
+                address: { type: string, maxLength: 240, nullable: true }
+      responses:
+        '201':
+          description: Created
+          content: { application/json: { schema: { $ref: '#/components/schemas/Place' } } }
+        '401': { $ref: '#/components/responses/Unauthorised' }
+        '409':
+          description: An active place with this name already exists in this locality
+          content: { application/json: { schema: { $ref: '#/components/schemas/Place' } } }
+        '429': { description: Rate limited }
+
+  /places/{placeId}:
+    get:
+      tags: [Places]
+      summary: A place
+      description: Serves FR-016. Readable signed out.
+      security: []
+      parameters: [ { $ref: '#/components/parameters/PlaceId' } ]
+      responses:
+        '200':
+          description: The place
+          content: { application/json: { schema: { $ref: '#/components/schemas/Place' } } }
+        '404': { description: No such place }
+    patch:
+      tags: [Places]
+      summary: Rename, merge, or retire a place
+      description: Serves FR-020. Operators only. Posts and followers move on merge; nothing is orphaned.
+      parameters: [ { $ref: '#/components/parameters/PlaceId' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, maxLength: 120 }
+                category: { $ref: '#/components/schemas/PlaceCategory' }
+                status: { type: string, enum: [active, merged, retired] }
+                mergedIntoPlaceId: { type: string }
+      responses:
+        '200':
+          description: Updated
+          content: { application/json: { schema: { $ref: '#/components/schemas/Place' } } }
+        '403': { description: Not an operator }
+
+  /places/{placeId}/posts:
+    get:
+      tags: [Places]
+      summary: Posts attached to a place
+      description: >
+        Serves FR-016, FR-017. **Surface 8** of the visibility matrix. Anonymous callers see
+        public posts only; every other exclusion is decided by the same boundary as every
+        other surface.
+      security: []
+      parameters:
+        - { $ref: '#/components/parameters/PlaceId' }
+        - { name: cursor, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        '200':
+          description: Visible posts, most recent first
+          content: { application/json: { schema: { $ref: '#/components/schemas/PostPage' } } }
+        '404': { description: No such place }
+
+  /places/{placeId}/follow:
+    put:
+      tags: [Places]
+      summary: Follow a place
+      description: >
+        Serves FR-018. **A place follow does not widen the home feed** — posts reach the
+        feed only through interests the viewer already follows (FR-019, Constitution I).
+        SC-006 asserts the negative case directly.
+      parameters: [ { $ref: '#/components/parameters/PlaceId' } ]
+      responses:
+        '204': { description: Following }
+        '401': { $ref: '#/components/responses/Unauthorised' }
+        '404': { description: No such place }
+    delete:
+      tags: [Places]
+      summary: Unfollow a place
+      description: Serves FR-018.
+      parameters: [ { $ref: '#/components/parameters/PlaceId' } ]
+      responses:
+        '204': { description: Not following }
+        '401': { $ref: '#/components/responses/Unauthorised' }
+
+  # ------------------------------------------------------- Interest depth (US3) — changed
+
+  /interests/{interestId}/description:
+    put:
+      tags: [Interests]
+      summary: Set an interest's description
+      description: >
+        Serves FR-025, FR-030. Operators for a top-level interest; the creator or an operator
+        for a sub-interest. The description is content and is reportable.
+      parameters: [ { name: interestId, in: path, required: true, schema: { type: string } } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [description], properties: { description: { type: string, maxLength: 500 } } }
+      responses:
+        '204': { description: Updated }
+        '401': { $ref: '#/components/responses/Unauthorised' }
+        '403': { description: Not permitted to describe this interest }
+
+  # ------------------------------------------------------ Shipped-scope gaps (US4)
+
+  /people:
+    get:
+      tags: [People]
+      summary: Search people by handle or display name
+      description: >
+        Serves FR-034, FR-035, FR-036. Excludes people blocked in EITHER direction and any
+        person whose account is not active. The block exclusion is server-side and is tested
+        through the path a hostile client would take (Constitution III).
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 25, default: 10 } }
+      responses:
+        '200':
+          description: Matching people
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/PublicProfile' } }
+        '401': { $ref: '#/components/responses/Unauthorised' }
+
+  # ------------------------------------------------------------------- Saved posts (US5)
+
+  /posts/{postId}/save:
+    put:
+      tags: [Saved]
+      summary: Save a post
+      description: Serves FR-037. Refused for a post the caller cannot currently see.
+      parameters: [ { name: postId, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '204': { description: Saved }
+        '401': { $ref: '#/components/responses/Unauthorised' }
+        '404': { description: No such post, or not visible to the caller }
+    delete:
+      tags: [Saved]
+      summary: Unsave a post
+      parameters: [ { name: postId, in: path, required: true, schema: { type: string } } ]
+      responses:
+        '204': { description: Not saved }
+        '401': { $ref: '#/components/responses/Unauthorised' }
+
+  /me/saved:
+    get:
+      tags: [Saved]
+      summary: The signed-in person's saved posts
+      description: >
+        Serves FR-037, FR-038, FR-039. **Surface 9** of the visibility matrix. A save is a
+        bookmark, not a copy: a post the saver may no longer see is absent, never stale
+        (SC-013).
+      parameters:
+        - { name: cursor, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        '200':
+          description: Saved posts the caller can still see, most recently saved first
+          content: { application/json: { schema: { $ref: '#/components/schemas/PostPage' } } }
+        '401': { $ref: '#/components/responses/Unauthorised' }
+
+  # ----------------------------------------------- Publish and edit (US2) — changed
+
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Cognito-issued access token.
+
+  parameters:
+    Handle:
+      name: handle
+      in: path
+      required: true
+      schema: { type: string, pattern: '^[a-z0-9_]{3,30}$' }
+    InterestId:
+      name: interestId
+      in: path
+      required: true
+      schema: { type: string }
+    PostId:
+      name: postId
+      in: path
+      required: true
+      schema: { type: string }
+    Cursor:
+      name: cursor
+      in: query
+      schema: { type: string }
+      description: >
+        Opaque continuation token. Paging with this token preserves position
+        (FR-035); offsets are deliberately not supported.
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+
+
+    # ---------------------------------------------- feature 004
+    ConversationId:
+      name: conversationId
+      in: path
+      required: true
+      schema: { type: string }
+    PlaceId:
+      name: placeId
+      in: path
+      required: true
+      schema: { type: string }
+
+  responses:
+    Unauthorised:
+      description: Missing or invalid credentials
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    NotFound:
+      description: Not found
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    ValidationError:
+      description: Request failed validation
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    RateLimited:
+      description: Rate limit exceeded (FR-046)
+      headers:
+        Retry-After:
+          schema: { type: integer }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+
+
+    # ---------------------------------------------- feature 004
+    NotFoundOpaque:
+      description: >
+        Not found. Deliberately identical for "does not exist", "you are not a participant",
+        and "severed by a block", so that neither membership nor a block is disclosed
+        (FR-006, and 001's error-distinction table).
+
+  schemas:
+
+    Problem:
+      type: object
+      description: RFC 9457 problem detail.
+      required: [type, title, status]
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              message: { type: string }
+
+    Visibility:
+      type: string
+      enum: [public, followers, private]
+      description: FR-013 to FR-016. Defaults to public on creation.
+
+    ProcessingState:
+      type: string
+      enum: [pending, processing, ready, failed]
+      description: FR-009. Only `ready` posts are visible to anyone but the author.
+
+    SelfProfile:
+      type: object
+      required: [userId, handle, displayName, notificationPrefs]
+      properties:
+        userId: { type: string }
+        handle: { type: string }
+        displayName: { type: string }
+        avatarUrl: { type: string, nullable: true }
+        bio: { type: string, nullable: true }
+        followerCount: { type: integer }
+        followingCount: { type: integer }
+        interestFollowCount: { type: integer }
+        notificationPrefs:
+          type: object
+          description: >
+            FR-049 — one flag per category. `message` is added by 004/FR-031 for
+            the conversations that feature introduces. Absent means on, so no
+            backfill and no migration.
+          properties:
+            reaction: { type: boolean }
+            comment: { type: boolean }
+            follow: { type: boolean }
+            message: { type: boolean }
+
+    PublicProfile:
+      type: object
+      required: [userId, handle, displayName]
+      properties:
+        userId: { type: string }
+        handle: { type: string }
+        displayName: { type: string }
+        avatarUrl: { type: string, nullable: true }
+        bio: { type: string, nullable: true }
+        followerCount: { type: integer }
+        followingCount: { type: integer }
+        topInterests:
+          type: array
+          description: FR-038 — the interests this person posts to most.
+          items: { $ref: '#/components/schemas/InterestRef' }
+        viewerIsFollowing: { type: boolean }
+
+    ProfileUpdate:
+      type: object
+      properties:
+        displayName: { type: string, minLength: 1, maxLength: 50 }
+        bio: { type: string, maxLength: 300 }
+        avatarUploadId: { type: string }
+        notificationPrefs:
+          type: object
+          description: >
+            Sent as a PARTIAL patch and merged server-side, so toggling one
+            category cannot silently reset the others. `message` is 004/FR-031.
+          properties:
+            reaction: { type: boolean }
+            comment: { type: boolean }
+            follow: { type: boolean }
+            message: { type: boolean }
+
+    DeletionOutcome:
+      type: object
+      properties:
+        postsScheduledForRemoval: { type: integer }
+        commentsToBeAnonymised: { type: integer }
+        purgeCompletesBy: { type: string, format: date-time }
+
+    InterestRef:
+      type: object
+      required: [interestId, name, level]
+      properties:
+        interestId: { type: string }
+        name: { type: string }
+        slug: { type: string }
+        level: { type: string, enum: [top, sub] }
+        parent:
+          description: Present for sub-interests, so search results disambiguate (FR-026).
+          oneOf:
+            - $ref: '#/components/schemas/InterestRef'
+            - type: 'null'
+
+    Interest:
+      allOf:
+        - $ref: '#/components/schemas/InterestRef'
+        - type: object
+          properties:
+            description: { type: string, nullable: true }
+            postCount: { type: integer }
+            followerCount: { type: integer }
+            state: { type: string, enum: [active, merging, merged, retired] }
+            viewerIsFollowing: { type: boolean }
+
+    InterestDetail:
+      allOf:
+        - $ref: '#/components/schemas/Interest'
+        - type: object
+          properties:
+            subInterests:
+              type: array
+              description: Present for top-level interests only (FR-020, FR-025).
+              items: { $ref: '#/components/schemas/Interest' }
+
+    InterestCreate:
+      type: object
+      required: [name, parentId]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 50 }
+        parentId:
+          type: string
+          description: Must reference a top-level interest — the hierarchy is exactly two levels (FR-020).
+        description: { type: string, maxLength: 500 }
+        acknowledgedSimilarTo:
+          type: array
+          description: >
+            Interest ids the caller was shown as near-duplicates and chose to create
+            alongside anyway (FR-023). Recorded so SC-008 can distinguish an ignored
+            warning from one that was never shown.
+          items: { type: string }
+
+    DuplicateInterestCandidates:
+      type: object
+      properties:
+        candidates:
+          type: array
+          items:
+            type: object
+            properties:
+              interest: { $ref: '#/components/schemas/Interest' }
+              similarity: { type: number, minimum: 0, maximum: 1 }
+
+    MediaItem:
+      type: object
+      required: [kind, processingState]
+      properties:
+        kind: { type: string, enum: [image, video] }
+        processingState: { $ref: '#/components/schemas/ProcessingState' }
+        width: { type: integer }
+        height: { type: integer }
+        durationMs: { type: integer, nullable: true }
+        posterUrl: { type: string, nullable: true, description: 'Thumbnail shown before playback (FR-009).' }
+        renditions:
+          type: object
+          additionalProperties: { type: string, format: uri }
+
+    Post:
+      type: object
+      required: [postId, author, interests, visibility, processingState, createdAt]
+      properties:
+        postId: { type: string }
+        author: { $ref: '#/components/schemas/PublicProfile' }
+        caption: { type: string, nullable: true, maxLength: 2000 }
+        interests:
+          type: array
+          minItems: 1
+          description: FR-006 — never empty.
+          items: { $ref: '#/components/schemas/InterestRef' }
+        visibility: { $ref: '#/components/schemas/Visibility' }
+        processingState: { $ref: '#/components/schemas/ProcessingState' }
+        mediaKind: { type: string, enum: [images, video] }
+        media:
+          type: array
+          items: { $ref: '#/components/schemas/MediaItem' }
+        reactionCount: { type: integer }
+        commentCount: { type: integer }
+        viewerHasReacted: { type: boolean }
+        place:
+          description: >
+            004/FR-023. The place the author attached, if any. NEVER derived from
+            media metadata (FR-021).
+          oneOf:
+            - { $ref: '#/components/schemas/PlaceSummary' }
+            - { type: 'null' }
+        viewerHasSaved: { type: boolean, description: 004/FR-037 }
+        createdAt: { type: string, format: date-time }
+
+    PostCreate:
+      type: object
+      required: [uploadIds, interestIds]
+      properties:
+        uploadIds:
+          type: array
+          minItems: 1
+          maxItems: 10
+          description: >
+            Ids from POST /media/uploads. One for video, up to ten for images.
+            Quoting them rather than re-uploading is what allows retry without
+            re-selecting media (FR-008).
+          items: { type: string }
+        interestIds:
+          type: array
+          minItems: 1
+          description: FR-006 — publishing without an interest is rejected.
+          items: { type: string }
+        caption: { type: string, maxLength: 2000 }
+        visibility:
+          allOf: [{ $ref: '#/components/schemas/Visibility' }]
+          default: public
+        placeId:
+          type: string
+          nullable: true
+          description: >
+            004/FR-015. Optional — a post with no place behaves exactly as it did
+            before (FR-024). The server MUST NOT populate or infer this from media
+            metadata: 001/FR-010 strips embedded location and this discloses it on
+            purpose, and the two must never meet (004/FR-021, Constitution III).
+        keepLocationMetadata:
+          type: boolean
+          default: false
+          description: >
+            FR-010. Location is stripped server-side unless this is explicitly true.
+            The client cannot bypass this by omitting the strip itself.
+
+    PostUpdate:
+      type: object
+      description: FR-011, FR-017. Any subset; changes apply everywhere immediately.
+      properties:
+        caption: { type: string, maxLength: 2000 }
+        interestIds:
+          type: array
+          minItems: 1
+          items: { type: string }
+        visibility: { $ref: '#/components/schemas/Visibility' }
+        placeId:
+          type: string
+          nullable: true
+          description: >
+            004/FR-015. Setting it to null removes the attachment. The place index
+            item is written, moved or deleted in the SAME transaction that carries
+            the post item and its interest index items.
+
+    UploadRequest:
+      type: object
+      required: [kind, contentType, sizeBytes]
+      properties:
+        kind: { type: string, enum: [image, video, avatar] }
+        contentType: { type: string }
+        sizeBytes: { type: integer }
+        durationMs:
+          type: integer
+          description: Required for video, so the duration cap is checked before upload (FR-005).
+
+    UploadTarget:
+      type: object
+      required: [uploadId, url, method, expiresAt]
+      properties:
+        uploadId: { type: string }
+        url: { type: string, format: uri }
+        method: { type: string, enum: [PUT, POST] }
+        headers:
+          type: object
+          additionalProperties: { type: string }
+        expiresAt: { type: string, format: date-time }
+
+    ReactionState:
+      type: object
+      properties:
+        viewerHasReacted: { type: boolean }
+        reactionCount: { type: integer }
+
+    Comment:
+      type: object
+      required: [commentId, author, body, createdAt]
+      properties:
+        commentId: { type: string }
+        author: { $ref: '#/components/schemas/PublicProfile' }
+        body: { type: string, minLength: 1, maxLength: 1000 }
+        createdAt: { type: string, format: date-time }
+
+    CommentCreate:
+      type: object
+      required: [body]
+      properties:
+        body: { type: string, minLength: 1, maxLength: 1000 }
+
+    ShareLink:
+      type: object
+      properties:
+        url: { type: string, format: uri }
+        visibility:
+          allOf: [{ $ref: '#/components/schemas/Visibility' }]
+          description: >
+            Echoed so the client can warn that a followers-only link will not open for
+            everyone (FR-042).
+
+    ReportCreate:
+      type: object
+      required: [subjectType, subjectId, reason]
+      properties:
+        subjectType: { type: string, enum: [post, comment, interest] }
+        subjectId: { type: string }
+        reason:
+          type: string
+          enum: [spam, harassment, explicit, violence, misinformation, other]
+        detail: { type: string, maxLength: 1000 }
+
+    Report:
+      type: object
+      properties:
+        reportId: { type: string }
+        subjectType: { type: string, enum: [post, comment, interest] }
+        subjectId: { type: string }
+        reason: { type: string }
+        state: { type: string, enum: [open, under_review, actioned, dismissed] }
+        createdAt: { type: string, format: date-time }
+        resolvedAt: { type: string, format: date-time, nullable: true }
+        outcome: { type: string, nullable: true }
+
+    ModerationDecision:
+      type: object
+      required: [state]
+      properties:
+        state: { type: string, enum: [under_review, actioned, dismissed] }
+        action: { type: string, enum: [remove_content, rename_interest, retire_interest, no_action] }
+        note: { type: string, maxLength: 1000 }
+
+    InterestAdminAction:
+      type: object
+      required: [action]
+      properties:
+        action: { type: string, enum: [reparent, merge, retire] }
+        newParentId: { type: string, description: 'For reparent.' }
+        mergeIntoId: { type: string, description: 'For merge — posts and followers move here.' }
+
+    InterestJob:
+      type: object
+      properties:
+        jobId: { type: string }
+        action: { type: string }
+        state: { type: string, enum: [queued, running, complete, failed] }
+        itemsProcessed: { type: integer }
+        itemsTotal: { type: integer }
+
+    Notification:
+      type: object
+      properties:
+        notificationId: { type: string }
+        kind: { type: string, enum: [reaction, comment, follow] }
+        actor: { $ref: '#/components/schemas/PublicProfile' }
+        postId: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        readAt: { type: string, format: date-time, nullable: true }
+
+    PageMeta:
+      type: object
+      properties:
+        nextCursor: { type: string, nullable: true }
+        emptyStateHint:
+          type: string
+          nullable: true
+          description: >
+            FR-036 — which empty state to show, e.g. `no_followed_interests`,
+            `interest_has_no_posts`.
+
+    PostPage:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Post' }
+        page: { $ref: '#/components/schemas/PageMeta' }
+
+    InterestPage:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Interest' }
+        page: { $ref: '#/components/schemas/PageMeta' }
+
+    CommentPage:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Comment' }
+        page: { $ref: '#/components/schemas/PageMeta' }
+
+    ReportPage:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Report' }
+        page: { $ref: '#/components/schemas/PageMeta' }
+
+    NotificationPage:
+      type: object
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Notification' }
+        page: { $ref: '#/components/schemas/PageMeta' }
+
+
+    # ---------------------------------------------- feature 004
+
+    PlaceCategory:
+      type: string
+      enum: [restaurant, cafe, bar, shop, venue, outdoor, other]
+
+    PlaceSummary:
+      type: object
+      required: [placeId, name, category, locality]
+      properties:
+        placeId: { type: string }
+        name: { type: string }
+        category: { $ref: '#/components/schemas/PlaceCategory' }
+        locality: { type: string }
+        postCount: { type: integer }
+
+    Place:
+      allOf:
+        - $ref: '#/components/schemas/PlaceSummary'
+        - type: object
+          properties:
+            address: { type: string, nullable: true }
+            status: { type: string, enum: [active, merged, retired] }
+            mergedIntoPlaceId: { type: string, nullable: true }
+            followerCount: { type: integer }
+            viewerIsFollowing: { type: boolean }
+            interests:
+              type: array
+              description: The interests this place's posts are filed under. Derived, not authored.
+              items:
+                type: object
+                properties:
+                  interestId: { type: string }
+                  name: { type: string }
+
+    ConversationSummary:
+      type: object
+      required: [conversationId, other, state, lastMessageAt, unreadCount]
+      properties:
+        conversationId: { type: string }
+        other: { $ref: '#/components/schemas/PublicProfile' }
+        state: { type: string, enum: [requested, accepted, declined, severed] }
+        lastMessageAt: { type: string, format: date-time }
+        lastMessagePreview: { type: string, nullable: true, maxLength: 140 }
+        unreadCount: { type: integer }
+
+    Conversation:
+      allOf:
+        - $ref: '#/components/schemas/ConversationSummary'
+        - type: object
+          properties:
+            viewerCanSend: { type: boolean, description: Decided by ConversationAccess, never by the client }
+            initiatedByViewer: { type: boolean }
+
+    Message:
+      type: object
+      required: [messageId, authorId, createdAt]
+      properties:
+        messageId: { type: string }
+        authorId: { type: string }
+        body: { type: string, nullable: true, maxLength: 2000 }
+        createdAt: { type: string, format: date-time }
+        moderationState: { type: string, enum: [visible, removed] }
+        sharedPostId: { type: string, nullable: true }
+        sharedPost:
+          description: >
+            Resolved per reader through the post visibility boundary. Null when the reader
+            may not see it — the message is still returned.
+          oneOf:
+            - { $ref: '#/components/schemas/Post' }
+            - { type: 'null' }
+        sharedPostUnavailableReason:
+          type: string
+          nullable: true
+          enum: [gone, not-for-you]
+          description: Mirrors 001's share-link error distinction (FR-042).
+
+    NotificationPreferences:
+      type: object
+      description: >
+        Absent is on. `reaction`, `comment` and `follow` ship in 001; `message` is added by
+        004/FR-031.
+      properties:
+        reaction: { type: boolean }
+        comment: { type: boolean }
+        follow: { type: boolean }
+        message: { type: boolean }
