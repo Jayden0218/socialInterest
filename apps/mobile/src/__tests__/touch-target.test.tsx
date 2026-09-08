@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { Button } from '../ui/primitives';
-import { MIN_TOUCH_TARGET } from '../ui/tokens';
+import { MIN_TOUCH_TARGET, type as typeScale } from '../ui/tokens';
 
 /**
  * 006/SC-007, FR-020. Below 44x44 a control is not reliably tappable, and
@@ -55,6 +55,41 @@ describe('every control is reliably tappable', () => {
     'src/features/publish/MediaPickerScreen.tsx',
   ]);
 
+  /**
+   * The controls that reach 44 by SLOP rather than by box, each with the box
+   * height that makes the sum work. Both are deliberate:
+   *
+   * - `InterestWord` is a WORD, not a chip (006/G1, 007/FR-021). Giving it
+   *   `minHeight: 44` cost 43 points of vertical space on every card in the
+   *   waterfall, measured — which is a layout regression to satisfy a guard.
+   * - The compose square's ART is 46x34; the target is not.
+   */
+  const SLOP_TARGETS: { file: string; label: string; boxHeight: number; boxWidth: number; slop: { top: number; bottom: number; left: number; right: number } }[] = [
+    {
+      file: 'src/components/InterestWord.tsx',
+      label: 'the interest word',
+      // The line box IS the height: a <Text> with no padding.
+      boxHeight: typeScale.small.lineHeight,
+      // A real `minWidth`, not the word's own width. Sized by the SHORTEST
+      // name the catalogue can hold would have been 20.7pt — which is what
+      // this assertion caught, and why the floor is stated in the style now.
+      boxWidth: MIN_TOUCH_TARGET,
+      slop: { top: 14, bottom: 14, left: 8, right: 8 },
+    },
+    {
+      file: 'src/App.tsx',
+      label: 'the compose square',
+      boxHeight: 34 + (MIN_TOUCH_TARGET - 34),
+      boxWidth: 46,
+      slop: { top: 5, bottom: 5, left: 8, right: 8 },
+    },
+  ];
+
+  it.each(SLOP_TARGETS)('$label reaches 44 by arithmetic, not by mentioning hitSlop', ({ boxHeight, boxWidth, slop }) => {
+    expect(boxHeight + slop.top + slop.bottom).toBeGreaterThanOrEqual(MIN_TOUCH_TARGET);
+    expect(boxWidth + slop.left + slop.right).toBeGreaterThanOrEqual(MIN_TOUCH_TARGET);
+  });
+
   it('every hand-rolled Pressable sizes ITSELF, or is a listed whole-row target', () => {
     const SRC = join(__dirname, '..');
     const files: string[] = [];
@@ -91,8 +126,31 @@ describe('every control is reliably tappable', () => {
 
       for (const m of src.matchAll(/<Pressable\b[\s\S]*?>/g)) {
         const tag = m[0];
-        if (/minHeight|minWidth|hitSlop|touchTarget/.test(tag)) continue;
         const line = src.slice(0, m.index).split('\n').length;
+
+        /**
+         * `hitSlop` is ACCEPTED BY ARITHMETIC, not by mention — 007/T078.
+         *
+         * This guard used to `continue` on the word `hitSlop`, which is the
+         * same shape of mistake its own comment above records: it approved the
+         * PRESENCE of a mechanism rather than the size it produces.
+         * `hitSlop={{ top: 1, bottom: 1 }}` would have passed, and SC-009 says
+         * "checked mechanically" — a word in a prop is not a measurement.
+         *
+         * Slop extends the touchable area OUTSIDE the layout box, so the sum
+         * needs the box's own height, which cannot be read from this tag. So
+         * each one is named here with its measured height, and the arithmetic
+         * is asserted in the test below. A NEW hitSlop control fails until
+         * somebody does the sum and adds it — which is the point.
+         */
+        if (/hitSlop/.test(tag)) {
+          if (!SLOP_TARGETS.some((t) => t.file === rel)) {
+            offenders.push(`${rel}:${line} (hitSlop, unmeasured — add it to SLOP_TARGETS)`);
+          }
+          continue;
+        }
+
+        if (/minHeight|minWidth|touchTarget/.test(tag)) continue;
         offenders.push(`${rel}:${line}`);
       }
     }

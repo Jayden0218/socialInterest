@@ -9,14 +9,23 @@ Two new item types on the existing `sih-main` table, one new attribute on nothin
 
 | | |
 |---|---|
-| `pk` | `PERSON#<personId>` |
-| `sk` | `SIGNALPROFILE` |
+| `pk` | `USER#<userId>` |
+| `sk` | `#SIGNALPROFILE` |
 | `weights` | Map of `interestId` → `{ w: number, at: ISO-8601 }` |
 | `updatedAt` | ISO-8601 |
 
-One item per person. Read once per feed request, updated in place on ingest with an atomic
-add. `w` is the accumulated weight and `at` is when it last moved; **decay is applied on
-read** from `at`, never by rewriting the row (research R3).
+One item per person. Read once per feed request, updated in place on ingest. `w` is the
+accumulated weight and `at` is when it last moved; **decay is applied on read** from `at`,
+never by rewriting the row (research R3).
+
+The update is a **read-modify-write, not an atomic `ADD`** — this said "atomic add" until
+T078 checked it against `SignalRepository.addWeight`, and the difference is a concurrency
+guarantee the row does not have. DynamoDB cannot increment a nested map entry whose path
+does not yet exist, and each weight carries its own `at`, so the value is a map entry
+rather than a number. What that loses is a fraction of one weight when two signals for the
+SAME person race; they arrive from one device at human speed, and a lost fraction of a
+ranking weight is not a correctness defect worth a transaction. Recorded because a reader
+who believed "atomic" would size the risk wrongly.
 
 Bounded by construction: the map is keyed by interest, and the catalogue is small and
 slow-changing. A profile cannot grow without bound the way a per-post history would.
@@ -25,7 +34,7 @@ slow-changing. A profile cannot grow without bound the way a per-post history wo
 
 | | |
 |---|---|
-| `pk` | `PERSON#<personId>` |
+| `pk` | `USER#<userId>` |
 | `sk` | `SIGNAL#<timestamp>#<postId>` |
 | `kind` | `open` \| `dwell` \| `like` \| `save` |
 | `interestId` | The post's interest at the time of the signal |
@@ -40,8 +49,8 @@ rather than against a total. Never read on the feed path.
 
 | | |
 |---|---|
-| `pk` | `PERSON#<personId>` |
-| `sk` | `SEEDINTERESTS` |
+| `pk` | `USER#<userId>` |
+| `sk` | `#SEEDINTERESTS` |
 | `interestIds` | List, at most 20 |
 | `chosenAt` | ISO-8601 |
 

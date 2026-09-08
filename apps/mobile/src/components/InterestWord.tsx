@@ -2,7 +2,7 @@ import { Pressable, Text } from 'react-native';
 import type { InterestRef } from '@sih/shared';
 import { interestColour } from '../ui/interest-colour';
 import { useTheme } from '../ui/useTheme';
-import { type as typeScale } from '../ui/tokens';
+import { MIN_TOUCH_TARGET, type as typeScale } from '../ui/tokens';
 
 /**
  * 007/FR-024 — THE INTEREST IS A COLOURED WORD. Not a chip, not a badge, not a
@@ -106,10 +106,20 @@ export function InterestWord({
        *
        * `hitSlop` extends the touchable area OUTSIDE the layout box, which is
        * exactly the case it exists for: the art stays eleven and a half points
-       * and the target is 44 in every direction.
+       * and the VERTICAL target is 44 (16pt line + 14 + 14).
+       *
+       * Horizontally the slop is not enough on its own, and this comment used
+       * to claim "44 in every direction" until T078 made the guard do the
+       * arithmetic instead of accepting the word `hitSlop`: a three-letter
+       * interest is about 20.7pt wide, so 20.7 + 8 + 8 = 36.7. So the WIDTH
+       * floor is stated as a real `minWidth`, which is free here in a way
+       * `minHeight` was not — the word is `alignSelf: 'flex-start'` with no
+       * background, so the extra width is transparent space to the right of a
+       * short word and costs no vertical room. That distinction is the whole
+       * reason this control is shaped the way it is.
        */
       hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
-      style={{ alignSelf: 'flex-start' }}
+      style={{ alignSelf: 'flex-start', minWidth: MIN_TOUCH_TARGET }}
     >
       {word}
     </Pressable>

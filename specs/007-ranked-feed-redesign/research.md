@@ -72,9 +72,9 @@ because an uncapped dwell measures a person who left their phone on the table.
 
 **Decision**: two new item types on the **existing single table**. No new GSI.
 
-- `PERSON#<id>` / `SIGNALPROFILE` — one small item holding `{ interestId: {weight,
-  updatedAt} }`. Updated in place on ingest with an atomic add.
-- `PERSON#<id>` / `SIGNAL#<ts>#<postId>` — the raw events, with a **30-day TTL**.
+- `USER#<id>` / `#SIGNALPROFILE` — one small item holding `{ interestId: {weight,
+  updatedAt} }`. Updated in place on ingest by read-modify-write, not an atomic `ADD` — see `data-model.md`.
+- `USER#<id>` / `SIGNAL#<ts>#<postId>` — the raw events, with a **30-day TTL**.
 
 **Rationale**: the profile is one item, read once per feed request — the cheapest possible
 read for the hottest path. The raw events exist so that "clear my signals" can be honest
@@ -98,7 +98,7 @@ to compute something a single exponent produces on read.
 
 ## R4 — What does a new account see?
 
-**Decision**: a **one-time first-run selection** writes `PERSON#<id>` / `SEEDINTERESTS`,
+**Decision**: a **one-time first-run selection** writes `USER#<id>` / `#SEEDINTERESTS`,
 which initialises the signal profile with a modest uniform weight. Behaviour overtakes the
 seed within a session or two. Skipping it is permitted; the feed then draws from the most
 active interests in the catalogue.

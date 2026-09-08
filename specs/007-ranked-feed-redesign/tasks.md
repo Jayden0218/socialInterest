@@ -188,7 +188,7 @@ failure Principle I names.
 - [X] T067 [P] [US5] Write `apps/api/tests/integration/interest-required.spec.ts` asserting publish is refused server-side, through the path a modified client would take — **G1**
 - [X] T068 [US5] Rebuild `apps/mobile/src/features/safety/SafetyActions.tsx` per `Safety.dc.html` as a SCROLLING sheet — the block control was unreachable in production once
 - [X] T069 [P] [US5] Keep `apps/mobile/src/__tests__/screen-scrolls.test.ts` passing against the rebuilt sheet — **G6**
-- [ ] T070 [US5] Verify report and block (FR-028) still reach the server unchanged by running `pnpm --filter @sih/e2e test -- safety`
+- [X] T070 [US5] Verify report and block (FR-028) still reach the server unchanged by running `pnpm --filter @sih/e2e test -- safety`
 
 ---
 
