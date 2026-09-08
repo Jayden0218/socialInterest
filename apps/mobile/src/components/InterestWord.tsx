@@ -2,7 +2,7 @@ import { Pressable, Text } from 'react-native';
 import type { InterestRef } from '@sih/shared';
 import { interestColour } from '../ui/interest-colour';
 import { useTheme } from '../ui/useTheme';
-import { touchTarget, type as typeScale } from '../ui/tokens';
+import { type as typeScale } from '../ui/tokens';
 
 /**
  * 007/FR-024 — THE INTEREST IS A COLOURED WORD. Not a chip, not a badge, not a
@@ -93,9 +93,23 @@ export function InterestWord({
       accessibilityRole="button"
       accessibilityLabel={interest.name}
       onPress={() => onPress(interest.interestId)}
-      // FR-017: one tap from a post to its interest space, so the target has to
-      // be real even though the art is eleven and a half points of text.
-      style={{ ...touchTarget, minWidth: undefined, alignItems: 'flex-start' }}
+      /**
+       * `hitSlop`, NOT a 44pt minimum height — and the difference was 43 points
+       * on every card in the feed.
+       *
+       * FR-017 needs a real target: one tap from a post to its interest space.
+       * The first version used the shared `touchTarget`, which states
+       * `minHeight: 44`, and a 16pt word then occupied 44 points of LAYOUT
+       * inside a card whose whole text block should be about 90. Measured at
+       * 360x640, that alone was the difference between two posts visible on the
+       * feed and four (SC-008).
+       *
+       * `hitSlop` extends the touchable area OUTSIDE the layout box, which is
+       * exactly the case it exists for: the art stays eleven and a half points
+       * and the target is 44 in every direction.
+       */
+      hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
+      style={{ alignSelf: 'flex-start' }}
     >
       {word}
     </Pressable>

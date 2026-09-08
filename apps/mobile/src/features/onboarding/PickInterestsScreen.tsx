@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import type { Interest } from '@sih/shared';
 import { activePalette as palette, radius, space, textStyle, touchTarget } from '../../ui/theme';
-import { Button, Screen } from '../../ui/primitives';
+import { Button, Screen, ScreenHeader } from '../../ui/primitives';
 import { InterestWord } from '../../components/InterestWord';
 
 /** FR-014. The product's cap, not the store's. */
@@ -45,9 +45,7 @@ export function PickInterestsScreen({
 
   return (
     <Screen testID="pick-interests-screen" scroll>
-      <Text style={{ ...textStyle.display, fontWeight: '700', color: palette.text.primary }}>
-        What are you into?
-      </Text>
+      <ScreenHeader title="What are you into?" />
       <Text style={{ ...textStyle.body, color: palette.text.muted }}>
         Pick a few to start. Your feed learns from there, and you can change it whenever.
       </Text>

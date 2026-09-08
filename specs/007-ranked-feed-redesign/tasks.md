@@ -150,17 +150,17 @@ implements it and does not reopen it.
 ### The screens
 
 - [X] T048 [US3] Rebuild the feed in `apps/mobile/src/features/feed/HomeFeedScreen.tsx` per `design/007-ui/Main.dc.html` — no sections, no ranking explanation (FR-001, FR-010)
-- [ ] T049 [P] [US3] Rebuild `apps/mobile/src/features/posts/PostDetailScreen.tsx` and `apps/mobile/src/features/engagement/CommentsScreen.tsx` per `Post.dc.html` and `Comments.dc.html`
-- [ ] T050 [P] [US3] Rebuild `apps/mobile/src/features/auth/SignInScreen.tsx` per `SignIn.dc.html`
+- [X] T049 [P] [US3] Rebuild `apps/mobile/src/features/posts/PostDetailScreen.tsx` and `apps/mobile/src/features/engagement/CommentsScreen.tsx` per `Post.dc.html` and `Comments.dc.html`
+- [X] T050 [P] [US3] Rebuild `apps/mobile/src/features/auth/SignInScreen.tsx` per `SignIn.dc.html`
 - [ ] T051 [P] [US3] Rebuild `apps/mobile/src/features/profile/ProfileScreen.tsx`, `EditProfileScreen.tsx` and `apps/mobile/src/features/posts/SavedScreen.tsx` per `Profile.dc.html`, `PersonProfile.dc.html`, `EditProfile.dc.html`, `Saved.dc.html`
 - [ ] T052 [P] [US3] Rebuild `apps/mobile/src/features/conversations/` — `InboxScreen.tsx`, `ConversationScreen.tsx`, `NewGroupScreen.tsx` per `Chats.dc.html`, `Conversation.dc.html`, `NewGroup.dc.html`
 - [ ] T053 [P] [US3] Rebuild `apps/mobile/src/features/notifications/NotificationsScreen.tsx` per `Activity.dc.html`
 - [ ] T054 [P] [US3] Rebuild `apps/mobile/src/features/publish/ComposeScreen.tsx` and `MediaPickerScreen.tsx` per `Compose.dc.html` and `MediaPicker.dc.html`
-- [ ] T055 [US3] Update `apps/mobile/src/screens/index.tsx` and `App.tsx` for the new tab bar and navigation. **Single-owner file**
-- [ ] T056 [US3] Run `pnpm --filter @sih/mobile test -- testid-snapshot` and resolve any difference by fixing the SCREEN, never the snapshot — FR-027, SC-011
-- [ ] T057 [P] [US3] Extend `apps/mobile/src/__tests__/touch-target.test.tsx` (FR-025) to all twenty screens — SC-009
-- [ ] T057a [P] [US3] Keep `apps/mobile/src/__tests__/text-has-colour.test.ts`'s font-scaling guard passing through the rebuild — FR-026. 006 established exactly one `allowFontScaling={false}`, on `Avatar`'s initial, and Phase 5 rebuilds that component. Turning scaling off is the easiest fix for any text that overflows, which is why the guard exists rather than a comment
-- [ ] T058 [P] [US3] Extend `apps/e2e/browser/safety-fit.spec.ts` to measure every screen at the largest platform font on a 640pt viewport — SC-010, the case that reached production once
+- [X] T055 [US3] Update `apps/mobile/src/screens/index.tsx` and `App.tsx` for the new tab bar and navigation. **Single-owner file**
+- [X] T056 [US3] Run `pnpm --filter @sih/mobile test -- testid-snapshot` and resolve any difference by fixing the SCREEN, never the snapshot — FR-027, SC-011
+- [X] T057 [P] [US3] Extend `apps/mobile/src/__tests__/touch-target.test.tsx` (FR-025) to all twenty screens — SC-009
+- [X] T057a [P] [US3] Keep `apps/mobile/src/__tests__/text-has-colour.test.ts`'s font-scaling guard passing through the rebuild — FR-026. 006 established exactly one `allowFontScaling={false}`, on `Avatar`'s initial, and Phase 5 rebuilds that component. Turning scaling off is the easiest fix for any text that overflows, which is why the guard exists rather than a comment
+- [X] T058 [P] [US3] Extend `apps/e2e/browser/safety-fit.spec.ts` to measure every screen at the largest platform font on a 640pt viewport — SC-010, the case that reached production once
 
 **Checkpoint**: every screen is the approved design, every testID still resolves, and nothing
 is unreachable at the largest font.
@@ -195,7 +195,7 @@ failure Principle I names.
 ## Phase 8: Evidence and cross-cutting
 
 - [ ] T070a Extend `apps/api/bench/feed.bench.ts` to the ranked path and record **p95 first-screen latency and the ranking's own added time** — **SC-012**, and the constitution's "a stated numeric criterion MUST have a task that measures it". The harness already exists; nothing new is needed but the run
-- [ ] T070b [P] Extend `apps/e2e/browser/safety-fit.spec.ts` to assert **four or more posts are visible on the feed at a 640pt viewport without scrolling** — SC-008, measured at a fixed viewport rather than counted by eye
+- [X] T070b [P] Extend `apps/e2e/browser/safety-fit.spec.ts` to assert **four or more posts are visible on the feed at a 640pt viewport without scrolling** — SC-008, measured at a fixed viewport rather than counted by eye
 - [ ] T070c [P] Assert in `apps/e2e/journeys/onboarding.spec.ts` that a new account reaches a **populated** feed, with no empty state on the path — SC-002
 - [ ] T071 Run the FULL CI step list from `.github/workflows/ci.yml`, in order, not a proxy for it. Run `@sih/e2e` **alone** — two concurrent jest invocations kill each other's API and produce a page of `fetch failed` that reads like a product failure
 - [ ] T072 [P] Run `node scripts/verify-maestro-ids.mjs` and fix any selector the redesign broke, in the app rather than in the flow

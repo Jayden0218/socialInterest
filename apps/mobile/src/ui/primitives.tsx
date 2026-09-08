@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, Text, View, type ViewStyle } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View, type TextStyle, type ViewStyle } from 'react-native';
 import { activePalette as palette, MIN_TOUCH_TARGET, radius, space, textStyle, type } from './theme';
 
 export function Button({
@@ -15,7 +15,7 @@ export function Button({
   testID?: string;
 }) {
   const bg =
-    variant === 'primary' ? palette.intent.accent : variant === 'danger' ? palette.intent.danger : palette.bg.raised;
+    variant === 'primary' ? palette.intent.accent : variant === 'danger' ? palette.intent.danger : palette.bg.sunken;
   const fg = variant === 'secondary' ? palette.text.primary : palette.text.onAccent;
   return (
     <Pressable
@@ -30,7 +30,10 @@ export function Button({
         opacity: disabled ? 0.45 : 1,
         paddingVertical: space.md,
         paddingHorizontal: space.lg,
-        borderRadius: radius.md,
+        // 007: the artboards' button radius. A secondary button sits on the
+        // FIELD surface rather than the card, because a white button on a white
+        // card is a rectangle you have to look for.
+        borderRadius: radius.button,
         alignItems: 'center',
         /**
          * 006/FR-020. An explicit floor, not padding that happens to add up.
@@ -142,6 +145,139 @@ export function EmptyState({
         {body}
       </Text>
       {actionLabel ? <Button label={actionLabel} onPress={onAction} testID="empty-state-action" /> : null}
+    </View>
+  );
+}
+
+/**
+ * 007 — THE CARD. White on the warm page, 14pt radius, no shadow.
+ *
+ * A primitive rather than a copied style object, because the depth model IS the
+ * card: `bg.raised` on `bg.base`, the gutter, and the radius. Three properties
+ * that must agree across twenty screens, and the version where each screen
+ * writes them itself is the version where one of them ends up at radius 12.
+ */
+export function Card({
+  children,
+  testID,
+  style,
+}: {
+  children: React.ReactNode;
+  testID?: string;
+  style?: ViewStyle;
+}) {
+  return (
+    <View
+      testID={testID}
+      style={{
+        backgroundColor: palette.bg.raised,
+        borderRadius: radius.card,
+        padding: space.md,
+        gap: space.sm,
+        ...style,
+      }}
+    >
+      {children}
+    </View>
+  );
+}
+
+/**
+ * 007 — A TEXT FIELD, on the sunken surface rather than behind a border.
+ *
+ * The artboards use a filled field at radius 21 with no outline. That is not a
+ * style preference: an outlined field on a white card needs a border strong
+ * enough to see, and every such border is another line competing with the
+ * media, which is what made the rejected passes busy.
+ *
+ * `accessibilityLabel` is required rather than optional. A `TextInput` whose
+ * only label is a placeholder is unlabelled the moment somebody types.
+ */
+export function Field({
+  value,
+  onChangeText,
+  accessibilityLabel,
+  placeholder,
+  testID,
+  multiline = false,
+  maxLength,
+  style,
+}: {
+  value: string;
+  onChangeText: (next: string) => void;
+  accessibilityLabel: string;
+  placeholder?: string;
+  testID?: string;
+  multiline?: boolean;
+  maxLength?: number;
+  /** `TextStyle`, not `ViewStyle`: a field is text, and `textAlignVertical`
+   *  is what keeps a multiline one from centring its first line on Android. */
+  style?: TextStyle;
+}) {
+  return (
+    <TextInput
+      testID={testID}
+      accessibilityLabel={accessibilityLabel}
+      value={value}
+      onChangeText={onChangeText}
+      placeholder={placeholder ?? ''}
+      placeholderTextColor={palette.text.muted}
+      autoCapitalize="none"
+      autoCorrect={false}
+      multiline={multiline}
+      {...(maxLength === undefined ? {} : { maxLength })}
+      style={{
+        backgroundColor: palette.bg.sunken,
+        borderRadius: multiline ? radius.card : radius.field,
+        paddingVertical: space.md,
+        paddingHorizontal: space.lg,
+        minHeight: MIN_TOUCH_TARGET,
+        color: palette.text.primary,
+        ...textStyle.body,
+        ...style,
+      }}
+    />
+  );
+}
+
+/**
+ * 007 — THE SCREEN HEADER: the screen's own name, left, with room for actions.
+ *
+ * Every artboard opens the same way and 006's screens each wrote their own
+ * `<Text style={{...textStyle.display}}>`. One component is the same argument as
+ * one `PostCard`: the places a heading can drift are the places it does.
+ */
+export function ScreenHeader({
+  title,
+  right,
+  testID,
+}: {
+  title: string;
+  right?: React.ReactNode;
+  testID?: string;
+}) {
+  return (
+    <View
+      testID={testID}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: space.md,
+      }}
+    >
+      <Text
+        style={{
+          ...textStyle.display,
+          fontWeight: type.display.weight,
+          letterSpacing: -0.4,
+          color: palette.text.primary,
+          flexShrink: 1,
+        }}
+      >
+        {title}
+      </Text>
+      {right ?? null}
     </View>
   );
 }

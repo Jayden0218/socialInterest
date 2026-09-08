@@ -1,7 +1,7 @@
 import { Text, View } from 'react-native';
 import type { InterestRef, Post } from '@sih/shared';
 import { activePalette as palette, space, textStyle } from '../../ui/theme';
-import { Button, Row, Screen } from '../../ui/primitives';
+import { Button, Row, Screen, ScreenHeader } from '../../ui/primitives';
 import { PagedPostList, type PagedState } from '../../components/PagedPostList';
 
 export interface ProfileData {
@@ -56,9 +56,7 @@ export function ProfileScreen({
   return (
     <Screen testID="profile-screen">
       <View style={{ gap: space.sm }}>
-        <Text style={{ ...textStyle.display, fontWeight: '700', color: palette.text.primary }}>
-          {profile.displayName}
-        </Text>
+        <ScreenHeader title={profile.displayName} />
         <Text style={{ ...textStyle.caption, color: palette.text.muted }}>@{profile.handle}</Text>
         {profile.bio ? <Text style={{ ...textStyle.body, color: palette.text.primary }}>{profile.bio}</Text> : null}
 

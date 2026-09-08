@@ -161,11 +161,20 @@ export function PostCard({
         </View>
       ) : null}
 
+      {/*
+        The artboard's own metrics: 12pt padding, 8pt between the three lines.
+        Every point here is multiplied by the number of cards on screen, which
+        is what SC-008 measures — the text block was 134 points before the
+        interest word stopped reserving a 44pt tap target in layout.
+      */}
       <View style={{ padding: space.md, gap: space.sm }}>
         {post.caption ? (
           <Text
             testID="post-caption"
-            numberOfLines={3}
+            // Two lines, as the artboard draws it. A third line is 18 more
+            // points on every card, and a caption long enough to need it is one
+            // the post detail screen shows in full.
+            numberOfLines={2}
             style={{
               color: palette.text.primary,
               fontSize: typeScale.label.size,

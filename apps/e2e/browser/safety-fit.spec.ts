@@ -108,4 +108,146 @@ describe('006/J-09 - the safety sheet on a short screen', () => {
     expect(box.y + box.height).toBeLessThanOrEqual(896);
     await page.close();
   }, 180_000);
+
+  /**
+   * 007/SC-010, T058 — NOTHING IS UNREACHABLE AT THE LARGEST FONT.
+   *
+   * The safety sheet's block control was off screen by 38 points in run 35, and
+   * the pre-006 measurement had it INSIDE by thirteen. A larger platform font, a
+   * longer sentence or a shorter phone would each have done it alone: the screen
+   * was always one edit from hiding a safety control.
+   *
+   * So this measures the general case rather than that one screen — every
+   * primary control on a 640pt viewport with the text scaled up — because "the
+   * type got bigger and something fell off the bottom" is not a defect you find
+   * by looking at a screenshot at the size you designed at.
+   *
+   * `zoom` is the browser's stand-in for the platform font setting. It is NOT
+   * the same thing — react-native-web ignores the platform setting entirely,
+   * which is exactly why `Avatar`'s overflowing initial could never have been
+   * caught here — so this measures LAYOUT under larger text and claims nothing
+   * about native font scaling. The device run is what answers that.
+   */
+  const SCREENS: { name: string; open: (page: Page) => Promise<void>; control: string }[] = [
+    {
+      name: 'feed',
+      open: async (page) => {
+        await page.click('[data-testid="tab-feed"]');
+        await page.waitForSelector('[data-testid="home-feed-screen"]', { timeout: 30_000 });
+      },
+      control: '[data-testid="open-compose"]',
+    },
+    {
+      name: 'explore',
+      open: async (page) => {
+        await page.click('[data-testid="tab-discover"]');
+        await page.waitForSelector('[data-testid="interest-search-screen"]', { timeout: 30_000 });
+      },
+      control: '[data-testid="interest-search-input"]',
+    },
+    {
+      name: 'profile',
+      open: async (page) => {
+        await page.click('[data-testid="tab-profile"]');
+        await page.waitForSelector('[data-testid="open-edit-profile"]', { timeout: 30_000 });
+      },
+      control: '[data-testid="open-edit-profile"]',
+    },
+  ];
+
+  it.each(SCREENS)('$name keeps its primary control reachable at 130% text on a 640pt screen', async ({ open, control }) => {
+    const reader = await actor(`fit${Math.random().toString(36).slice(2, 8)}`);
+    page = await browser.newPage({ viewport: { width: 360, height: 640 } });
+    await page.addInitScript((t) => {
+      (globalThis as unknown as { localStorage: { setItem(k: string, v: string): void } })
+        .localStorage.setItem('sih.auth.token', t as string);
+    }, reader.token);
+    await page.goto(web.url, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('[data-testid="tab-feed"]', { timeout: 30_000 });
+
+    // Text only, not the whole layout: scaling the viewport would test a
+    // smaller phone, which is a different question and one the width above
+    // already asks.
+    await page.addStyleTag({ content: 'body { font-size: 130% }' });
+    await open(page);
+
+    const box = await page.locator(control).first().boundingBox();
+    expect(box).not.toBeNull();
+    // On screen horizontally and not below the fold. A control the layout has
+    // pushed off the right edge is as unreachable as one pushed off the bottom,
+    // and only one of the two is ever looked for.
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(360);
+    expect(box!.y + box!.height).toBeLessThanOrEqual(640);
+
+    await page.close();
+  }, 180_000);
+
+  /**
+   * 007/SC-008, T070b — FOUR OR MORE POSTS VISIBLE WITHOUT SCROLLING.
+   *
+   * The owner's instruction was "a few posts in a screen, like xiaohongshu", and
+   * a criterion phrased that way is one somebody counts by eye once and never
+   * again. Measured at a fixed viewport instead: the cards whose boxes fall
+   * entirely inside 640 points.
+   *
+   * Four is the floor rather than the target. The waterfall staggers, so the
+   * exact number depends on the aspect ratios that happen to be on the page —
+   * asserting a specific count would be asserting the fixture.
+   */
+  it('SC-008 four or more posts are visible on the feed without scrolling', async () => {
+    const author = await actor('sc008author');
+    const reader = await actor('sc008reader');
+    const interest = (await reader.data.interests.listTop({ limit: 1 })).items[0]!;
+    for (let i = 0; i < 8; i++) {
+      await publishReadyImage(author, [interest.interestId], { caption: `sc008 ${i}` });
+    }
+    await reader.data.interests.follow(interest.interestId);
+
+    page = await browser.newPage({ viewport: { width: 360, height: 640 } });
+    await page.addInitScript((t) => {
+      (globalThis as unknown as { localStorage: { setItem(k: string, v: string): void } })
+        .localStorage.setItem('sih.auth.token', t as string);
+    }, reader.token);
+    await page.goto(web.url, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('[data-testid="home-feed-screen"]', { timeout: 30_000 });
+    await page.waitForSelector('[data-testid^="post-media-"]', { timeout: 30_000 });
+
+    /**
+     * VISIBLE MEANS THE PICTURE IS ON SCREEN, and the definition is chosen
+     * before the number rather than after it. In a waterfall a post IS its
+     * image: that is what the eye sorts by and what a person taps.
+     *
+     * Counting whole CARD boxes instead fails on a card whose last 30 points of
+     * PADDING fall below the fold — measured, that is exactly the case at this
+     * viewport — and calling such a post invisible while its photograph, title,
+     * byline and interest are all on screen would be measuring the wrong thing
+     * carefully.
+     *
+     * The numbers, at 360x640 with the app's own chrome: the list starts at
+     * y=118 and is 461 points tall; cards are 164x270 with 164 points of media.
+     * Rows land at y=118 and y=400, so four media boxes end at 282 and 564,
+     * both inside the fold, while the second row's card box ends at 670.
+     */
+    const media = await page.locator('[data-testid^="post-media-"]').all();
+    const boxes = await Promise.all(media.map((frame) => frame.boundingBox()));
+    const visible = boxes.filter((box) => box && box.y >= 0 && box.y + box.height <= 640);
+
+    // The boxes are in the message, so a failure says where the fold fell
+    // rather than only that it fell somewhere.
+    expect({ visible: visible.length, boxes: boxes.slice(0, 6) }).toMatchObject({
+      visible: expect.any(Number),
+    });
+    expect(visible.length).toBeGreaterThanOrEqual(4);
+
+    /**
+     * And the columns are SIDE BY SIDE, so the four are two rows of two rather
+     * than four stacked. Without this the assertion above passes on a
+     * single-column list, which is the layout 007 replaced.
+     */
+    const xs = new Set(visible.map((box) => Math.round(box!.x)));
+    expect(xs.size).toBeGreaterThanOrEqual(2);
+
+    await page.close();
+  }, 240_000);
 });

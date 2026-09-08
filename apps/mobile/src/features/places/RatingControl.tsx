@@ -1,6 +1,6 @@
 import { Pressable, Text, TextInput, View } from 'react-native';
 import type { PlaceRatingSummary } from '@sih/shared';
-import { activePalette as palette, radius, space, textStyle } from '../../ui/theme';
+import { activePalette as palette, radius, space, textStyle, touchTarget } from '../../ui/theme';
 import { Button, Row } from '../../ui/primitives';
 
 const STARS = [1, 2, 3, 4, 5] as const;
@@ -60,7 +60,17 @@ export function RatingControl({
                 accessibilityState={{ selected: viewerRating === n }}
                 disabled={saving === true}
                 onPress={() => onRate(n)}
-                style={{ padding: space.xs }}
+                /**
+                 * 006/FR-020. A star was `padding: 4` around an 18pt glyph —
+                 * about 26 points, well under the 44 floor, on a control whose
+                 * whole job is to be tapped precisely.
+                 *
+                 * Shipped, and invisible to the old guard, which asked whether a
+                 * FILE mentioned a size anywhere rather than whether THIS
+                 * control stated one. Five 44pt targets are 220 points, which
+                 * fits the narrowest screen the app supports.
+                 */
+                style={touchTarget}
               >
                 <Text
                   style={{

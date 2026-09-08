@@ -1,6 +1,6 @@
 import { FlatList, Image, Pressable, Text, View } from 'react-native';
 import { activePalette as palette, radius, space, textStyle } from '../../ui/theme';
-import { Banner, Button, Screen } from '../../ui/primitives';
+import { Banner, Button, Screen, ScreenHeader } from '../../ui/primitives';
 import { MEDIA_LIMITS_HINT } from './limits';
 
 export interface PickedMedia {
@@ -47,7 +47,7 @@ export function MediaPickerScreen({
 
   return (
     <Screen testID="media-picker-screen">
-      <Text style={{ ...textStyle.display, fontWeight: '700', color: palette.text.primary }}>Choose media</Text>
+      <ScreenHeader title="Choose media" />
       <Text style={{ ...textStyle.caption, color: palette.text.muted }}>{MEDIA_LIMITS_HINT}</Text>
 
       {/*

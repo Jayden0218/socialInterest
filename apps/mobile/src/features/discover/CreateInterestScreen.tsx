@@ -1,7 +1,7 @@
 import { Pressable, Text, TextInput, View } from 'react-native';
 import type { Interest } from '@sih/shared';
 import { activePalette as palette, radius, space, textStyle, touchTarget } from '../../ui/theme';
-import { Banner, Button, Screen } from '../../ui/primitives';
+import { Banner, Button, Screen, ScreenHeader } from '../../ui/primitives';
 
 export interface SimilarCandidate {
   interest: Interest;
@@ -58,9 +58,7 @@ export function CreateInterestScreen({
 
   return (
     <Screen testID="create-interest-screen">
-      <Text style={{ ...textStyle.display, fontWeight: '700', color: palette.text.primary }}>
-        New interest in {parentName}
-      </Text>
+      <ScreenHeader title={`New interest in ${parentName}`} />
 
       <TextInput
         testID="interest-name-input"

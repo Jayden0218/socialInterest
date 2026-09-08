@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { SafeAreaView, StatusBar, Text, View } from 'react-native';
-import { activePalette as palette, space, textStyle } from './ui/theme';
+import { Pressable, SafeAreaView, StatusBar, Text, View } from 'react-native';
+import { activePalette as palette, radius, space, textStyle, MIN_TOUCH_TARGET } from './ui/theme';
 import { Button, Row } from './ui/primitives';
 import { DataProvider, useData } from './data-provider';
 import {
@@ -34,15 +34,70 @@ import { API_BASE_URL } from './config';
 
 export type Tab = 'feed' | 'discover' | 'chats' | 'notifications' | 'profile';
 
+/**
+ * The tab bar, in the order the design draws it.
+ *
+ * `discover` is labelled EXPLORE — the artboards' word, and the better one: you
+ * explore a catalogue, you discover by accident, and 007's whole premise is
+ * that the accidental part is the feed's job now. The key is unchanged, because
+ * `tab-discover` is in the testID snapshot and in the Maestro flows and marks
+ * the same thing.
+ */
 export const TABS: { key: Tab; label: string }[] = [
   { key: 'feed', label: 'Feed' },
-  { key: 'discover', label: 'Discover' },
-  // 004/US1. Five tabs is the ceiling, which is why places live INSIDE Discover
+  { key: 'discover', label: 'Explore' },
+  // 004/US1. Five tabs is the ceiling, which is why places live INSIDE Explore
   // (one search across interests and places) rather than taking a sixth.
   { key: 'chats', label: 'Chats' },
   { key: 'notifications', label: 'Activity' },
   { key: 'profile', label: 'You' },
 ];
+
+/**
+ * One tab: a label under a dot, in the accent when active and muted when not.
+ *
+ * A component rather than five copies, because the accessibility state and the
+ * tap target are the parts most likely to be forgotten in a copy — and a tab
+ * that is 20 points tall is the shipped defect 006 found under every post.
+ */
+function TabButton({
+  tab,
+  active,
+  onPress,
+}: {
+  tab: { key: Tab; label: string };
+  active: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      testID={`tab-${tab.key}`}
+      accessibilityRole="tab"
+      accessibilityState={{ selected: active }}
+      accessibilityLabel={tab.label}
+      onPress={onPress}
+      style={{ flexGrow: 1, alignItems: 'center', gap: space.xs, minHeight: MIN_TOUCH_TARGET }}
+    >
+      <View
+        style={{
+          width: 8,
+          height: 8,
+          borderRadius: radius.pill,
+          backgroundColor: active ? palette.intent.accent : palette.text.muted,
+        }}
+      />
+      <Text
+        style={{
+          ...textStyle.tab,
+          fontWeight: active ? '600' : '500',
+          color: active ? palette.intent.accent : palette.text.muted,
+        }}
+      >
+        {tab.label}
+      </Text>
+    </Pressable>
+  );
+}
 
 /**
  * A screen pushed on top of the tabs.
@@ -447,34 +502,75 @@ export function Shell() {
         }
       })()}
 
-      <Row style={{ padding: space.sm, gap: space.sm }}>
-        <Button
-          testID="open-compose"
-          label="New post"
-          onPress={() => requireSignIn({ name: 'compose' })}
-        />
-        {signedIn ? null : (
+      {/*
+        THE TAB BAR, per `design/007-ui/Main.dc.html`.
+
+        Five slots, and compose is the CENTRE one — a filled accent square
+        rather than a labelled button in a row above the bar, which is what 006
+        had. That change is the design's, and it is also the reason the bar
+        reads as five things instead of seven: "New post" and "Sign in" used to
+        sit in their own row above it, so the bottom of every screen carried two
+        strips of chrome.
+
+        `tab-*` testIDs and `open-compose` and `open-sign-in` are unchanged.
+        The preservation contract is about the id and what it marks (006/FR-027,
+        SC-011), and each still marks the same control — nineteen Maestro flows
+        and every browser journey depend on it.
+      */}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'flex-start',
+          backgroundColor: palette.bg.raised,
+          borderTopWidth: 1,
+          borderTopColor: palette.line.hairline,
+          paddingTop: space.sm,
+          paddingBottom: space.sm,
+        }}
+      >
+        {TABS.slice(0, 2).map((t) => (
+          <TabButton key={t.key} tab={t} active={tab === t.key} onPress={() => setTab(t.key)} />
+        ))}
+
+        <View style={{ flexGrow: 1, alignItems: 'center' }}>
+          <Pressable
+            testID="open-compose"
+            accessibilityRole="button"
+            accessibilityLabel="New post"
+            onPress={() => requireSignIn({ name: 'compose' })}
+            style={{
+              width: 46,
+              height: 34,
+              borderRadius: radius.button,
+              backgroundColor: palette.intent.accent,
+              alignItems: 'center',
+              justifyContent: 'center',
+              // The art is 46x34; the TARGET is 44 tall, because a control
+              // people press twenty times a day is not a place to save 10pt
+              // (006/FR-020). Padding does not have to be visible to be real.
+              marginVertical: (MIN_TOUCH_TARGET - 34) / 2,
+            }}
+            hitSlop={{ top: 5, bottom: 5, left: 8, right: 8 }}
+          >
+            <Text style={{ color: palette.text.onAccent, fontSize: 22, lineHeight: 24 }}>+</Text>
+          </Pressable>
+        </View>
+
+        {TABS.slice(2).map((t) => (
+          <TabButton key={t.key} tab={t} active={tab === t.key} onPress={() => setTab(t.key)} />
+        ))}
+      </View>
+
+      {signedIn ? null : (
+        <View style={{ paddingHorizontal: space.lg, paddingBottom: space.sm }}>
           <Button
             testID="open-sign-in"
             label="Sign in"
             variant="secondary"
             onPress={() => push({ name: 'sign-in' })}
           />
-        )}
-      </Row>
-
-      <Row style={{ borderTopWidth: 1, borderTopColor: palette.line.hairline, padding: space.sm }}>
-        {TABS.map((t) => (
-          <View key={t.key} style={{ flex: 1 }}>
-            <Button
-              testID={`tab-${t.key}`}
-              label={t.label}
-              variant={tab === t.key ? 'primary' : 'secondary'}
-              onPress={() => setTab(t.key)}
-            />
-          </View>
-        ))}
-      </Row>
+        </View>
+      )}
     </View>
   );
 }

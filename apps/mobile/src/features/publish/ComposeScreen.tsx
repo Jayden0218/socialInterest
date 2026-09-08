@@ -1,7 +1,7 @@
 import { ScrollView, Text, TextInput, View } from 'react-native';
 import type { InterestRef, Visibility } from '@sih/shared';
 import { activePalette as palette, radius, space, textStyle } from '../../ui/theme';
-import { Banner, Button, Row, Screen } from '../../ui/primitives';
+import { Banner, Button, Row, Screen, ScreenHeader } from '../../ui/primitives';
 import { InterestSelector, canPublish } from './InterestSelector';
 import { VisibilityControl, DEFAULT_VISIBILITY } from './VisibilityControl';
 import { allUploaded, canRetry, type UploadSlot } from './uploadFlow';
@@ -53,7 +53,7 @@ export function ComposeScreen(props: ComposeScreenProps) {
   return (
     <Screen testID="compose-screen">
       <ScrollView contentContainerStyle={{ gap: space.lg }}>
-        <Text style={{ ...textStyle.display, fontWeight: '700', color: palette.text.primary }}>New post</Text>
+        <ScreenHeader title="New post" />
 
         <View testID="upload-slots" style={{ gap: space.sm }}>
           {props.slots.map((slot, i) => (

@@ -55,7 +55,25 @@ describe('no Text renders with the platform default colour', () => {
        * exactly that and accused a correct file - worth keeping in mind, because
        * a guard that cries wolf is one somebody switches off.
        */
-      const src = raw.replace(/=>/g, '=\u00bb');
+      /**
+       * COMMENTS STRIPPED FIRST, and this file learned it the same way the
+       * other four did — from the opposite direction.
+       *
+       * The usual failure is a comment naming a forbidden identifier and making
+       * a guard pass against a violation. This one is the mirror: a doc comment
+       * containing `<Text style={{...textStyle.display}}>` as an EXAMPLE made
+       * the guard accuse `primitives.tsx`, the file whose whole job is to give
+       * every Text a colour. Prose describes the intention; only the build is
+       * the build, in both directions.
+       */
+      const src = raw
+        // Blanked LINE BY LINE rather than collapsed to a space: this guard
+        // reports a line number, and a stripper that removes newlines reports
+        // the wrong one - which sends somebody to the wrong part of the file
+        // and is how a real failure gets dismissed as noise.
+        .replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\n]/g, ' '))
+        .replace(/(^|[^:])\/\/.*$/gm, '$1')
+        .replace(/=>/g, '=\u00bb');
       for (const m of src.matchAll(/<Text\b[^>]*?>/gs)) {
         const tag = m[0];
         if (tag.includes('color')) continue;

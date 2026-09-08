@@ -42,6 +42,8 @@
     "feed-signals",
     "feed-signals-collected",
     "feed-signals-summary",
+    "feed-tab-following",
+    "feed-tab-for-you",
     "follow-hint",
     "follow-interest-control",
     "follow-limit",
@@ -236,6 +238,7 @@
     "unread-",
     "upload-retry-",
     "upload-status-",
-    "visibility-"
+    "visibility-",
+    "waterfall-column-"
   ]
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Text, TextInput, View } from 'react-native';
-import { activePalette as palette, radius, space, textStyle } from '../../ui/theme';
-import { Banner, Button, Screen } from '../../ui/primitives';
+import { Text, View } from 'react-native';
+import { activePalette as palette, space, textStyle, type } from '../../ui/theme';
+import { Banner, Button, Field, Screen } from '../../ui/primitives';
 
 /**
  * Sign in on the `local` runtime profile.
@@ -26,31 +26,50 @@ export interface SignInScreenProps {
 
 export function SignInScreen({ token, submitting, error, onTokenChange, onSubmit }: SignInScreenProps) {
   return (
+    /**
+     * NOT `scroll`, and that is a measured decision rather than a default.
+     *
+     * Run 36 turned eight screens into ScrollViews on a rule inferred from ONE
+     * measurement, and this screen is the one it broke: sign-in stopped working
+     * and every flow chaining it failed, 18/19 down to 1/19. Two mechanisms fit
+     * and neither is reproducible in a browser, so the seven unmeasured screens
+     * were reverted. `screen-scrolls.test.ts` now covers only the case with a
+     * measurement behind it, and `safety-fit.spec.ts` is how any other screen
+     * earns the prop.
+     */
     <Screen testID="sign-in-screen">
-      <View style={{ gap: space.lg }}>
-        <Text style={{ ...textStyle.display, fontWeight: '700', color: palette.text.primary }}>Sign in</Text>
+      <View style={{ gap: space.lg, flexGrow: 1, justifyContent: 'center' }}>
+        {/*
+          The promise first, per `design/007-ui/SignIn.dc.html`. A sign-in
+          screen that opens with a field and no sentence asks somebody to
+          identify themselves to a product they have not been told about.
+        */}
+        <Text
+          style={{
+            ...textStyle.display,
+            fontWeight: type.display.weight,
+            letterSpacing: -0.4,
+            color: palette.text.primary,
+          }}
+        >
+          Things worth paying attention to.
+        </Text>
+        <Text style={{ ...textStyle.body, color: palette.text.secondary }}>
+          Photos and video from people deep in the things they love.
+        </Text>
 
         <Text style={{ ...textStyle.caption, color: palette.text.muted }}>
           This build talks to a local API, which issues its own tokens. Paste one to continue.
         </Text>
 
-        <TextInput
+        <Field
           testID="sign-in-token"
+          accessibilityLabel="Access token"
           value={token}
           onChangeText={onTokenChange}
           placeholder="Access token"
-          placeholderTextColor={palette.text.muted}
-          autoCapitalize="none"
-          autoCorrect={false}
           multiline
-          style={{
-            borderWidth: 1,
-            borderColor: palette.line.hairline,
-            borderRadius: radius.md,
-            padding: space.md,
-            color: palette.text.primary,
-            minHeight: 96,
-          }}
+          style={{ minHeight: 96, textAlignVertical: 'top' }}
         />
 
         {error ? (
@@ -61,10 +80,14 @@ export function SignInScreen({ token, submitting, error, onTokenChange, onSubmit
 
         <Button
           testID="sign-in-submit"
-          label={submitting ? 'Signing in…' : 'Sign in'}
+          label={submitting ? 'Signing in…' : 'Get started'}
           disabled={submitting || token.trim().length === 0}
           onPress={onSubmit}
         />
+
+        <Text style={{ ...textStyle.small, color: palette.text.muted, textAlign: 'center' }}>
+          By continuing you agree to the Terms and the Privacy Notice.
+        </Text>
       </View>
     </Screen>
   );
@@ -75,7 +98,7 @@ export function SignedOutNotice({ onSignIn }: { onSignIn: () => void }) {
   return (
     <Screen testID="signed-out">
       <View style={{ gap: space.md }}>
-        <Text style={{ color: palette.text.primary }}>Sign in to do this.</Text>
+        <Text style={{ ...textStyle.body, color: palette.text.primary }}>Sign in to do this.</Text>
         <Button testID="signed-out-sign-in" label="Sign in" onPress={onSignIn} />
       </View>
     </Screen>

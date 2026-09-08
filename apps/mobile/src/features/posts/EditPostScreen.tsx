@@ -1,7 +1,7 @@
 import { Text, TextInput, View } from 'react-native';
 import type { InterestRef, Visibility } from '@sih/shared';
 import { activePalette as palette, radius, space, textStyle } from '../../ui/theme';
-import { Banner, Button, Screen } from '../../ui/primitives';
+import { Banner, Button, Screen, ScreenHeader } from '../../ui/primitives';
 import { InterestSelector } from '../publish/InterestSelector';
 import { VisibilityControl } from '../publish/VisibilityControl';
 
@@ -51,7 +51,7 @@ export function EditPostScreen({
 
   return (
     <Screen testID="edit-post-screen">
-      <Text style={{ ...textStyle.display, fontWeight: '700', color: palette.text.primary }}>Edit post</Text>
+      <ScreenHeader title="Edit post" />
 
       <TextInput
         testID="edit-caption-input"

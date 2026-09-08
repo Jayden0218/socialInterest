@@ -1,7 +1,7 @@
 import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
 import type { Interest, InterestRef, Post } from '@sih/shared';
 import { activePalette as palette, radius, space, textStyle } from '../../ui/theme';
-import { Screen } from '../../ui/primitives';
+import { Screen, ScreenHeader } from '../../ui/primitives';
 import { interestColour } from '../../ui/interest-colour';
 import { PagedPostList, type PagedState } from '../../components/PagedPostList';
 import { FollowInterestControl } from './FollowInterestControl';
@@ -108,9 +108,7 @@ export function InterestScreen({
             ),
           }}
         />
-        <Text style={{ ...textStyle.display, fontWeight: '700', color: palette.text.primary }}>
-          {data.interest.name}
-        </Text>
+        <ScreenHeader title={data.interest.name} />
         <Text testID="interest-counts" style={{ ...textStyle.caption, color: palette.text.muted }}>
           {data.interest.postCount} posts · {data.interest.followerCount} followers
         </Text>
