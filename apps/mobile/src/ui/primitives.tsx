@@ -192,12 +192,28 @@ export function Screen({
   children,
   testID,
   scroll = false,
+  padded = true,
 }: {
   children: React.ReactNode;
   testID?: string;
   scroll?: boolean;
+  /**
+   * 007. A screen whose content is a full-bleed list turns this OFF.
+   *
+   * The waterfall's gutter is its own — 12pt outside, 8pt between columns — and
+   * a screen padding of 16 on top of it makes the columns 178pt wide on a 390pt
+   * device instead of the design's 178. Rather than have the feed subtract the
+   * padding back out with a negative margin, which is the version that breaks
+   * silently on a different screen width, the screen simply does not add it.
+   */
+  padded?: boolean;
 }) {
-  const style = { backgroundColor: palette.bg.base, padding: space.lg, gap: space.lg };
+  const style = {
+    backgroundColor: palette.bg.base,
+    padding: padded ? space.lg : 0,
+    paddingTop: space.lg,
+    gap: padded ? space.lg : space.sm,
+  };
   if (scroll) {
     return (
       <ScrollView

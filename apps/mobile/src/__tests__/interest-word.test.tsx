@@ -1,6 +1,6 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import type { InterestRef } from '@sih/shared';
-import { InterestChip } from '../components/InterestChip';
+import { InterestWord } from '../components/InterestWord';
 
 /**
  * 006/FR-014. COLOUR IS REINFORCEMENT, NEVER IDENTIFICATION.
@@ -17,9 +17,9 @@ const bouldering: InterestRef = {
   level: 'top',
 };
 
-describe('InterestChip (006/US2)', () => {
+describe('InterestWord (006/US2, 007/FR-024)', () => {
   it('T028 always renders the interest name', () => {
-    const t = render(<InterestChip interest={bouldering} />);
+    const t = render(<InterestWord interest={bouldering} />);
     expect(t.getByText('Bouldering')).toBeTruthy();
   });
 
@@ -31,12 +31,12 @@ describe('InterestChip (006/US2)', () => {
       level: 'sub',
       parent: bouldering,
     };
-    const t = render(<InterestChip interest={ramen} />);
+    const t = render(<InterestWord interest={ramen} />);
     expect(t.getByText('Ramen')).toBeTruthy();
   });
 
   it('is findable by a stable id built from the slug, not from position', () => {
-    const t = render(<InterestChip interest={bouldering} />);
+    const t = render(<InterestWord interest={bouldering} />);
     expect(t.getByTestId('interest-chip-bouldering')).toBeTruthy();
   });
 
@@ -46,11 +46,11 @@ describe('InterestChip (006/US2)', () => {
    * contracts/testid-preservation.md rule 6 says so.
    */
   it('is only a button when it actually does something', () => {
-    const decorative = render(<InterestChip interest={bouldering} />);
+    const decorative = render(<InterestWord interest={bouldering} />);
     expect(decorative.queryByRole('button')).toBeNull();
 
     const onPress = jest.fn();
-    const tappable = render(<InterestChip interest={bouldering} onPress={onPress} />);
+    const tappable = render(<InterestWord interest={bouldering} onPress={onPress} />);
     fireEvent.press(tappable.getByTestId('interest-chip-bouldering'));
     expect(onPress).toHaveBeenCalledWith('INT#bouldering');
   });

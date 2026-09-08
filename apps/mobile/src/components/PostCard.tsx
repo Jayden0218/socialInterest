@@ -1,31 +1,39 @@
 import { Image, Pressable, Text, View } from 'react-native';
 import type { MediaItem, Post } from '@sih/shared';
 import { Avatar } from './Avatar';
-import { InterestChip } from './InterestChip';
+import { InterestWord } from './InterestWord';
 import { Skeleton } from './Skeleton';
 import { useTheme } from '../ui/useTheme';
-import { elevation, radius, space, type as typeScale } from '../ui/tokens';
+import { radius, space, type as typeScale } from '../ui/tokens';
 
 /**
- * 006/US1. A POST, SHOWN.
+ * 007/FR-021, FR-024 — THE WATERFALL CARD.
  *
- * What this replaces is the point: `PostRow` was a `Pressable` wrapping one
- * `Text` holding the caption, used by the feed, interest spaces, profiles, saved
- * and place pages. A media-sharing product whose every browse surface showed a
- * list of sentences.
+ * Rebuilt from `design/007-ui/Main.dc.html`. The shape changed with the feed:
+ * 006's card was a full-width row with the author on top, and 007's is a
+ * column-width card whose MEDIA COMES FIRST, at its own aspect ratio, with the
+ * title, a byline, a like count and the interest word beneath it.
  *
- * ONE CARD FOR ALL FIVE SURFACES (R8). Five hand-written cards would be five
- * places for the author, the counts or the interest chip to be forgotten - and
- * this codebase has shipped that exact shape of defect seven times, as a
- * persistence row escaping as a response, and once more as two notification
- * category lists. One component is the same argument as one VisibilityFilter,
- * applied to presentation.
+ * Media at its own ratio is not decoration — it is what makes the waterfall a
+ * waterfall. Equal-height cards in two columns are a grid, and a grid crops
+ * every photograph to the same rectangle, which is the thing that made the
+ * earlier passes look like every other product.
+ *
+ * NO SHADOW (FR-023). Depth is the white card on the warm page, the gutter, and
+ * the 14pt radius. Nothing else.
+ *
+ * ONE CARD FOR ALL FIVE SURFACES (006/R8). Five hand-written cards would be five
+ * places for the author, the counts or the interest to be forgotten — and this
+ * codebase has shipped that exact shape of defect seven times, as a persistence
+ * row escaping as a response, and once more as two notification category lists.
  *
  * IT READS AND FETCHES NOTHING (gate G2). Every field comes from the post it is
- * given, enumerated in data-model.md § "What the card may read". Showing "2
- * comments" tempts a fetch; a count this cannot read is a count it does not
- * show. `post-card-reads-nothing.test.ts` fails on the import, not the
- * behaviour.
+ * given. Showing "2 comments" tempts a fetch; a count this cannot read is a
+ * count it does not show. `post-card-reads-nothing.test.ts` fails on the import,
+ * not the behaviour.
+ *
+ * AND IT EXPLAINS NOTHING (FR-010). No "because you liked", no "suggested for
+ * you". The ranking is disclosed once, in Settings, and never per post.
  */
 
 /** Used when the contract carries no dimensions. 4:3 crops least badly. */
@@ -62,11 +70,14 @@ export function PostCard({
 
   /**
    * The frame's ratio is fixed BEFORE the image arrives, from the width and
-   * height already on the contract - which is what keeps a list from shifting as
-   * media becomes ready (FR-005, SC-006). A ratio rather than a height so it
-   * holds at any column width.
+   * height already on the contract — which is what keeps a column from
+   * reflowing as media becomes ready (006/FR-005, SC-006). A ratio rather than
+   * a height so it holds at any column width, which the waterfall depends on.
    */
   const ratio = item?.width && item.height ? item.width / item.height : FALLBACK_RATIO;
+
+  /** The card's one interest. The design shows one word, not a row of them. */
+  const interest = post.interests?.[0];
 
   return (
     <Pressable
@@ -75,45 +86,16 @@ export function PostCard({
       onPress={() => onOpen(post.postId)}
       style={{
         backgroundColor: palette.bg.raised,
-        borderRadius: radius.lg,
-        padding: space.md,
-        gap: space.sm,
-        marginBottom: space.md,
-        ...elevation.raised,
+        borderRadius: radius.card,
+        overflow: 'hidden',
       }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-        <Avatar userId={post.author.userId} displayName={post.author.displayName} />
-        <View style={{ flex: 1 }}>
-          <Text
-            style={{
-              color: palette.text.primary,
-              fontSize: typeScale.label.size,
-              lineHeight: typeScale.label.lineHeight,
-              fontWeight: typeScale.label.weight,
-            }}
-          >
-            {post.author.displayName}
-          </Text>
-          <Text
-            style={{
-              color: palette.text.muted,
-              fontSize: typeScale.caption.size,
-              lineHeight: typeScale.caption.lineHeight,
-            }}
-          >
-            @{post.author.handle}
-          </Text>
-        </View>
-      </View>
-
       {item ? (
         <View
           testID={`post-media-${post.postId}`}
           style={{
             aspectRatio: ratio,
-            borderRadius: radius.md,
-            overflow: 'hidden',
+            width: '100%',
             backgroundColor: palette.bg.sunken,
           }}
         >
@@ -131,7 +113,8 @@ export function PostCard({
               <Text
                 style={{
                   color: palette.text.muted,
-                  fontSize: typeScale.caption.size,
+                  fontSize: typeScale.small.size,
+                  lineHeight: typeScale.small.lineHeight,
                   textAlign: 'center',
                 }}
               >
@@ -160,11 +143,17 @@ export function PostCard({
                 paddingVertical: space.xs,
                 paddingHorizontal: space.sm,
                 borderRadius: radius.pill,
-                backgroundColor: palette.bg.base,
+                backgroundColor: palette.bg.raised,
               }}
             >
-              {/* FR-006: identifiable as a video without playing it. */}
-              <Text style={{ color: palette.text.primary, fontSize: typeScale.caption.size }}>
+              {/* 006/FR-006: identifiable as a video without playing it. */}
+              <Text
+                style={{
+                  color: palette.text.primary,
+                  fontSize: typeScale.small.size,
+                  lineHeight: typeScale.small.lineHeight,
+                }}
+              >
                 ▶ Video
               </Text>
             </View>
@@ -172,39 +161,74 @@ export function PostCard({
         </View>
       ) : null}
 
-      {post.caption ? (
-        <Text
-          testID="post-caption"
-          style={{
-            color: palette.text.primary,
-            fontSize: typeScale.body.size,
-            lineHeight: typeScale.body.lineHeight,
-          }}
-        >
-          {post.caption}
-        </Text>
-      ) : null}
+      <View style={{ padding: space.md, gap: space.sm }}>
+        {post.caption ? (
+          <Text
+            testID="post-caption"
+            numberOfLines={3}
+            style={{
+              color: palette.text.primary,
+              fontSize: typeScale.label.size,
+              lineHeight: typeScale.label.lineHeight,
+              fontWeight: typeScale.label.weight,
+            }}
+          >
+            {post.caption}
+          </Text>
+        ) : null}
 
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.xs }}>
-        {post.interests.map((i) => (
-          <InterestChip
-            key={i.interestId}
-            interest={i}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>
+          <Avatar userId={post.author.userId} displayName={post.author.displayName} size={18} />
+          {/*
+            The DISPLAY NAME, not the handle.
+
+            The artboard shows one lowercase word per byline, which reads as
+            either; the form it settles is the line — 11.5/500, muted, beside an
+            18pt avatar — and the display name is what a person recognises. It
+            also has to be this one for the card to agree with itself: `Avatar`
+            draws its initial from the display name, so a handle beside it can
+            show "m" next to "perla".
+          */}
+          <Text
+            numberOfLines={1}
+            style={{
+              flexShrink: 1,
+              color: palette.text.muted,
+              fontSize: typeScale.small.size,
+              lineHeight: typeScale.small.lineHeight,
+            }}
+          >
+            {post.author.displayName}
+          </Text>
+          <View style={{ flexGrow: 1 }} />
+          <Text
+            testID={`post-counts-${post.postId}`}
+            style={{
+              color: palette.text.muted,
+              fontSize: typeScale.small.size,
+              lineHeight: typeScale.small.lineHeight,
+            }}
+          >
+            ♥ {post.reactionCount} · {post.commentCount}
+          </Text>
+        </View>
+
+        {/*
+          THE ONE QUIET SIGNATURE. One interest, as a word, in its own colour.
+
+          006 rendered every interest on the post as a row of chips. The design
+          shows the first, because a card is 178 points wide and three chips
+          wrap into a paragraph of furniture - and because the point of the
+          colour is that the eye can sort a feed by it at a glance, which a row
+          of them defeats.
+        */}
+        {interest ? (
+          <InterestWord
+            interest={interest}
             {...(onOpenInterest ? { onPress: onOpenInterest } : {})}
           />
-        ))}
+        ) : null}
       </View>
-
-      <Text
-        testID={`post-counts-${post.postId}`}
-        style={{
-          color: palette.text.muted,
-          fontSize: typeScale.caption.size,
-          lineHeight: typeScale.caption.lineHeight,
-        }}
-      >
-        ♥ {post.reactionCount} · 💬 {post.commentCount}
-      </Text>
     </Pressable>
   );
 }

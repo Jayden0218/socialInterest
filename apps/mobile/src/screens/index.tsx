@@ -49,9 +49,12 @@ function Failed({ message }: { message: string }) {
 export function HomeFeedContainer({
   onEmptyAction,
   onOpenPost,
+  onOpenInterest,
 }: {
   onEmptyAction: () => void;
   onOpenPost: (postId: string) => void;
+  /** 007/FR-017. One tap from a card to the interest's space. */
+  onOpenInterest?: (interestId: string) => void;
 }) {
   const data = useData();
   /**
@@ -72,6 +75,7 @@ export function HomeFeedContainer({
       renderPost={(post) => (
         <PostCard
           post={post}
+          onOpenInterest={onOpenInterest}
           onOpen={(postId) => {
             /**
              * FR-010: this records that the post was opened. It does NOT show

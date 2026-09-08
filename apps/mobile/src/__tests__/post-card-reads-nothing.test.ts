@@ -23,7 +23,7 @@ const strip = (src: string): string =>
   src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/.*$/gm, '$1');
 
 describe('the presentation components fetch nothing (G2, G3)', () => {
-  const files = ['PostCard.tsx', 'Avatar.tsx', 'InterestChip.tsx', 'Skeleton.tsx'];
+  const files = ['PostCard.tsx', 'Avatar.tsx', 'InterestWord.tsx', 'Skeleton.tsx', 'Waterfall.tsx'];
 
   it.each(files)('%s imports nothing from the data layer', (file) => {
     const src = strip(readFileSync(join(COMPONENTS, file), 'utf8'));

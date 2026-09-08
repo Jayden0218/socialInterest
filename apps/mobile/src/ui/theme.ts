@@ -1,15 +1,16 @@
-import { dark, light, elevation, radius, space, type, textStyle, touchTarget, MIN_TOUCH_TARGET, type Palette } from './tokens';
+import { dark, light, radius, space, type, textStyle, touchTarget, FONT_FAMILY, MIN_TOUCH_TARGET, type Palette } from './tokens';
 
-export { dark, light, elevation, radius, space, type, textStyle, touchTarget, MIN_TOUCH_TARGET };
+export { dark, light, radius, space, type, textStyle, touchTarget, FONT_FAMILY, MIN_TOUCH_TARGET };
 export type { Palette };
 
 /**
  * The active palette.
  *
- * DARK BY DEFAULT, because the brand is a dark green and the product should look
- * like itself the first time it opens rather than after a setting is found.
+ * LIGHT, because the approved 007 design is warm paper. 006's default was dark
+ * green and that was the right default for THAT design; this is not a setting
+ * being flipped, it is a different product surface — see `tokens.ts`.
  */
-export const activePalette: Palette = dark;
+export const activePalette: Palette = light;
 
 /**
  * THE ALIAS LAYER IS GONE, and its absence is the guard.
@@ -20,6 +21,10 @@ export const activePalette: Palette = dark;
  * left available: an export nobody imports is an invitation, while a name that
  * does not exist is a TYPECHECK FAILURE the moment somebody writes it again.
  * That is a stronger guard than a test, and it costs nothing to keep.
+ *
+ * 007 REMOVED `elevation` FOR THE SAME REASON. The design has no shadows at
+ * all, so a zeroed-out object left exported would be an invitation; the name
+ * simply not existing is a typecheck failure the moment somebody writes it.
  *
  * The migration was not only renaming. `theme.font.X` carried a SIZE and
  * nothing else, so every screen outside this directory rendered with the

@@ -5,9 +5,10 @@ import { activePalette } from './theme';
 /**
  * 006/FR-017. The palette for the current colour scheme.
  *
- * DARK IS THE DEFAULT, including when the platform reports nothing. The brand is
- * a dark green; an app that opens pale and turns green once a setting is read is
- * an app whose identity depends on a preference.
+ * LIGHT IS THE DEFAULT under 007, including when the platform reports nothing.
+ * The approved design is warm paper with one accent; an app that opens dark and
+ * turns pale once a setting is read is an app whose identity depends on a
+ * preference.
  *
  * Returns the whole palette rather than a hook per token so a component reads
  * one thing and destructures - `const { bg, text } = useTheme()` - instead of
@@ -35,7 +36,7 @@ export function useTheme(): Palette {
 
 /** Exported for the day US3 wires the platform preference through. */
 export function platformPalette(): Palette {
-  return useColorScheme() === 'light' ? light : dark;
+  return useColorScheme() === 'dark' ? dark : light;
 }
 
 /**
@@ -46,5 +47,5 @@ export function platformPalette(): Palette {
  * idea of the default.
  */
 export function paletteFor(scheme: 'light' | 'dark' | null | undefined): Palette {
-  return scheme === 'light' ? light : dark;
+  return scheme === 'dark' ? dark : light;
 }

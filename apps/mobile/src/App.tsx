@@ -384,6 +384,10 @@ export function Shell() {
                 <HomeFeedContainer
                   onEmptyAction={() => setTab('discover')}
                   onOpenPost={(postId) => push({ name: 'post', postId })}
+                  // 007/FR-017. Tapping the coloured word opens its space, which
+                  // is what keeps the taxonomy load-bearing once the feed stops
+                  // being built from it — Principle I, and gate G2.
+                  onOpenInterest={(interestId) => push({ name: 'interest', interestId })}
                 />
               </View>
             );

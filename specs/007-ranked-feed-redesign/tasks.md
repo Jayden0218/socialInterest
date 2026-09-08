@@ -134,22 +134,22 @@ implements it and does not reopen it.
 
 ### The system
 
-- [ ] T039 [US3] Rebuild `apps/mobile/src/ui/tokens.ts` from `design/007-ui/_tokens.md` — page `#FBFAF8`, card `#FFFFFF`, accent `#1F6B3F`, the five type roles, radii. **Single-owner file**
-- [ ] T040 [US3] Remove every shadow and elevation value from `apps/mobile/src/ui/` — FR-023, depth is surface, spacing and radius
-- [ ] T041 [P] [US3] Switch the app to Plus Jakarta Sans in `apps/mobile/app.config.ts` and `apps/mobile/src/ui/tokens.ts`, with a fallback stack — FR-022
-- [ ] T042 [P] [US3] Write `apps/mobile/src/__tests__/one-accent.test.ts` failing the build if any colour outside the token file is used as an accent — FR-022, mechanically rather than by eye
-- [ ] T043 [P] [US3] Write `apps/mobile/src/__tests__/no-shadow.test.ts` failing on any `shadow*` or `elevation` property in `src/` — FR-023
+- [X] T039 [US3] Rebuild `apps/mobile/src/ui/tokens.ts` from `design/007-ui/_tokens.md` — page `#FBFAF8`, card `#FFFFFF`, accent `#1F6B3F`, the five type roles, radii. **Single-owner file**
+- [X] T040 [US3] Remove every shadow and elevation value from `apps/mobile/src/ui/` — FR-023, depth is surface, spacing and radius
+- [X] T041 [P] [US3] Switch the app to Plus Jakarta Sans in `apps/mobile/app.config.ts` and `apps/mobile/src/ui/tokens.ts`, with a fallback stack — FR-022
+- [X] T042 [P] [US3] Write `apps/mobile/src/__tests__/one-accent.test.ts` failing the build if any colour outside the token file is used as an accent — FR-022, mechanically rather than by eye
+- [X] T043 [P] [US3] Write `apps/mobile/src/__tests__/no-shadow.test.ts` failing on any `shadow*` or `elevation` property in `src/` — FR-023
 
 ### The waterfall
 
-- [ ] T044 [US3] Implement `apps/mobile/src/components/Waterfall.tsx` (FR-021) — block-wise, 8 posts per block, each card to the shorter column by accumulated height, blocks virtualised by one `FlatList` (research R6)
-- [ ] T045 [US3] Write `apps/mobile/src/__tests__/waterfall.test.tsx` asserting columns stagger within a block and that no `VirtualizedList` is nested inside a `ScrollView`
-- [ ] T046 [US3] Rebuild `apps/mobile/src/components/PostCard.tsx` as the waterfall card — media at its own aspect ratio, title, author, count, and the interest as a COLOURED WORD (FR-024), keeping every existing testID
-- [ ] T047 [P] [US3] Write `apps/mobile/src/__tests__/interest-is-a-word.test.ts` failing if an interest is rendered as a chip, badge, pill or stamp anywhere — FR-024, the one signature, enforced
+- [X] T044 [US3] Implement `apps/mobile/src/components/Waterfall.tsx` (FR-021) — block-wise, 8 posts per block, each card to the shorter column by accumulated height, blocks virtualised by one `FlatList` (research R6)
+- [X] T045 [US3] Write `apps/mobile/src/__tests__/waterfall.test.tsx` asserting columns stagger within a block and that no `VirtualizedList` is nested inside a `ScrollView`
+- [X] T046 [US3] Rebuild `apps/mobile/src/components/PostCard.tsx` as the waterfall card — media at its own aspect ratio, title, author, count, and the interest as a COLOURED WORD (FR-024), keeping every existing testID
+- [X] T047 [P] [US3] Write `apps/mobile/src/__tests__/interest-is-a-word.test.ts` failing if an interest is rendered as a chip, badge, pill or stamp anywhere — FR-024, the one signature, enforced
 
 ### The screens
 
-- [ ] T048 [US3] Rebuild the feed in `apps/mobile/src/features/feed/HomeFeedScreen.tsx` per `design/007-ui/Main.dc.html` — no sections, no ranking explanation (FR-001, FR-010)
+- [X] T048 [US3] Rebuild the feed in `apps/mobile/src/features/feed/HomeFeedScreen.tsx` per `design/007-ui/Main.dc.html` — no sections, no ranking explanation (FR-001, FR-010)
 - [ ] T049 [P] [US3] Rebuild `apps/mobile/src/features/posts/PostDetailScreen.tsx` and `apps/mobile/src/features/engagement/CommentsScreen.tsx` per `Post.dc.html` and `Comments.dc.html`
 - [ ] T050 [P] [US3] Rebuild `apps/mobile/src/features/auth/SignInScreen.tsx` per `SignIn.dc.html`
 - [ ] T051 [P] [US3] Rebuild `apps/mobile/src/features/profile/ProfileScreen.tsx`, `EditProfileScreen.tsx` and `apps/mobile/src/features/posts/SavedScreen.tsx` per `Profile.dc.html`, `PersonProfile.dc.html`, `EditProfile.dc.html`, `Saved.dc.html`

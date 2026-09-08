@@ -3,7 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import type { Interest } from '@sih/shared';
 import { activePalette as palette, radius, space, textStyle, touchTarget } from '../../ui/theme';
 import { Button, Screen } from '../../ui/primitives';
-import { InterestChip } from '../../components/InterestChip';
+import { InterestWord } from '../../components/InterestWord';
 
 /** FR-014. The product's cap, not the store's. */
 export const MAX_PICKS = 20;
@@ -83,11 +83,11 @@ export function PickInterestsScreen({
               }}
             >
               {/*
-                Deliberately WITHOUT onPress: an interactive chip inside an
+                Deliberately WITHOUT onPress: an interactive word inside an
                 interactive wrapper is two tap targets stacked, and the inner
                 one wins on some platforms and not others.
               */}
-              <InterestChip interest={interest} />
+              <InterestWord interest={interest} />
             </Pressable>
           );
         })}

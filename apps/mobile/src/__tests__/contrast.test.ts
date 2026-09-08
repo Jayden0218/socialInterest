@@ -104,16 +104,31 @@ describe.each(palettes)('%s palette meets WCAG AA', (name, p) => {
 
   /**
    * THE ONE THAT MATTERS MOST: all 720 generated interest colours, not a sample.
+   *
+   * 007 FLIPPED THE QUESTION, because the interest changed shape. It used to be
+   * a chip — a tinted background with a word on it — so the check was "is
+   * `text.onInterest` legible ON this colour". FR-024 makes it A COLOURED WORD
+   * on the card, so the colour IS the text and the check is whether it is
+   * legible against the surfaces it sits on.
+   *
+   * Keeping the old assertion would have been the more dangerous outcome than
+   * deleting it: it would have gone on passing, against a rendering the product
+   * no longer has, while the colours people actually read went unchecked.
+   *
+   * Both surfaces, because the word appears on a card AND on the page.
    */
-  it('every interest colour the generator can produce carries legible text', () => {
+  it('every interest colour the generator can produce is legible AS TEXT', () => {
     const colours = everyInterestColour(p);
     expect(colours).toHaveLength(720);
 
     const failures = colours
-      .map((c) => ({ colour: c, ratio: contrastRatio(p.text.onInterest, c) }))
+      .flatMap((c) => [
+        { colour: c, on: 'bg.raised', ratio: contrastRatio(c, p.bg.raised) },
+        { colour: c, on: 'bg.base', ratio: contrastRatio(c, p.bg.base) },
+      ])
       .filter((r) => r.ratio < AA_BODY);
 
-    // Reported as the worst offenders rather than "one of 720 failed", so a
+    // Reported as the worst offenders rather than "one of 1440 failed", so a
     // failure says which way to move the lightness.
     expect(failures.slice(0, 5)).toEqual([]);
   });
