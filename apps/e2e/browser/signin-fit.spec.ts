@@ -95,6 +95,19 @@ describe('sign-in fits with the keyboard up', () => {
    * the field can be reached and typed into — which the device demonstrated
    * three times — the button can be reached too. True under `adjustResize` and
    * `adjustPan`, at any keyboard height.
+   *
+   * WHY THE COMMENT AND MESSAGE COMPOSERS DO NOT HAVE THIS PROBLEM, since they
+   * are the obvious counter-example and both put their submit BELOW the field:
+   * each sits at the bottom of a screen whose list above it is `flex: 1`. Under
+   * `adjustResize` that list absorbs the shrink and the composer RIDES UP with
+   * the fold, staying just above the keyboard. Flows 08 and 13 passed on device
+   * runs 34 and 37 for that reason.
+   *
+   * Sign-in had no absorber. Its content is a top-aligned column, so every
+   * control sits at a fixed offset from the top and the keyboard simply covers
+   * whatever falls below it. **The rule is not "never put a submit below a
+   * field" — it is that a screen with nothing to absorb the resize cannot put a
+   * control where a keyboard can reach it.**
    */
   it('the submit button is ABOVE the field, so no keyboard height can hide it', async () => {
     await open(FULL);
