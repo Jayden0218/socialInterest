@@ -1,6 +1,6 @@
 import { FlatList, Text, TextInput, View } from 'react-native';
 import type { Conversation, Message } from '@sih/shared';
-import { theme } from '../../ui/theme';
+import { activePalette as palette, space } from '../../ui/theme';
 import { Banner, Button, EmptyState, Row, Screen } from '../../ui/primitives';
 import { SharedPostBubble } from './SharedPostBubble';
 import { conversationTitle, isGroup } from './conversation-title';
@@ -99,8 +99,8 @@ export function ConversationScreen({
         who is no longer there.
       */}
       {group ? (
-        <Row style={{ paddingHorizontal: theme.space.sm, gap: theme.space.sm }}>
-          <Text testID="group-participants" style={{ flex: 1, color: theme.color.muted }}>
+        <Row style={{ paddingHorizontal: space.sm, gap: space.sm }}>
+          <Text testID="group-participants" style={{ flex: 1, color: palette.text.muted }}>
             {(conversation.participants ?? [])
               .map((p) => (p.state === 'left' ? `${p.person.displayName} (left)` : p.person.displayName))
               .join(', ')}
@@ -113,19 +113,19 @@ export function ConversationScreen({
 
       {/* 005/FR-020. The id does not change when somebody is added (R1). */}
       {group && onAddParticipant ? (
-        <Row style={{ paddingHorizontal: theme.space.sm, gap: theme.space.sm }}>
+        <Row style={{ paddingHorizontal: space.sm, gap: space.sm }}>
           <TextInput
             testID="add-participant-input"
             style={{
               flex: 1,
               borderWidth: 1,
-              borderColor: theme.color.border,
+              borderColor: palette.line.hairline,
               borderRadius: 8,
-              color: theme.color.text,
-              padding: theme.space.sm,
+              color: palette.text.primary,
+              padding: space.sm,
             }}
             placeholder="Add someone by handle"
-            placeholderTextColor={theme.color.muted}
+            placeholderTextColor={palette.text.muted}
             autoCapitalize="none"
             value={addHandle ?? ''}
             onChangeText={onAddHandleChange}
@@ -147,8 +147,8 @@ export function ConversationScreen({
       ) : null}
 
       {showRequestControls ? (
-        <Row style={{ padding: theme.space.sm, gap: theme.space.sm, alignItems: 'center' }}>
-          <Text style={{ flex: 1, color: theme.color.muted }}>
+        <Row style={{ padding: space.sm, gap: space.sm, alignItems: 'center' }}>
+          <Text style={{ flex: 1, color: palette.text.muted }}>
             {group
               ? `You were added to ${conversationTitle(conversation)}.`
               : `${conversationTitle(conversation)} wants to message you.`}
@@ -175,17 +175,17 @@ export function ConversationScreen({
               <View
                 testID={`message-${item.messageId}`}
                 style={{
-                  padding: theme.space.sm,
-                  gap: theme.space.xs,
+                  padding: space.sm,
+                  gap: space.xs,
                   alignItems: mine ? 'flex-end' : 'flex-start',
                 }}
               >
                 {item.body ? (
-                  <Text style={{ color: theme.color.text }}>{item.body}</Text>
+                  <Text style={{ color: palette.text.primary }}>{item.body}</Text>
                 ) : item.moderationState === 'removed' ? (
                   // Moderation removes CONTENT. Saying so beats an empty bubble,
                   // which reads as a bug to both people in the thread.
-                  <Text testID={`message-removed-${item.messageId}`} style={{ color: theme.color.muted }}>
+                  <Text testID={`message-removed-${item.messageId}`} style={{ color: palette.text.muted }}>
                     This message was removed.
                   </Text>
                 ) : null}
@@ -206,19 +206,19 @@ export function ConversationScreen({
 
       {notice ? <Banner tone="info" testID="composer-notice">{notice}</Banner> : null}
 
-      <Row style={{ padding: theme.space.sm, gap: theme.space.sm, alignItems: 'center' }}>
+      <Row style={{ padding: space.sm, gap: space.sm, alignItems: 'center' }}>
         <TextInput
           testID="message-input"
           style={{
             flex: 1,
             borderWidth: 1,
-            borderColor: theme.color.border,
+            borderColor: palette.line.hairline,
             borderRadius: 8,
-            color: theme.color.text,
-            padding: theme.space.sm,
+            color: palette.text.primary,
+            padding: space.sm,
           }}
           placeholder="Message"
-          placeholderTextColor={theme.color.muted}
+          placeholderTextColor={palette.text.muted}
           value={draft}
           editable={conversation.viewerCanSend}
           onChangeText={onDraftChange}

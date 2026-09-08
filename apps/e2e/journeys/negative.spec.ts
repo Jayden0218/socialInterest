@@ -66,8 +66,29 @@ describe('negative journeys - driven as a hostile client', () => {
 
     const detail = await raw(baseUrl(), `/v1/posts/${postId}`, { token: author.token });
     const media = (detail.body as { media?: { renditions?: Record<string, string> }[] }).media ?? [];
-    const key = media[0]?.renditions?.['original'];
-    expect(key).toBeTruthy();
+    const rendition = media[0]?.renditions?.['original'];
+    expect(rendition).toBeTruthy();
+
+    /**
+     * THE KEY, EXTRACTED - and this test did not do that until 006.
+     *
+     * `renditions.original` is a full URL, not a key. The previous version built
+     * `${s3Endpoint}/${bucket}/${rendition}`, nesting a URL inside a URL, and
+     * fetched something like
+     * `http://127.0.0.1:9000/sih-media/http://127.0.0.1:9000/sih-media/media/x.jpg`.
+     *
+     * That is nonsense and the object store errors on it whatever the bucket
+     * permits, so the assertion passed for a reason unrelated to the guarantee.
+     * It was noticed only when a bucket policy changed the error from 404 to 400
+     * and the test went red without anything about access having changed.
+     *
+     * Any query string goes too: a presigned URL carries its authorisation
+     * there, and the request a hostile client makes has none.
+     */
+    const url = new URL(rendition!);
+    const key = url.pathname.replace(`/${e2eEnv.bucket}/`, '');
+    expect(key).not.toContain('://');
+    expect(key.length).toBeGreaterThan(0);
 
     // Straight at the object store, no signature, no session. This is the request
     // a hostile client makes once it has guessed or scraped a key.

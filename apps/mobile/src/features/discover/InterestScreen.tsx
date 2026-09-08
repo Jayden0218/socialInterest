@@ -1,7 +1,8 @@
 import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
 import type { Interest, InterestRef, Post } from '@sih/shared';
-import { theme } from '../../ui/theme';
+import { activePalette as palette, radius, space, textStyle } from '../../ui/theme';
 import { Screen } from '../../ui/primitives';
+import { interestColour } from '../../ui/interest-colour';
 import { PagedPostList, type PagedState } from '../../components/PagedPostList';
 import { FollowInterestControl } from './FollowInterestControl';
 
@@ -77,11 +78,40 @@ export function InterestScreen({
 
   return (
     <Screen testID="interest-screen">
-      <View style={{ gap: theme.space.sm }}>
-        <Text style={{ fontSize: theme.font.xl, fontWeight: '700', color: theme.color.text }}>
+      <View style={{ gap: space.sm }}>
+        {/*
+          006/FR-013. THE INTEREST'S OWN COLOUR, in the screen's own chrome.
+
+          This is the product's premise made visible: every interest space looked
+          identical, so the thing the whole app is organised around had no
+          presence at all. A rule in the interest's derived colour is enough to
+          tell two spaces apart at a glance (SC-003) without competing with the
+          content below it.
+
+          G1: this treatment belongs to INTERESTS ONLY. A place and a person must
+          never carry it - following a place deliberately does not put its posts
+          in your feed (004/FR-019), and a shared visual language would say it
+          does. `interest-treatment.test.ts` fails if it spreads.
+        */}
+        <View
+          testID="interest-identity"
+          style={{
+            height: 4,
+            width: 56,
+            borderRadius: radius.pill,
+            backgroundColor: interestColour(
+              {
+                interestId: data.interest.interestId,
+                parentId: data.interest.parentId ?? null,
+              },
+              palette,
+            ),
+          }}
+        />
+        <Text style={{ ...textStyle.display, fontWeight: '700', color: palette.text.primary }}>
           {data.interest.name}
         </Text>
-        <Text testID="interest-counts" style={{ fontSize: theme.font.sm, color: theme.color.muted }}>
+        <Text testID="interest-counts" style={{ ...textStyle.caption, color: palette.text.muted }}>
           {data.interest.postCount} posts · {data.interest.followerCount} followers
         </Text>
 
@@ -91,13 +121,13 @@ export function InterestScreen({
           CALLED and nothing about what it is FOR.
         */}
         {data.interest.description ? (
-          <View style={{ gap: theme.space.xs }}>
-            <Text testID="interest-description" style={{ fontSize: theme.font.md, color: theme.color.text }}>
+          <View style={{ gap: space.xs }}>
+            <Text testID="interest-description" style={{ ...textStyle.body, color: palette.text.primary }}>
               {data.interest.description}
             </Text>
             {onReportDescription ? (
               <Pressable testID="report-description" onPress={onReportDescription}>
-                <Text style={{ fontSize: theme.font.sm, color: theme.color.muted }}>Report this description</Text>
+                <Text style={{ ...textStyle.caption, color: palette.text.muted }}>Report this description</Text>
               </Pressable>
             ) : null}
           </View>
@@ -110,28 +140,28 @@ export function InterestScreen({
       </View>
 
       {data.subInterests && data.subInterests.length > 0 ? (
-        <View testID="sub-interest-list" style={{ gap: theme.space.sm }}>
-          <Text style={{ fontSize: theme.font.sm, color: theme.color.muted }}>Within {data.interest.name}</Text>
+        <View testID="sub-interest-list" style={{ gap: space.sm }}>
+          <Text style={{ ...textStyle.caption, color: palette.text.muted }}>Within {data.interest.name}</Text>
           <FlatList
             horizontal
             data={data.subInterests}
             keyExtractor={(i) => i.interestId}
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: theme.space.sm }}
+            contentContainerStyle={{ gap: space.sm }}
             renderItem={({ item, index }) => (
               <Pressable
                 testID={`sub-interest-${index}`}
                 accessibilityRole="button"
                 onPress={() => onOpenSubInterest(item.interestId)}
                 style={{
-                  paddingVertical: theme.space.sm,
-                  paddingHorizontal: theme.space.md,
-                  borderRadius: theme.radius.pill,
+                  paddingVertical: space.sm,
+                  paddingHorizontal: space.md,
+                  borderRadius: radius.pill,
                   borderWidth: 1,
-                  borderColor: theme.color.border,
+                  borderColor: palette.line.hairline,
                 }}
               >
-                <Text style={{ fontSize: theme.font.sm, color: theme.color.text }}>{item.name}</Text>
+                <Text style={{ ...textStyle.caption, color: palette.text.primary }}>{item.name}</Text>
               </Pressable>
             )}
           />
@@ -139,7 +169,7 @@ export function InterestScreen({
       ) : null}
 
       {caption ? (
-        <Text testID="rollup-caption" style={{ fontSize: theme.font.sm, color: theme.color.muted }}>
+        <Text testID="rollup-caption" style={{ ...textStyle.caption, color: palette.text.muted }}>
           {caption}
         </Text>
       ) : null}
@@ -147,28 +177,28 @@ export function InterestScreen({
       {/* 004/FR-027 to FR-029. Order and search sit directly above the list
           they act on, so it is obvious which set they are changing. */}
       {onOrderChange || onQueryChange ? (
-        <View testID="interest-controls" style={{ gap: theme.space.sm }}>
+        <View testID="interest-controls" style={{ gap: space.sm }}>
           {onQueryChange ? (
             <TextInput
               testID="in-interest-search"
               accessibilityLabel={`Search within ${data.interest.name}`}
               placeholder={`Search within ${data.interest.name}`}
-              placeholderTextColor={theme.color.muted}
+              placeholderTextColor={palette.text.muted}
               value={query ?? ''}
               onChangeText={onQueryChange}
               autoCorrect={false}
               style={{
                 borderWidth: 1,
-                borderColor: theme.color.border,
-                borderRadius: theme.radius.md,
-                padding: theme.space.sm,
-                fontSize: theme.font.md,
-                color: theme.color.text,
+                borderColor: palette.line.hairline,
+                borderRadius: radius.md,
+                padding: space.sm,
+                ...textStyle.body,
+                color: palette.text.primary,
               }}
             />
           ) : null}
           {onOrderChange ? (
-            <View style={{ flexDirection: 'row', gap: theme.space.sm }}>
+            <View style={{ flexDirection: 'row', gap: space.sm }}>
               {ORDERS.map((o) => (
                 <Pressable
                   key={o.key}
@@ -176,17 +206,17 @@ export function InterestScreen({
                   accessibilityRole="button"
                   onPress={() => onOrderChange(o.key)}
                   style={{
-                    paddingVertical: theme.space.xs,
-                    paddingHorizontal: theme.space.md,
-                    borderRadius: theme.radius.pill,
+                    paddingVertical: space.xs,
+                    paddingHorizontal: space.md,
+                    borderRadius: radius.pill,
                     borderWidth: 1,
-                    borderColor: (order ?? 'new') === o.key ? theme.color.accent : theme.color.border,
+                    borderColor: (order ?? 'new') === o.key ? palette.intent.accent : palette.line.hairline,
                   }}
                 >
                   <Text
                     style={{
-                      fontSize: theme.font.sm,
-                      color: (order ?? 'new') === o.key ? theme.color.accent : theme.color.muted,
+                      ...textStyle.caption,
+                      color: (order ?? 'new') === o.key ? palette.intent.accent : palette.text.muted,
                     }}
                   >
                     {o.label}

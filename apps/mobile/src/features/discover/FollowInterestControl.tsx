@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native';
 import type { Interest } from '@sih/shared';
-import { theme } from '../../ui/theme';
+import { activePalette as palette, space, textStyle } from '../../ui/theme';
 import { Button } from '../../ui/primitives';
 
 /** Mirrors MAX_FOLLOWED_INTERESTS on the server (research D1). */
@@ -38,7 +38,7 @@ export function FollowInterestControl({
   const limit = limitMessage(followedCount);
 
   return (
-    <View testID="follow-interest-control" style={{ gap: theme.space.xs }}>
+    <View testID="follow-interest-control" style={{ gap: space.xs }}>
       <Button
         testID="follow-toggle"
         label={state === 'following' ? 'Following' : 'Follow'}
@@ -47,7 +47,7 @@ export function FollowInterestControl({
         onPress={() => onToggle(state !== 'following')}
       />
       {state === 'at_limit' && limit ? (
-        <Text testID="follow-limit" style={{ fontSize: theme.font.sm, color: theme.color.muted }}>
+        <Text testID="follow-limit" style={{ ...textStyle.caption, color: palette.text.muted }}>
           {limit}
         </Text>
       ) : null}

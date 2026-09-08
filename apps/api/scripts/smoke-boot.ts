@@ -15,7 +15,15 @@ import { AppModule } from '../src/app.module';
 import { ProblemFilter } from '../src/common/errors/problem.filter';
 
 async function main(): Promise<void> {
-  const app = await NestFactory.create(AppModule, { logger: false });
+  /**
+   * `abortOnError: false` matters more than it looks. By default Nest handles a
+   * bootstrap error ITSELF - it logs the cause through the logger and calls
+   * `process.exit(1)` - and `logger: false` turns that log off, so a missing
+   * LOCAL_JWT_SECRET exited non-zero having printed NOTHING AT ALL. A catch
+   * around this call does not help: the process is gone before the promise
+   * settles. Verified by running it both ways.
+   */
+  const app = await NestFactory.create(AppModule, { logger: false, abortOnError: false });
   app.setGlobalPrefix('v1');
   app.useGlobalFilters(new ProblemFilter());
   await app.listen(0);
@@ -63,4 +71,15 @@ async function main(): Promise<void> {
   if (failed) process.exit(1);
 }
 
-void main();
+/**
+ * `logger: false` silences Nest's own bootstrap handler, which logs the cause
+ * and then calls `process.exit(1)` itself - so a configuration error (a missing
+ * LOCAL_JWT_SECRET, say) exits non-zero having printed NOTHING AT ALL. That is
+ * the most expensive failure shape this project knows: invisible, and therefore
+ * guessed at. Print the cause before the exit code is all anybody gets.
+ */
+void main().catch((err: unknown) => {
+  console.error('\nsmoke:boot failed before any route was checked:\n');
+  console.error(err);
+  process.exit(1);
+});

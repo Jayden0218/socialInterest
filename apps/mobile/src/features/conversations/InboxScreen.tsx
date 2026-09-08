@@ -1,10 +1,10 @@
 import { FlatList, Text, View } from 'react-native';
 import type { ConversationState, ConversationSummary } from '@sih/shared';
-import { theme } from '../../ui/theme';
+import { activePalette as palette, space } from '../../ui/theme';
 import { Button, EmptyState, Row, Screen } from '../../ui/primitives';
 import { conversationSlug, conversationTitle, isGroup } from './conversation-title';
 
-const titleStyle = { color: theme.color.text, fontWeight: '600' } as const;
+const titleStyle = { color: palette.text.primary, fontWeight: '600' } as const;
 
 export const INBOXES: { key: ConversationState; label: string }[] = [
   { key: 'accepted', label: 'Messages' },
@@ -45,7 +45,7 @@ export function InboxScreen({
   const empty = emptyInboxCopy(state);
   return (
     <Screen testID="inbox-screen">
-      <Row style={{ gap: theme.space.sm, padding: theme.space.sm }}>
+      <Row style={{ gap: space.sm, padding: space.sm }}>
         {INBOXES.map((i) => (
           <Button
             key={i.key}
@@ -70,12 +70,12 @@ export function InboxScreen({
             <View
               testID={`conversation-${item.conversationId}`}
               style={{
-                padding: theme.space.sm,
+                padding: space.sm,
                 borderBottomWidth: 1,
-                borderBottomColor: theme.color.border,
+                borderBottomColor: palette.line.hairline,
               }}
             >
-              <Row style={{ alignItems: 'center', gap: theme.space.sm }}>
+              <Row style={{ alignItems: 'center', gap: space.sm }}>
                 <View style={{ flex: 1 }}>
                   {/*
                     005/FR-024. A group row is found by WHO OR WHAT IT IS.
@@ -101,12 +101,12 @@ export function InboxScreen({
                       {conversationTitle(item)}
                     </Text>
                   )}
-                  <Text numberOfLines={1} style={{ color: theme.color.muted }}>
+                  <Text numberOfLines={1} style={{ color: palette.text.muted }}>
                     {item.lastMessagePreview ?? 'No messages yet'}
                   </Text>
                 </View>
                 {item.unreadCount > 0 ? (
-                  <Text testID={`unread-${item.conversationId}`} style={{ color: theme.color.text }}>
+                  <Text testID={`unread-${item.conversationId}`} style={{ color: palette.text.primary }}>
                     {item.unreadCount}
                   </Text>
                 ) : null}

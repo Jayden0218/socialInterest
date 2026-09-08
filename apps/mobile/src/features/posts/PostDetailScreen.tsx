@@ -1,6 +1,6 @@
 import { Image, Pressable, Text, View } from 'react-native';
 import type { MediaItem, Post } from '@sih/shared';
-import { theme } from '../../ui/theme';
+import { activePalette as palette, radius, space, textStyle } from '../../ui/theme';
 import { Banner, Screen } from '../../ui/primitives';
 
 /**
@@ -43,26 +43,26 @@ export function PostDetailScreen({
       {notice ? <Banner tone="info" testID="processing-notice">{notice}</Banner> : null}
 
       {first ? (
-        <View testID="post-media" style={{ aspectRatio: 1, borderRadius: theme.radius.md, overflow: 'hidden' }}>
+        <View testID="post-media" style={{ aspectRatio: 1, borderRadius: radius.md, overflow: 'hidden' }}>
           <Image
             testID={isPlayable(post) ? 'video-poster' : 'post-image'}
             // Poster frame first for video (FR-009), never an empty box.
             source={{ uri: posterFor(first) ?? Object.values(first.renditions ?? {})[0] ?? '' }}
-            style={{ flex: 1, backgroundColor: theme.color.surface }}
+            style={{ flex: 1, backgroundColor: palette.bg.raised }}
             accessibilityIgnoresInvertColors
           />
         </View>
       ) : null}
 
       {post.caption ? (
-        <Text testID="post-caption" style={{ fontSize: theme.font.md, color: theme.color.text }}>
+        <Text testID="post-caption" style={{ ...textStyle.body, color: palette.text.primary }}>
           {post.caption}
         </Text>
       ) : null}
 
-      <View testID="post-interests" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.space.sm }}>
+      <View testID="post-interests" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
         {post.interests.map((i) => (
-          <Text key={i.interestId} style={{ fontSize: theme.font.sm, color: theme.color.accent }}>
+          <Text key={i.interestId} style={{ ...textStyle.caption, color: palette.intent.accent }}>
             {i.parent ? `${i.name} · ${i.parent.name}` : i.name}
           </Text>
         ))}
@@ -76,7 +76,7 @@ export function PostDetailScreen({
       */}
       {post.place && onOpenPlace ? (
         <Pressable testID="post-place" onPress={() => onOpenPlace(post.place!.placeId)}>
-          <Text style={{ fontSize: theme.font.sm, color: theme.color.accent }}>
+          <Text style={{ ...textStyle.caption, color: palette.intent.accent }}>
             {`${post.place.name} · ${post.place.locality}`}
           </Text>
         </Pressable>

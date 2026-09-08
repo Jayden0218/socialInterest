@@ -205,9 +205,13 @@ same execution as the first observation — a local run of
 **make it visible before changing anything**, and prefer the free observation to
 the expensive guess.
 
-**The app runs on Android and ALL SEVENTEEN journeys pass** - run 29, 2026-09-07,
-`17/17`, every flow on its first attempt. Record:
-`docs/verification/runs/2026-09-07-android-device-pass-17-of-17.md`, and see
+**The app runs on Android and ALL NINETEEN journeys pass** - run 37, 2026-09-08,
+`19/19`, every flow on its first attempt, on the redesigned UI. Record:
+`docs/verification/runs/2026-09-08-feature-006-record.md`.
+
+Earlier milestones, kept because each records something the next one assumes:
+run 34 (`19/19`, 005), run 29 (`17/17`, 004) -
+`docs/verification/runs/2026-09-07-android-device-pass-17-of-17.md` - and see
 "What the Android runs added" below for the four findings that got there.
 
 The ten-journey run below is the earlier milestone. Run 25, 2026-09-06:
@@ -297,6 +301,156 @@ so GitHub-hosted standard runners are free on it, and CI runs 169-176 plus emula
 on this repository does not spend - so dispatching the emulator job is not the owner's
 call any more. Check the facts before repeating either claim; both halves of this one
 expired within a day.
+
+## What spec 006 built and established (2026-09-08)
+
+`specs/006-ui-redesign/` is the UI redesign: a dark green brand, a full design
+system, and a shared post card. Three stories, 29 FRs, 9 SCs, 48 tasks.
+
+**Established:**
+
+- **THE APP COULD NOT FETCH ITS OWN MEDIA. Not on any surface, not in any
+  client, and it never could.** `MinioObjectStore.publicUrl` returned an
+  UNSIGNED url for a PRIVATE bucket, so every `<img>` got 403. Nothing noticed
+  for five features because nothing had ever put an image on a browse surface -
+  the device flows assert API calls rather than pixels, and `PostDetailScreen`'s
+  `Image` was never looked at. `PostCard` was the first thing to render one, and
+  the frame came up empty. Fixed by **presigned GET urls** (R4b), issued inside
+  `PostQueryService.toMediaItem`, which runs only AFTER `VisibilityFilter` has
+  decided this viewer may see this post. 15 minutes, signed against the PUBLIC
+  endpoint because a signature covers the host.
+- **Interest colour is derived, in OKLCH, and legibility is true by
+  construction.** A hue comes from an FNV-1a hash of the interest id (a
+  sub-interest borrows its parent's, so a family reads as a family); OKLCH is
+  perceptually uniform in lightness, so fixing L fixes contrast for every hue at
+  once. The contrast test enumerates the WHOLE generated space - all 720
+  colours, both palettes - rather than sampling. Out-of-gamut colours are fitted
+  by REDUCING CHROMA, never by clamping channels, which shifts hue.
+- **Deleting a shim is a stronger guard than testing for it.** The
+  `theme.color.*` / `theme.font.*` alias layer existed so ~40 screens could turn
+  dark green in one diff. Once every call site moved, it was deleted rather than
+  left exported: a name that does not exist is a typecheck failure the moment
+  somebody writes it again.
+- **`theme.font.X` carried a SIZE AND NOTHING ELSE**, so every screen outside
+  `ui/` rendered with the platform's default line height and the type scale's
+  `lineHeight` was dead data everywhere except `primitives.tsx`. FR-018 asks for
+  roles; the app was using a quarter of one. That is why the migration was worth
+  finishing rather than deferring a third time - it was never only a rename.
+- **G1: the interest treatment belongs to interests ONLY**, enforced by
+  `interest-treatment.test.ts`. A place or a person carrying it would say that
+  following them widens your feed, and following a place deliberately does not
+  (004/FR-019). Principle I, in the visual language.
+
+### Guards that passed for the wrong reason, and a cause I asserted wrongly
+
+- **`N-04` had never tested the guarantee it names.** It builds
+  `${s3Endpoint}/${bucket}/${rendition}` while `rendition` is ALREADY A FULL
+  URL - a url nested inside a url, which errors whatever the bucket permits. I
+  reported that opening the bucket "made private media readable and broke
+  N-04"; the second half was wrong and I had not read the failure, which went
+  404 → **400**, not to a successful fetch. Reverting the open bucket was still
+  right, for a reason I had not given. N-04 now extracts the key.
+- **`text-has-colour` could not see an arrow function**, and
+  `no-hardcoded-style` was scoped to `features/` - so `#d97706` sat in
+  `primitives.tsx`, the file that exists to stop exactly that. The definition
+  layer is the one place a value-drift guard cannot look. Found by reading.
+- **My own safety/empty-state test invented its hint values** (`'no-follows'`,
+  `null`) where the product says `no_followed_interests` / `no_posts_yet`. It
+  failed for its own reason, not the product's, which is the same shape as a
+  guard that reads its own prose.
+
+### Two defects a screenshot found that no test could
+
+- **Every `<Text>` must choose a colour.** RN's `Text` inherits black. Under the
+  old white theme that was invisible luck; against dark green it is near-black
+  on near-black, and the post caption in every list did exactly that. The
+  contrast test checks that TOKENS are legible against each other - a token
+  nobody applies is a colour nobody sees.
+- **Two palettes at once.** `useTheme()` followed `useColorScheme()` while
+  everything else read a fixed dark palette, so the first `PostCard` capture
+  showed WHITE CARDS INSIDE DARK GREEN CHROME. Not "dark mode is broken" - two
+  sources of truth. `useTheme()` now returns `activePalette` and **does not
+  follow the platform**, which is a stated limit: screens read the palette at
+  module scope, and a style object built at import time cannot call a hook, so
+  a real light mode needs every screen to build styles inside the component.
+  FR-017 is met (both palettes exist and pass contrast); a working light mode
+  is NOT claimed.
+
+### A device-only defect, found by reading for what a device does differently
+
+`Avatar` draws a letter sized from a fixed-diameter disc, so platform font
+scaling grew the letter and not the circle and the initial spilled out of it.
+react-native-web ignores the platform font setting, so no browser journey and no
+screenshot in `docs/screens` could ever have shown it. `allowFontScaling={false}`
+on that one glyph - correct rather than expedient, because the letter is
+decorative, hidden from assistive tech, and stands beside a name that scales
+normally. Guarded, because switching font scaling off is the easiest fix for any
+text that overflows its box: a second opt-out fails the build, and the guard
+also asserts Avatar still carries the one exception it allows, so deleting the
+prop cannot make it pass for the wrong reason.
+
+### 006 RUNS ON ANDROID: 19/19, run 37, 2026-09-08
+
+Record: `docs/verification/runs/2026-09-08-feature-006-record.md`. Every flow on
+its first attempt, no device drop, no retry. Asserted through the SERVICE:
+`POST /v1/reports` **201** (the line that matters - it is absent from runs 35 and
+36), 9x `POST /v1/posts` 201, `PUT /v1/places/:placeId/rating` 200, and the whole
+group lifecycle.
+
+**It took three runs, and the middle one was mine.**
+
+**Run 35, 18/19.** `09-report-and-block` failed on `block-person is visible`, and
+it was a real defect: **`Screen` was a plain `View` and never scrolled**, so the
+safety sheet's content was not below the fold, it was UNREACHABLE. The thing out
+of reach was BLOCK THIS PERSON, a Constitution IV release gate.
+
+Measured rather than reasoned about, by `apps/e2e/browser/safety-fit.spec.ts`
+rendering the sheet at the device's viewport:
+
+| line metrics | block-person bottom | on a 640px screen |
+|---|---|---|
+| current | 665px | off screen |
+| pre-006 | 627px | **inside by THIRTEEN PIXELS** |
+
+006 made it worse and did not cause it. The type scale added ~38px; a longer
+warning sentence, a larger platform font or a shorter phone would each have done
+it alone. The screen was always one edit from hiding a safety control.
+
+**Run 36, 1/19 - AND THAT ONE WAS MINE.** Having measured ONE screen, I set
+`scroll` on all eight that render a `Screen` without a list, on a "same class of
+defect" argument. `SignInScreen` became a `ScrollView`, sign-in stopped working,
+and every flow chaining `01-sign-in` failed.
+
+**How it was diagnosed matters more than the fix.** "Sign-in broke" is not
+evidence. The whole-run API aggregate is: `GET /v1/me` 200 **three times**, all
+host-side fixtures and none from the device, against 54 in run 35, with
+`GET /v1/feed/home` 401 twenty times - the app was signed out the whole run. The
+end-of-run screen dump still showed `sign-in-screen` with the token field holding
+content, so the button was enabled and the tap simply did not take. **That
+aggregate table is the single most useful artifact in these runs; read it before
+forming a theory.**
+
+Two ScrollView mechanisms fit: `keyboardShouldPersistTaps` defaults to `never`,
+so a tap while the keyboard is up is spent dismissing it; and a keyboard-resized
+scroll viewport leaves the submit button below the fold where a plain `View`
+would have moved it above. **Neither is reproducible in a browser - there is no
+soft keyboard** - so the other seven screens were REVERTED rather than fixed on
+an untestable theory. They are not "safe", they are UNMEASURED, which is a
+different claim. `keyboardShouldPersistTaps="handled"` is set because it is
+correct under either mechanism.
+
+**The lesson is not "test more".** A rule inferred from a single measurement and
+applied to seven unmeasured cases is a guess wearing the clothes of a principle.
+It cost a 27-minute run and took the product from 18/19 to 1/19. The guard
+(`screen-scrolls.test.ts`) now covers only the case with a measurement behind it,
+and `safety-fit.spec.ts` is the harness for measuring any other screen BEFORE it
+turns `scroll` on.
+
+**And a guard that passes is not a guard until you have watched it fail.** The
+first version of `safety-fit.spec.ts` used `scrollIntoViewIfNeeded` and passed
+with the defect still in place: Playwright scrolls the DOCUMENT, and a browser
+page scrolls where a React Native screen does not. It walks the ancestors for a
+container the APP scrolls now, verified red with the fix reverted.
 
 ## What spec 005 built and established (2026-09-07)
 

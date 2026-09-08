@@ -1,6 +1,6 @@
 import { Pressable, Text, View } from 'react-native';
 import type { Visibility } from '@sih/shared';
-import { theme } from '../../ui/theme';
+import { activePalette as palette, radius, space, textStyle, touchTarget, type } from '../../ui/theme';
 
 export interface VisibilityControlProps {
   value: Visibility;
@@ -18,9 +18,9 @@ export const VISIBILITY_OPTIONS: { value: Visibility; label: string; hint: strin
 
 export function VisibilityControl({ value, onChange }: VisibilityControlProps) {
   return (
-    <View testID="visibility-control" style={{ gap: theme.space.sm }}>
-      <Text style={{ fontSize: theme.font.sm, color: theme.color.muted }}>Who can see this</Text>
-      <View style={{ flexDirection: 'row', gap: theme.space.sm }}>
+    <View testID="visibility-control" style={{ gap: space.sm }}>
+      <Text style={{ ...textStyle.caption, color: palette.text.muted }}>Who can see this</Text>
+      <View style={{ flexDirection: 'row', gap: space.sm }}>
         {VISIBILITY_OPTIONS.map((option) => {
           const selected = option.value === value;
           return (
@@ -32,15 +32,16 @@ export function VisibilityControl({ value, onChange }: VisibilityControlProps) {
               accessibilityHint={option.hint}
               onPress={() => onChange(option.value)}
               style={{
-                paddingVertical: theme.space.sm,
-                paddingHorizontal: theme.space.md,
-                borderRadius: theme.radius.pill,
+                ...touchTarget,
+                paddingVertical: space.sm,
+                paddingHorizontal: space.md,
+                borderRadius: radius.pill,
                 borderWidth: 1,
-                borderColor: selected ? theme.color.accent : theme.color.border,
-                backgroundColor: selected ? theme.color.accent : theme.color.bg,
+                borderColor: selected ? palette.intent.accent : palette.line.hairline,
+                backgroundColor: selected ? palette.intent.accent : palette.bg.base,
               }}
             >
-              <Text style={{ color: selected ? theme.color.onAccent : theme.color.text, fontSize: theme.font.sm }}>
+              <Text style={{ color: selected ? palette.text.onAccent : palette.text.primary, fontSize: type.caption.size }}>
                 {option.label}
               </Text>
             </Pressable>
@@ -49,7 +50,7 @@ export function VisibilityControl({ value, onChange }: VisibilityControlProps) {
       </View>
       {/* The hint is always shown, so the consequence of the choice is visible
           before publishing rather than discovered afterwards. */}
-      <Text style={{ fontSize: theme.font.sm, color: theme.color.muted }}>
+      <Text style={{ ...textStyle.caption, color: palette.text.muted }}>
         {VISIBILITY_OPTIONS.find((o) => o.value === value)?.hint}
       </Text>
     </View>

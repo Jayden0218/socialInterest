@@ -1,6 +1,7 @@
-import { ActivityIndicator, FlatList, Text, View } from 'react-native';
-import { theme } from '../ui/theme';
+import { FlatList, Text, View } from 'react-native';
+import { activePalette as palette, space, type } from '../ui/theme';
 import { EmptyState } from '../ui/primitives';
+import { Skeleton } from './Skeleton';
 
 export interface Page<T> {
   items: T[];
@@ -77,14 +78,26 @@ export function PagedPostList<T>({ state, keyOf, renderItem, onLoadMore, empty }
       onEndReached={() => {
         if (shouldLoadMore(state)) onLoadMore();
       }}
-      contentContainerStyle={{ gap: theme.space.md }}
+      contentContainerStyle={{ gap: space.md }}
       ListFooterComponent={
         state.loading ? (
-          <View testID="paged-loading" style={{ padding: theme.space.lg }}>
-            <ActivityIndicator />
+          /**
+           * 006/FR-023. A SKELETON IN THE SHAPE OF WHAT IS COMING, not a spinner.
+           *
+           * A spinner says something is happening and nothing about what. Two
+           * card-shaped placeholders say "two more posts are arriving" and hold
+           * roughly the space they will need, so the scroll position does not
+           * lurch when they land.
+           *
+           * `paged-loading` keeps its testID and its meaning - the contract in
+           * contracts/testid-preservation.md is about the id AND what it marks.
+           */
+          <View testID="paged-loading" style={{ gap: space.md, paddingVertical: space.md }}>
+            <Skeleton style={{ height: 220 }} />
+            <Skeleton style={{ height: 220 }} />
           </View>
         ) : state.exhausted && state.items.length > 0 ? (
-          <Text testID="paged-end" style={{ textAlign: 'center', color: theme.color.muted, fontSize: theme.font.sm }}>
+          <Text testID="paged-end" style={{ textAlign: 'center', color: palette.text.muted, fontSize: type.caption.size }}>
             You're all caught up
           </Text>
         ) : null

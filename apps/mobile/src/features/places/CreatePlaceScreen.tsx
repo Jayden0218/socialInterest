@@ -1,6 +1,6 @@
 import { Text, TextInput, View } from 'react-native';
 import type { PlaceCategory, PlaceSummary } from '@sih/shared';
-import { theme } from '../../ui/theme';
+import { activePalette as palette, space, textStyle } from '../../ui/theme';
 import { Banner, Button, Row, Screen } from '../../ui/primitives';
 
 export const PLACE_CATEGORIES: { value: PlaceCategory; label: string }[] = [
@@ -43,20 +43,20 @@ export function CreatePlaceScreen({
 }) {
   const input = {
     borderWidth: 1,
-    borderColor: theme.color.border,
+    borderColor: palette.line.hairline,
     borderRadius: 8,
-    color: theme.color.text,
-    padding: theme.space.sm,
+    color: palette.text.primary,
+    padding: space.sm,
   };
 
   return (
     <Screen testID="create-place-screen">
-      <View style={{ padding: theme.space.sm, gap: theme.space.sm }}>
+      <View style={{ padding: space.sm, gap: space.sm }}>
         <TextInput
           testID="place-name-input"
           style={input}
           placeholder="Name"
-          placeholderTextColor={theme.color.muted}
+          placeholderTextColor={palette.text.muted}
           value={name}
           onChangeText={(next) => onChange({ name: next })}
         />
@@ -64,7 +64,7 @@ export function CreatePlaceScreen({
           testID="place-locality-field"
           style={input}
           placeholder="City or area"
-          placeholderTextColor={theme.color.muted}
+          placeholderTextColor={palette.text.muted}
           value={locality}
           onChangeText={(next) => onChange({ locality: next })}
         />
@@ -72,13 +72,13 @@ export function CreatePlaceScreen({
           testID="place-address-input"
           style={input}
           placeholder="Address (optional)"
-          placeholderTextColor={theme.color.muted}
+          placeholderTextColor={palette.text.muted}
           value={address}
           onChangeText={(next) => onChange({ address: next })}
         />
 
-        <Text style={{ fontSize: theme.font.sm, color: theme.color.muted }}>Category</Text>
-        <View style={{ gap: theme.space.xs }}>
+        <Text style={{ ...textStyle.caption, color: palette.text.muted }}>Category</Text>
+        <View style={{ gap: space.xs }}>
           {PLACE_CATEGORIES.map((c) => (
             <Button
               key={c.value}
@@ -91,7 +91,7 @@ export function CreatePlaceScreen({
         </View>
 
         {existing ? (
-          <View testID="place-already-exists" style={{ gap: theme.space.xs }}>
+          <View testID="place-already-exists" style={{ gap: space.xs }}>
             <Banner tone="warning" testID="place-duplicate-warning">
               {`${existing.name} already exists in ${existing.locality}.`}
             </Banner>

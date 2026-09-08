@@ -43,6 +43,17 @@ appId: app.socialinterest
 
 # The block affordance is reachable from the same sheet (FR-044). Asserted
 # here, while the sheet is open, because sending the report closes it.
+#
+# SCROLLED TO, because it is below the fold on a short screen and a person would
+# scroll too. Run 35 failed exactly here: the sheet was a non-scrolling View, so
+# `block-person` sat at 665px on a 640px screen and was not merely off-screen -
+# it was UNREACHABLE, a safety control (Constitution IV) with no way to get to
+# it. `Screen scroll` fixes that; this scrolls the way a person does.
+- scrollUntilVisible:
+    element:
+      id: "block-person"
+    direction: DOWN
+    timeout: 20000
 - assertVisible:
     id: "block-person"
 

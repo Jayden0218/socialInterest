@@ -1,6 +1,6 @@
 import { FlatList, Text, View } from 'react-native';
 import type { Notification } from '@sih/shared';
-import { theme } from '../../ui/theme';
+import { activePalette as palette, space, textStyle } from '../../ui/theme';
 import { EmptyState, Screen } from '../../ui/primitives';
 
 import type { NotificationPrefs } from '../../data/session';
@@ -76,13 +76,13 @@ export function NotificationsScreen({
         testID="notification-list"
         data={notifications}
         keyExtractor={(n) => n.notificationId}
-        contentContainerStyle={{ gap: theme.space.md }}
+        contentContainerStyle={{ gap: space.md }}
         renderItem={({ item, index }) => (
           <View testID={`notification-${index}`}>
             <Text
               accessibilityRole="button"
               onPress={() => onOpen(item)}
-              style={{ fontSize: theme.font.md, color: theme.color.text }}
+              style={{ ...textStyle.body, color: palette.text.primary }}
             >
               {describeNotification(item)}
             </Text>

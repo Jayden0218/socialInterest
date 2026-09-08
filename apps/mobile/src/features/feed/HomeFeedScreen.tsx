@@ -1,6 +1,6 @@
 import { Text } from 'react-native';
 import type { Post } from '@sih/shared';
-import { theme } from '../../ui/theme';
+import { activePalette as palette, textStyle } from '../../ui/theme';
 import { Screen } from '../../ui/primitives';
 import { PagedPostList, type PagedState } from '../../components/PagedPostList';
 
@@ -58,7 +58,7 @@ export function HomeFeedScreen({
 
   return (
     <Screen testID="home-feed-screen">
-      <Text style={{ fontSize: theme.font.xl, fontWeight: '700', color: theme.color.text }}>Your feed</Text>
+      <Text style={{ ...textStyle.display, fontWeight: '700', color: palette.text.primary }}>Your feed</Text>
       <PagedPostList
         state={state}
         keyOf={(p) => p.postId}

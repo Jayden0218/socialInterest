@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native';
 import type { Visibility } from '@sih/shared';
-import { theme } from '../../ui/theme';
+import { activePalette as palette, space, textStyle } from '../../ui/theme';
 import { Banner, Button } from '../../ui/primitives';
 
 /**
@@ -43,8 +43,8 @@ export function ShareAction({
   const warning = shareWarning(visibility);
 
   return (
-    <View testID="share-action" style={{ gap: theme.space.md }}>
-      <Text testID="share-url" numberOfLines={1} style={{ fontSize: theme.font.sm, color: theme.color.muted }}>
+    <View testID="share-action" style={{ gap: space.md }}>
+      <Text testID="share-url" numberOfLines={1} style={{ ...textStyle.caption, color: palette.text.muted }}>
         {url}
       </Text>
 
@@ -68,8 +68,8 @@ export function ShareAction({
         under it rather than replacing it.
       */}
       {onSendToConversation && conversations && conversations.length > 0 ? (
-        <View testID="share-to-conversations" style={{ gap: theme.space.xs }}>
-          <Text style={{ fontSize: theme.font.sm, color: theme.color.muted }}>Send to</Text>
+        <View testID="share-to-conversations" style={{ gap: space.xs }}>
+          <Text style={{ ...textStyle.caption, color: palette.text.muted }}>Send to</Text>
           {conversations.map((c) => (
             <Button
               key={c.conversationId}

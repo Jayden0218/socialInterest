@@ -1,5 +1,5 @@
-import { Pressable, Text, View, type ViewStyle } from 'react-native';
-import { theme } from './theme';
+import { Pressable, ScrollView, Text, View, type ViewStyle } from 'react-native';
+import { activePalette as palette, MIN_TOUCH_TARGET, radius, space, textStyle, type } from './theme';
 
 export function Button({
   label,
@@ -15,8 +15,8 @@ export function Button({
   testID?: string;
 }) {
   const bg =
-    variant === 'primary' ? theme.color.accent : variant === 'danger' ? theme.color.danger : theme.color.surface;
-  const fg = variant === 'secondary' ? theme.color.text : theme.color.onAccent;
+    variant === 'primary' ? palette.intent.accent : variant === 'danger' ? palette.intent.danger : palette.bg.raised;
+  const fg = variant === 'secondary' ? palette.text.primary : palette.text.onAccent;
   return (
     <Pressable
       testID={testID}
@@ -28,13 +28,30 @@ export function Button({
       style={{
         backgroundColor: bg,
         opacity: disabled ? 0.45 : 1,
-        paddingVertical: theme.space.md,
-        paddingHorizontal: theme.space.lg,
-        borderRadius: theme.radius.md,
+        paddingVertical: space.md,
+        paddingHorizontal: space.lg,
+        borderRadius: radius.md,
         alignItems: 'center',
+        /**
+         * 006/FR-020. An explicit floor, not padding that happens to add up.
+         *
+         * Padding plus a line height is ~46 today, which is a number that moves
+         * whenever the type scale does. A minimum states the requirement instead
+         * of coincidentally meeting it.
+         */
+        minHeight: MIN_TOUCH_TARGET,
+        justifyContent: 'center',
       }}
     >
-      <Text style={{ color: fg, fontSize: theme.font.md, fontWeight: '600' }}>{label}</Text>
+      <Text
+        style={{
+          color: fg,
+          ...textStyle.label,
+          fontWeight: type.label.weight,
+        }}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -48,8 +65,19 @@ export function Banner({
   children: string;
   testID?: string;
 }) {
+  /**
+   * 006/FR-016. `#d97706` used to be written here, in the file that exists to
+   * stop exactly that. It survived because the hard-coded-style guard is scoped
+   * to `features/` - which is right, since `ui/` is where values are DEFINED -
+   * and a literal hiding in the definition layer is the one place the guard
+   * cannot look. Found by reading, not by a test.
+   */
   const border =
-    tone === 'danger' ? theme.color.danger : tone === 'warning' ? '#d97706' : theme.color.border;
+    tone === 'danger'
+      ? palette.intent.danger
+      : tone === 'warning'
+        ? palette.intent.warning
+        : palette.line.strong;
   return (
     <View
       testID={testID}
@@ -57,12 +85,19 @@ export function Banner({
       style={{
         borderLeftWidth: 3,
         borderLeftColor: border,
-        backgroundColor: theme.color.surface,
-        padding: theme.space.md,
-        borderRadius: theme.radius.sm,
+        backgroundColor: palette.bg.raised,
+        padding: space.md,
+        borderRadius: radius.md,
       }}
     >
-      <Text style={{ color: theme.color.text, fontSize: theme.font.sm }}>{children}</Text>
+      <Text
+        style={{
+          color: palette.text.primary,
+          ...textStyle.body,
+        }}
+      >
+        {children}
+      </Text>
     </View>
   );
 }
@@ -81,9 +116,31 @@ export function EmptyState({
   testID?: string;
 }) {
   return (
-    <View testID={testID} style={{ padding: theme.space.xl, alignItems: 'center', gap: theme.space.md }}>
-      <Text style={{ fontSize: theme.font.lg, fontWeight: '600', color: theme.color.text }}>{title}</Text>
-      <Text style={{ fontSize: theme.font.md, color: theme.color.muted, textAlign: 'center' }}>{body}</Text>
+    <View testID={testID} style={{ padding: space.xl, alignItems: 'center', gap: space.md }}>
+      <Text
+        style={{
+          ...textStyle.title,
+          fontWeight: type.title.weight,
+          color: palette.text.primary,
+        }}
+      >
+        {title}
+      </Text>
+      {/*
+        `text.secondary`, not `muted`. An empty state's body is the sentence that
+        tells a person what to do next - 001/FR-036 gives each surface its own
+        wording for that reason - and setting it in the dimmest role available
+        makes the most useful line on the screen the hardest one to read.
+      */}
+      <Text
+        style={{
+          ...textStyle.body,
+          color: palette.text.secondary,
+          textAlign: 'center',
+        }}
+      >
+        {body}
+      </Text>
       {actionLabel ? <Button label={actionLabel} onPress={onAction} testID="empty-state-action" /> : null}
     </View>
   );
@@ -91,15 +148,76 @@ export function EmptyState({
 
 export function Row({ children, style }: { children: React.ReactNode; style?: ViewStyle }) {
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space.sm, ...style }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, ...style }}>
       {children}
     </View>
   );
 }
 
-export function Screen({ children, testID }: { children: React.ReactNode; testID?: string }) {
+/**
+ * 006/FR-020, and a defect a DEVICE found: `scroll`.
+ *
+ * `Screen` was a plain `View`, so anything taller than the display was simply
+ * unreachable - no scroll, no indication, the control just not there. Emulator
+ * run 35 failed `09-report-and-block` on `block-person is visible`, and the
+ * measurement (`browser/safety-fit.spec.ts`) puts that button's bottom edge at
+ * 665px on a 640px-tall screen.
+ *
+ * 006 made it worse and did not cause it. With pre-006 line metrics the same
+ * button measured 627 - inside 640 by THIRTEEN PIXELS. The type scale's line
+ * heights added ~38px and pushed it out; a longer block warning, a larger font
+ * setting or a shorter phone would each have done the same on their own.
+ *
+ * OFF BY DEFAULT, AND APPLIED ONLY WHERE THE OVERFLOW IS MEASURED. I turned it
+ * on for eight screens on a "same class of defect" argument having measured
+ * exactly one, and run 36 came back 1/19: `SignInScreen` became a `ScrollView`
+ * and sign-in stopped working, so every flow that chains it failed. The API log
+ * is unambiguous - `GET /v1/me` 200 three times (all host-side fixtures, none
+ * from the device) against 54 in run 35, and `/v1/feed/home` 401 twenty times.
+ * The app was signed out for the entire run.
+ *
+ * Two mechanisms fit and both are the ScrollView's: a tap while the soft
+ * keyboard is up is consumed to dismiss it rather than delivered to the button
+ * (`keyboardShouldPersistTaps` defaults to `never`), and a scroll viewport
+ * resized by the keyboard leaves the submit button below the fold where a plain
+ * `View` would have moved it. `handled` addresses the first. Neither can be
+ * reproduced in a browser, which has no soft keyboard - so the other seven
+ * screens are REVERTED rather than fixed on a theory, and stay unmeasured until
+ * something measures them.
+ *
+ * Also: a `ScrollView` around a `FlatList` breaks virtualisation, so a screen
+ * that owns a list must never set this.
+ */
+export function Screen({
+  children,
+  testID,
+  scroll = false,
+}: {
+  children: React.ReactNode;
+  testID?: string;
+  scroll?: boolean;
+}) {
+  const style = { backgroundColor: palette.bg.base, padding: space.lg, gap: space.lg };
+  if (scroll) {
+    return (
+      <ScrollView
+        testID={testID}
+        style={{ flex: 1, backgroundColor: palette.bg.base }}
+        // The gap and padding belong to the CONTENT, not the viewport: put them
+        // on the ScrollView itself and the last child is clipped by the padding
+        // instead of scrolled to.
+        contentContainerStyle={{ ...style, flexGrow: 1 }}
+        // Without this a tap landing while the soft keyboard is up is spent
+        // dismissing the keyboard instead of pressing what was tapped - the
+        // default is `never`, and it is how run 36 lost sign-in.
+        keyboardShouldPersistTaps="handled"
+      >
+        {children}
+      </ScrollView>
+    );
+  }
   return (
-    <View testID={testID} style={{ flex: 1, backgroundColor: theme.color.bg, padding: theme.space.lg, gap: theme.space.lg }}>
+    <View testID={testID} style={{ flex: 1, ...style }}>
       {children}
     </View>
   );

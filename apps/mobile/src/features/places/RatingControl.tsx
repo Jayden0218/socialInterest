@@ -1,6 +1,6 @@
 import { Pressable, Text, TextInput, View } from 'react-native';
 import type { PlaceRatingSummary } from '@sih/shared';
-import { theme } from '../../ui/theme';
+import { activePalette as palette, radius, space, textStyle } from '../../ui/theme';
 import { Button, Row } from '../../ui/primitives';
 
 const STARS = [1, 2, 3, 4, 5] as const;
@@ -32,7 +32,7 @@ export function RatingControl({
   onChangeBody: (body: string) => void;
 }) {
   return (
-    <View testID="rating-control" style={{ gap: theme.space.xs, padding: theme.space.sm }}>
+    <View testID="rating-control" style={{ gap: space.xs, padding: space.sm }}>
       {/*
         FR-005. "Not yet rated" is a DIFFERENT STATEMENT from a low score, and
         the API sends `average: null` rather than 0 to keep them different. A
@@ -41,7 +41,7 @@ export function RatingControl({
       */}
       <Text
         testID="rating-summary"
-        style={{ fontSize: theme.font.md, color: theme.color.text }}
+        style={{ ...textStyle.body, color: palette.text.primary }}
       >
         {summary.average === null
           ? 'Not yet rated'
@@ -50,7 +50,7 @@ export function RatingControl({
 
       {signedIn ? (
         <>
-          <Row style={{ gap: theme.space.xs, alignItems: 'center' }}>
+          <Row style={{ gap: space.xs, alignItems: 'center' }}>
             {STARS.map((n) => (
               <Pressable
                 key={n}
@@ -60,19 +60,19 @@ export function RatingControl({
                 accessibilityState={{ selected: viewerRating === n }}
                 disabled={saving === true}
                 onPress={() => onRate(n)}
-                style={{ padding: theme.space.xs }}
+                style={{ padding: space.xs }}
               >
                 <Text
                   style={{
-                    fontSize: theme.font.lg,
+                    ...textStyle.title,
                     // The viewer's own rating fills up to the star they chose,
                     // so the control opens in the state they left it (FR-002) -
                     // rather than empty, which invites a second rating that
                     // silently replaces the first.
                     color:
                       viewerRating !== null && n <= viewerRating
-                        ? theme.color.text
-                        : theme.color.muted,
+                        ? palette.text.primary
+                        : palette.text.muted,
                   }}
                 >
                   {viewerRating !== null && n <= viewerRating ? '★' : '☆'}
@@ -97,19 +97,19 @@ export function RatingControl({
             testID="review-body-input"
             accessibilityLabel="Your review"
             placeholder="Say more (optional)"
-            placeholderTextColor={theme.color.muted}
+            placeholderTextColor={palette.text.muted}
             value={body}
             onChangeText={onChangeBody}
             multiline
             maxLength={2000}
             style={{
               borderWidth: 1,
-              borderColor: theme.color.border,
-              borderRadius: theme.radius.md,
-              padding: theme.space.sm,
+              borderColor: palette.line.hairline,
+              borderRadius: radius.md,
+              padding: space.sm,
               minHeight: 56,
-              fontSize: theme.font.md,
-              color: theme.color.text,
+              ...textStyle.body,
+              color: palette.text.primary,
             }}
           />
           <Button
@@ -122,7 +122,7 @@ export function RatingControl({
           />
         </>
       ) : (
-        <Text testID="rating-signed-out" style={{ fontSize: theme.font.sm, color: theme.color.muted }}>
+        <Text testID="rating-signed-out" style={{ ...textStyle.caption, color: palette.text.muted }}>
           Sign in to rate this place.
         </Text>
       )}

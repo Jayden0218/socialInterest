@@ -1,5 +1,5 @@
 import { FlatList, Image, Pressable, Text, View } from 'react-native';
-import { theme } from '../../ui/theme';
+import { activePalette as palette, radius, space, textStyle } from '../../ui/theme';
 import { Banner, Button, Screen } from '../../ui/primitives';
 import { MEDIA_LIMITS_HINT } from './limits';
 
@@ -47,8 +47,8 @@ export function MediaPickerScreen({
 
   return (
     <Screen testID="media-picker-screen">
-      <Text style={{ fontSize: theme.font.xl, fontWeight: '700', color: theme.color.text }}>Choose media</Text>
-      <Text style={{ fontSize: theme.font.sm, color: theme.color.muted }}>{MEDIA_LIMITS_HINT}</Text>
+      <Text style={{ ...textStyle.display, fontWeight: '700', color: palette.text.primary }}>Choose media</Text>
+      <Text style={{ ...textStyle.caption, color: palette.text.muted }}>{MEDIA_LIMITS_HINT}</Text>
 
       {/*
         FR-012. A refused permission must explain itself. Falling back silently
@@ -84,8 +84,8 @@ export function MediaPickerScreen({
         numColumns={3}
         data={available}
         keyExtractor={(m) => m.uri}
-        columnWrapperStyle={{ gap: theme.space.sm }}
-        contentContainerStyle={{ gap: theme.space.sm }}
+        columnWrapperStyle={{ gap: space.sm }}
+        contentContainerStyle={{ gap: space.sm }}
         renderItem={({ item, index }) => (
           <Pressable
             // Kind in the id, not only the index. A flow that wants the video
@@ -97,7 +97,7 @@ export function MediaPickerScreen({
             accessibilityRole="checkbox"
             accessibilityState={{ checked: isSelected(item) }}
             onPress={() => toggle(item)}
-            style={{ flex: 1, aspectRatio: 1, borderRadius: theme.radius.sm, overflow: 'hidden' }}
+            style={{ flex: 1, aspectRatio: 1, borderRadius: radius.sm, overflow: 'hidden' }}
           >
             <Image source={{ uri: item.uri }} style={{ flex: 1 }} accessibilityIgnoresInvertColors />
             {isSelected(item) ? (
@@ -106,8 +106,8 @@ export function MediaPickerScreen({
                   ...({ position: 'absolute' } as const),
                   inset: 0,
                   borderWidth: 3,
-                  borderColor: theme.color.accent,
-                  borderRadius: theme.radius.sm,
+                  borderColor: palette.intent.accent,
+                  borderRadius: radius.sm,
                 }}
               />
             ) : null}

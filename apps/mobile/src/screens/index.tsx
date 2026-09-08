@@ -3,6 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import { HomeFeedScreen } from '../features/feed/HomeFeedScreen';
 import { InterestSearchScreen } from '../features/discover/InterestSearchScreen';
 import { NotificationsScreen } from '../features/notifications/NotificationsScreen';
+import { PostCard } from '../components/PostCard';
 import { InboxScreen } from '../features/conversations/InboxScreen';
 import { ConversationScreen } from '../features/conversations/ConversationScreen';
 import { NewGroupScreen } from '../features/conversations/NewGroupScreen';
@@ -22,7 +23,7 @@ import type {
   Review,
 } from '@sih/shared';
 import { useHomeFeed, useInterestSearch, useNotifications, usePaged } from '../containers';
-import { theme } from '../ui/theme';
+import { activePalette as palette, space } from '../ui/theme';
 import { Button, Row } from '../ui/primitives';
 import { conversationTitle } from '../features/conversations/conversation-title';
 
@@ -36,28 +37,10 @@ import { conversationTitle } from '../features/conversations/conversation-title'
  * A failed load renders its own error, never an empty list - showing "nothing
  * here yet" for a dropped connection is the mistake this shape prevents.
  */
-/**
- * A post in a list.
- *
- * Pressable, and that is the whole point: the feed used to render posts as bare
- * Text, so tapping one did nothing and post detail - with comments, report and
- * block behind it - was unreachable from every list in the app. The render tests
- * could not see it (they assert the caption is on screen, which it was) and
- * neither could the data-layer journeys (they never render). Only clicking it
- * in a browser did.
- */
-function PostRow({ postId, caption, onOpen }: { postId: string; caption: string; onOpen: (id: string) => void }) {
-  return (
-    <Pressable testID={`post-${postId}`} onPress={() => onOpen(postId)}>
-      <Text testID="post-caption">{caption}</Text>
-    </Pressable>
-  );
-}
-
 function Failed({ message }: { message: string }) {
   return (
-    <View testID="load-error" style={{ padding: theme.space.md }}>
-      <Text style={{ color: theme.color.danger }}>{message}</Text>
+    <View testID="load-error" style={{ padding: space.md }}>
+      <Text style={{ color: palette.intent.danger }}>{message}</Text>
     </View>
   );
 }
@@ -77,7 +60,7 @@ export function HomeFeedContainer({
       onLoadMore={loadMore}
       onEmptyAction={onEmptyAction}
       renderPost={(post) => (
-        <PostRow postId={post.postId} caption={post.caption ?? ''} onOpen={onOpenPost} />
+        <PostCard post={post} onOpen={onOpenPost} />
       )}
     />
   );
@@ -314,7 +297,7 @@ export function PostDetailContainer({
         saved={saved}
         onToggleSave={() => void toggleSave()}
       />
-      <Row style={{ padding: theme.space.sm, gap: theme.space.sm }}>
+      <Row style={{ padding: space.sm, gap: space.sm }}>
         {onOpenAuthor ? (
           <Button
             testID="open-author"
@@ -548,7 +531,7 @@ export function InterestContainer({
       onQueryChange={setQuery}
       {...(onReportDescription ? { onReportDescription: () => onReportDescription(interestId) } : {})}
       renderPost={(post) => (
-        <PostRow postId={post.postId} caption={post.caption ?? ''} onOpen={onOpenPost} />
+        <PostCard post={post} onOpen={onOpenPost} />
       )}
     />
   );
@@ -676,7 +659,7 @@ export function ProfileContainer({
         : {})}
       onLoadMore={loadMore}
       renderPost={(post) => (
-        <PostRow postId={post.postId} caption={post.caption ?? ''} onOpen={onOpenPost} />
+        <PostCard post={post} onOpen={onOpenPost} />
       )}
     />
   );
@@ -1727,7 +1710,7 @@ export function PlaceContainer({
       // new addressing scheme.
       onReportReview={(p, authorId) => onReport(`${p}:${authorId}`)}
       renderPost={(post) => (
-        <PostRow postId={post.postId} caption={post.caption ?? ''} onOpen={onOpenPost} />
+        <PostCard post={post} onOpen={onOpenPost} />
       )}
     />
   );
@@ -1817,7 +1800,7 @@ export function SavedContainer({ onOpenPost }: { onOpenPost: (postId: string) =>
       posts={state}
       onLoadMore={loadMore}
       renderPost={(post) => (
-        <PostRow postId={post.postId} caption={post.caption ?? ''} onOpen={onOpenPost} />
+        <PostCard post={post} onOpen={onOpenPost} />
       )}
     />
   );

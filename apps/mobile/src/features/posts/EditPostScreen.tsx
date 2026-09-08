@@ -1,6 +1,6 @@
 import { Text, TextInput, View } from 'react-native';
 import type { InterestRef, Visibility } from '@sih/shared';
-import { theme } from '../../ui/theme';
+import { activePalette as palette, radius, space, textStyle } from '../../ui/theme';
 import { Banner, Button, Screen } from '../../ui/primitives';
 import { InterestSelector } from '../publish/InterestSelector';
 import { VisibilityControl } from '../publish/VisibilityControl';
@@ -51,7 +51,7 @@ export function EditPostScreen({
 
   return (
     <Screen testID="edit-post-screen">
-      <Text style={{ fontSize: theme.font.xl, fontWeight: '700', color: theme.color.text }}>Edit post</Text>
+      <Text style={{ ...textStyle.display, fontWeight: '700', color: palette.text.primary }}>Edit post</Text>
 
       <TextInput
         testID="edit-caption-input"
@@ -62,12 +62,12 @@ export function EditPostScreen({
         maxLength={2000}
         style={{
           borderWidth: 1,
-          borderColor: theme.color.border,
-          borderRadius: theme.radius.md,
-          padding: theme.space.md,
+          borderColor: palette.line.hairline,
+          borderRadius: radius.md,
+          padding: space.md,
           minHeight: 88,
-          color: theme.color.text,
-          fontSize: theme.font.md,
+          color: palette.text.primary,
+          ...textStyle.body,
         }}
       />
 
@@ -86,7 +86,7 @@ export function EditPostScreen({
         </Banner>
       ) : null}
 
-      <View style={{ gap: theme.space.sm }}>
+      <View style={{ gap: space.sm }}>
         <Button
           testID="edit-save"
           label={saving ? 'Saving…' : 'Save changes'}

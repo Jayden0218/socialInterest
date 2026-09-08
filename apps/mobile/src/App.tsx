@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { SafeAreaView, StatusBar, Text, View } from 'react-native';
-import { theme } from './ui/theme';
+import { activePalette as palette, space, textStyle } from './ui/theme';
 import { Button, Row } from './ui/primitives';
 import { DataProvider, useData } from './data-provider';
 import {
@@ -78,19 +78,34 @@ export type Route =
   | { name: 'people-search' }
   | { name: 'safety'; subject: ReportSubject; subjectId: string; authorHandle?: string };
 
+/**
+ * The root fills the viewport AND paints the surface.
+ *
+ * `flex: 1` alone sized to content, so everything below the last element was the
+ * page's own white - invisible while the theme was white, and the first thing
+ * you notice against a dark green one. `minHeight: '100%'` makes the root fill
+ * under react-native-web without changing native behaviour, where flex already
+ * did the right thing.
+ */
+const appRootStyle = {
+  flex: 1,
+  minHeight: '100%',
+  backgroundColor: palette.bg.base,
+} as const;
+
 function Header({ title, onBack }: { title: string; onBack: () => void }) {
   return (
     <Row
       style={{
         alignItems: 'center',
-        gap: theme.space.md,
-        padding: theme.space.sm,
+        gap: space.md,
+        padding: space.sm,
         borderBottomWidth: 1,
-        borderBottomColor: theme.color.border,
+        borderBottomColor: palette.line.hairline,
       }}
     >
       <Button testID="nav-back" label="Back" variant="secondary" onPress={onBack} />
-      <Text style={{ fontSize: theme.font.md, fontWeight: '600', color: theme.color.text }}>{title}</Text>
+      <Text style={{ ...textStyle.body, fontWeight: '600', color: palette.text.primary }}>{title}</Text>
     </Row>
   );
 }
@@ -179,7 +194,7 @@ export function Shell() {
                   requireSignIn({ name: 'safety', subject: 'interest-description', subjectId })
                 }
               />
-              <Row style={{ padding: theme.space.sm }}>
+              <Row style={{ padding: space.sm }}>
                 <Button
                   testID="open-create-interest"
                   label="Propose a sub-interest"
@@ -327,7 +342,7 @@ export function Shell() {
     })();
 
     return (
-      <View testID="app-root" style={{ flex: 1 }}>
+      <View testID="app-root" style={appRootStyle}>
         <Header title={top.name} onBack={pop} />
         {body}
       </View>
@@ -335,7 +350,7 @@ export function Shell() {
   }
 
   return (
-    <View testID="app-root" style={{ flex: 1 }}>
+    <View testID="app-root" style={appRootStyle}>
       {/*
         An EXHAUSTIVE switch, not a chain of `tab === 'x' ? ... : null`.
 
@@ -385,7 +400,7 @@ export function Shell() {
                   isSelf
                   onOpenPost={(postId) => push({ name: 'post', postId })}
                 />
-                <Row style={{ padding: theme.space.sm }}>
+                <Row style={{ padding: space.sm }}>
                   <Button
                     testID="open-edit-profile"
                     label="Edit profile"
@@ -412,7 +427,7 @@ export function Shell() {
         }
       })()}
 
-      <Row style={{ padding: theme.space.sm, gap: theme.space.sm }}>
+      <Row style={{ padding: space.sm, gap: space.sm }}>
         <Button
           testID="open-compose"
           label="New post"
@@ -428,7 +443,7 @@ export function Shell() {
         )}
       </Row>
 
-      <Row style={{ borderTopWidth: 1, borderTopColor: theme.color.border, padding: theme.space.sm }}>
+      <Row style={{ borderTopWidth: 1, borderTopColor: palette.line.hairline, padding: space.sm }}>
         {TABS.map((t) => (
           <View key={t.key} style={{ flex: 1 }}>
             <Button
@@ -458,7 +473,7 @@ export function Shell() {
 export default function App() {
   return (
     <DataProvider baseUrl={API_BASE_URL}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme.color.bg }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.bg.base }}>
         <StatusBar />
         <Shell />
       </SafeAreaView>

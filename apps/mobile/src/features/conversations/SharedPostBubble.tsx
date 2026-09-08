@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native';
 import type { Message } from '@sih/shared';
-import { theme } from '../../ui/theme';
+import { activePalette as palette, space } from '../../ui/theme';
 import { Button } from '../../ui/primitives';
 
 /**
@@ -32,12 +32,12 @@ export function SharedPostBubble({
         testID={`shared-post-unavailable-${message.messageId}`}
         style={{
           borderWidth: 1,
-          borderColor: theme.color.border,
+          borderColor: palette.line.hairline,
           borderRadius: 8,
-          padding: theme.space.sm,
+          padding: space.sm,
         }}
       >
-        <Text style={{ color: theme.color.muted }}>
+        <Text style={{ color: palette.text.muted }}>
           {unavailableCopy(message.sharedPostUnavailableReason)}
         </Text>
       </View>
@@ -49,16 +49,16 @@ export function SharedPostBubble({
       testID={`shared-post-${message.messageId}`}
       style={{
         borderWidth: 1,
-        borderColor: theme.color.border,
+        borderColor: palette.line.hairline,
         borderRadius: 8,
-        padding: theme.space.sm,
-        gap: theme.space.xs,
+        padding: space.sm,
+        gap: space.xs,
       }}
     >
-      <Text style={{ color: theme.color.text, fontWeight: '600' }}>
+      <Text style={{ color: palette.text.primary, fontWeight: '600' }}>
         {message.sharedPost.author.displayName}
       </Text>
-      <Text numberOfLines={2} style={{ color: theme.color.muted }}>
+      <Text numberOfLines={2} style={{ color: palette.text.muted }}>
         {message.sharedPost.caption ?? 'Shared a post'}
       </Text>
       <Button
