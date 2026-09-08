@@ -38,7 +38,21 @@ export function SignInScreen({ token, submitting, error, onTokenChange, onSubmit
      * earns the prop.
      */
     <Screen testID="sign-in-screen">
-      <View style={{ gap: space.lg, flexGrow: 1, justifyContent: 'center' }}>
+      {/*
+        TOP-ALIGNED, and NOT centred — measured, not assumed.
+        
+        The first version of this screen used `flexGrow: 1, justifyContent:
+        'center'`, which looks right on a tall phone and puts the submit button
+        at y=365..409 once the soft keyboard takes 250 points of a 640pt screen.
+        Nineteen points below the fold, on a screen that deliberately does not
+        scroll (run 36) — so Maestro cannot tap it, and neither can a person.
+        Run 39 spent nineteen minutes signed out for that reason: `GET
+        /v1/feed/home` 401 once a minute for the whole run, and not one
+        `GET /v1/me` from the device.
+        
+        `signin-fit.spec.ts` measures this at the keyboard-up viewport now.
+      */}
+      <View style={{ gap: space.md }}>
         {/*
           The promise first, per `design/007-ui/SignIn.dc.html`. A sign-in
           screen that opens with a field and no sentence asks somebody to
@@ -59,7 +73,7 @@ export function SignInScreen({ token, submitting, error, onTokenChange, onSubmit
         </Text>
 
         <Text style={{ ...textStyle.caption, color: palette.text.muted }}>
-          This build talks to a local API, which issues its own tokens. Paste one to continue.
+          This build talks to a local API. Paste a token to continue.
         </Text>
 
         <Field
@@ -69,7 +83,9 @@ export function SignInScreen({ token, submitting, error, onTokenChange, onSubmit
           onChangeText={onTokenChange}
           placeholder="Access token"
           multiline
-          style={{ minHeight: 96, textAlignVertical: 'top' }}
+          // 64, not 96. A token is one long string; the extra 32 points bought
+          // nothing and spent the button's headroom.
+          style={{ minHeight: 64, textAlignVertical: 'top' }}
         />
 
         {error ? (
