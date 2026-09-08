@@ -664,4 +664,46 @@ if echo "$GROUPS_AFTER" | grep -q "Climbing Tuesday"; then
   exit 1
 fi
 
+# ---------------------------------------------------------------------------
+# THE APP, PHOTOGRAPHED ON A DEVICE.
+#
+# Every UI image this project has is react-native-web in a headless browser.
+# Nobody - including whoever wrote the redesign - has ever looked at what it
+# renders on Android, because the artifact these runs upload is served from a
+# blob host the agent sandbox's egress denies with a 403. So the pictures went
+# somewhere nobody could reach, which is the same shape as the evidence problem
+# runs 1-6 and run 40 were spent on.
+#
+# These are committed back into the repository by the workflow instead.
+#
+# NON-FATAL BY DESIGN. The journeys above decide whether the product works; this
+# only shows what it looks like. A capture that fails must not turn a 20/20 run
+# into a red one - it is evidence, not a gate.
+echo "== capturing the screens on the device =="
+CAPTURE_DIR="$(cd "$OUT" && pwd)/screens"
+mkdir -p "$CAPTURE_DIR"
+# Absolute paths on both sides. `takeScreenshot` writes relative to the working
+# directory, so the capture has to run FROM the output directory - which means
+# the flow and the log cannot be named relatively from there.
+CAPTURE_FLOW="$(pwd)/.maestro/capture/screens.yaml"
+CAPTURE_LOG="$(cd "$OUT" && pwd)/capture.log"
+if (cd "$CAPTURE_DIR" && maestro test "$CAPTURE_FLOW" \
+      "${MAESTRO_ENV[@]}" > "$CAPTURE_LOG" 2>&1); then
+  echo "[screens] captured: $(ls "$CAPTURE_DIR"/*.png 2>/dev/null | wc -l) image(s)"
+else
+  echo "[screens] capture did not complete - the journeys already passed, so this is"
+  echo "[screens] recorded and not fatal. Tail of the capture log:"
+  tail -20 "$CAPTURE_LOG" 2>/dev/null || true
+fi
+# Blank images are worse than none: this project once filed an all-black capture
+# as evidence. Anything that fails the check is deleted rather than committed.
+for img in "$CAPTURE_DIR"/*.png; do
+  [ -e "$img" ] || continue
+  if ! node scripts/assert-screen-not-blank.mjs "$img" >/dev/null 2>&1; then
+    echo "[screens] $(basename "$img") is blank - deleting rather than filing it"
+    rm -f "$img"
+  fi
+done
+echo "[screens] kept: $(ls "$CAPTURE_DIR"/*.png 2>/dev/null | wc -l) image(s)"
+
 echo "PASS: the real APK ran on Android, exercised the real API, and completed the journeys."

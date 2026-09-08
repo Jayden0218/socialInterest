@@ -15,6 +15,12 @@ name: Android device pass (emulator)
 on:
   workflow_dispatch:
 
+# The screenshot step below commits back to the branch, so this needs write.
+# Stated explicitly rather than relying on the repository default, which an org
+# setting can flip to read-only without anything here changing.
+permissions:
+  contents: write
+
 jobs:
   android:
     # NOT ubuntu-latest. That is Ubuntu 24.04, where the emulator has known AVD
@@ -269,6 +275,54 @@ jobs:
           }
           aggregate
           { echo '```'; aggregate; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      # THE SCREENSHOTS GO INTO GIT, not only into the artifact.
+      #
+      # The artifact is served from an Azure blob host the agent sandbox's egress
+      # denies with a 403, so every emulator image this project has ever taken
+      # went somewhere nobody could open. That is the same failure runs 1-6 and
+      # run 40 were spent on, applied to pictures instead of logs: evidence you
+      # cannot reach is not evidence.
+      #
+      # Committed only when the capture produced something. `[skip ci]` because
+      # `ci.yml` runs on every branch push and a screenshot is not a code change.
+      - name: Commit the device screenshots
+        if: always()
+        run: |
+          shopt -s nullglob
+          shots=(artifacts/android-device-pass/screens/*.png)
+          if [ ${#shots[@]} -eq 0 ]; then
+            echo "no screenshots to commit"
+            exit 0
+          fi
+          mkdir -p docs/screens/android
+          # Replaced wholesale: a screen deleted from the capture flow must not
+          # linger as a stale image claiming to be current.
+          rm -f docs/screens/android/*.png
+          cp "${shots[@]}" docs/screens/android/
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/screens/android
+          if git diff --cached --quiet; then
+            echo "screenshots are byte-identical to the committed ones"
+            exit 0
+          fi
+          git commit -m "Android screens from emulator run ${GITHUB_RUN_NUMBER} [skip ci]
+
+          ${#shots[@]} screens captured on the emulator at commit ${GITHUB_SHA:0:7}.
+          These are the DEVICE, not react-native-web: native fonts, safe areas
+          and - in 03 - the soft keyboard, none of which a browser can show."
+          # The branch may have moved while the emulator ran (~25 minutes), so
+          # rebase rather than force. Only this directory is touched, so a
+          # rebase conflict here would be two runs racing, not a code clash.
+          for i in 1 2 3; do
+            git pull --rebase origin "${GITHUB_REF_NAME}" && \
+              git push origin "HEAD:${GITHUB_REF_NAME}" && exit 0
+            echo "push attempt $i failed; retrying"
+            sleep $((i * 5))
+          done
+          echo "could not push the screenshots; they are still in the artifact"
+          exit 0
+
       # if: always() - the emulator's output is the deliverable when it fails,
       # so it must survive the failure.
       - uses: actions/upload-artifact@v4

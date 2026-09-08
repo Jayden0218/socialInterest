@@ -90,9 +90,32 @@ for (const m of source.matchAll(/testID=\{[^}]*\}/g)) {
   for (const lit of m[0].matchAll(/["'`]([A-Za-z0-9_.-]+)["'`]/g)) known.add(lit[1]);
 }
 
+/**
+ * Every flow file, INCLUDING `.maestro/capture/`.
+ *
+ * This read only the top level, so `capture/screens.yaml` - which drives the
+ * app on a device to photograph it - was unchecked. A selector typo there does
+ * not error: Maestro waits thirty seconds for an element that cannot exist,
+ * twenty-five minutes into an emulator run, and looks exactly like a broken
+ * screen. That is the failure mode this whole script exists to prevent, so the
+ * one file it could not see is the one worth adding.
+ */
+function flowFiles() {
+  const files = readdirSync(FLOWS)
+    .filter((f) => f.endsWith('.yaml'))
+    .map((f) => ({ label: f, path: join(FLOWS, f) }));
+  const captureDir = join(FLOWS, 'capture');
+  if (existsSync(captureDir) && statSync(captureDir).isDirectory()) {
+    for (const f of readdirSync(captureDir).filter((n) => n.endsWith('.yaml'))) {
+      files.push({ label: `capture/${f}`, path: join(captureDir, f) });
+    }
+  }
+  return files;
+}
+
 const ids = new Set();
-for (const file of readdirSync(FLOWS).filter((f) => f.endsWith('.yaml'))) {
-  const text = readFileSync(join(FLOWS, file), 'utf8');
+for (const { label: file, path: flowPath } of flowFiles()) {
+  const text = readFileSync(flowPath, 'utf8');
   // `:` and `/` are in the class so a fully-qualified foreign id survives
   // intact - without them `com.android.documentsui:id/dir_list` was truncated at
   // the colon and then reported as a missing testID, which is a confusing way to
@@ -227,15 +250,15 @@ if (existsSync(RUNNER)) {
   const passed = new Set(
     [...runner.matchAll(/-e\s+([A-Z][A-Z0-9_]*)=/g)].map((m) => m[1]),
   );
-  for (const file of readdirSync(FLOWS).filter((f) => f.endsWith('.yaml'))) {
-    const text = readFileSync(join(FLOWS, file), 'utf8');
+  for (const { label, path: flowPath } of flowFiles()) {
+    const text = readFileSync(flowPath, 'utf8');
     for (const m of text.matchAll(/\$\{([A-Z][A-Z0-9_]*)\}/g)) {
-      if (!passed.has(m[1])) missingVars.push(`${file}: \${${m[1]}} is never passed by android-device-pass.sh`);
+      if (!passed.has(m[1])) missingVars.push(`${label}: \${${m[1]}} is never passed by android-device-pass.sh`);
     }
   }
 }
 
-console.log(`checked ${ids.size} selector(s) across ${readdirSync(FLOWS).filter((f) => f.endsWith('.yaml')).length} flow(s)`);
+console.log(`checked ${ids.size} selector(s) across ${flowFiles().length} flow(s)`);
 console.log(`app declares ${known.size} testID literal(s) and ${prefixes.size} dynamic prefix(es)`);
 if (foreign.length) {
   console.log(`${foreign.length} selector(s) target another app deliberately:`);

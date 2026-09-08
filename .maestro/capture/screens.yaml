@@ -1,0 +1,114 @@
+# THE APP, PHOTOGRAPHED ON A DEVICE.
+#
+# `docs/screens/*.png` are react-native-web in a headless browser: the same React
+# components rendered through DOM primitives. They are honest about layout and
+# colour and say NOTHING about native fonts, safe areas, or the soft keyboard -
+# which is exactly the class of thing that cost runs 38-42.
+#
+# So this walks the app on the emulator and photographs it. It is NOT a journey:
+# it asserts nothing beyond being able to reach each screen, and it lives in
+# `.maestro/capture/` so the runner's `find -maxdepth 1` does not pick it up as
+# one. The journeys decide whether the product works; this only shows what it
+# looks like while doing it.
+#
+# Screens are numbered to match `docs/screens/` where the same screen exists in
+# both, so the browser and the device can be put side by side.
+appId: app.socialinterest
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: "app-root"
+- takeScreenshot: 01-launch
+
+- tapOn:
+    id: "open-sign-in"
+- assertVisible:
+    id: "sign-in-screen"
+- takeScreenshot: 02-sign-in
+
+# With the keyboard UP, which is the state no browser can show and the one that
+# cost four runs. Captured before submitting, so the fold is real.
+- tapOn:
+    id: "sign-in-token"
+- inputText: ${TOKEN}
+- takeScreenshot: 03-sign-in-keyboard-up
+
+- hideKeyboard
+- tapOn:
+    id: "sign-in-submit"
+
+# The cold start is a PUSHED screen with no tab bar (007/FR-014).
+- runFlow:
+    when:
+      visible:
+        id: "pick-interests-screen"
+    commands:
+      - takeScreenshot: 04-cold-start
+      - tapOn:
+          id: "pick-skip"
+
+- tapOn:
+    id: "tab-feed"
+- assertVisible:
+    id: "home-feed-screen"
+- takeScreenshot: 05-home-feed
+
+- tapOn:
+    id: "tab-discover"
+- takeScreenshot: 06-explore
+
+- tapOn:
+    id: "tab-chats"
+- assertVisible:
+    id: "inbox-screen"
+- takeScreenshot: 07-chats
+
+- tapOn:
+    id: "tab-notifications"
+- takeScreenshot: 08-activity
+
+- tapOn:
+    id: "tab-profile"
+- takeScreenshot: 09-profile
+
+- runFlow:
+    when:
+      visible:
+        id: "open-edit-profile"
+    commands:
+      - tapOn:
+          id: "open-edit-profile"
+      - assertVisible:
+          id: "edit-profile-screen"
+      - takeScreenshot: 10-edit-profile
+      - back
+
+- tapOn:
+    id: "tab-profile"
+- runFlow:
+    when:
+      visible:
+        id: "open-saved"
+    commands:
+      - tapOn:
+          id: "open-saved"
+      - takeScreenshot: 11-saved
+      - back
+
+# The waterfall card, opened. The feed is 007's whole subject.
+- tapOn:
+    id: "tab-feed"
+- runFlow:
+    when:
+      visible:
+        id: "post-.*"
+    commands:
+      - tapOn:
+          id: "post-.*"
+      - takeScreenshot: 12-post-detail
+      - back
+
+- tapOn:
+    id: "open-compose"
+- takeScreenshot: 13-compose-or-picker
