@@ -42,12 +42,25 @@ Consequence worth naming: there is no production hosting story now. DynamoDB Loc
 is a dev tool, not a production datastore, and `infra/` still describes an AWS stack
 that nothing targets. Both are open questions, not settled ones.
 
-**Constitution, in brief** (read the file for the binding text):
+**Constitution, in brief** (read the file for the binding text). **Amended to 2.0.0 on
+2026-09-08** — Principle I was rewritten and Principle II strengthened, so anything in this
+file or in `specs/001-*` describing the feed as COMPOSED FROM FOLLOWED INTERESTS is
+describing a product that no longer exists:
 
-1. *Interest Is the Organising Principle* (NON-NEGOTIABLE) — a person-follow must never
-   widen a feed beyond followed interests (FR-033).
+1. *Interest Is the Unit of Meaning* (NON-NEGOTIABLE) — every post is filed under an
+   interest and every space is browsed by one. **The FEED is assembled from what a person
+   DOES, not from what they subscribed to** (007). The old wording — a person-follow must
+   never widen a feed beyond followed interests, 001/FR-033 — is **withdrawn**, because a
+   ranked feed has no followed-interest set to be widened past. What survives is that a
+   follow must visibly mean something: 007/FR-029, a bounded boost that reorders and never
+   admits.
 2. *Visibility Is Decided Once* (NON-NEGOTIABLE) — one `VisibilityFilter`; every read
-   path goes through it; every surface enumerated in the matrix contract.
+   path goes through it; every surface enumerated in the matrix contract. **2.0.0 adds:
+   ranking selects candidates, the boundary decides.** The composed feed satisfied this by
+   ACCIDENT — it read only subscribed partitions, so its candidate set was already
+   viewer-scoped. A ranked feed reads across the catalogue, so the position of the boundary
+   is now a contract (`007/contracts/ranking-boundary.md`) with a build-failing dependency
+   guard behind it (`ranking-cannot-admit.spec.ts`).
 3. *Privacy Guarantees Are Enforced Server-Side* — and tested via the path a hostile
    client would take, not the well-behaved one.
 4. *Safety Ships With the Product* — reporting/blocking/moderation is a release gate,
@@ -691,7 +704,11 @@ the six emulator runs; I reproduced the mistake in a new place anyway.
 - **A Place is to a Post what an Interest is, MINUS feed membership.** Modelling a restaurant
   as a sub-interest violates Principle I by construction: 001/FR-024 rolls sub-interest posts
   into the parent, so every restaurant post lands in "Food" worldwide. FR-019 + SC-006 carry
-  FR-033's negative-test shape across.
+  the negative-test shape across. **Still binding after 007**, and now the ONLY place that
+  shape lives: 001/FR-033 was withdrawn, so `feed-does-not-read-place-follows.spec.ts` is
+  what remains — widened by 007 to cover `RankingService` and `CandidateSource`, because
+  the selection path moved out of `feed.service.ts` and the old guard would have read a
+  file the violation no longer had to live in.
 - **Chat is HTTP long-poll**, resolved through the durable event bus. Measured: one process
   held **200 concurrent polls, delivery p95 51ms**. That is a fact about one Node process and
   NOT about hosted chat - registered as divergence `D-004-1`.
@@ -775,8 +792,8 @@ Measured from `tasks.md`, not guessed:
   | `posts/post.service.ts` | 3 | 3,8 |
   | `feed/feed.service.ts` | 2 | 5,6 |
 
-- **US4 depends on US3** — the only genuine cross-story dependency (FR-033 needs the
-  interest-follow feed to exist first). Same agent, sequential.
+- **US4 depends on US3** — the only genuine cross-story dependency (FR-033 needed the
+  interest-follow feed to exist first). Historical: 001/US4 and FR-033 are withdrawn by 007.
 - **Single-owner files for spec 002** — same rule, different set:
 
   | File | Why |

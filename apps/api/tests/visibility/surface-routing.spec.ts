@@ -166,13 +166,23 @@ const PROBES: Probe[] = [
     // The feed applies visibility LAST, on current state - never to a stored or
     // ranked copy. Ranking may reorder the admitted set; it may never widen it.
     run: ({ filter, queries }) => {
-      const index = { listByInterest: async () => ({ items: [{ ...post, interestId: 'i1' }], nextCursor: null }) };
+      // 007: the candidate set now comes from the RANKER rather than from the
+      // viewer's followed interests. That is exactly why this row matters more
+      // than it used to - the composed feed could not over-admit because it
+      // only ever read partitions the viewer had subscribed to, and a ranked
+      // feed reads across the catalogue. The routing claim is unchanged and the
+      // accident that used to back it is gone.
+      const ranking = {
+        rank: async () => ({
+          candidates: [{ ...post, interestId: 'i1' }],
+          fanOutWidth: 1,
+          fallback: false,
+        }),
+      };
       const feed = new FeedService(
-        index as never,
+        ranking as never,
         filter,
         { findById: async () => ({ userId: 'a1', handle: 'a', displayName: 'A', status: 'active' }) } as never,
-        { followedIds: async () => ['i1'] } as never,
-        { expand: () => ['i1'] } as never,
         { followedAuthorIds: async () => new Set<string>() } as never,
         queries,
       );

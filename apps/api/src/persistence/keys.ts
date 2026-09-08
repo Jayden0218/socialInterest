@@ -5,6 +5,38 @@
  */
 export const keys = {
   person: (userId: string) => ({ pk: `USER#${userId}`, sk: '#PROFILE' }),
+
+  /**
+   * 007/B1 - a person's signal profile: the running total the ranker reads.
+   *
+   * One item, read once per feed request, so the hottest path costs one GetItem.
+   * It lives in the person's own partition because it is theirs alone: no index
+   * makes it reachable from anywhere else, which is the storage-level half of
+   * Principle III's promise that nobody else can read it.
+   */
+  signalProfile: (userId: string) => ({ pk: `USER#${userId}`, sk: '#SIGNALPROFILE' }),
+
+  /**
+   * 007/B3 - one recorded observation, with a TTL.
+   *
+   * These exist so that "clear my signals" can be VERIFIED as clearing
+   * something, and so a folding bug can be diagnosed against what happened
+   * rather than against a total. Never read on the feed path.
+   */
+  signalEvent: (userId: string, at: string, postId: string) => ({
+    pk: `USER#${userId}`,
+    sk: `SIGNAL#${at}#${postId}`,
+  }),
+
+  /**
+   * 007/B6 - the interests chosen at first run.
+   *
+   * DELIBERATELY NOT an interest follow. Storing seeds as follows would
+   * recreate the subscription feed 007 removes, because every later reader
+   * treats a follow as a follow. A distinct key makes "these are a seed"
+   * structural rather than a convention someone has to remember (research R4).
+   */
+  seedInterests: (userId: string) => ({ pk: `USER#${userId}`, sk: '#SEEDINTERESTS' }),
   personByHandle: (handleLower: string) => ({ gsi1pk: `HANDLE#${handleLower}`, gsi1sk: '#PROFILE' }),
 
   /**

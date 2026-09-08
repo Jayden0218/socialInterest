@@ -137,6 +137,25 @@ forcing a change, which is why this re-evaluation required no rework.
 **Complexity Tracking**: no entries. That table records justified violations; there are
 none.
 
+### Re-evaluation against constitution 2.0.0 (2026-09-08) — 007/RS-005
+
+The constitution's governance section requires any plan written before an amendment to be
+re-evaluated against it. Amendment 2.0.0 rewrote Principle I and strengthened Principle II.
+**Verdict: PASS with one principle no longer satisfied AS ORIGINALLY ARGUED.**
+
+| Principle (2.0.0) | Verdict | What changed |
+|---|---|---|
+| **I. Interest Is the Unit of Meaning** (NON-NEGOTIABLE) | **PASS, on a different argument** | The row above satisfied v1.0.0 by way of FR-033 — the followed-interest set bounded the query, so a person-follow could not widen the feed. **That argument is withdrawn with FR-033 (007/RS-001).** 001 still satisfies 2.0.0 because interest remains the unit every post is filed under, every space is browsed by, and the catalogue is organised around; what changed is that the FEED is no longer assembled from subscriptions. The parts of 001 that satisfy the amended principle are FR-020 through FR-032 (the catalogue, filing, sub-interests, merges), not FR-033. |
+| **II. Visibility Is Decided Once** (NON-NEGOTIABLE) | **PASS, and the accident is now named** | 2.0.0 adds: *ranking selects candidates; the visibility boundary decides*. 001's feed satisfied that clause **by accident** — it only ever read partitions the viewer had subscribed to, so its candidate set was already viewer-scoped and could not over-admit whatever the ordering did. Nothing in 001 asserted the boundary's POSITION. 007 removes that accident and replaces it with `contracts/ranking-boundary.md` and a build-failing dependency guard. |
+| **III. Privacy Enforced Server-Side** | PASS, and now broader | 2.0.0 adds a behavioural-signals clause. 001 collects no behavioural signals, so nothing here conflicts; 007 is where that clause is discharged. |
+| **IV. Safety Ships With the Product** | PASS, unchanged | Nothing in the amendment touches it. |
+| **V. Emulation Is Not Evidence** | PASS, unchanged | Nothing in the amendment touches it. |
+
+**No rework of 001 follows from this.** The withdrawn requirements are struck through in
+`spec.md` with pointers to what replaced them, which is what the amendment requires of an
+invalidated requirement: an invalidated requirement that is merely ignored still reads as a
+promise.
+
 ## Project Structure
 
 ### Documentation (this feature)

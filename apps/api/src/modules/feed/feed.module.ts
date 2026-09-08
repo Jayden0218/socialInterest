@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
 import { FeedController } from './feed.controller';
 import { FeedService } from './feed.service';
-import { FollowExpansion } from './follow-expansion';
+
 import { InterestFollowService } from '../interests/interest-follow.service';
 import { PersonFollowService } from '../people/person-follow.service';
 import { PostsModule } from '../posts/posts.module';
+import { RankingModule } from '../ranking/ranking.module';
 
 /**
  * PostsModule is imported for PostQueryService - the ONE responder. The feed
@@ -12,9 +13,9 @@ import { PostsModule } from '../posts/posts.module';
  * in feed.service.ts.
  */
 @Module({
-  imports: [PostsModule],
+  imports: [PostsModule, RankingModule],
   controllers: [FeedController],
-  providers: [FeedService, FollowExpansion, InterestFollowService, PersonFollowService],
-  exports: [FeedService, FollowExpansion, InterestFollowService, PersonFollowService],
+  providers: [FeedService, InterestFollowService, PersonFollowService],
+  exports: [FeedService, InterestFollowService, PersonFollowService],
 })
 export class FeedModule {}

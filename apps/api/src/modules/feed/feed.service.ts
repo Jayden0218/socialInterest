@@ -1,12 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { PostInterestIndexRepository } from '../../persistence/post-interest-index.repository';
 import { PostQueryService } from '../posts/post-query.service';
-import { VisibilityFilter, type Viewer } from '../../visibility/visibility.filter';
+import { VisibilityFilter } from '../../visibility/visibility.filter';
 import { PersonRepository } from '../../persistence/person.repository';
-import { InterestFollowService } from '../interests/interest-follow.service';
 import { PersonFollowService } from '../people/person-follow.service';
-import { FollowExpansion } from './follow-expansion';
-import { rank, type RankableItem } from './ranking';
+import { RankingService } from '../ranking/ranking.service';
 
 /**
  * The index row the fan-in reads. Internal to the assembly pipeline: it is what
@@ -42,41 +39,46 @@ export type FeedItem = Record<string, unknown>;
 export interface FeedPage {
   items: FeedItem[];
   nextCursor: string | null;
-  emptyStateHint: 'no_followed_interests' | 'no_posts_yet' | null;
+  /**
+   * `no_followed_interests` is gone with the composed feed: a ranked feed
+   * always has candidates, so "you follow nothing" is no longer a state the
+   * feed can be in. `no_posts_yet` remains for a genuinely empty catalogue.
+   */
+  emptyStateHint: 'no_posts_yet' | null;
   /** How many interest partitions this page read. Surfaced for bench:feed. */
   fanOutWidth: number;
 }
 
 /**
- * READ-TIME FAN-IN (research D1). The home feed is assembled per request, not
- * materialised per person.
+ * READ-TIME ASSEMBLY (001 research D1) — UNCHANGED BY 007, and deliberately so.
  *
- * This is forced by the spec, not chosen for taste. FR-017 requires a visibility
- * change to apply immediately everywhere and SC-009 forbids any leak; a
- * materialised timeline would need every copy rewritten on a single
- * public->private flip, and any copy missed is an SC-009 failure. Assembling
- * here means visibility is evaluated once, against current state.
+ * What changed is WHICH posts are considered: the feed is no longer composed
+ * from the interests a viewer follows, it is RANKED from what they do
+ * (constitution 2.0.0, Principle I as amended 2026-09-08). What did not change
+ * is that the page is assembled per request against current state.
  *
- * The accepted cost is that latency scales with follow count - hence the
- * 200-interest cap, the parallel queries below, and bench:feed reporting p95
- * BROKEN DOWN BY follow count rather than as a single headline number.
+ * D1 was forced by 001/FR-017 and SC-009 - a visibility change must apply
+ * immediately everywhere - and those still stand. So:
+ *
+ *   RankingService proposes candidates → VisibilityFilter decides → hydrate
+ *
+ * in that order, in this request, every time. Ranking may precompute candidate
+ * REFERENCES; it may never precompute what a viewer is allowed to see. That is
+ * contracts/ranking-boundary.md, and C2-C5 of it are asserted against this
+ * method.
+ *
+ * The subtle part, worth stating where the code is: the composed feed satisfied
+ * Principle II BY ACCIDENT. It read only followed interests, so its candidate
+ * set was already viewer-scoped and could not over-admit. Reading across the
+ * catalogue removes that accident, which is why the boundary below is now
+ * guarded by a contract instead of by the shape of the query above it.
  */
 @Injectable()
 export class FeedService {
-  /**
-   * Per-interest read depth. Each partition returns its newest few, which are
-   * then merged and truncated: reading `limit` from every partition would be
-   * wasteful, but reading too few risks a page that under-fills after
-   * visibility filtering.
-   */
-  private static readonly PER_INTEREST_OVERFETCH = 2;
-
   constructor(
-    @Inject(PostInterestIndexRepository) private readonly index: PostInterestIndexRepository,
+    @Inject(RankingService) private readonly ranking: RankingService,
     @Inject(VisibilityFilter) private readonly visibility: VisibilityFilter,
     @Inject(PersonRepository) private readonly people: PersonRepository,
-    @Inject(InterestFollowService) private readonly follows: InterestFollowService,
-    @Inject(FollowExpansion) private readonly expansion: FollowExpansion,
     @Inject(PersonFollowService) private readonly personFollows: PersonFollowService,
     @Inject(PostQueryService) private readonly postQueries: PostQueryService,
   ) {}
@@ -86,82 +88,67 @@ export class FeedService {
     opts: { limit?: number; cursor?: string | null } = {},
   ): Promise<FeedPage> {
     const limit = opts.limit ?? 20;
+    const { seen, depth } = this.decodeCursor(opts.cursor);
 
-    const followed = await this.follows.followedIds(viewer.userId);
-    if (followed.length === 0) {
-      // FR-036: a distinguishable empty state. "Follow some interests" and
-      // "the interests you follow have no posts" need different prompts.
-      return { items: [], nextCursor: null, emptyStateHint: 'no_followed_interests', fanOutWidth: 0 };
-    }
-
-    // FR-028: expanded at read time, so a sub-interest created after the follow
-    // is included with no back-fill.
-    const partitions = this.expansion.expand(followed);
-
-    // The fan-in. Parallel, because the whole page waits on the slowest query.
-    const perInterest = Math.max(3, Math.ceil(limit / 2)) * FeedService.PER_INTEREST_OVERFETCH;
-    const pages = await Promise.all(
-      partitions.map((interestId) =>
-        this.index
-          .listByInterest(interestId, { limit: perInterest })
-          .catch(() => ({ items: [], nextCursor: null })),
-      ),
-    );
-
-    // Merge newest-first, de-duplicating a post that appears under both a
-    // sub-interest and its parent (FR-024 writes an index item for each).
-    const seen = new Set<string>();
-    const merged: FeedCandidate[] = [];
-    for (const page of pages) {
-      for (const item of page.items) {
-        if (seen.has(item.postId)) continue;
-        seen.add(item.postId);
-        merged.push(item as FeedCandidate);
-      }
-    }
     /**
-     * FR-033 - THE INTERSECTION RULE, and constitution principle I.
-     *
-     * `partitions` is derived ONLY from followed interests. A followed author's
-     * posts are therefore already confined to those interests: nothing here
-     * admits a post because of who wrote it, and nothing may be added that
-     * would. Following a person can change the ORDER of this feed and never
-     * its MEMBERSHIP.
-     *
-     * The failure this guards against is silent: a "show me more from people I
-     * follow" convenience turns the product into an ordinary follower feed and
-     * the interest structure becomes decoration. us4-fr033-boundary.spec.ts
-     * asserts the negative case directly.
+     * FR-029. Read here rather than inside the ranker, because "who does this
+     * viewer follow" is viewer state and the ranker is deliberately kept away
+     * from anything that looks like a decision about a viewer.
      */
     const followedAuthors = await this.personFollows.followedAuthorIds(viewer.userId);
-    const rankable: RankableItem[] = merged.map((item) => ({
-      ...item,
-      byFollowedAuthor: followedAuthors.has(item.authorId),
-    }));
 
-    // FR-034: prominence within the already-admitted set.
-    const ordered = rank(rankable);
+    // PROPOSE. Ranking chooses candidates and their order, and nothing else.
+    const { candidates, fanOutWidth } = await this.ranking.rank(
+      viewer.userId,
+      limit,
+      followedAuthors,
+      Date.now(),
+      depth,
+    );
 
-    const after = this.decodeAfter(opts.cursor);
-    const windowed = after ? ordered.filter((i) => i.createdAt < after) : ordered;
+    /**
+     * FR-008, THE PAGING RULE, and the reason the cursor is not a timestamp.
+     *
+     * The composed feed was ordered by recency, so `createdAt < last` was both
+     * a position and a promise: everything below the boundary was unseen. A
+     * RANKED feed is not in timestamp order - a post competes as though it were
+     * hours newer - so that same cursor would silently drop every candidate
+     * newer than the last item of the previous page, however well it scored.
+     * The boundary would have been a filter on the wrong axis, and it would
+     * have looked like it worked, because page one is always correct.
+     *
+     * So the cursor carries WHAT WAS SHOWN, not where the reader got to. The
+     * cost is a cursor that grows with the session, bounded below; the benefit
+     * is that it holds across processes and cannot be invalidated by a post
+     * published mid-scroll (001/FR-035's guarantee, kept).
+     */
+    const unseen = candidates.filter((c) => !seen.has(c.postId));
 
-    // Visibility LAST, on current state, through the one boundary.
+    /**
+     * DECIDE. Visibility LAST, on current state, through the one boundary.
+     *
+     * This is the line contracts/ranking-boundary.md C2 asserts the position
+     * of. Moving it above the ranker, or dropping it because the ranker
+     * "already narrowed the set", is the failure the whole contract exists to
+     * prevent - and it is exactly what a reasonable person would try when
+     * optimising this method.
+     */
     const cache = this.visibility.newRequestCache();
+    const considered = unseen.slice(0, limit * 3);
     const authors = new Map<string, 'active' | 'deleting' | 'deleted'>();
     await Promise.all(
-      [...new Set(windowed.slice(0, limit * 3).map((i) => i.authorId))].map(async (id) => {
+      [...new Set(considered.map((i) => i.authorId))].map(async (id) => {
         authors.set(id, (await this.people.findById(id))?.status ?? 'active');
       }),
     );
 
     const visible = await this.visibility.filter(
       viewer,
-      windowed.slice(0, limit * 3).map((i) => ({ ...i, authorStatus: authors.get(i.authorId) ?? 'active' })),
+      considered.map((i) => ({ ...i, authorStatus: authors.get(i.authorId) ?? 'active' })),
       cache,
     );
 
     const page = visible.slice(0, limit);
-    const last = page.at(-1);
 
     /**
      * Hydrate. Until now the feed returned the INDEX ROWS - postId, authorId,
@@ -187,29 +174,55 @@ export class FeedService {
       (rows) => rows.filter((r): r is NonNullable<typeof r> => r !== null),
     );
 
+    /**
+     * A page that under-fills is the end of the feed. Anything else would page
+     * forever against a catalogue that has run out, which reads to a person as
+     * a spinner that never resolves - and 001/SC-009's "no visible interruption"
+     * is not satisfied by an interruption that never ends.
+     */
+    const exhausted = page.length < limit;
+
     return {
       items,
-      // Cursor is the timestamp boundary, not an offset (FR-035): posts
-      // published mid-scroll cannot shift the reader's position.
-      nextCursor: visible.length > limit && last ? this.encodeAfter(last.createdAt) : null,
-      emptyStateHint: items.length === 0 ? 'no_posts_yet' : null,
-      fanOutWidth: partitions.length,
+      nextCursor: exhausted
+        ? null
+        : this.encodeCursor([...seen, ...page.map((row) => row.postId)], depth + 1),
+      emptyStateHint: items.length === 0 && depth === 0 ? 'no_posts_yet' : null,
+      fanOutWidth,
     };
   }
 
-  private encodeAfter(createdAt: string): string {
-    return Buffer.from(JSON.stringify({ before: createdAt }), 'utf8').toString('base64url');
+  /**
+   * How many post ids a cursor carries before the oldest are dropped.
+   *
+   * A person who scrolls past this in one session may see a post again, which
+   * is the honest trade: the alternative is server-side session state, which
+   * would not survive the restart it is meant to be transparent to, or an
+   * unbounded cursor, which grows until a request header rejects it. 500 is
+   * twenty-five pages.
+   */
+  private static readonly SEEN_CAP = 500;
+
+  private encodeCursor(seen: string[], depth: number): string {
+    const trimmed = seen.slice(-FeedService.SEEN_CAP);
+    return Buffer.from(JSON.stringify({ seen: trimmed, depth }), 'utf8').toString('base64url');
   }
 
-  private decodeAfter(cursor: string | null | undefined): string | null {
-    if (!cursor) return null;
+  private decodeCursor(cursor: string | null | undefined): { seen: Set<string>; depth: number } {
+    if (!cursor) return { seen: new Set(), depth: 0 };
     try {
       const parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')) as {
-        before?: string;
+        seen?: unknown;
+        depth?: unknown;
       };
-      return parsed.before ?? null;
+      return {
+        seen: new Set(Array.isArray(parsed.seen) ? parsed.seen.filter((v): v is string => typeof v === 'string') : []),
+        depth: typeof parsed.depth === 'number' && parsed.depth >= 0 ? Math.min(parsed.depth, 50) : 0,
+      };
     } catch {
-      return null;
+      // A malformed cursor starts the session over rather than failing the
+      // request. A feed that 400s on a stale link is worse than one that repeats.
+      return { seen: new Set(), depth: 0 };
     }
   }
 }

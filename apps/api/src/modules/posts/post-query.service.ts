@@ -3,7 +3,7 @@ import { PersonRepository } from '../../persistence/person.repository';
 import { PostInterestIndexRepository } from '../../persistence/post-interest-index.repository';
 import { PostRepository, type PostItem } from '../../persistence/post.repository';
 import { InterestRepository } from '../../persistence/interest.repository';
-import { rankByEngagement, type EngagedItem } from '../feed/ranking';
+import { rankByEngagement, type EngagedItem } from './engagement-order';
 import { PlaceRepository } from '../../persistence/place.repository';
 import { OBJECT_STORE, type ObjectStore } from '../../ports';
 import {

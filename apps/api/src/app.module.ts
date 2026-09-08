@@ -6,6 +6,7 @@ import { VisibilityModule } from './visibility/visibility.module';
 import { ConversationAccessModule } from './conversations/conversation-access.module';
 import { InterestsModule } from './modules/interests/interests.module';
 import { InterestsHttpModule } from './modules/interests/interests-http.module';
+import { SignalModule } from './modules/signals/signal.module';
 import { FeedModule } from './modules/feed/feed.module';
 import { PeopleModule } from './modules/people/people.module';
 import { EngagementModule } from './modules/engagement/engagement.module';
@@ -31,6 +32,7 @@ import { HealthController } from './modules/health/health.controller';
     PostsModule,
     InterestsHttpModule,
     FeedModule,
+    SignalModule,
     PeopleModule,
     EngagementModule,
     SafetyModule,

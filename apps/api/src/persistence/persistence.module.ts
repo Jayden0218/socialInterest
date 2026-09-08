@@ -24,6 +24,8 @@ import { RatingRepository } from './rating.repository';
 import { PlaceFollowRepository } from './place-follow.repository';
 import { PostPlaceIndexRepository } from './post-place-index.repository';
 import { SavedPostRepository } from './saved-post.repository';
+// feature 007
+import { SignalRepository } from './signal.repository';
 
 const repo = <T>(
   cls: new (doc: DynamoDBDocumentClient, table: string) => T,
@@ -58,6 +60,8 @@ const providers: Provider[] = [
   repo(SavedPostRepository),
   // feature 005
   repo(RatingRepository),
+  // feature 007
+  repo(SignalRepository),
 ];
 
 @Global()
@@ -86,6 +90,7 @@ const providers: Provider[] = [
     PlaceFollowRepository,
     PostPlaceIndexRepository,
     SavedPostRepository,
+    SignalRepository,
   ],
 })
 export class PersistenceModule {}

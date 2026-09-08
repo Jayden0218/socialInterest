@@ -21,6 +21,15 @@ export interface CatalogueSearch {
   search(query: string, opts?: { level?: 'top' | 'sub'; parentId?: string; limit?: number }): CatalogueMatch[];
   findSimilar(name: string, parentId: string, limit?: number): CatalogueMatch[];
   byId(interestId: string): InterestItem | undefined;
+  /**
+   * 007/R1: every active interest id, for the ranked feed's candidate source.
+   *
+   * The catalogue is already fully in memory - `size()` walks it - so this
+   * costs nothing new. Exposing it is what lets exploration (FR-007) sample
+   * interests the viewer has never engaged with, which is the mechanism that
+   * stops a ranked feed collapsing to one subject.
+   */
+  allIds(): string[];
   childrenOf(parentId: string): InterestItem[];
   size(): number;
 }
@@ -87,6 +96,12 @@ export class InMemoryCatalogueCache implements CatalogueSearch, OnModuleInit {
 
   childrenOf(parentId: string): InterestItem[] {
     return this.byParent.get(parentId) ?? [];
+  }
+
+  allIds(): string[] {
+    const out: string[] = [];
+    for (const [id, i] of this.byIdMap) if (i.state === 'active') out.push(id);
+    return out;
   }
 
   /** Active interests only - what /health reports and what can be posted to. */

@@ -34,7 +34,21 @@ export const SURFACES: readonly Surface[] = [
   { name: 'interest space', built: true, story: '001/US1 (T063)' },
   { name: 'profile', built: true, story: '001/US1 (T063)' },
   { name: 'interest search', built: true, story: '001/US2 (T082)' },
-  { name: 'home feed', built: true, story: '001/US3 (T098)' },
+  /**
+   * 007 MADE THIS SURFACE RANKED, and the row stays exactly as it was.
+   *
+   * That is the point. Under the composed feed this row was, quietly, the
+   * weakest in the table: the feed only read partitions the viewer had
+   * subscribed to, so its candidate set was already viewer-scoped and it could
+   * not over-admit whatever it did afterwards. The matrix passed on it for a
+   * reason that had nothing to do with the matrix.
+   *
+   * A ranked feed reads across the whole catalogue, so the accident is gone and
+   * this row now asserts something. Principle II's enumeration MUST NOT shrink
+   * when a surface changes how it selects - a surface that got harder to satisfy
+   * is precisely the one to keep.
+   */
+  { name: 'home feed', built: true, story: '001/US3 (T098); RANKED by 007/US1 (T022)' },
   { name: 'share link', built: true, story: '001/US5 (T122)' },
   { name: 'comments', built: true, story: '001/US5 (T122)' },
   { name: 'notifications', built: true, story: '001/T154 - closed 001 SC-009' },

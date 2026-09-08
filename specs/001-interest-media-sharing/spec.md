@@ -64,7 +64,20 @@ A person follows the interests they care about, at either level. Their home feed
 
 ---
 
-### User Story 4 - Follow people within the interests you care about (Priority: P4)
+### User Story 4 - Follow people within the interests you care about (Priority: P4) — **WITHDRAWN by 007**
+
+> **WITHDRAWN 2026-09-08 by `specs/007-ranked-feed-redesign/` (RS-001, RS-004), under
+> constitution 2.0.0 which amended Principle I.** The home feed is no longer composed from
+> the interests a viewer follows, so the interest boundary this story is built around does
+> not exist to be tested. Scenarios 2 and 3 below asserted that boundary directly and are
+> withdrawn with it; scenarios 1 and 4 (the follow is recorded, the profile renders) still
+> hold and are unchanged.
+>
+> Withdrawn rather than reworded, deliberately. A story softened to fit the new feed would
+> assert a guarantee the product no longer makes, and would read in review as coverage.
+> What survives of its intent — that following a person should visibly mean something — is
+> carried forward by 007/FR-029.
+
 
 A person finds someone whose work they like and follows them. That person's posts are given prominence in the feed — but only inside interests the follower has themselves chosen. Following someone never pulls in content from interests the follower has no stake in.
 
@@ -184,8 +197,8 @@ A person maintains a profile showing who they are and the interests they post ab
 **Feeds and discovery**
 
 - **FR-032**: System MUST provide a home feed composed of posts from the interests a person follows.
-- **FR-033**: System MUST restrict posts from followed people to those published in interests the viewer also follows; following a person MUST NOT introduce posts from interests the viewer does not follow.
-- **FR-034**: System MUST give posts by followed people greater prominence than posts by unfollowed authors within the same interest.
+- ~~**FR-033**: System MUST restrict posts from followed people to those published in interests the viewer also follows; following a person MUST NOT introduce posts from interests the viewer does not follow.~~ — **WITHDRAWN 2026-09-08 by 007 (RS-001).** Constitution 2.0.0 amended Principle I: interest is the unit of meaning that organises the catalogue, and a feed is assembled from behaviour rather than from subscriptions. There is no followed-interest set for a person-follow to be restricted to. The test that enforced this (`us4-fr033-boundary.spec.ts`) was DELETED rather than weakened.
+- ~~**FR-034**: System MUST give posts by followed people greater prominence than posts by unfollowed authors within the same interest.~~ — **WITHDRAWN AS WRITTEN 2026-09-08 by 007 (RS-007).** The clause "within the same interest" names a boundary the ranked feed does not have. Its intent — a follow must visibly change what you see — is carried forward unchanged by **007/FR-029**, which requires a bounded prominence boost that reorders and never widens.
 - **FR-035**: System MUST load additional older posts as a person scrolls, without losing their position.
 - **FR-036**: System MUST show a helpful empty state wherever a feed or interest space has no content.
 
@@ -233,7 +246,7 @@ A person maintains a profile showing who they are and the interests they post ab
 - **SC-003**: A published video is playable within 60 seconds of the upload finishing, for 95% of uploads.
 - **SC-004**: 90% of people succeed in publishing their first post on the first attempt, without abandoning the flow.
 - **SC-005**: Interest spaces and feeds display their first content within 2 seconds for 95% of views.
-- **SC-006**: A person who has just signed up can find and follow at least 3 interests relevant to them within 2 minutes.
+- ~~**SC-006**: A person who has just signed up can find and follow at least 3 interests relevant to them within 2 minutes.~~ — **SUPERSEDED 2026-09-08 by 007/SC-002.** A new account no longer needs to follow anything to get a feed: it picks seed interests once, and 007/FR-015 requires a populated feed even if it picks none. The outcome that mattered (a new person reaches content quickly) is now measured end-to-end — under 60 seconds from first launch, with no empty state along the way — rather than by counting follows.
 - **SC-007**: 70% of posts published are assigned to a sub-interest that already has other posts, indicating people converge on shared interests rather than fragmenting.
 - **SC-008**: Fewer than 10% of newly created sub-interests are later merged away as duplicates, indicating the duplicate warning works.
 - **SC-009**: No post is ever shown to a viewer its visibility setting excludes, verified across every surface.
