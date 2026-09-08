@@ -168,10 +168,25 @@ export function Row({ children, style }: { children: React.ReactNode; style?: Vi
  * heights added ~38px and pushed it out; a longer block warning, a larger font
  * setting or a shorter phone would each have done the same on their own.
  *
- * Off by default, deliberately. A `ScrollView` around a `FlatList` breaks
- * virtualisation and React Native says so loudly, and most screens here own a
- * list that already scrolls. This is for the ones whose content is STATIC and
- * can still outgrow the display - a sheet of options, a form.
+ * OFF BY DEFAULT, AND APPLIED ONLY WHERE THE OVERFLOW IS MEASURED. I turned it
+ * on for eight screens on a "same class of defect" argument having measured
+ * exactly one, and run 36 came back 1/19: `SignInScreen` became a `ScrollView`
+ * and sign-in stopped working, so every flow that chains it failed. The API log
+ * is unambiguous - `GET /v1/me` 200 three times (all host-side fixtures, none
+ * from the device) against 54 in run 35, and `/v1/feed/home` 401 twenty times.
+ * The app was signed out for the entire run.
+ *
+ * Two mechanisms fit and both are the ScrollView's: a tap while the soft
+ * keyboard is up is consumed to dismiss it rather than delivered to the button
+ * (`keyboardShouldPersistTaps` defaults to `never`), and a scroll viewport
+ * resized by the keyboard leaves the submit button below the fold where a plain
+ * `View` would have moved it. `handled` addresses the first. Neither can be
+ * reproduced in a browser, which has no soft keyboard - so the other seven
+ * screens are REVERTED rather than fixed on a theory, and stay unmeasured until
+ * something measures them.
+ *
+ * Also: a `ScrollView` around a `FlatList` breaks virtualisation, so a screen
+ * that owns a list must never set this.
  */
 export function Screen({
   children,
@@ -192,6 +207,10 @@ export function Screen({
         // on the ScrollView itself and the last child is clipped by the padding
         // instead of scrolled to.
         contentContainerStyle={{ ...style, flexGrow: 1 }}
+        // Without this a tap landing while the soft keyboard is up is spent
+        // dismissing the keyboard instead of pressing what was tapped - the
+        // default is `never`, and it is how run 36 lost sign-in.
+        keyboardShouldPersistTaps="handled"
       >
         {children}
       </ScrollView>

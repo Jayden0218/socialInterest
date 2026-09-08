@@ -57,7 +57,7 @@ export function EditProfileScreen({
   onDeleteAccount: () => void;
 }) {
   return (
-    <Screen testID="edit-profile-screen" scroll>
+    <Screen testID="edit-profile-screen">
       <TextInput
         testID="display-name-input"
         accessibilityLabel="Display name"

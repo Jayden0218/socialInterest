@@ -39,7 +39,7 @@ export function PostDetailScreen({
   const first = post.media?.[0];
 
   return (
-    <Screen testID="post-detail-screen" scroll>
+    <Screen testID="post-detail-screen">
       {notice ? <Banner tone="info" testID="processing-notice">{notice}</Banner> : null}
 
       {first ? (

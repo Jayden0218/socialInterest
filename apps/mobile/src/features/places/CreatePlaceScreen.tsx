@@ -50,7 +50,7 @@ export function CreatePlaceScreen({
   };
 
   return (
-    <Screen testID="create-place-screen" scroll>
+    <Screen testID="create-place-screen">
       <View style={{ padding: space.sm, gap: space.sm }}>
         <TextInput
           testID="place-name-input"

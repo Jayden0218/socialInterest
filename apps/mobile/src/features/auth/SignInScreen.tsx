@@ -26,7 +26,7 @@ export interface SignInScreenProps {
 
 export function SignInScreen({ token, submitting, error, onTokenChange, onSubmit }: SignInScreenProps) {
   return (
-    <Screen testID="sign-in-screen" scroll>
+    <Screen testID="sign-in-screen">
       <View style={{ gap: space.lg }}>
         <Text style={{ ...textStyle.display, fontWeight: '700', color: palette.text.primary }}>Sign in</Text>
 
@@ -73,7 +73,7 @@ export function SignInScreen({ token, submitting, error, onTokenChange, onSubmit
 /** Signed-out state for a surface that needs an identity. */
 export function SignedOutNotice({ onSignIn }: { onSignIn: () => void }) {
   return (
-    <Screen testID="signed-out" scroll>
+    <Screen testID="signed-out">
       <View style={{ gap: space.md }}>
         <Text style={{ color: palette.text.primary }}>Sign in to do this.</Text>
         <Button testID="signed-out-sign-in" label="Sign in" onPress={onSignIn} />

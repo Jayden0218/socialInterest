@@ -50,7 +50,7 @@ export function EditPostScreen({
   const warning = narrowingWarning(original.visibility, draft.visibility);
 
   return (
-    <Screen testID="edit-post-screen" scroll>
+    <Screen testID="edit-post-screen">
       <Text style={{ ...textStyle.display, fontWeight: '700', color: palette.text.primary }}>Edit post</Text>
 
       <TextInput

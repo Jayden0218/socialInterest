@@ -57,7 +57,7 @@ export function CreateInterestScreen({
   const candidates = state.kind === 'similar_found' || state.kind === 'blocked' ? state.candidates : [];
 
   return (
-    <Screen testID="create-interest-screen" scroll>
+    <Screen testID="create-interest-screen">
       <Text style={{ ...textStyle.display, fontWeight: '700', color: palette.text.primary }}>
         New interest in {parentName}
       </Text>
