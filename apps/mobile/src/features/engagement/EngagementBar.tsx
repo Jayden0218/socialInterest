@@ -1,5 +1,5 @@
 import { Pressable, Text } from 'react-native';
-import { touchTarget, theme } from '../../ui/theme';
+import { activePalette as palette, space, touchTarget, type } from '../../ui/theme';
 import { Row } from '../../ui/primitives';
 
 export interface EngagementState {
@@ -42,7 +42,7 @@ export function EngagementBar({
   onToggleSave?: () => void;
 }) {
   return (
-    <Row style={{ gap: theme.space.lg }}>
+    <Row style={{ gap: space.lg }}>
       <Pressable
         style={touchTarget}
         testID="react-button"
@@ -51,7 +51,7 @@ export function EngagementBar({
         accessibilityLabel={state.viewerHasReacted ? 'Remove reaction' : 'React'}
         onPress={onReact}
       >
-        <Text style={{ color: state.viewerHasReacted ? theme.color.accent : theme.color.muted, fontSize: theme.font.md }}>
+        <Text style={{ color: state.viewerHasReacted ? palette.intent.accent : palette.text.muted, fontSize: type.body.size }}>
           {state.viewerHasReacted ? '♥' : '♡'} {state.reactionCount}
           {/* Queued offline actions show as pending, never as landed. */}
           {pending ? ' ·' : ''}
@@ -60,12 +60,12 @@ export function EngagementBar({
 
       <Pressable
         style={touchTarget} testID="comments-button" accessibilityRole="button" onPress={onOpenComments}>
-        <Text style={{ color: theme.color.muted, fontSize: theme.font.md }}>💬 {state.commentCount}</Text>
+        <Text style={{ color: palette.text.muted, fontSize: type.body.size }}>💬 {state.commentCount}</Text>
       </Pressable>
 
       <Pressable
         style={touchTarget} testID="share-button" accessibilityRole="button" accessibilityLabel="Share" onPress={onShare}>
-        <Text style={{ color: theme.color.muted, fontSize: theme.font.md }}>↗</Text>
+        <Text style={{ color: palette.text.muted, fontSize: type.body.size }}>↗</Text>
       </Pressable>
 
       {/*
@@ -82,7 +82,7 @@ export function EngagementBar({
           accessibilityLabel={saved ? 'Remove from saved' : 'Save'}
           onPress={onToggleSave}
         >
-          <Text style={{ color: saved ? theme.color.accent : theme.color.muted, fontSize: theme.font.md }}>
+          <Text style={{ color: saved ? palette.intent.accent : palette.text.muted, fontSize: type.body.size }}>
             {saved ? '★' : '☆'}
           </Text>
         </Pressable>

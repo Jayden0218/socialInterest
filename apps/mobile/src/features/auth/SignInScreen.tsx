@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
-import { theme } from '../../ui/theme';
+import { activePalette as palette, radius, space, type } from '../../ui/theme';
 import { Banner, Button, Screen } from '../../ui/primitives';
 
 /**
@@ -27,10 +27,12 @@ export interface SignInScreenProps {
 export function SignInScreen({ token, submitting, error, onTokenChange, onSubmit }: SignInScreenProps) {
   return (
     <Screen testID="sign-in-screen">
-      <View style={{ gap: theme.space.lg }}>
-        <Text style={{ fontSize: theme.font.xl, fontWeight: '700', color: theme.color.text }}>Sign in</Text>
+      <View style={{ gap: space.lg }}>
+        <Text style={{ fontSize: type.display.size,
+ lineHeight: type.display.lineHeight, fontWeight: '700', color: palette.text.primary }}>Sign in</Text>
 
-        <Text style={{ fontSize: theme.font.sm, color: theme.color.muted }}>
+        <Text style={{ fontSize: type.caption.size,
+ lineHeight: type.caption.lineHeight, color: palette.text.muted }}>
           This build talks to a local API, which issues its own tokens. Paste one to continue.
         </Text>
 
@@ -39,16 +41,16 @@ export function SignInScreen({ token, submitting, error, onTokenChange, onSubmit
           value={token}
           onChangeText={onTokenChange}
           placeholder="Access token"
-          placeholderTextColor={theme.color.muted}
+          placeholderTextColor={palette.text.muted}
           autoCapitalize="none"
           autoCorrect={false}
           multiline
           style={{
             borderWidth: 1,
-            borderColor: theme.color.border,
-            borderRadius: theme.radius.md,
-            padding: theme.space.md,
-            color: theme.color.text,
+            borderColor: palette.line.hairline,
+            borderRadius: radius.md,
+            padding: space.md,
+            color: palette.text.primary,
             minHeight: 96,
           }}
         />
@@ -74,8 +76,8 @@ export function SignInScreen({ token, submitting, error, onTokenChange, onSubmit
 export function SignedOutNotice({ onSignIn }: { onSignIn: () => void }) {
   return (
     <Screen testID="signed-out">
-      <View style={{ gap: theme.space.md }}>
-        <Text style={{ color: theme.color.text }}>Sign in to do this.</Text>
+      <View style={{ gap: space.md }}>
+        <Text style={{ color: palette.text.primary }}>Sign in to do this.</Text>
         <Button testID="signed-out-sign-in" label="Sign in" onPress={onSignIn} />
       </View>
     </Screen>

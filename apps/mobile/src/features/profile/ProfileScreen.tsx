@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native';
 import type { InterestRef, Post } from '@sih/shared';
-import { theme } from '../../ui/theme';
+import { activePalette as palette, space, type } from '../../ui/theme';
 import { Button, Row, Screen } from '../../ui/primitives';
 import { PagedPostList, type PagedState } from '../../components/PagedPostList';
 
@@ -55,30 +55,36 @@ export function ProfileScreen({
 }) {
   return (
     <Screen testID="profile-screen">
-      <View style={{ gap: theme.space.sm }}>
-        <Text style={{ fontSize: theme.font.xl, fontWeight: '700', color: theme.color.text }}>
+      <View style={{ gap: space.sm }}>
+        <Text style={{ fontSize: type.display.size,
+ lineHeight: type.display.lineHeight, fontWeight: '700', color: palette.text.primary }}>
           {profile.displayName}
         </Text>
-        <Text style={{ fontSize: theme.font.sm, color: theme.color.muted }}>@{profile.handle}</Text>
-        {profile.bio ? <Text style={{ fontSize: theme.font.md, color: theme.color.text }}>{profile.bio}</Text> : null}
+        <Text style={{ fontSize: type.caption.size,
+ lineHeight: type.caption.lineHeight, color: palette.text.muted }}>@{profile.handle}</Text>
+        {profile.bio ? <Text style={{ fontSize: type.body.size,
+ lineHeight: type.body.lineHeight, color: palette.text.primary }}>{profile.bio}</Text> : null}
 
         <Row>
-          <Text testID="follower-count" style={{ fontSize: theme.font.sm, color: theme.color.muted }}>
+          <Text testID="follower-count" style={{ fontSize: type.caption.size,
+ lineHeight: type.caption.lineHeight, color: palette.text.muted }}>
             {profile.followerCount} followers
           </Text>
-          <Text testID="following-count" style={{ fontSize: theme.font.sm, color: theme.color.muted }}>
+          <Text testID="following-count" style={{ fontSize: type.caption.size,
+ lineHeight: type.caption.lineHeight, color: palette.text.muted }}>
             {profile.followingCount} following
           </Text>
         </Row>
 
         {profile.topInterests.length > 0 ? (
-          <Text testID="top-interests" style={{ fontSize: theme.font.sm, color: theme.color.accent }}>
+          <Text testID="top-interests" style={{ fontSize: type.caption.size,
+ lineHeight: type.caption.lineHeight, color: palette.intent.accent }}>
             {profile.topInterests.map((i) => i.name).join(' · ')}
           </Text>
         ) : null}
 
         {!isSelf ? (
-          <View style={{ gap: theme.space.xs }}>
+          <View style={{ gap: space.xs }}>
             <Button
               testID="follow-person-toggle"
               label={profile.viewerIsFollowing ? 'Following' : 'Follow'}
@@ -86,7 +92,8 @@ export function ProfileScreen({
               disabled={followPending}
               onPress={() => onToggleFollow(!profile.viewerIsFollowing)}
             />
-            <Text testID="follow-hint" style={{ fontSize: theme.font.sm, color: theme.color.muted }}>
+            <Text testID="follow-hint" style={{ fontSize: type.caption.size,
+ lineHeight: type.caption.lineHeight, color: palette.text.muted }}>
               {followHint(profile, viewerFollowsAnyOfTheirInterests)}
             </Text>
             {/*

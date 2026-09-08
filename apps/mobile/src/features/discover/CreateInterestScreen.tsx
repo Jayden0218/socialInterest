@@ -1,6 +1,6 @@
 import { Pressable, Text, TextInput, View } from 'react-native';
 import type { Interest } from '@sih/shared';
-import { touchTarget, theme } from '../../ui/theme';
+import { activePalette as palette, radius, space, touchTarget, type } from '../../ui/theme';
 import { Banner, Button, Screen } from '../../ui/primitives';
 
 export interface SimilarCandidate {
@@ -58,7 +58,8 @@ export function CreateInterestScreen({
 
   return (
     <Screen testID="create-interest-screen">
-      <Text style={{ fontSize: theme.font.xl, fontWeight: '700', color: theme.color.text }}>
+      <Text style={{ fontSize: type.display.size,
+ lineHeight: type.display.lineHeight, fontWeight: '700', color: palette.text.primary }}>
         New interest in {parentName}
       </Text>
 
@@ -71,16 +72,17 @@ export function CreateInterestScreen({
         autoCorrect={false}
         style={{
           borderWidth: 1,
-          borderColor: state.kind === 'blocked' ? theme.color.danger : theme.color.border,
-          borderRadius: theme.radius.md,
-          padding: theme.space.md,
-          fontSize: theme.font.md,
-          color: theme.color.text,
+          borderColor: state.kind === 'blocked' ? palette.intent.danger : palette.line.hairline,
+          borderRadius: radius.md,
+          padding: space.md,
+          fontSize: type.body.size,
+          lineHeight: type.body.lineHeight,
+          color: palette.text.primary,
         }}
       />
 
       {candidates.length > 0 ? (
-        <View testID="similar-candidates" style={{ gap: theme.space.sm }}>
+        <View testID="similar-candidates" style={{ gap: space.sm }}>
           <Banner tone={state.kind === 'blocked' ? 'danger' : 'warning'} testID="similar-warning">
             {state.kind === 'blocked'
               ? 'An interest with almost this name already exists. Join it instead.'
@@ -94,14 +96,16 @@ export function CreateInterestScreen({
               onPress={() => onJoinExisting(c.interest.interestId)}
               style={{
         ...touchTarget,
-                padding: theme.space.md,
+                padding: space.md,
                 borderWidth: 1,
-                borderColor: theme.color.border,
-                borderRadius: theme.radius.md,
+                borderColor: palette.line.hairline,
+                borderRadius: radius.md,
               }}
             >
-              <Text style={{ fontSize: theme.font.md, color: theme.color.text }}>{c.interest.name}</Text>
-              <Text style={{ fontSize: theme.font.sm, color: theme.color.muted }}>
+              <Text style={{ fontSize: type.body.size,
+ lineHeight: type.body.lineHeight, color: palette.text.primary }}>{c.interest.name}</Text>
+              <Text style={{ fontSize: type.caption.size,
+ lineHeight: type.caption.lineHeight, color: palette.text.muted }}>
                 {c.interest.postCount} posts
               </Text>
             </Pressable>

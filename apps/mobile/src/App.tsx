@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { SafeAreaView, StatusBar, Text, View } from 'react-native';
-import { theme } from './ui/theme';
+import { activePalette as palette, space, type } from './ui/theme';
 import { Button, Row } from './ui/primitives';
 import { DataProvider, useData } from './data-provider';
 import {
@@ -90,7 +90,7 @@ export type Route =
 const appRootStyle = {
   flex: 1,
   minHeight: '100%',
-  backgroundColor: theme.color.bg,
+  backgroundColor: palette.bg.base,
 } as const;
 
 function Header({ title, onBack }: { title: string; onBack: () => void }) {
@@ -98,14 +98,15 @@ function Header({ title, onBack }: { title: string; onBack: () => void }) {
     <Row
       style={{
         alignItems: 'center',
-        gap: theme.space.md,
-        padding: theme.space.sm,
+        gap: space.md,
+        padding: space.sm,
         borderBottomWidth: 1,
-        borderBottomColor: theme.color.border,
+        borderBottomColor: palette.line.hairline,
       }}
     >
       <Button testID="nav-back" label="Back" variant="secondary" onPress={onBack} />
-      <Text style={{ fontSize: theme.font.md, fontWeight: '600', color: theme.color.text }}>{title}</Text>
+      <Text style={{ fontSize: type.body.size,
+ lineHeight: type.body.lineHeight, fontWeight: '600', color: palette.text.primary }}>{title}</Text>
     </Row>
   );
 }
@@ -194,7 +195,7 @@ export function Shell() {
                   requireSignIn({ name: 'safety', subject: 'interest-description', subjectId })
                 }
               />
-              <Row style={{ padding: theme.space.sm }}>
+              <Row style={{ padding: space.sm }}>
                 <Button
                   testID="open-create-interest"
                   label="Propose a sub-interest"
@@ -400,7 +401,7 @@ export function Shell() {
                   isSelf
                   onOpenPost={(postId) => push({ name: 'post', postId })}
                 />
-                <Row style={{ padding: theme.space.sm }}>
+                <Row style={{ padding: space.sm }}>
                   <Button
                     testID="open-edit-profile"
                     label="Edit profile"
@@ -427,7 +428,7 @@ export function Shell() {
         }
       })()}
 
-      <Row style={{ padding: theme.space.sm, gap: theme.space.sm }}>
+      <Row style={{ padding: space.sm, gap: space.sm }}>
         <Button
           testID="open-compose"
           label="New post"
@@ -443,7 +444,7 @@ export function Shell() {
         )}
       </Row>
 
-      <Row style={{ borderTopWidth: 1, borderTopColor: theme.color.border, padding: theme.space.sm }}>
+      <Row style={{ borderTopWidth: 1, borderTopColor: palette.line.hairline, padding: space.sm }}>
         {TABS.map((t) => (
           <View key={t.key} style={{ flex: 1 }}>
             <Button
@@ -473,7 +474,7 @@ export function Shell() {
 export default function App() {
   return (
     <DataProvider baseUrl={API_BASE_URL}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme.color.bg }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.bg.base }}>
         <StatusBar />
         <Shell />
       </SafeAreaView>

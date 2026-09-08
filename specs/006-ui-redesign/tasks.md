@@ -175,10 +175,10 @@ testID snapshot a rename is found by an emulator run.
 ### Implementation for US3
 
 - [X] T036 [US3] Move `Button`, `Banner`, `EmptyState`, `Row`, `Screen` in `apps/mobile/src/ui/primitives.tsx` onto semantic tokens and the type roles — **single-owner file**
-- [ ] T037 [P] [US3] Adopt SEMANTIC tokens in `apps/mobile/src/features/conversations/` — Inbox, Conversation, NewGroup. **Not done, and the reason matters**: these already read `theme.*`, which the alias layer resolves to the dark palette, so they are already correctly coloured and `no-hardcoded-style` passes on them. What remains is naming (`text.secondary` vs `muted`) and the type ROLES, which carry line height and weight. Real but cosmetic-of-the-cosmetics; it becomes load-bearing the day light mode is wired, because the alias layer is static
-- [ ] T038 [P] [US3] Adopt semantic tokens in `apps/mobile/src/features/places/` — PlaceScreen, RatingControl, ReviewList. Same status and reason as T037
-- [ ] T039 [P] [US3] Adopt semantic tokens in `apps/mobile/src/features/profile/`, `notifications/`, `engagement/`, `posts/`, `publish/`, `safety/`. Same status and reason as T037
-- [ ] T040 [US3] Adopt semantic tokens in `apps/mobile/src/screens/index.tsx` and `App.tsx` — **single-owner files**, sequential after T037–T039. Same status and reason as T037
+- [X] T037 [P] [US3] Adopt SEMANTIC tokens in `apps/mobile/src/features/conversations/` — Inbox, Conversation, NewGroup. **Done.** Not only a rename: `theme.font.X` carried a SIZE and nothing else, so every screen outside `ui/` rendered with the platform's default line height and the scale's `lineHeight` was dead data (FR-018)
+- [X] T038 [P] [US3] Adopt semantic tokens in `apps/mobile/src/features/places/` — PlaceScreen, RatingControl, ReviewList. **Done**, same migration as T037
+- [X] T039 [P] [US3] Adopt semantic tokens in `apps/mobile/src/features/profile/`, `notifications/`, `engagement/`, `posts/`, `publish/`, `safety/`. **Done** — and extended to `discover/`, `feed/`, `auth/` and `components/`, which this list omitted. Leaving three directories on the alias would have made deleting it impossible, which is where the guard came from
+- [X] T040 [US3] Adopt semantic tokens in `apps/mobile/src/screens/index.tsx` and `App.tsx` — **single-owner files**, sequential after T037–T039. **Done.** With the last call site moved, the alias layer was DELETED rather than left exported: a name that does not exist is a typecheck failure the moment somebody writes it again, which is a stronger guard than any test asserting they did not
 - [X] T041 [US3] Confirm report and block are reachable in the same number of taps on every surface, by running `.maestro/09-report-and-block.yaml` and `node scripts/verify-maestro-ids.mjs` against `apps/mobile/src/features/safety/` — **G4**; `09-report-and-block` must pass unchanged
 - [X] T042 [US3] Keep every distinct empty-state message in `apps/mobile/src/features/feed/HomeFeedScreen.tsx` and `apps/mobile/src/features/conversations/InboxScreen.tsx`; the redesign must not collapse them into one generic line — FR-024
 
@@ -188,8 +188,8 @@ testID snapshot a rename is found by an emulator run.
 
 ## Phase 6: Polish & evidence
 
-- [ ] T043 Recapture the 20 screens with `apps/e2e/scripts/capture-screens.ts` and keep the before/after pair — **SC-008**
-- [ ] T044 Run the real CI step list from `.github/workflows/ci.yml` — not a proxy for it. Run `@sih/e2e` ALONE: it boots and kills its own API, and two concurrent invocations produce a page of `fetch failed` that looks like a product failure
+- [X] T043 Recapture the 20 screens with `apps/e2e/scripts/capture-screens.ts` and keep the before/after pair — **SC-008**. Done: `docs/screens/README.md` pairs each screen with its pre-006 capture (extracted from `1bcfd00`) so the pair is reviewable in one place, and states what a browser screenshot is not evidence of
+- [X] T044 Run the real CI step list from `.github/workflows/ci.yml` — not a proxy for it. Run `@sih/e2e` ALONE: it boots and kills its own API, and two concurrent invocations produce a page of `fetch failed` that looks like a product failure. **Green**: api 815, mobile 143, workers 6, e2e 129, durability 4, plus typecheck, lint, maestro ids, client diff, smoke:boot, synth, verify:register
 - [ ] T045 Dispatch `.github/workflows/android-emulator.yml` and record the result — **G5**. Free on this public repository, and the only place native layout, fonts, safe areas and touch handling are observed. **Expected 19/19**; a redesign touching every screen is exactly what a device run is for
 - [ ] T046 [P] Write the run record in `docs/verification/runs/`, naming each criterion with the command that measured it, and each criterion NOT met — **FR-008 must appear there as unmet**
 - [ ] T047 [P] Update `CLAUDE.md` with what 006 established and what it did not

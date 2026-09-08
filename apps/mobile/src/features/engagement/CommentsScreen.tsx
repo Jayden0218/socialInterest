@@ -1,6 +1,6 @@
 import { FlatList, Text, TextInput, View } from 'react-native';
 import type { Comment } from '@sih/shared';
-import { theme } from '../../ui/theme';
+import { activePalette as palette, radius, space, type } from '../../ui/theme';
 import { Banner, Button, EmptyState, Screen } from '../../ui/primitives';
 
 export const MAX_COMMENT_LENGTH = 1000;
@@ -55,19 +55,21 @@ export function CommentsScreen({
           testID="comment-list"
           data={comments}
           keyExtractor={(c) => c.commentId}
-          contentContainerStyle={{ gap: theme.space.md }}
+          contentContainerStyle={{ gap: space.md }}
           renderItem={({ item, index }) => (
-            <View testID={`comment-${index}`} style={{ gap: theme.space.xs }}>
-              <Text style={{ fontSize: theme.font.sm, color: theme.color.muted }}>
+            <View testID={`comment-${index}`} style={{ gap: space.xs }}>
+              <Text style={{ fontSize: type.caption.size,
+ lineHeight: type.caption.lineHeight, color: palette.text.muted }}>
                 {item.author.displayName}
               </Text>
-              <Text style={{ fontSize: theme.font.md, color: theme.color.text }}>{item.body}</Text>
+              <Text style={{ fontSize: type.body.size,
+ lineHeight: type.body.lineHeight, color: palette.text.primary }}>{item.body}</Text>
             </View>
           )}
         />
       )}
 
-      <View style={{ gap: theme.space.sm }}>
+      <View style={{ gap: space.sm }}>
         <TextInput
           testID="comment-input"
           accessibilityLabel="Write a comment"
@@ -78,11 +80,12 @@ export function CommentsScreen({
           multiline
           style={{
             borderWidth: 1,
-            borderColor: theme.color.border,
-            borderRadius: theme.radius.md,
-            padding: theme.space.md,
-            color: theme.color.text,
-            fontSize: theme.font.md,
+            borderColor: palette.line.hairline,
+            borderRadius: radius.md,
+            padding: space.md,
+            color: palette.text.primary,
+            fontSize: type.body.size,
+            lineHeight: type.body.lineHeight,
           }}
         />
         <Button

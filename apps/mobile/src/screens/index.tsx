@@ -23,7 +23,7 @@ import type {
   Review,
 } from '@sih/shared';
 import { useHomeFeed, useInterestSearch, useNotifications, usePaged } from '../containers';
-import { theme } from '../ui/theme';
+import { activePalette as palette, space } from '../ui/theme';
 import { Button, Row } from '../ui/primitives';
 import { conversationTitle } from '../features/conversations/conversation-title';
 
@@ -39,8 +39,8 @@ import { conversationTitle } from '../features/conversations/conversation-title'
  */
 function Failed({ message }: { message: string }) {
   return (
-    <View testID="load-error" style={{ padding: theme.space.md }}>
-      <Text style={{ color: theme.color.danger }}>{message}</Text>
+    <View testID="load-error" style={{ padding: space.md }}>
+      <Text style={{ color: palette.intent.danger }}>{message}</Text>
     </View>
   );
 }
@@ -297,7 +297,7 @@ export function PostDetailContainer({
         saved={saved}
         onToggleSave={() => void toggleSave()}
       />
-      <Row style={{ padding: theme.space.sm, gap: theme.space.sm }}>
+      <Row style={{ padding: space.sm, gap: space.sm }}>
         {onOpenAuthor ? (
           <Button
             testID="open-author"

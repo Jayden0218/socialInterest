@@ -1,6 +1,6 @@
 import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
 import type { InterestRef, PlaceSummary, PublicProfile } from '@sih/shared';
-import { activePalette, theme } from '../../ui/theme';
+import { activePalette as palette, radius, space, type } from '../../ui/theme';
 import { interestColour } from '../../ui/interest-colour';
 import { EmptyState, Row, Screen } from '../../ui/primitives';
 import { labelWithParent } from './InterestScreen';
@@ -64,11 +64,12 @@ export function InterestSearchScreen({
         autoCorrect={false}
         style={{
           borderWidth: 1,
-          borderColor: theme.color.border,
-          borderRadius: theme.radius.md,
-          padding: theme.space.md,
-          fontSize: theme.font.md,
-          color: theme.color.text,
+          borderColor: palette.line.hairline,
+          borderRadius: radius.md,
+          padding: space.md,
+          fontSize: type.body.size,
+          lineHeight: type.body.lineHeight,
+          color: palette.text.primary,
         }}
       />
 
@@ -82,27 +83,30 @@ export function InterestSearchScreen({
           autoCorrect={false}
           style={{
             borderWidth: 1,
-            borderColor: theme.color.border,
-            borderRadius: theme.radius.md,
-            padding: theme.space.md,
-            fontSize: theme.font.md,
-            color: theme.color.text,
+            borderColor: palette.line.hairline,
+            borderRadius: radius.md,
+            padding: space.md,
+            fontSize: type.body.size,
+            lineHeight: type.body.lineHeight,
+            color: palette.text.primary,
           }}
         />
       ) : null}
 
       {places && places.length > 0 && onSelectPlace ? (
-        <View testID="place-results" style={{ gap: theme.space.xs }}>
-          <Text style={{ fontSize: theme.font.sm, color: theme.color.muted }}>Places</Text>
+        <View testID="place-results" style={{ gap: space.xs }}>
+          <Text style={{ fontSize: type.caption.size,
+ lineHeight: type.caption.lineHeight, color: palette.text.muted }}>Places</Text>
           {places.map((p) => (
             <Pressable
               key={p.placeId}
               testID={`place-result-${p.placeId}`}
               accessibilityRole="button"
               onPress={() => onSelectPlace(p.placeId)}
-              style={{ paddingVertical: theme.space.sm }}
+              style={{ paddingVertical: space.sm }}
             >
-              <Text style={{ fontSize: theme.font.md, color: theme.color.text }}>
+              <Text style={{ fontSize: type.body.size,
+ lineHeight: type.body.lineHeight, color: palette.text.primary }}>
                 {`${p.name} · ${p.category} · ${p.locality}`}
               </Text>
             </Pressable>
@@ -111,17 +115,19 @@ export function InterestSearchScreen({
       ) : null}
 
       {people && people.length > 0 && onSelectPerson ? (
-        <View testID="people-results" style={{ gap: theme.space.xs }}>
-          <Text style={{ fontSize: theme.font.sm, color: theme.color.muted }}>People</Text>
+        <View testID="people-results" style={{ gap: space.xs }}>
+          <Text style={{ fontSize: type.caption.size,
+ lineHeight: type.caption.lineHeight, color: palette.text.muted }}>People</Text>
           {people.map((p) => (
             <Pressable
               key={p.handle}
               testID={`person-result-${p.handle}`}
               accessibilityRole="button"
               onPress={() => onSelectPerson(p.handle)}
-              style={{ paddingVertical: theme.space.sm }}
+              style={{ paddingVertical: space.sm }}
             >
-              <Text style={{ fontSize: theme.font.md, color: theme.color.text }}>
+              <Text style={{ fontSize: type.body.size,
+ lineHeight: type.body.lineHeight, color: palette.text.primary }}>
                 {`${p.displayName} · @${p.handle}`}
               </Text>
             </Pressable>
@@ -140,13 +146,13 @@ export function InterestSearchScreen({
           testID="interest-list"
           data={results}
           keyExtractor={(i) => i.interestId}
-          contentContainerStyle={{ gap: theme.space.sm }}
+          contentContainerStyle={{ gap: space.sm }}
           renderItem={({ item, index }) => (
             <Pressable
               testID={`search-result-${index}`}
               accessibilityRole="button"
               onPress={() => onSelect(item.interestId)}
-              style={{ paddingVertical: theme.space.md, borderBottomWidth: 1, borderBottomColor: theme.color.border }}
+              style={{ paddingVertical: space.md, borderBottomWidth: 1, borderBottomColor: palette.line.hairline }}
             >
               {/*
                 006/FR-013. The interest's own colour, beside its name.
@@ -158,21 +164,22 @@ export function InterestSearchScreen({
                 FR-014 means the NAME is what identifies the row and the colour
                 only narrows the search.
               */}
-              <Row style={{ alignItems: 'center', gap: theme.space.sm }}>
+              <Row style={{ alignItems: 'center', gap: space.sm }}>
                 <View
                   testID={`search-result-colour-${index}`}
                   style={{
                     width: 10,
                     height: 10,
-                    borderRadius: theme.radius.pill,
+                    borderRadius: radius.pill,
                     backgroundColor: interestColour(
                       { interestId: item.interestId, parentId: item.parent?.interestId ?? null },
-                      activePalette,
+                      palette,
                     ),
                   }}
                 />
                 {/* Always parent-qualified, so two same-named interests are distinguishable. */}
-                <Text style={{ fontSize: theme.font.md, color: theme.color.text }}>{resultLabel(item)}</Text>
+                <Text style={{ fontSize: type.body.size,
+ lineHeight: type.body.lineHeight, color: palette.text.primary }}>{resultLabel(item)}</Text>
               </Row>
             </Pressable>
           )}

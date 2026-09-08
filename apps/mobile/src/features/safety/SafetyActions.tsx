@@ -1,5 +1,5 @@
 import { Pressable, Text, View } from 'react-native';
-import { touchTarget, theme } from '../../ui/theme';
+import { activePalette as palette, radius, space, touchTarget, type } from '../../ui/theme';
 import { Banner, Button, Screen } from '../../ui/primitives';
 
 /**
@@ -76,11 +76,12 @@ export function SafetyActions({
 }) {
   return (
     <Screen testID="safety-actions">
-      <Text style={{ fontSize: theme.font.lg, fontWeight: '600', color: theme.color.text }}>
+      <Text style={{ fontSize: type.title.size,
+ lineHeight: type.title.lineHeight, fontWeight: '600', color: palette.text.primary }}>
         {reportActionLabel(subject)}
       </Text>
 
-      <View testID="report-reasons" style={{ gap: theme.space.sm }}>
+      <View testID="report-reasons" style={{ gap: space.sm }}>
         {REPORT_REASONS.map((r, i) => (
           <Pressable
             key={r.value}
@@ -90,13 +91,14 @@ export function SafetyActions({
             onPress={() => onSelectReason(r.value)}
             style={{
         ...touchTarget,
-              padding: theme.space.md,
+              padding: space.md,
               borderWidth: 1,
-              borderRadius: theme.radius.md,
-              borderColor: selectedReason === r.value ? theme.color.accent : theme.color.border,
+              borderRadius: radius.md,
+              borderColor: selectedReason === r.value ? palette.intent.accent : palette.line.hairline,
             }}
           >
-            <Text style={{ fontSize: theme.font.md, color: theme.color.text }}>{r.label}</Text>
+            <Text style={{ fontSize: type.body.size,
+ lineHeight: type.body.lineHeight, color: palette.text.primary }}>{r.label}</Text>
           </Pressable>
         ))}
       </View>
@@ -109,7 +111,7 @@ export function SafetyActions({
       />
 
       {onBlock ? (
-        <View style={{ gap: theme.space.sm }}>
+        <View style={{ gap: space.sm }}>
           <Banner tone="warning" testID="block-confirmation">{BLOCK_CONFIRMATION}</Banner>
           <Button testID="block-person" label="Block this person" variant="danger" onPress={onBlock} />
         </View>

@@ -1,9 +1,8 @@
 import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
 import type { Interest, InterestRef, Post } from '@sih/shared';
-import { theme } from '../../ui/theme';
+import { activePalette as palette, radius, space, type } from '../../ui/theme';
 import { Screen } from '../../ui/primitives';
 import { interestColour } from '../../ui/interest-colour';
-import { activePalette } from '../../ui/theme';
 import { PagedPostList, type PagedState } from '../../components/PagedPostList';
 import { FollowInterestControl } from './FollowInterestControl';
 
@@ -79,7 +78,7 @@ export function InterestScreen({
 
   return (
     <Screen testID="interest-screen">
-      <View style={{ gap: theme.space.sm }}>
+      <View style={{ gap: space.sm }}>
         {/*
           006/FR-013. THE INTEREST'S OWN COLOUR, in the screen's own chrome.
 
@@ -99,20 +98,22 @@ export function InterestScreen({
           style={{
             height: 4,
             width: 56,
-            borderRadius: theme.radius.pill,
+            borderRadius: radius.pill,
             backgroundColor: interestColour(
               {
                 interestId: data.interest.interestId,
                 parentId: data.interest.parentId ?? null,
               },
-              activePalette,
+              palette,
             ),
           }}
         />
-        <Text style={{ fontSize: theme.font.xl, fontWeight: '700', color: theme.color.text }}>
+        <Text style={{ fontSize: type.display.size,
+ lineHeight: type.display.lineHeight, fontWeight: '700', color: palette.text.primary }}>
           {data.interest.name}
         </Text>
-        <Text testID="interest-counts" style={{ fontSize: theme.font.sm, color: theme.color.muted }}>
+        <Text testID="interest-counts" style={{ fontSize: type.caption.size,
+ lineHeight: type.caption.lineHeight, color: palette.text.muted }}>
           {data.interest.postCount} posts · {data.interest.followerCount} followers
         </Text>
 
@@ -122,13 +123,15 @@ export function InterestScreen({
           CALLED and nothing about what it is FOR.
         */}
         {data.interest.description ? (
-          <View style={{ gap: theme.space.xs }}>
-            <Text testID="interest-description" style={{ fontSize: theme.font.md, color: theme.color.text }}>
+          <View style={{ gap: space.xs }}>
+            <Text testID="interest-description" style={{ fontSize: type.body.size,
+ lineHeight: type.body.lineHeight, color: palette.text.primary }}>
               {data.interest.description}
             </Text>
             {onReportDescription ? (
               <Pressable testID="report-description" onPress={onReportDescription}>
-                <Text style={{ fontSize: theme.font.sm, color: theme.color.muted }}>Report this description</Text>
+                <Text style={{ fontSize: type.caption.size,
+ lineHeight: type.caption.lineHeight, color: palette.text.muted }}>Report this description</Text>
               </Pressable>
             ) : null}
           </View>
@@ -141,28 +144,30 @@ export function InterestScreen({
       </View>
 
       {data.subInterests && data.subInterests.length > 0 ? (
-        <View testID="sub-interest-list" style={{ gap: theme.space.sm }}>
-          <Text style={{ fontSize: theme.font.sm, color: theme.color.muted }}>Within {data.interest.name}</Text>
+        <View testID="sub-interest-list" style={{ gap: space.sm }}>
+          <Text style={{ fontSize: type.caption.size,
+ lineHeight: type.caption.lineHeight, color: palette.text.muted }}>Within {data.interest.name}</Text>
           <FlatList
             horizontal
             data={data.subInterests}
             keyExtractor={(i) => i.interestId}
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: theme.space.sm }}
+            contentContainerStyle={{ gap: space.sm }}
             renderItem={({ item, index }) => (
               <Pressable
                 testID={`sub-interest-${index}`}
                 accessibilityRole="button"
                 onPress={() => onOpenSubInterest(item.interestId)}
                 style={{
-                  paddingVertical: theme.space.sm,
-                  paddingHorizontal: theme.space.md,
-                  borderRadius: theme.radius.pill,
+                  paddingVertical: space.sm,
+                  paddingHorizontal: space.md,
+                  borderRadius: radius.pill,
                   borderWidth: 1,
-                  borderColor: theme.color.border,
+                  borderColor: palette.line.hairline,
                 }}
               >
-                <Text style={{ fontSize: theme.font.sm, color: theme.color.text }}>{item.name}</Text>
+                <Text style={{ fontSize: type.caption.size,
+ lineHeight: type.caption.lineHeight, color: palette.text.primary }}>{item.name}</Text>
               </Pressable>
             )}
           />
@@ -170,7 +175,8 @@ export function InterestScreen({
       ) : null}
 
       {caption ? (
-        <Text testID="rollup-caption" style={{ fontSize: theme.font.sm, color: theme.color.muted }}>
+        <Text testID="rollup-caption" style={{ fontSize: type.caption.size,
+ lineHeight: type.caption.lineHeight, color: palette.text.muted }}>
           {caption}
         </Text>
       ) : null}
@@ -178,28 +184,29 @@ export function InterestScreen({
       {/* 004/FR-027 to FR-029. Order and search sit directly above the list
           they act on, so it is obvious which set they are changing. */}
       {onOrderChange || onQueryChange ? (
-        <View testID="interest-controls" style={{ gap: theme.space.sm }}>
+        <View testID="interest-controls" style={{ gap: space.sm }}>
           {onQueryChange ? (
             <TextInput
               testID="in-interest-search"
               accessibilityLabel={`Search within ${data.interest.name}`}
               placeholder={`Search within ${data.interest.name}`}
-              placeholderTextColor={theme.color.muted}
+              placeholderTextColor={palette.text.muted}
               value={query ?? ''}
               onChangeText={onQueryChange}
               autoCorrect={false}
               style={{
                 borderWidth: 1,
-                borderColor: theme.color.border,
-                borderRadius: theme.radius.md,
-                padding: theme.space.sm,
-                fontSize: theme.font.md,
-                color: theme.color.text,
+                borderColor: palette.line.hairline,
+                borderRadius: radius.md,
+                padding: space.sm,
+                fontSize: type.body.size,
+                lineHeight: type.body.lineHeight,
+                color: palette.text.primary,
               }}
             />
           ) : null}
           {onOrderChange ? (
-            <View style={{ flexDirection: 'row', gap: theme.space.sm }}>
+            <View style={{ flexDirection: 'row', gap: space.sm }}>
               {ORDERS.map((o) => (
                 <Pressable
                   key={o.key}
@@ -207,17 +214,18 @@ export function InterestScreen({
                   accessibilityRole="button"
                   onPress={() => onOrderChange(o.key)}
                   style={{
-                    paddingVertical: theme.space.xs,
-                    paddingHorizontal: theme.space.md,
-                    borderRadius: theme.radius.pill,
+                    paddingVertical: space.xs,
+                    paddingHorizontal: space.md,
+                    borderRadius: radius.pill,
                     borderWidth: 1,
-                    borderColor: (order ?? 'new') === o.key ? theme.color.accent : theme.color.border,
+                    borderColor: (order ?? 'new') === o.key ? palette.intent.accent : palette.line.hairline,
                   }}
                 >
                   <Text
                     style={{
-                      fontSize: theme.font.sm,
-                      color: (order ?? 'new') === o.key ? theme.color.accent : theme.color.muted,
+                      fontSize: type.caption.size,
+                      lineHeight: type.caption.lineHeight,
+                      color: (order ?? 'new') === o.key ? palette.intent.accent : palette.text.muted,
                     }}
                   >
                     {o.label}

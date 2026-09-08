@@ -1,5 +1,5 @@
 import { Pressable, Text, View, type ViewStyle } from 'react-native';
-import { activePalette, MIN_TOUCH_TARGET, radius, space, theme, type } from './theme';
+import { activePalette as palette, MIN_TOUCH_TARGET, radius, space, type } from './theme';
 
 export function Button({
   label,
@@ -15,8 +15,8 @@ export function Button({
   testID?: string;
 }) {
   const bg =
-    variant === 'primary' ? theme.color.accent : variant === 'danger' ? theme.color.danger : theme.color.surface;
-  const fg = variant === 'secondary' ? theme.color.text : theme.color.onAccent;
+    variant === 'primary' ? palette.intent.accent : variant === 'danger' ? palette.intent.danger : palette.bg.raised;
+  const fg = variant === 'secondary' ? palette.text.primary : palette.text.onAccent;
   return (
     <Pressable
       testID={testID}
@@ -28,9 +28,9 @@ export function Button({
       style={{
         backgroundColor: bg,
         opacity: disabled ? 0.45 : 1,
-        paddingVertical: theme.space.md,
-        paddingHorizontal: theme.space.lg,
-        borderRadius: theme.radius.md,
+        paddingVertical: space.md,
+        paddingHorizontal: space.lg,
+        borderRadius: radius.md,
         alignItems: 'center',
         /**
          * 006/FR-020. An explicit floor, not padding that happens to add up.
@@ -75,10 +75,10 @@ export function Banner({
    */
   const border =
     tone === 'danger'
-      ? activePalette.intent.danger
+      ? palette.intent.danger
       : tone === 'warning'
-        ? activePalette.intent.warning
-        : activePalette.line.strong;
+        ? palette.intent.warning
+        : palette.line.strong;
   return (
     <View
       testID={testID}
@@ -86,14 +86,14 @@ export function Banner({
       style={{
         borderLeftWidth: 3,
         borderLeftColor: border,
-        backgroundColor: activePalette.bg.raised,
+        backgroundColor: palette.bg.raised,
         padding: space.md,
         borderRadius: radius.md,
       }}
     >
       <Text
         style={{
-          color: activePalette.text.primary,
+          color: palette.text.primary,
           fontSize: type.body.size,
           lineHeight: type.body.lineHeight,
         }}
@@ -124,7 +124,7 @@ export function EmptyState({
           fontSize: type.title.size,
           lineHeight: type.title.lineHeight,
           fontWeight: type.title.weight,
-          color: activePalette.text.primary,
+          color: palette.text.primary,
         }}
       >
         {title}
@@ -139,7 +139,7 @@ export function EmptyState({
         style={{
           fontSize: type.body.size,
           lineHeight: type.body.lineHeight,
-          color: activePalette.text.secondary,
+          color: palette.text.secondary,
           textAlign: 'center',
         }}
       >
@@ -152,7 +152,7 @@ export function EmptyState({
 
 export function Row({ children, style }: { children: React.ReactNode; style?: ViewStyle }) {
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space.sm, ...style }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, ...style }}>
       {children}
     </View>
   );
@@ -160,7 +160,7 @@ export function Row({ children, style }: { children: React.ReactNode; style?: Vi
 
 export function Screen({ children, testID }: { children: React.ReactNode; testID?: string }) {
   return (
-    <View testID={testID} style={{ flex: 1, backgroundColor: theme.color.bg, padding: theme.space.lg, gap: theme.space.lg }}>
+    <View testID={testID} style={{ flex: 1, backgroundColor: palette.bg.base, padding: space.lg, gap: space.lg }}>
       {children}
     </View>
   );

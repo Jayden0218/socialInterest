@@ -1,6 +1,6 @@
 import { ScrollView, Text, TextInput, View } from 'react-native';
 import type { InterestRef, Visibility } from '@sih/shared';
-import { theme } from '../../ui/theme';
+import { activePalette as palette, radius, space, type } from '../../ui/theme';
 import { Banner, Button, Row, Screen } from '../../ui/primitives';
 import { InterestSelector, canPublish } from './InterestSelector';
 import { VisibilityControl, DEFAULT_VISIBILITY } from './VisibilityControl';
@@ -52,13 +52,15 @@ export function ComposeScreen(props: ComposeScreenProps) {
 
   return (
     <Screen testID="compose-screen">
-      <ScrollView contentContainerStyle={{ gap: theme.space.lg }}>
-        <Text style={{ fontSize: theme.font.xl, fontWeight: '700', color: theme.color.text }}>New post</Text>
+      <ScrollView contentContainerStyle={{ gap: space.lg }}>
+        <Text style={{ fontSize: type.display.size,
+ lineHeight: type.display.lineHeight, fontWeight: '700', color: palette.text.primary }}>New post</Text>
 
-        <View testID="upload-slots" style={{ gap: theme.space.sm }}>
+        <View testID="upload-slots" style={{ gap: space.sm }}>
           {props.slots.map((slot, i) => (
             <Row key={slot.media.uri} style={{ justifyContent: 'space-between' }}>
-              <Text testID={`upload-status-${i}`} style={{ fontSize: theme.font.sm, color: theme.color.muted }}>
+              <Text testID={`upload-status-${i}`} style={{ fontSize: type.caption.size,
+ lineHeight: type.caption.lineHeight, color: palette.text.muted }}>
                 {slot.stage === 'uploaded'
                   ? 'Uploaded'
                   : slot.stage === 'failed'
@@ -89,12 +91,13 @@ export function ComposeScreen(props: ComposeScreenProps) {
           maxLength={2000}
           style={{
             borderWidth: 1,
-            borderColor: theme.color.border,
-            borderRadius: theme.radius.md,
-            padding: theme.space.md,
+            borderColor: palette.line.hairline,
+            borderRadius: radius.md,
+            padding: space.md,
             minHeight: 88,
-            color: theme.color.text,
-            fontSize: theme.font.md,
+            color: palette.text.primary,
+            fontSize: type.body.size,
+            lineHeight: type.body.lineHeight,
           }}
         />
 

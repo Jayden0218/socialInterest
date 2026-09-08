@@ -1,6 +1,6 @@
 import { FlatList, Pressable, Text, View } from 'react-native';
 import type { InterestRef } from '@sih/shared';
-import { touchTarget, theme } from '../../ui/theme';
+import { activePalette as palette, radius, space, touchTarget, type } from '../../ui/theme';
 
 export interface InterestSelectorProps {
   selected: InterestRef[];
@@ -27,8 +27,9 @@ export function InterestSelector({ selected, options, onChange }: InterestSelect
   };
 
   return (
-    <View testID="interest-selector" style={{ gap: theme.space.sm }}>
-      <Text style={{ fontSize: theme.font.sm, color: theme.color.muted }}>
+    <View testID="interest-selector" style={{ gap: space.sm }}>
+      <Text style={{ fontSize: type.caption.size,
+ lineHeight: type.caption.lineHeight, color: palette.text.muted }}>
         {selected.length === 0 ? 'Choose an interest (required)' : 'Filed under'}
       </Text>
       <FlatList
@@ -36,7 +37,7 @@ export function InterestSelector({ selected, options, onChange }: InterestSelect
         data={options}
         keyExtractor={(i) => i.interestId}
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: theme.space.sm }}
+        contentContainerStyle={{ gap: space.sm }}
         renderItem={({ item, index }) => {
           const isSelected = selected.some((s) => s.interestId === item.interestId);
           return (
@@ -47,17 +48,17 @@ export function InterestSelector({ selected, options, onChange }: InterestSelect
               onPress={() => toggle(item)}
               style={{
         ...touchTarget,
-                paddingVertical: theme.space.sm,
-                paddingHorizontal: theme.space.md,
-                borderRadius: theme.radius.pill,
+                paddingVertical: space.sm,
+                paddingHorizontal: space.md,
+                borderRadius: radius.pill,
                 borderWidth: 1,
-                borderColor: isSelected ? theme.color.accent : theme.color.border,
-                backgroundColor: isSelected ? theme.color.accent : theme.color.bg,
+                borderColor: isSelected ? palette.intent.accent : palette.line.hairline,
+                backgroundColor: isSelected ? palette.intent.accent : palette.bg.base,
               }}
             >
               {/* The parent is always shown: "portraits" under Photography must be
                   distinguishable from "portraits" under Painting (FR-026). */}
-              <Text style={{ color: isSelected ? theme.color.onAccent : theme.color.text, fontSize: theme.font.sm }}>
+              <Text style={{ color: isSelected ? palette.text.onAccent : palette.text.primary, fontSize: type.caption.size }}>
                 {label(item)}
               </Text>
             </Pressable>

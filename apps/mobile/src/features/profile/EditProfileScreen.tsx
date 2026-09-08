@@ -1,5 +1,5 @@
 import { Switch, Text, TextInput, View } from 'react-native';
-import { theme } from '../../ui/theme';
+import { activePalette as palette, radius, space, type } from '../../ui/theme';
 import { Banner, Button, Row, Screen } from '../../ui/primitives';
 
 import type { NotificationPrefs } from '../../data/session';
@@ -66,11 +66,12 @@ export function EditProfileScreen({
         maxLength={50}
         style={{
           borderWidth: 1,
-          borderColor: theme.color.border,
-          borderRadius: theme.radius.md,
-          padding: theme.space.md,
-          fontSize: theme.font.md,
-          color: theme.color.text,
+          borderColor: palette.line.hairline,
+          borderRadius: radius.md,
+          padding: space.md,
+          fontSize: type.body.size,
+          lineHeight: type.body.lineHeight,
+          color: palette.text.primary,
         }}
       />
       <TextInput
@@ -82,20 +83,23 @@ export function EditProfileScreen({
         maxLength={300}
         style={{
           borderWidth: 1,
-          borderColor: theme.color.border,
-          borderRadius: theme.radius.md,
-          padding: theme.space.md,
+          borderColor: palette.line.hairline,
+          borderRadius: radius.md,
+          padding: space.md,
           minHeight: 72,
-          fontSize: theme.font.md,
-          color: theme.color.text,
+          fontSize: type.body.size,
+          lineHeight: type.body.lineHeight,
+          color: palette.text.primary,
         }}
       />
 
-      <View testID="notification-prefs" style={{ gap: theme.space.sm }}>
-        <Text style={{ fontSize: theme.font.sm, color: theme.color.muted }}>Notify me about</Text>
+      <View testID="notification-prefs" style={{ gap: space.sm }}>
+        <Text style={{ fontSize: type.caption.size,
+ lineHeight: type.caption.lineHeight, color: palette.text.muted }}>Notify me about</Text>
         {CATEGORIES.map((c) => (
           <Row key={c.key} style={{ justifyContent: 'space-between' }}>
-            <Text style={{ fontSize: theme.font.md, color: theme.color.text }}>{c.label}</Text>
+            <Text style={{ fontSize: type.body.size,
+ lineHeight: type.body.lineHeight, color: palette.text.primary }}>{c.label}</Text>
             <Switch
               testID={`pref-${c.key}`}
               accessibilityLabel={c.label}

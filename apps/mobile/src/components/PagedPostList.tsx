@@ -1,5 +1,5 @@
 import { FlatList, Text, View } from 'react-native';
-import { theme } from '../ui/theme';
+import { activePalette as palette, space, type } from '../ui/theme';
 import { EmptyState } from '../ui/primitives';
 import { Skeleton } from './Skeleton';
 
@@ -78,7 +78,7 @@ export function PagedPostList<T>({ state, keyOf, renderItem, onLoadMore, empty }
       onEndReached={() => {
         if (shouldLoadMore(state)) onLoadMore();
       }}
-      contentContainerStyle={{ gap: theme.space.md }}
+      contentContainerStyle={{ gap: space.md }}
       ListFooterComponent={
         state.loading ? (
           /**
@@ -92,12 +92,12 @@ export function PagedPostList<T>({ state, keyOf, renderItem, onLoadMore, empty }
            * `paged-loading` keeps its testID and its meaning - the contract in
            * contracts/testid-preservation.md is about the id AND what it marks.
            */
-          <View testID="paged-loading" style={{ gap: theme.space.md, paddingVertical: theme.space.md }}>
+          <View testID="paged-loading" style={{ gap: space.md, paddingVertical: space.md }}>
             <Skeleton style={{ height: 220 }} />
             <Skeleton style={{ height: 220 }} />
           </View>
         ) : state.exhausted && state.items.length > 0 ? (
-          <Text testID="paged-end" style={{ textAlign: 'center', color: theme.color.muted, fontSize: theme.font.sm }}>
+          <Text testID="paged-end" style={{ textAlign: 'center', color: palette.text.muted, fontSize: type.caption.size }}>
             You're all caught up
           </Text>
         ) : null

@@ -59,8 +59,8 @@ describe('feature screens read the theme (006/FR-016)', () => {
 
   /**
    * A raw `fontSize: 15` is the same drift as a raw colour, and harder to spot
-   * because a number looks innocent. Sizes must come from `theme.font` or the
-   * type roles.
+   * because a number looks innocent. Sizes must come from a type ROLE, which
+   * carries the matching line height with it.
    */
   it('no raw font size appears in a feature screen', () => {
     const offenders: string[] = [];

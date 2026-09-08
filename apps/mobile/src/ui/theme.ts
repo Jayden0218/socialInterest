@@ -12,34 +12,17 @@ export type { Palette };
 export const activePalette: Palette = dark;
 
 /**
- * The theme, in the shape every existing screen already imports.
+ * THE ALIAS LAYER IS GONE, and its absence is the guard.
  *
- * THIS IS AN ALIAS LAYER, ON PURPOSE. ~40 files import `theme.color.bg`,
- * `theme.space.md` and so on. Re-pointing those names at the new palette turns
- * the whole app dark green in one diff, with no risk of missing a screen and no
- * churn in files this change has no other reason to touch.
+ * `theme.color.bg`, `theme.font.md` and friends existed so 006 could re-point
+ * ~40 screens at the new palette in one diff without touching them. Every call
+ * site has now moved to the semantic names, so the shim is deleted rather than
+ * left available: an export nobody imports is an invitation, while a name that
+ * does not exist is a TYPECHECK FAILURE the moment somebody writes it again.
+ * That is a stronger guard than a test, and it costs nothing to keep.
  *
- * New work should read `useTheme()` and the semantic tokens - `bg.raised`,
- * `text.secondary`, `intent.warning` - which the old shape has no names for. The
- * aliases stay until every call site has moved, and then they go.
+ * The migration was not only renaming. `theme.font.X` carried a SIZE and
+ * nothing else, so every screen outside this directory rendered with the
+ * platform's default line height and the scale's `lineHeight` was dead data
+ * (006/FR-018). Reading the role gives size and line height together.
  */
-export const theme = {
-  color: {
-    bg: activePalette.bg.base,
-    surface: activePalette.bg.raised,
-    border: activePalette.line.hairline,
-    text: activePalette.text.primary,
-    muted: activePalette.text.muted,
-    accent: activePalette.intent.accent,
-    danger: activePalette.intent.danger,
-    onAccent: activePalette.text.onAccent,
-  },
-  space,
-  radius,
-  font: {
-    sm: type.caption.size,
-    md: type.body.size,
-    lg: type.title.size,
-    xl: type.display.size,
-  },
-} as const;

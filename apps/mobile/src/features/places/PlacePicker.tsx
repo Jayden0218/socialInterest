@@ -1,6 +1,6 @@
 import { Text, TextInput, View } from 'react-native';
 import type { PlaceSummary } from '@sih/shared';
-import { theme } from '../../ui/theme';
+import { activePalette as palette, space, type } from '../../ui/theme';
 import { Button, Row } from '../../ui/primitives';
 
 /**
@@ -31,17 +31,17 @@ export function PlacePicker({
 }) {
   const input = {
     borderWidth: 1,
-    borderColor: theme.color.border,
+    borderColor: palette.line.hairline,
     borderRadius: 8,
-    color: theme.color.text,
-    padding: theme.space.sm,
+    color: palette.text.primary,
+    padding: space.sm,
   };
 
   if (selected) {
     return (
       <View testID="place-selected">
-        <Row style={{ alignItems: 'center', gap: theme.space.sm }}>
-          <Text style={{ flex: 1, color: theme.color.text }}>
+        <Row style={{ alignItems: 'center', gap: space.sm }}>
+          <Text style={{ flex: 1, color: palette.text.primary }}>
             {selected.name} · {selected.locality}
           </Text>
           <Button
@@ -56,15 +56,16 @@ export function PlacePicker({
   }
 
   return (
-    <View testID="place-picker" style={{ gap: theme.space.sm }}>
-      <Text style={{ fontSize: theme.font.sm, color: theme.color.muted }}>
+    <View testID="place-picker" style={{ gap: space.sm }}>
+      <Text style={{ fontSize: type.caption.size,
+ lineHeight: type.caption.lineHeight, color: palette.text.muted }}>
         Add a place (optional)
       </Text>
       <TextInput
         testID="place-locality-input"
         style={input}
         placeholder="City or area"
-        placeholderTextColor={theme.color.muted}
+        placeholderTextColor={palette.text.muted}
         value={locality}
         onChangeText={onLocalityChange}
       />
@@ -72,7 +73,7 @@ export function PlacePicker({
         testID="place-search-input"
         style={input}
         placeholder="Restaurant, cafe, shop…"
-        placeholderTextColor={theme.color.muted}
+        placeholderTextColor={palette.text.muted}
         value={query}
         onChangeText={onQueryChange}
       />

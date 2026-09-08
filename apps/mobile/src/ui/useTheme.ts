@@ -17,17 +17,18 @@ export function useTheme(): Palette {
   /**
    * ONE PALETTE FOR THE WHOLE APP, and deliberately not the platform's yet.
    *
-   * `theme.ts` resolves its alias layer against `activePalette` at module load,
-   * because ~40 screens read `theme.color.bg` and cannot call a hook. If this
-   * followed `useColorScheme()` while that stayed fixed, the app would render
-   * with TWO palettes at once - and it did: the first capture after `PostCard`
-   * landed showed white cards inside dark green chrome, because the browser
-   * reports `light` and the alias layer is dark.
+   * Screens read `activePalette` at MODULE SCOPE - a style object built once at
+   * import time cannot call a hook. If this hook followed `useColorScheme()`
+   * while those stayed fixed, the app would render with TWO palettes at once,
+   * and it did: the first capture after `PostCard` landed showed white cards
+   * inside dark green chrome, because the browser reports `light` and the
+   * module-scope reads are dark.
    *
    * That is not "dark mode is broken", it is two sources of truth. Following the
-   * platform is US3's job (T035, T036), once every screen reads tokens through a
-   * hook and there is one source to follow. Until then this returns what the
-   * alias layer returns, and the app is one colour.
+   * platform needs every screen to build its styles INSIDE the component, which
+   * is a change of shape rather than of names and is not what 006 bought. Until
+   * then this returns the same palette everything else reads, and the app is one
+   * colour.
    */
   return activePalette;
 }

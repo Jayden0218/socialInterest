@@ -1,6 +1,6 @@
 import { FlatList, Text, TextInput, View } from 'react-native';
 import type { PublicProfile } from '@sih/shared';
-import { theme } from '../../ui/theme';
+import { activePalette as palette, space } from '../../ui/theme';
 import { Banner, Button, EmptyState, Row, Screen } from '../../ui/primitives';
 
 /**
@@ -83,13 +83,13 @@ export function NewGroupScreen({
         testID="group-name-input"
         style={inputStyle}
         placeholder="Group name (optional)"
-        placeholderTextColor={theme.color.muted}
+        placeholderTextColor={palette.text.muted}
         value={name}
         onChangeText={onNameChange}
       />
 
       {selected.length > 0 ? (
-        <Row style={{ flexWrap: 'wrap', gap: theme.space.xs }}>
+        <Row style={{ flexWrap: 'wrap', gap: space.xs }}>
           {selected.map((p) => (
             <Button
               key={p.handle}
@@ -106,7 +106,7 @@ export function NewGroupScreen({
         testID="group-search-input"
         style={inputStyle}
         placeholder="Search people"
-        placeholderTextColor={theme.color.muted}
+        placeholderTextColor={palette.text.muted}
         autoCapitalize="none"
         value={query}
         onChangeText={onQueryChange}
@@ -130,12 +130,12 @@ export function NewGroupScreen({
           renderItem={({ item }) => {
             const chosen = handles.includes(item.handle);
             return (
-              <Row style={{ paddingVertical: theme.space.sm }}>
+              <Row style={{ paddingVertical: space.sm }}>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: theme.color.text, fontWeight: '600' }}>
+                  <Text style={{ color: palette.text.primary, fontWeight: '600' }}>
                     {item.displayName}
                   </Text>
-                  <Text style={{ color: theme.color.muted }}>@{item.handle}</Text>
+                  <Text style={{ color: palette.text.muted }}>@{item.handle}</Text>
                 </View>
                 <Button
                   testID={`group-participant-${item.handle}`}
@@ -178,8 +178,8 @@ export function NewGroupScreen({
 
 const inputStyle = {
   borderWidth: 1,
-  borderColor: theme.color.border,
+  borderColor: palette.line.hairline,
   borderRadius: 8,
-  color: theme.color.text,
-  padding: theme.space.sm,
+  color: palette.text.primary,
+  padding: space.sm,
 } as const;
