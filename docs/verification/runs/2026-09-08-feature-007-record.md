@@ -103,7 +103,8 @@ failures are the useful part of this record.
 | 39 | 0/19 | The app was signed out for all twenty minutes. The API aggregate said so: `GET /v1/feed/home` **401 ×21**, and the only three `GET /v1/me` 200s were host-side fixtures. The sign-in submit button sat 19 points below the fold. |
 | 40 | failed | Same defect. **And I could not say so**, because the evidence was unreachable — see below. |
 | 41 | 0/19 | Same defect, and this time the log **named the step**: Maestro tapped `sign-in-token`, typed the token, and could not find `sign-in-submit` for 54 seconds. The button was under the soft keyboard. |
-| 42 | PLACEHOLDER_42 | PLACEHOLDER_42_NOTE |
+| 42 | **14/19** | **Sign-in works.** The invariant fix landed: the app signed in and drove fourteen journeys including the whole group lifecycle. Five failures, three causes, all flows asserting something the product never promised — see below. |
+| 43 | PLACEHOLDER_43 | PLACEHOLDER_43_NOTE |
 
 ### The three things those four runs actually taught
 
@@ -141,6 +142,37 @@ The aggregate and the flow results print LAST now, and go to
 extremes, and any sample where adb did not report `device`. **Run 41 named its
 failing step in the first tail I took.**
 
+### Run 42's five failures, and what each was
+
+The API aggregate reads like a working product: `POST /v1/posts` 201,
+`POST /v1/reports` 201, `POST /v1/conversations/groups` 201, `.../participants`
+204, `.../leave` 204, `PATCH /v1/me` 200, `POST /v1/me/seed-interests` 201.
+
+- **`place-picker is visible` — flows 15, 16, 20.** One assertion, three flows,
+  because two chain the first. 007 made compose taller by showing the picked
+  MEDIA rather than a line of text about it; measured at 320x640 the picker sits
+  at **y=642**, just past the fold. The artboards are drawn at 390x844.
+- **`"a video from a real device" is visible` — flow 19.** Asserted on the
+  PROFILE, whose 007 header is the approved design — avatar, three stats, name,
+  bio, actions, the Posts/Saved strip — and measures **327 points** before the
+  list starts, putting the first caption at y=659.
+- **`"device feed …" is visible` — flow 22, which contradicted its own
+  fixture.** `seed-feed-fixture.ts` says in its own comment that the device
+  person DECLARES the interest "so the post is in the candidate set for a reason
+  rather than by the luck of an exploration draw", and warns that waiting on a
+  post exploration happened to surface "would fail intermittently twenty minutes
+  into a 25-minute run". Flow 22 signs in as the account that declares NOTHING —
+  the point of FR-015 — and asserted the post guaranteed only for the DECLARING
+  account.
+
+The first two are **flow** fixes and the distinction from run 36 is the whole
+point: the sign-in button was unreachable because that screen does not scroll AT
+ALL. These are one swipe away on surfaces built to scroll, and no requirement
+puts either above the fold. The third now asserts what FR-015 actually requires —
+a populated feed — which cannot pass vacuously, because an empty ranked feed
+renders an empty state and no card at all. Same shape as the FR-012 defect: a
+deterministic assertion over a deliberately non-deterministic ranker.
+
 ### And one regression caught before a run found it
 
 The T052 rebuild put a title header and a "SUGGESTED" row above the group search
@@ -152,6 +184,13 @@ the title row into the name row and hiding an inaccurate label during a search.
 The bound in the guard is **what a device demonstrably reached (289)**, not
 "640 minus a keyboard". That distinction is the whole of lesson 1, applied
 before it cost anything.
+
+**And the claim that it "would have cost a run" was wrong.** Run 42 drove the
+PRE-fix layout and `21-group-chat` passed. The 113-point measurement is real and
+the fix is still right, but the flow was not going to fail on it, and saying it
+would have was dressing a measurement up as a near-miss. Recorded because the
+habit it comes from — reaching for the more dramatic reading of your own
+evidence — is the one this file exists to check.
 
 ## Four defects, and not one was visible to a green suite
 
