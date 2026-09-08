@@ -216,3 +216,49 @@ explicit at exactly the moment it stopped being structural.
 - **It does not add a managed service.** A hosted ranking service would be both a spend
   decision and a new Principle V divergence.
 - **It does not reopen the design.** `design/007-ui/` is approved and settled.
+
+---
+
+## Post-implementation re-check (2026-09-08) — T078
+
+The artifacts have drifted from what was built before, and it was the owner who
+noticed rather than me. So this records where the plan and the build differ,
+rather than leaving the plan reading as though it predicted everything.
+
+**What the plan did not anticipate, and the spec now carries:**
+
+- **FR-030 and RS-008.** Withdrawing 001/FR-032 left the interest-follow control
+  in the app doing NOTHING, and neither the withdrawal list nor
+  `/speckit-analyze` caught it — four 001 suites going red during implementation
+  did. An interest follow is now a standing declaration that feeds the ranking
+  at one unit, the same as a like. It adds weight, never a boundary.
+- **Seven type roles, not five.** 006/FR-018 settled on five; the approved
+  artboards use seven, and `small` (a like count) and `tab` are real
+  distinctions rather than shades of the same.
+- **`coldStartComplete` on the disclosure.** FR-014 says a person is asked once,
+  and `seedInterests.length` cannot tell "answered none" from "never asked".
+
+**Where the built values differ from `design/007-ui/_tokens.md`, deliberately:**
+
+- `text.muted` is `#606C66`, not the artboard's `#8A948C`, which is 2.9:1 on
+  white. The design is settled on FORM; 006/FR-015's contrast floor is not a
+  matter of taste.
+- The interest lightness is OKLCH 0.52, chosen by enumerating all 360 hues
+  against both surfaces rather than by matching the five hues the artboards name.
+
+**Gates, re-checked against the build rather than against the design:**
+
+| Gate | Verdict after implementation |
+|---|---|
+| **G1** | Held. Enforced by the schema AND the service, and the message names the missing field. `interest-required.spec.ts` drives raw HTTP and covers the EDIT door too, which a guard on `create` alone leaves open. |
+| **G2** | Held, and it was NOT held when the phase began: the interest space was unreachable from post detail — bare `Text` in the accent colour with no press handler. `interest-reachable.spec.ts` walks both routes and is verified red against that. |
+| **G3** | Held, and made structural: the disclosure calls `RankingService.weightsFor`, so "the same weights the ranker reads" is not a convention. It would have drifted within one commit otherwise — FR-030 added declarations to the ranking. |
+| **G4** | Held. C1 verified red on a real import; C2-C5 verified red against a cached page and a memoised decision. |
+| **G5** | Held. Verified red against a service that trusts the client. |
+| **G6** | Held, and extended: SC-010 now measures every primary control at 130% text on a 640pt viewport, not only the safety sheet. |
+| **G7** | Held. No new GSI, no new service, no spend. |
+
+**What the plan claimed that measurement changed:** nothing about the
+architecture. The one number it could not have predicted is that the ranker is
+about 20% of the request (34.9ms of 166.5ms p95), which says the time goes to
+the visibility boundary and the hydration — the part 001 already measured.

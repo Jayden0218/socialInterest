@@ -1,20 +1,20 @@
 # socialInterest — agent guide
 
-Interest-centred media sharing app. **Spec-driven**: no code exists yet; the design is
-complete and authoritative. Built with [spec-kit](https://github.com/github/spec-kit).
+Interest-centred media sharing app. **Spec-driven**: the specs are authoritative and the
+code implements them. Built with [spec-kit](https://github.com/github/spec-kit).
 
 Read before doing anything substantive:
 
 | File | What it settles |
 |---|---|
-| `.specify/memory/constitution.md` | **Binding rules.** v1.0.0, 5 principles, 2 NON-NEGOTIABLE |
+| `.specify/memory/constitution.md` | **Binding rules.** v2.0.0, 5 principles, 2 NON-NEGOTIABLE |
 | `specs/001-interest-media-sharing/spec.md` | 49 FRs, 12 SCs, 6 user stories |
 | `specs/001-interest-media-sharing/plan.md` | Stack, structure, cost posture |
 | `specs/001-interest-media-sharing/research.md` | 9 decisions (D1–D9) **with the alternatives already weighed** |
 | `specs/001-interest-media-sharing/data-model.md` | DynamoDB single-table design, 20 access patterns |
 | `specs/001-interest-media-sharing/contracts/` | OpenAPI + the visibility matrix contract |
 | `specs/001-interest-media-sharing/tasks.md` | 172 tasks, T001–T172, ordered |
-| `specs/007-ranked-feed-redesign/` | **The current feature.** Ranked feed + redesign; Phases 1–4 done |
+| `specs/007-ranked-feed-redesign/` | **The current feature.** Ranked feed + redesign; all 8 phases implemented |
 | `design/007-ui/` | The **approved** design, 20 artboards. Settled — implement, do not reopen |
 
 Do not re-litigate a decision in `research.md` without reading why it was made. Several
@@ -317,14 +317,86 @@ on this repository does not spend - so dispatching the emulator job is not the o
 call any more. Check the facts before repeating either claim; both halves of this one
 expired within a day.
 
-## What spec 007 built so far (2026-09-08) — Phases 1-4, the MVP
+## What spec 007 built (2026-09-08) — all eight phases
 
 `specs/007-ranked-feed-redesign/` replaces the composed feed with a **ranked**
-one and redesigns the app. **Phases 1-4 are done and green; Phases 5-8 (the
-21-task redesign, interests, publish/safety, evidence) are NOT started.**
+one and rebuilds the app on the approved design. **All eight phases are
+implemented and the full CI step list is green.**
 
-`design/007-ui/` is the approved design (20 artboards). It is settled; Phase 5
-implements it and does not reopen it.
+`design/007-ui/` is the approved design (20 artboards). It is settled — implement
+it, do not reopen it.
+
+### The redesign, and the numbers behind it
+
+- **The palette INVERTED.** 006's signature was dark forest green; 007 is warm
+  paper — page `#FBFAF8`, white cards, one accent `#1F6B3F`, **no shadows
+  anywhere**. Depth is the card on the page, the gutter and a 14pt radius.
+  `elevation` is DELETED from tokens, not zeroed: a name that does not exist is
+  a typecheck failure the moment somebody writes it.
+- **Contrast is computed, and it moved two values.** The artboard's faintest
+  grey `#8A948C` is 2.9:1 on white and is not a token; `text.muted` is `#606C66`
+  (`#6B7770` measured 4.14:1 on the field surface). The interest lightness is
+  0.52 because 0.56 puts the worst of 360 hues at 4.19:1.
+- **The feed is a block-wise waterfall** (research R6): `numColumns={2}` renders
+  bottom-synced ROWS, and two lists in a `ScrollView` nests VirtualizedLists and
+  disables windowing. Blocks of 8, one `FlatList`.
+- **An interest is a COLOURED WORD**, never a chip. The testID stays
+  `interest-chip-<slug>` — the preservation contract is about the id and what it
+  marks — and `interest-is-a-word.test.ts` asserts the RENDERING instead.
+- **SC-012 measured**: whole feed worst p95 **166.5ms**, the ranking's own share
+  **34.9ms** (~20%), at 6,000 posts / 600 people against DynamoDB Local. NOT at
+  001's 100k/10k scale, and it says nothing about a provisioned datastore.
+
+### Phase 5-8 defects, all found by measuring rather than looking
+
+1. **The interest word cost 43 POINTS ON EVERY CARD.** It used the shared
+   `touchTarget`, so a 16pt word occupied 44 points of LAYOUT. `hitSlop` is what
+   that case is for. Measured at 360x640 it was the difference between two posts
+   visible and four — which is SC-008.
+2. **THE INTEREST SPACE WAS UNREACHABLE FROM POST DETAIL.** Bare `Text` in the
+   ACCENT colour with no press handler: named on the one screen that names it,
+   reachable from nowhere. Identical to the defect 004 recorded for places, two
+   paragraphs below it in the same file. Worse after 007, because the feed no
+   longer reads the interest graph.
+3. **A rating star was `padding: 4` around an 18pt glyph** — about 26 points,
+   shipped, on a control whose whole job is precise tapping. Invisible to the
+   old touch-target guard, which asked whether a FILE mentioned a size anywhere.
+4. **The device runner was calling a DELETED fixture.** `seed-fr033-fixture.ts`
+   went with the withdrawn requirement and `android-device-pass.sh` went on
+   invoking it — a break costing a whole 25-minute run to discover, which
+   `verify-maestro-ids.mjs` cannot see because the variables were still passed.
+5. **Skipping the cold start was unrecordable**, so the app would ask again on
+   every sign-in: `seedInterests.length` cannot tell "answered none" from "never
+   asked". The disclosure carries `coldStartComplete` now.
+
+### Guards that were asking the wrong question
+
+- **Touch targets were checked PER FILE.** One sized control approved every
+  other one in the same file, and the tab bar alone holds six. Per-tag now.
+- **`text-has-colour` accused `primitives.tsx`** — the file whose job is to give
+  every Text a colour — because a DOC COMMENT contained `<Text style={{...}}>`
+  as an example. The usual failure is a comment making a guard pass over a
+  violation; this is the mirror. Comments are stripped, blanked LINE BY LINE
+  because the guard reports a line number.
+- **Both stricter guards first cried wolf on eight correct files**, for the
+  reason already recorded: `<Pressable onPress={() => x()} style={...}>` has a
+  `>` inside a prop, so scanning to the first `>` stops before the style.
+- **SC-001's test asserted exploration noise.** It checked the gap between the
+  two interests AND the engaged set's absolute position; the absolute half
+  failed at 3 against 2 while the gap behaved correctly. SC-001's own wording is
+  "comparing positions", which is the gap.
+
+### Two rules the redesign re-proved
+
+- **A PUSHED SCREEN HAS NO TAB BAR.** Signing in lands on the cold start, which
+  broke all fifteen browser journeys, the capture script and every Maestro flow
+  that chains `01-sign-in` — exactly what 005/J-21 recorded. Racing the two
+  possible next screens is the fix; polling for one finds the loading
+  placeholder and sails past.
+- **Flows share ONE SERVER.** `22-cold-start.yaml` needs its own account:
+  `clearState` clears the device, not the server, and FR-014 asks once per
+  ACCOUNT. Reusing the device token would fail for a reason that is the product
+  working.
 
 **Constitution amended to 2.0.0.** Principle I rewritten, Principle II
 strengthened. See the summary near the top of this file.
@@ -409,12 +481,17 @@ strengthened. See the summary near the top of this file.
 
 ### Still not verified, and must be reported that way
 
-- **007 HAS NEVER RUN ON A DEVICE.** No emulator run since the ranked feed
-  landed. The Maestro flows still describe the pre-007 feed.
-- **Phases 5-8 are not started**: the redesign, the interest surfaces, the
-  publish/safety pass and the evidence phase.
-- 001/SC-011 (a video PLAYING), iOS, 002/SC-002, real usage, and the datastore
-  decision are all unchanged and all still open.
+- **007's device run: see `docs/verification/runs/`.** Do not assume a result
+  from this file; the record names what passed and what did not.
+- 001/SC-011 (a video PLAYING), iOS, 002/SC-002 (10,000 concurrent), real usage,
+  and the datastore decision are all unchanged and all still open.
+- **SC-002's 60-second half needs a person.** The journey asserts the PATH is
+  populated at every step, which is what a test can honestly measure; a
+  stopwatch here would be timing this machine.
+- **A working light/dark switch is still not claimed.** Both palettes exist and
+  both pass contrast; `useTheme` deliberately does not follow the platform,
+  because screens read the palette at module scope and a style object built at
+  import time cannot call a hook.
 
 ## What spec 006 built and established (2026-09-08)
 
