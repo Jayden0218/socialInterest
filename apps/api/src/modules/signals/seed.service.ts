@@ -27,4 +27,12 @@ export class SeedService {
   async chosen(userId: string): Promise<string[]> {
     return this.signals.seeds(userId);
   }
+
+  /**
+   * Whether this account has been ASKED, which is not the same as whether it
+   * picked anything. See `SignalRepository.seedRecord`.
+   */
+  async asked(userId: string): Promise<boolean> {
+    return (await this.signals.seedRecord(userId)) !== null;
+  }
 }

@@ -92,8 +92,21 @@ export class SignalRepository extends BaseRepository {
 
   /** B6 - the cold-start picks. Not follows; see keys.seedInterests. */
   async seeds(userId: string): Promise<string[]> {
-    const item = await this.getItem<{ interestIds: string[] }>(keys.seedInterests(userId));
-    return item?.interestIds ?? [];
+    return (await this.seedRecord(userId))?.interestIds ?? [];
+  }
+
+  /**
+   * The RECORD, not just the picks — so "asked and skipped" is distinguishable
+   * from "never asked".
+   *
+   * FR-014 says a person is asked ONCE. Reading only the id list cannot tell
+   * the two apart, because both are an empty array, so an account that skipped
+   * would be asked again on every sign-in. A first-run screen that reappears is
+   * the app forgetting you, and skipping is a real path rather than a lesser
+   * one (FR-015).
+   */
+  async seedRecord(userId: string): Promise<{ interestIds: string[]; chosenAt: string } | null> {
+    return this.getItem<{ interestIds: string[]; chosenAt: string }>(keys.seedInterests(userId));
   }
 
   async setSeeds(userId: string, interestIds: string[]): Promise<void> {

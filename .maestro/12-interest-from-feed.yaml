@@ -1,0 +1,40 @@
+# 007/FR-017, FR-024 and plan gate G2 — THE INTEREST SPACE, FROM A FEED CARD.
+#
+# REPLACES the FR-033 flow. That one asserted a followed person's post in an
+# UNfollowed interest must not reach the feed; 007 withdrew the requirement
+# (RS-001) and there is no such boundary to assert. Rewriting it to "the post is
+# still there" would have been a flow that passes against anything.
+#
+# What is worth a device's twenty minutes is what only a device can answer: that
+# the coloured word on a card is actually TAPPABLE at the size the design draws
+# it. It is 11.5 points of text with a `hitSlop` rather than a 44pt box, because
+# a 44pt box cost 43 points on every card in the feed (SC-008) — so whether the
+# target is real is a question about touch, not about layout, and the browser
+# journeys cannot settle it.
+#
+# Principle I after 007: the feed no longer reads the interest graph, so the
+# taxonomy is load-bearing only if a person can still get to it. A ranked feed
+# that strands the taxonomy leaves it vestigial, which is the exact failure the
+# principle names.
+appId: app.socialinterest
+---
+- runFlow: 01-sign-in.yaml
+- tapOn:
+    id: "tab-feed"
+- assertVisible:
+    id: "home-feed-screen"
+
+# The fixture's post, by its caption. Seeded server-side because one device
+# cannot be two people, and in an interest this person has declared so it is on
+# the page for a reason rather than by an exploration draw.
+- assertVisible: "${PRESENT}"
+
+# THE ASSERTION THIS FLOW EXISTS FOR. The interest, as a word, on the card.
+- tapOn: "${INTEREST}"
+- assertVisible:
+    id: "interest-screen"
+
+# And it is THAT interest's space, holding that post - not merely a screen that
+# opened. A route to the wrong interest looks identical without this.
+- assertVisible: "${INTEREST}"
+- assertVisible: "${PRESENT}"

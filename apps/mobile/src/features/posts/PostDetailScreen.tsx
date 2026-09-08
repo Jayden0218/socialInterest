@@ -1,6 +1,7 @@
 import { Image, Pressable, Text, View } from 'react-native';
 import type { MediaItem, Post } from '@sih/shared';
 import { activePalette as palette, radius, space, textStyle } from '../../ui/theme';
+import { InterestWord } from '../../components/InterestWord';
 import { Banner, Screen } from '../../ui/primitives';
 
 /**
@@ -30,10 +31,13 @@ export function processingMessage(post: Post): string | null {
 export function PostDetailScreen({
   post,
   onOpenPlace,
+  onOpenInterest,
 }: {
   post: Post;
   /** 004/FR-023. Absent where a place page is not reachable from the surface. */
   onOpenPlace?: (placeId: string) => void;
+  /** 007/FR-017, gate G2. One tap from a post to its interest's space. */
+  onOpenInterest?: (interestId: string) => void;
 }) {
   const notice = processingMessage(post);
   const first = post.media?.[0];
@@ -60,11 +64,29 @@ export function PostDetailScreen({
         </Text>
       ) : null}
 
+      {/*
+        007/FR-017, FR-024 — THE INTEREST, IN ITS OWN COLOUR, AND TAPPABLE.
+        
+        It was bare `Text` in the ACCENT colour, and both halves were wrong.
+
+        Not tappable meant the interest space was unreachable from the one
+        screen that names the interest — the identical defect 004 recorded for
+        places, two paragraphs below, where a place rendered as bare text made
+        the place page unreachable. Gate G2 exists because a ranked feed that
+        also strands the taxonomy leaves it vestigial, which is the exact
+        failure Principle I names.
+
+        In the accent meant every interest was the same green, so the colour
+        said "this is a link" instead of "this is Bouldering" — and the accent
+        is supposed to be the ONE saturated colour in the chrome (FR-022).
+      */}
       <View testID="post-interests" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
         {post.interests.map((i) => (
-          <Text key={i.interestId} style={{ ...textStyle.caption, color: palette.intent.accent }}>
-            {i.parent ? `${i.name} · ${i.parent.name}` : i.name}
-          </Text>
+          <InterestWord
+            key={i.interestId}
+            interest={i}
+            {...(onOpenInterest ? { onPress: onOpenInterest } : {})}
+          />
         ))}
       </View>
 

@@ -18,6 +18,12 @@ export interface SignalReceipt {
 export interface FeedSignalDisclosure {
   interests: { interestId: string; name: string; weight: number }[];
   seedInterests: string[];
+  /**
+   * FR-014: asked ONCE. Not the same question as "did they pick anything" —
+   * skipping is a real path, and an app that reads only `seedInterests` shows
+   * the cold start again on every sign-in to somebody who declined it.
+   */
+  coldStartComplete: boolean;
   collected: string[];
 }
 

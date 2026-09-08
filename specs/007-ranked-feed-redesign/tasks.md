@@ -172,22 +172,22 @@ is unreachable at the largest font.
 **Goal**: G2. Without this the ranked feed leaves the taxonomy vestigial, which is the exact
 failure Principle I names.
 
-- [ ] T059 [P] [US4] Rebuild `apps/mobile/src/features/discover/InterestScreen.tsx` per `Interest.dc.html`, keeping the sub-interest roll-up and stating it — FR-018
-- [ ] T060 [P] [US4] Rebuild `apps/mobile/src/features/discover/InterestSearchScreen.tsx` per `Explore.dc.html` with interests, places and people as DISTINGUISHABLE KINDS — FR-019
-- [ ] T061 [US4] Make the interest navigate to its space from every post, in `apps/mobile/src/components/PostCard.tsx`, `apps/mobile/src/features/posts/PostDetailScreen.tsx` and `apps/mobile/src/screens/index.tsx` — FR-017
-- [ ] T062 [P] [US4] Rebuild `apps/mobile/src/features/places/PlaceScreen.tsx` per `Place.dc.html`, WITHOUT the interest colour treatment — FR-020, because following a place does not feed you its posts
-- [ ] T063 [P] [US4] Write `apps/mobile/src/__tests__/interest-treatment.test.ts` failing if a place or a person carries the interest treatment — FR-020, carried over from 006 where it already earned its place
-- [ ] T064 [US4] Write `apps/e2e/browser/interest-reachable.spec.ts` asserting the interest space is one tap from a feed card and lists rolled-up posts — **G2**
+- [X] T059 [P] [US4] Rebuild `apps/mobile/src/features/discover/InterestScreen.tsx` per `Interest.dc.html`, keeping the sub-interest roll-up and stating it — FR-018
+- [X] T060 [P] [US4] Rebuild `apps/mobile/src/features/discover/InterestSearchScreen.tsx` per `Explore.dc.html` with interests, places and people as DISTINGUISHABLE KINDS — FR-019
+- [X] T061 [US4] Make the interest navigate to its space from every post, in `apps/mobile/src/components/PostCard.tsx`, `apps/mobile/src/features/posts/PostDetailScreen.tsx` and `apps/mobile/src/screens/index.tsx` — FR-017
+- [X] T062 [P] [US4] Rebuild `apps/mobile/src/features/places/PlaceScreen.tsx` per `Place.dc.html`, WITHOUT the interest colour treatment — FR-020, because following a place does not feed you its posts
+- [X] T063 [P] [US4] Write `apps/mobile/src/__tests__/interest-treatment.test.ts` failing if a place or a person carries the interest treatment — FR-020, carried over from 006 where it already earned its place
+- [X] T064 [US4] Write `apps/e2e/browser/interest-reachable.spec.ts` asserting the interest space is one tap from a feed card and lists rolled-up posts — **G2**
 
 ---
 
 ## Phase 7 — US5: Publishing, and being able to report it (P2)
 
-- [ ] T065 [US5] Make the interest REQUIRED in `apps/api/src/modules/posts/post.controller.ts` — publishing without one fails and names what is missing (FR-016, **G1**)
-- [ ] T066 [US5] Enforce the same in `apps/mobile/src/features/publish/ComposeScreen.tsx`: the share control is unavailable until an interest is chosen
-- [ ] T067 [P] [US5] Write `apps/api/tests/integration/interest-required.spec.ts` asserting publish is refused server-side, through the path a modified client would take — **G1**
-- [ ] T068 [US5] Rebuild `apps/mobile/src/features/safety/SafetyActions.tsx` per `Safety.dc.html` as a SCROLLING sheet — the block control was unreachable in production once
-- [ ] T069 [P] [US5] Keep `apps/mobile/src/__tests__/screen-scrolls.test.ts` passing against the rebuilt sheet — **G6**
+- [X] T065 [US5] Make the interest REQUIRED in `apps/api/src/modules/posts/post.controller.ts` — publishing without one fails and names what is missing (FR-016, **G1**)
+- [X] T066 [US5] Enforce the same in `apps/mobile/src/features/publish/ComposeScreen.tsx`: the share control is unavailable until an interest is chosen
+- [X] T067 [P] [US5] Write `apps/api/tests/integration/interest-required.spec.ts` asserting publish is refused server-side, through the path a modified client would take — **G1**
+- [X] T068 [US5] Rebuild `apps/mobile/src/features/safety/SafetyActions.tsx` per `Safety.dc.html` as a SCROLLING sheet — the block control was unreachable in production once
+- [X] T069 [P] [US5] Keep `apps/mobile/src/__tests__/screen-scrolls.test.ts` passing against the rebuilt sheet — **G6**
 - [ ] T070 [US5] Verify report and block (FR-028) still reach the server unchanged by running `pnpm --filter @sih/e2e test -- safety`
 
 ---
@@ -198,8 +198,8 @@ failure Principle I names.
 - [X] T070b [P] Extend `apps/e2e/browser/safety-fit.spec.ts` to assert **four or more posts are visible on the feed at a 640pt viewport without scrolling** — SC-008, measured at a fixed viewport rather than counted by eye
 - [ ] T070c [P] Assert in `apps/e2e/journeys/onboarding.spec.ts` that a new account reaches a **populated** feed, with no empty state on the path — SC-002
 - [ ] T071 Run the FULL CI step list from `.github/workflows/ci.yml`, in order, not a proxy for it. Run `@sih/e2e` **alone** — two concurrent jest invocations kill each other's API and produce a page of `fetch failed` that reads like a product failure
-- [ ] T072 [P] Run `node scripts/verify-maestro-ids.mjs` and fix any selector the redesign broke, in the app rather than in the flow
-- [ ] T073 Update the Maestro flows in `.maestro/` for the ranked feed — `06-home-feed.yaml` can no longer assert an interest section
+- [X] T072 [P] Run `node scripts/verify-maestro-ids.mjs` and fix any selector the redesign broke, in the app rather than in the flow
+- [X] T073 Update the Maestro flows in `.maestro/` for the ranked feed — `06-home-feed.yaml` can no longer assert an interest section
 - [ ] T074 Recapture the screens with `apps/e2e/scripts/capture-screens.ts` (run from `apps/e2e`) and keep the before/after pair in `docs/screens/README.md`
 - [ ] T075 Dispatch `.github/workflows/android-emulator.yml` and record the result. **The feature is not complete without it** — Constitution V, and this project has three defects on record that only a device run found
 - [ ] T076 [P] Write the run record in `docs/verification/runs/`, naming each criterion, the command that measured it, and **each criterion NOT met**

@@ -14,7 +14,10 @@ import { PostQueryService } from './post-query.service';
 const updatePostSchema = z
   .object({
     caption: z.string().max(2000),
-    interestIds: z.array(z.string().min(1)).min(1),
+    // Same rule on edit: a post cannot be UNfiled either (007/FR-016).
+    interestIds: z
+      .array(z.string().min(1))
+      .min(1, { message: 'Choose an interest. Every post is filed under one.' }),
     visibility: visibilitySchema,
     /** 004/FR-015. `null` REMOVES the attachment; omitting it changes nothing. */
     placeId: z.string().min(1).nullable(),
@@ -26,8 +29,26 @@ const createPostSchema = z.object({
   // contracts/openapi.yaml PostCreate: ids only. The server reads key, kind and
   // duration from its own upload record - see PostService.create.
   uploadIds: z.array(z.string().min(1)).min(1).max(10),
-  // FR-006: at least one interest, enforced by the schema and again in the service.
-  interestIds: z.array(z.string().min(1)).min(1),
+  /**
+   * 001/FR-006 AND 007/FR-016, gate G1 — AT LEAST ONE INTEREST, ALWAYS.
+   *
+   * This is the line that keeps Principle I true after 007. The feed no longer
+   * reads the interest graph to decide what to show, so the ONLY thing still
+   * making every post belong somewhere is that publishing refuses without one.
+   * Take this away and the taxonomy becomes decoration within a release.
+   *
+   * The message NAMES what is missing, because a bare "Validation failed" on a
+   * publish flow tells somebody their post was rejected and not what to do
+   * about it — and this is the one field a person can actually fix.
+   *
+   * Enforced again in the service, and asserted through the raw HTTP path a
+   * modified client would take (`interest-required.spec.ts`): the app disables
+   * its own share control, and Constitution III says a guarantee tested only
+   * through the first-party client is not tested.
+   */
+  interestIds: z
+    .array(z.string().min(1))
+    .min(1, { message: 'Choose an interest. Every post is filed under one.' }),
   caption: z.string().max(2000).optional(),
   visibility: visibilitySchema.default('public'),
   keepLocationMetadata: z.boolean().default(false),

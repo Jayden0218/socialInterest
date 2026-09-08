@@ -18,9 +18,28 @@ appId: app.socialinterest
 - inputText: ${TOKEN}
 - tapOn:
     id: "sign-in-submit"
-# Back on the tabs, and the sign-in affordance is gone - which only happens if
-# the API accepted the token, since signIn calls GET /v1/me before storing it.
+# The sign-in screen is gone - which only happens if the API accepted the token,
+# since signIn calls GET /v1/me before storing it.
 - assertNotVisible:
     id: "sign-in-screen"
+
+# 007/FR-014. SIGNING IN NOW LANDS ON THE COLD START, which is a PUSHED screen,
+# so the tab bar is not on it. Every flow that chains this one taps a tab next,
+# and without dismissing the picks they all wait thirty seconds for a tab bar
+# the app deliberately does not render yet. That is exactly what broke fifteen
+# browser journeys in one commit, and what 005/J-21 recorded about `tab-chats`.
+#
+# Dismissed rather than picked from: what the cold start DOES with picks is
+# 22-cold-start.yaml's job, and every other flow only needs to get past it.
+# `optional` because an account that has already seeded goes straight through.
+- runFlow:
+    when:
+      visible:
+        id: "pick-skip"
+    commands:
+      - tapOn:
+          id: "pick-skip"
+
+# Back on the tabs, and the sign-in affordance is gone.
 - assertNotVisible:
     id: "open-sign-in"

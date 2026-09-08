@@ -72,6 +72,12 @@ export class SignalController {
         weight: Number(r.weight.toFixed(3)),
       })),
       seedInterests: await this.seeds.chosen(userId),
+      /**
+       * FR-014: asked ONCE. An empty `seedInterests` means either "skipped" or
+       * "never asked", and the app cannot tell them apart from the list alone —
+       * so it would show the cold start again on every sign-in.
+       */
+      coldStartComplete: await this.seeds.asked(userId),
       collected: ['posts you open', 'how long you stay', 'what you like', 'what you save'],
     };
   }

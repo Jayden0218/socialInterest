@@ -28,6 +28,7 @@ describe('PickInterestsContainer', () => {
 
   const build = (over: {
     seedInterests?: string[];
+    coldStartComplete?: boolean;
     chooseSeedInterests?: jest.Mock;
     listTop?: () => Promise<unknown>;
   } = {}) => {
@@ -46,6 +47,7 @@ describe('PickInterestsContainer', () => {
         disclosure: async () => ({
           interests: [],
           seedInterests: over.seedInterests ?? [],
+          coldStartComplete: over.coldStartComplete ?? (over.seedInterests ?? []).length > 0,
           collected: [],
         }),
         chooseSeedInterests,
@@ -89,7 +91,7 @@ describe('PickInterestsContainer', () => {
     expect(onDone).toHaveBeenCalled();
   });
 
-  it('skipping sends nothing and still finishes (FR-015)', async () => {
+  it('skipping RECORDS the answer, and still finishes (FR-014, FR-015)', async () => {
     const { data, chooseSeedInterests } = build();
     const onDone = await renderWith(data);
 
@@ -97,14 +99,22 @@ describe('PickInterestsContainer', () => {
       fireEvent.press(screen.getByTestId('pick-skip'));
     });
 
-    expect(chooseSeedInterests).not.toHaveBeenCalled();
+    /**
+     * An EMPTY list is still an answer, and it is written.
+     *
+     * The first version sent nothing at all, which reads as thrift and is a
+     * defect: the server then cannot tell "skipped" from "never asked", both
+     * being an empty `seedInterests`, so this screen reappears on every
+     * sign-in. A first-run screen that comes back is the app forgetting you.
+     */
+    expect(chooseSeedInterests).toHaveBeenCalledWith([]);
     // Not a lesser path: the feed is populated by exploration regardless, so
     // there is nothing to repair afterwards and nothing to argue about.
     expect(onDone).toHaveBeenCalled();
   });
 
   it('does not ask an account that has already answered', async () => {
-    const { data, chooseSeedInterests } = build({ seedInterests: ['i7'] });
+    const { data, chooseSeedInterests } = build({ seedInterests: ['i7'], coldStartComplete: true });
     const onDone = await renderWith(data);
 
     // A first-run screen that reappears is the app forgetting you.
@@ -131,6 +141,18 @@ describe('PickInterestsContainer', () => {
     // which FR-015 already requires it to survive. Blocking sign-up on this
     // would be strictly worse than the thing it protects.
     expect(failing).toHaveBeenCalled();
+    expect(onDone).toHaveBeenCalled();
+  });
+
+  it('does not ask again somebody who SKIPPED, which picks nothing at all', async () => {
+    // The case reading `seedInterests.length` gets wrong: an empty list from a
+    // person who answered "none" is indistinguishable from one who was never
+    // asked, and only the record tells them apart.
+    const { data, chooseSeedInterests } = build({ seedInterests: [], coldStartComplete: true });
+    const onDone = await renderWith(data);
+
+    expect(screen.queryByTestId('pick-interests-screen')).toBeNull();
+    expect(chooseSeedInterests).not.toHaveBeenCalled();
     expect(onDone).toHaveBeenCalled();
   });
 

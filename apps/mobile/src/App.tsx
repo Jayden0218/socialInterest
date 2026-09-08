@@ -244,6 +244,8 @@ export function Shell() {
                 requireSignIn({ name: 'safety', subject: 'post', subjectId, authorHandle })
               }
               onOpenAuthor={(personHandle) => push({ name: 'person', handle: personHandle })}
+              // 007/FR-017, gate G2.
+              onOpenInterest={(interestId) => push({ name: 'interest', interestId })}
               onShare={(shareId) => push({ name: 'share', postId: shareId })}
               onEdit={(editId) => push({ name: 'edit-post', postId: editId })}
             />

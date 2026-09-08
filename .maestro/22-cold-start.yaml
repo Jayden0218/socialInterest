@@ -1,0 +1,56 @@
+# 007/FR-014, FR-015 — THE COLD START, AND SKIPPING IT.
+#
+# A new account is asked once what it is into. The picks are a SEED, not a
+# subscription: they initialise the ranking and are overtaken by behaviour.
+#
+# The half worth a device run is the SKIP. FR-015 requires a populated feed for
+# somebody who picks nothing, and that is the first impression the product makes
+# on anyone who does not want to answer a questionnaire before seeing anything.
+# It is also the path most likely to be broken by a well-meaning change, because
+# it is the one nobody demos.
+#
+# `clearState` clears the DEVICE, not the server, so this needs its own account:
+# FR-014 asks once per ACCOUNT, and by the time this flow runs the device token
+# has signed in and dismissed the picks in 01. Reusing it would fail for a
+# reason that is the product working correctly — the same shared-server coupling
+# 005 recorded when a chained flow's follow toggle silently unfollowed a place.
+appId: app.socialinterest
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: "app-root"
+- tapOn:
+    id: "open-sign-in"
+- tapOn:
+    id: "sign-in-token"
+- inputText: ${COLD_TOKEN}
+- tapOn:
+    id: "sign-in-submit"
+
+# Signing in lands HERE, not on the tabs. A pushed screen has no tab bar - the
+# fact that broke fifteen browser journeys in one commit, and 005/J-21 before
+# that.
+- assertVisible:
+    id: "pick-interests-screen"
+
+# Skip is a peer of Continue, not fine print: there is nothing to repair
+# afterwards, so the screen does not argue about it.
+- tapOn:
+    id: "pick-skip"
+- assertNotVisible:
+    id: "pick-interests-screen"
+
+# FR-015. A POPULATED feed for an account that declared nothing — no follows,
+# no seeds, no behaviour. This is the first impression the product makes on
+# anybody who declines to answer a questionnaire before seeing anything, and it
+# is the path nobody demos.
+#
+# Asserted on the fixture post rather than on any post: exploration draws from
+# the whole catalogue, so "something is there" would pass on a single stale row
+# while the ranked feed was returning nothing new.
+- tapOn:
+    id: "tab-feed"
+- assertVisible:
+    id: "home-feed-screen"
+- assertVisible: "${PRESENT}"

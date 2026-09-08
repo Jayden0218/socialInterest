@@ -197,17 +197,23 @@ echo "::add-mask::$TOKEN"
 echo "== every Maestro selector must exist in the app =="
 node scripts/verify-maestro-ids.mjs
 
-# T014 / FR-033 / Principle I. Two people cannot be driven through one device's
-# UI, so the fixture is seeded server-side and the ASSERTION happens in the app:
-# a followed person's post in an unfollowed interest must not reach the feed.
-echo "== seed the FR-033 fixture =="
-FIXTURE="$(cd apps/e2e && E2E_BASE_URL=http://127.0.0.1:3000 npx tsx scripts/seed-fr033-fixture.ts "$TOKEN")"
+# 007. Two people cannot be driven through one device's UI, so the other author
+# is seeded server-side and the ASSERTIONS happen in the app.
+#
+# This replaced the FR-033 fixture, which produced a followed person's post in
+# an UNfollowed interest for a requirement 007 withdrew. Note what happened
+# here: the fixture file was deleted with the requirement and THIS SCRIPT WENT
+# ON CALLING IT — a break that costs a whole emulator run to discover, and that
+# `verify-maestro-ids.mjs` cannot see because the variables were still passed.
+echo "== seed the feed fixture =="
+FIXTURE="$(cd apps/e2e && E2E_BASE_URL=http://127.0.0.1:3000 npx tsx scripts/seed-feed-fixture.ts "$TOKEN")"
 echo "$FIXTURE"
 PRESENT="$(echo "$FIXTURE" | sed -n 's/^PRESENT=//p')"
-ABSENT="$(echo "$FIXTURE" | sed -n 's/^ABSENT=//p')"
 AUTHOR="$(echo "$FIXTURE" | sed -n 's/^AUTHOR=//p')"
-[ -n "$PRESENT" ] && [ -n "$ABSENT" ] && [ -n "$AUTHOR" ] \
-  || { echo "FAIL: the FR-033 fixture did not print what the flow needs"; exit 1; }
+INTEREST="$(echo "$FIXTURE" | sed -n 's/^INTEREST=//p')"
+COLD_TOKEN="$(echo "$FIXTURE" | sed -n 's/^COLD_TOKEN=//p')"
+[ -n "$PRESENT" ] && [ -n "$AUTHOR" ] && [ -n "$INTEREST" ] && [ -n "$COLD_TOKEN" ] \
+  || { echo "FAIL: the feed fixture did not print what the flows need"; exit 1; }
 
 # T040. Put a real image in the emulator's gallery.
 #
@@ -372,8 +378,8 @@ echo "== journeys =="
 # exactly the product defects this pass exists to find, and this project has
 # already shipped seven defects that a green suite could not see.
 MAESTRO_ENV=(
-  -e TOKEN="$TOKEN" -e PRESENT="$PRESENT" -e ABSENT="$ABSENT"
-  -e AUTHOR="$AUTHOR"
+  -e TOKEN="$TOKEN" -e PRESENT="$PRESENT" -e INTEREST="$INTEREST"
+  -e AUTHOR="$AUTHOR" -e COLD_TOKEN="$COLD_TOKEN"
   -e REQUESTER="$REQUESTER" -e FRIEND="$FRIEND" -e FRIEND_NAME="$FRIEND_NAME"
   -e REQUEST_BODY="$REQUEST_BODY" -e FRIEND_BODY="$FRIEND_BODY"
   -e PLACE_NAME="$PLACE_NAME" -e PLACE_LOCALITY="$PLACE_LOCALITY"

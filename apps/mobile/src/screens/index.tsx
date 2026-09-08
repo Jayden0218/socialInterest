@@ -201,6 +201,7 @@ export function PostDetailContainer({
   onShare,
   onEdit,
   onOpenAuthor,
+  onOpenInterest,
 }: {
   postId: string;
   onOpenComments: (postId: string) => void;
@@ -222,6 +223,8 @@ export function PostDetailContainer({
    * person is named.
    */
   onOpenAuthor?: (handle: string) => void;
+  /** 007/FR-017, gate G2. The interest space, one tap from the post. */
+  onOpenInterest?: (interestId: string) => void;
 }) {
   const data = useData();
   const [saved, setSaved] = useState(false);
@@ -312,7 +315,11 @@ export function PostDetailContainer({
 
   return (
     <View style={{ flex: 1 }}>
-      <PostDetailScreen post={post} {...(onOpenPlace ? { onOpenPlace } : {})} />
+      <PostDetailScreen
+        post={post}
+        {...(onOpenPlace ? { onOpenPlace } : {})}
+        {...(onOpenInterest ? { onOpenInterest } : {})}
+      />
       {/* Reacting had no control anywhere in the app: EngagementBar existed,
           was render-tested, and was never mounted. FR-039 was unreachable. */}
       <EngagementBar
@@ -1892,9 +1899,13 @@ export function PickInterestsContainer({ onDone }: { onDone: () => void }) {
     void Promise.all([data.interests.listTop({ limit: 30 }), data.signals.disclosure()])
       .then(([top, disclosure]) => {
         if (!live) return;
-        // Already seeded: this question has been answered and must not be asked
-        // again. A first-run screen that reappears is the app forgetting you.
-        if (disclosure.seedInterests.length > 0) {
+        /**
+         * Already ASKED — which is not the same as already picked. Skipping is
+         * a real path (FR-015), so reading `seedInterests.length` would ask
+         * again on every sign-in to anybody who declined, and a first-run
+         * screen that reappears is the app forgetting you.
+         */
+        if (disclosure.coldStartComplete) {
           onDone();
           return;
         }
@@ -1920,7 +1931,12 @@ export function PickInterestsContainer({ onDone }: { onDone: () => void }) {
     async (ids: string[]) => {
       setSaving(true);
       try {
-        if (ids.length > 0) await data.signals.chooseSeedInterests(ids);
+        /**
+         * ALWAYS written, even for an empty list, so the answer "none" is
+         * recorded as an answer. Guarding on `ids.length > 0` here is what
+         * would make skipping unrecordable.
+         */
+        await data.signals.chooseSeedInterests(ids);
       } catch {
         // A failed seed is not a failed sign-up. The feed still works - it just
         // starts from exploration instead of from a hint, which FR-015 already
