@@ -7,72 +7,57 @@
 <body>
 <x-dc>
 <helmet>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
   <style>
     body { margin: 0; }
-    a { color: #FF4A2E; } a:hover { color: #e03a20; }
-    .sy { font-family: 'Syne', system-ui, sans-serif; }
-    .mo { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
-    .stamp { font-size: 9px; font-weight: 600; letter-spacing: 0.13em; text-transform: uppercase; }
+    a { color: #1F6B3F; } a:hover { color: #17542f; }
+    .t { font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif; }
   </style>
 </helmet>
 
-<div class="mo" style="width: 390px; height: 844px; background: #EFE7D8; color: #17291C; overflow: hidden; position: relative; display: flex; flex-direction: column;">
-
-  <!-- PAPER GRAIN over everything. The whole surface is printed, so the grain
-       belongs to the sheet rather than to each photograph. -->
-  <svg style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0.28; mix-blend-mode: multiply; z-index: 40;">
-    <filter id="g"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" stitchTiles="stitch"></feTurbulence></filter>
-    <rect width="100%" height="100%" filter="url(#g)"></rect>
-  </svg>
+<div class="t" style="width: 390px; height: 844px; background: #FBFAF8; color: #16211A; overflow: hidden; display: flex; flex-direction: column;">
 
   <div style="height: 44px; flex-shrink: 0;"></div>
 
-  <div style="flex-shrink: 0; padding: 4px 14px 0;">
-    <div style="display: flex; align-items: flex-end; justify-content: space-between;">
-      <div style="position: relative;">
-        <!-- the wordmark sits on a mis-registered ink block: the signature -->
-        <div style="position: absolute; left: 3px; top: 7px; width: 104px; height: 20px; background: #FF4A2E;"></div>
-        <span class="sy" style="position: relative; font-size: 29px; font-weight: 800; letter-spacing: -0.035em; line-height: 1;">INTEREST</span>
-      </div>
-      <div style="display: flex; gap: 14px; padding-bottom: 3px;">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17291C" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.6-3.6"></path></svg>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17291C" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6a5.4 5.4 0 0 0-5.4 5.4c0 4-1.5 5.4-2 5.9h14.8c-.5-.5-2-1.9-2-5.9A5.4 5.4 0 0 0 12 3.6z"></path><path d="M10.5 19.4a1.7 1.7 0 0 0 3 0"></path></svg>
-      </div>
-    </div>
-    <div style="height: 2px; background: #17291C; margin: 9px 0 0;"></div>
-    <div style="display: flex; justify-content: space-between; padding: 5px 0 0;">
-      <span class="mo stamp" style="color: #4A5B4E;">Ed. 0908 — for you</span>
-      <span class="mo stamp" style="color: #4A5B4E;">No. 214</span>
+  <div style="height: 52px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 16px;">
+    <span style="font-size: 20px; font-weight: 700; letter-spacing: -0.02em;">Interest</span>
+    <div style="display: flex; gap: 18px;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16211A" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.7-3.7"></path></svg>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16211A" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6a5.6 5.6 0 0 0-5.6 5.6c0 4-1.5 5.6-2 6.1h15.2c-.5-.5-2-2.1-2-6.1A5.6 5.6 0 0 0 12 3.6z"></path><path d="M10.4 19.4a1.8 1.8 0 0 0 3.2 0"></path></svg>
     </div>
   </div>
 
-  <!-- TWO-COLUMN WATERFALL. Column height is driven by the image, so the rows
-       never line up — that misalignment is the layout, not a defect. -->
-  <div style="flex-grow: 1; overflow: hidden; padding: 12px 12px 0; display: flex; gap: 10px;">
+  <!-- two tabs, plainly labelled. Nothing else competes for attention. -->
+  <div style="height: 40px; flex-shrink: 0; display: flex; gap: 22px; padding: 0 16px; align-items: flex-start;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 7px;">
+      <span style="font-size: 15px; font-weight: 600; color: #16211A;">For you</span>
+      <div style="width: 20px; height: 2.5px; border-radius: 2px; background: #1F6B3F;"></div>
+    </div>
+    <span style="font-size: 15px; font-weight: 500; color: #8A948C;">Following</span>
+  </div>
+
+  <!-- Two-column waterfall. Image height drives card height, so the columns
+       stagger. No shadows: the white card on the warm ground and the gutter
+       are the whole depth model. -->
+  <div style="flex-grow: 1; overflow: hidden; padding: 6px 12px 0; display: flex; gap: 10px;">
     <sc-for list="{{columns}}" as="col" hint-placeholder-count="2">
-      <div style="display: flex; flex-direction: column; gap: 14px; width: 178px;">
+      <div style="display: flex; flex-direction: column; gap: 12px; width: 178px;">
         <sc-for list="{{col.cards}}" as="c" hint-placeholder-count="2">
-          <div style="position: relative;">
-            <!-- MIS-REGISTRATION: the ink block sits 4px off, like a plate that
-                 did not quite line up. One move, and nothing in this market
-                 looks like it. -->
-            <div style="position: absolute; left: 4px; top: 5px; width: 178px; height: {{c.h}}; background: {{c.ink}}; border-radius: 3px;"></div>
-            <div style="position: relative; width: 178px; height: {{c.h}}; border-radius: 3px; overflow: hidden; background: {{c.art}};">
-              <div style="position: absolute; left: 7px; top: 7px; display: flex; align-items: center; gap: 5px; height: 19px; padding: 0 7px; background: #EFE7D8;">
-                <div style="width: 5px; height: 5px; background: {{c.ink}};"></div>
-                <span class="mo stamp" style="color: #17291C;">{{c.tag}}</span>
-              </div>
-            </div>
-            <div style="padding: 9px 1px 0; display: flex; flex-direction: column; gap: 7px;">
-              <span class="sy" style="font-size: 14px; font-weight: 700; line-height: 17px; letter-spacing: -0.015em; color: #17291C; text-wrap: pretty;">{{c.title}}</span>
+          <div style="background: #FFFFFF; border-radius: 14px; overflow: hidden;">
+            <div style="width: 178px; height: {{c.h}}; background: {{c.art}};"></div>
+            <div style="padding: 10px 11px 11px; display: flex; flex-direction: column; gap: 9px;">
+              <span style="font-size: 13.5px; font-weight: 600; line-height: 18px; letter-spacing: -0.008em; color: #16211A; text-wrap: pretty;">{{c.title}}</span>
               <div style="display: flex; align-items: center; gap: 6px;">
-                <div style="width: 16px; height: 16px; border-radius: 50%; background: {{c.ink}};"></div>
-                <span class="mo" style="font-size: 10px; color: #4A5B4E;">{{c.who}}</span>
+                <div style="width: 18px; height: 18px; border-radius: 50%; background: {{c.av}}; flex-shrink: 0;"></div>
+                <span style="font-size: 11.5px; font-weight: 500; color: #6B7770; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">{{c.who}}</span>
                 <div style="flex-grow: 1;"></div>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="#4A5B4E"><path d="M12 20.6S4.2 15.8 4.2 10.6A4.4 4.4 0 0 1 12 7.6a4.4 4.4 0 0 1 7.8 3c0 5.2-7.8 10-7.8 10z"></path></svg>
-                <span class="mo" style="font-size: 10px; color: #4A5B4E;">{{c.likes}}</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8A948C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20S4.5 15.5 4.5 10.5A4.2 4.2 0 0 1 12 7.7a4.2 4.2 0 0 1 7.5 2.8C19.5 15.5 12 20 12 20z"></path></svg>
+                <span style="font-size: 11.5px; font-weight: 500; color: #8A948C;">{{c.likes}}</span>
               </div>
+              <!-- the one quiet signature: the interest, as a coloured word.
+                   Not a chip, not a stamp. It colour-codes the whole feed so
+                   the eye can sort it without anything shouting. -->
+              <span style="font-size: 11px; font-weight: 600; color: {{c.hue}};">{{c.tag}}</span>
             </div>
           </div>
         </sc-for>
@@ -80,22 +65,28 @@
     </sc-for>
   </div>
 
-  <div style="height: 74px; flex-shrink: 0; background: #EFE7D8; border-top: 2px solid #17291C; display: flex; align-items: center; z-index: 30;">
-    <sc-for list="{{tabs}}" as="t" hint-placeholder-count="5">
-      <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; padding-bottom: 12px;">
-        <sc-if value="{{t.plus}}" hint-placeholder-val="{{ false }}">
-          <div style="width: 46px; height: 30px; background: #FF4A2E; display: flex; align-items: center; justify-content: center; margin-top: 12px;">
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#EFE7D8" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
-          </div>
-        </sc-if>
-        <sc-if value="{{t.normal}}" hint-placeholder-val="{{ true }}">
-          <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: 12px;">
-            <div style="height: 3px; width: 20px; background: {{t.bar}};"></div>
-            <span class="mo stamp" style="color: {{t.fg}};">{{t.label}}</span>
-          </div>
-        </sc-if>
+  <div style="height: 76px; flex-shrink: 0; background: #FFFFFF; border-top: 1px solid #ECEAE4; display: flex; align-items: flex-start; padding-top: 10px;">
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="#1F6B3F"><rect x="3" y="3" width="8" height="11" rx="2.4"></rect><rect x="13" y="3" width="8" height="7" rx="2.4"></rect><rect x="13" y="12" width="8" height="9" rx="2.4"></rect><rect x="3" y="16" width="8" height="5" rx="2.4"></rect></svg>
+      <span style="font-size: 10.5px; font-weight: 600; color: #1F6B3F;">Feed</span>
+    </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8A948C" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.7-3.7"></path></svg>
+      <span style="font-size: 10.5px; font-weight: 500; color: #8A948C;">Explore</span>
+    </div>
+    <div style="flex-grow: 1; display: flex; justify-content: center;">
+      <div style="width: 46px; height: 34px; border-radius: 11px; background: #1F6B3F; display: flex; align-items: center; justify-content: center; margin-top: 3px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
       </div>
-    </sc-for>
+    </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8A948C" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a7.5 7.5 0 0 1-11 6.7L4.5 19.5l1.3-4.3A7.5 7.5 0 1 1 20 11.5z"></path></svg>
+      <span style="font-size: 10.5px; font-weight: 500; color: #8A948C;">Chats</span>
+    </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8A948C" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="8.4" r="3.5"></circle><path d="M5 20c0-3.4 3.1-5.4 7-5.4s7 2 7 5.4"></path></svg>
+      <span style="font-size: 10.5px; font-weight: 500; color: #8A948C;">You</span>
+    </div>
   </div>
 </div>
 </x-dc>
@@ -103,28 +94,21 @@
 <script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   renderVals() {
-    // Duotone plates: one ink over the paper, the way a riso lays down colour.
-    const card = (title, who, likes, tag, ink, h) => ({
-      title, who, likes, tag, ink, h: h + 'px',
-      art: 'linear-gradient(155deg, ' + ink + ' 0%, ' + ink + '99 42%, #EFE7D8 130%)',
-    });
+    const card = (title, who, likes, tag, hue, av, h, art) => ({ title, who, likes, tag, hue, av, h: h + 'px', art });
     return {
       columns: [
         { cards: [
-          card('Three months on one problem, and it went first go this morning', 'maren', '1204', 'Bouldering', '#2F6B3F', 237),
-          card('Chalk, humidity, and why September is the month', 'perla', '318', 'Bouldering', '#2F6B3F', 178),
+          card('Three months on this problem and it went first go', 'maren', '1,204', 'Bouldering', '#1F6B3F', '#cfdcd2', 237,
+               'linear-gradient(160deg, #9db089 0%, #6f8464 55%, #4b5c43 100%)'),
+          card('Chalk, humidity, and why September is the month', 'perla', '318', 'Bouldering', '#1F6B3F', '#dcd6cb', 178,
+               'linear-gradient(160deg, #c3bda9 0%, #8d8a73 100%)'),
         ] },
         { cards: [
-          card('Redstart on the reservoir wall', 'nadia', '892', 'Birding', '#FF6A3D', 178),
-          card('Reduction firing notes — cone 10, second attempt', 'rue', '241', 'Ceramics', '#0F8C8C', 237),
+          card('Redstart on the reservoir wall', 'nadia', '892', 'Birding', '#B65A2E', '#e3d3c6', 178,
+               'linear-gradient(160deg, #d4a882 0%, #9c6f4e 100%)'),
+          card('Reduction firing notes, cone 10 — second attempt', 'rue', '241', 'Ceramics', '#1B6E72', '#c9dcda', 237,
+               'linear-gradient(160deg, #a8c3c0 0%, #6d8b89 55%, #47605e 100%)'),
         ] },
-      ],
-      tabs: [
-        { label: 'Feed', normal: true, plus: false, fg: '#17291C', bar: '#FF4A2E' },
-        { label: 'Look', normal: true, plus: false, fg: '#4A5B4E', bar: 'transparent' },
-        { label: '', normal: false, plus: true, fg: '', bar: '' },
-        { label: 'Talk', normal: true, plus: false, fg: '#4A5B4E', bar: 'transparent' },
-        { label: 'You', normal: true, plus: false, fg: '#4A5B4E', bar: 'transparent' },
       ],
     };
   }

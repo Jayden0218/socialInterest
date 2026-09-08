@@ -1,112 +1,84 @@
-# A learned feed — design source
+# Feed and post — design source
 
-Two artboards at 390x844: the feed itself, and the control that lets a person
-correct it. Static mockups; they exist to settle the look and the model before
-a requirement is written.
+Two artboards at 390x844. Static mockups, made to settle the look before a
+requirement is written.
 
 | File | Screen |
 |---|---|
-| `Main.dc.html` | Waterfall feed, newsprint |
-| `Night.dc.html` | The same feed on black stock |
+| `Main.dc.html` | Two-column waterfall feed |
 | `Post.dc.html` | A post |
 
-## The model
+## The position: calm, not clever
 
-**A learned feed, not a subscription.** No sections, no shelves, no interest
-axis: the next post is whatever the ranking picked. The server learns from what
-a person actually does - what they open, how long they stay, what they save -
-and serves more of it.
+**A design someone opens forty times a day has to disappear.** The pass before
+this one was a poster - paper grain, deliberate mis-registration, art-school
+typography. Impressive once and tiring by the third open, and it made every
+card slower to read. Rejected for the right reason: a design that shows off is
+a design that costs the person something every time.
 
-**The interest survives as a TAG, not as structure.** It is the dimension the
-model learns over ("this person watches climbing to the end"), which is why it
-still appears on every post and is still tappable. It is no longer the shape of
-the screen.
+So:
 
-**The ranking is invisible.** No "why you're seeing this", no explanation - the
-learning happens server-side and the UI never mentions it. Note that this does
-NOT remove the Principle III obligation: dwell-time collection still has to be
-disclosed somewhere a person can find it, and a way to reset the signals still
-has to exist. It just does not belong on the post.
+- **One typeface.** Plus Jakarta Sans, four weights. Nothing else.
+- **One accent.** The forest green, used for the active tab, the compose
+  button, the follow button and the interest word. Nowhere else.
+- **No shadows.** Depth is a white card on a warm ground plus the gutter -
+  which is how the two-column waterfall does it, and it is enough.
+- Everything else is spacing.
 
-## What this costs — recorded so the decision is deliberate
+## The structure
 
-This is a change of premise, not of skin:
+**Xiaohongshu's two-column waterfall.** Fixed column width, image height drives
+card height, so the columns stagger and the rows never line up. Four to five
+posts on screen. No sections, no interest grouping - the feed is ranked
+server-side and the UI never mentions it.
 
-- **Constitution Principle I** ("Interest Is the Organising Principle",
-  NON-NEGOTIABLE) and **001/FR-033** are replaced. The negative test guarding
-  them (`SC-006`, `feed-does-not-read-place-follows.spec.ts`) would be deleted,
-  not adjusted. The constitution needs amending first - that is
-  `/speckit-constitution`, not a code change.
-- **Machinery that does not exist**: dwell-time telemetry from the client, a
-  per-viewer signal store, and a ranking service between the datastore and the
-  feed.
-- **D1 still binds.** Read-time assembly was forced by FR-017 + SC-009: a
-  visibility flip must land everywhere immediately. So ranking chooses
-  CANDIDATES and `VisibilityFilter` still decides at read time - Principle II
-  is untouched by this change and must stay that way.
-- **Dwell tracking is behavioural data collection.** Hence the sheet naming the
-  signals rather than hiding them, and a way to clear them.
+## The one signature
 
-## Where the style came from
+**The interest is a coloured WORD under each card.** Not a chip, not a badge,
+not a stamp. It colour-codes the feed so the eye can sort it while scrolling,
+it costs no space, and it makes no noise. That is the whole visual identity and
+it is deliberately all of it.
 
-Researched rather than invented:
+## Legibility, because that was the point
 
-- **Structure** — Xiaohongshu's two-column waterfall: fixed column width, image
-  height drives card height, rows deliberately never line up. 3:4 cards,
-  ~12-16px radius, and **no shadows at all** - depth comes from spacing and
-  rounding. (`en.pingwest.com/a/11673`, `open-design.ai`)
-- **Style** — 2026's move away from glossy polish toward the "carefully
-  unpolished": grain and risograph effects, deliberate mis-registration
-  simulating print imperfection, mono type as structure, grids as foreground.
-  (`inkydesignworks.com`, `setproduct.com`, `uxpilot.ai`)
-
-Every competitor in this space - Instagram, RED, Pinterest - is glossy,
-neutral and shadowless-clean. Newsprint with forest-green ink, a risograph
-accent and a 4px mis-registered plate behind every card is not a look any of
-them has.
-
-## The signature moves
-
-1. **Mis-registration.** A solid ink block sits 4px off behind every card and
-   the wordmark, as if the colour plate did not quite line up. One move, and
-   the whole surface reads as printed.
-2. **Paper grain over the entire sheet**, not per image - the grain belongs to
-   the paper, which is what makes it read as print rather than as a filter.
-   It multiplies on newsprint and screens on black stock, because that is what
-   ink does.
-3. **Type as structure.** Syne for headlines (wide, art-world, uncommon), IBM
-   Plex Mono for every small thing - counts, tags, timestamps, tab labels. The
-   mono is the grid made visible.
-4. **Stamps, not chips.** An interest is a printed stamp on the plate: a solid
-   paper rectangle with an ink square and mono caps.
+- Card titles 13.5px semibold / 18px line height - two lines before truncation.
+- Post body 14px / 21px. Nothing meta drops below 11.5px.
+- Tab labels 10.5px and always paired with an icon, never the only cue.
+- Every tap target at least 44px tall, compose button and tab items included.
+- Type scales with the platform font setting; no fixed-height box around text.
 
 ## Rejected passes, and why
 
-1. **006, as shipped** - "too general design, no design sense." It built a token
+1. **006, as shipped** - "too general, no design sense." It built a token
    system and painted the existing wireframe with it; layout, hierarchy and
    control vocabulary never changed.
-2. **Instagram-alike** - "too similar to Instagram." It also collapsed the
-   product model into one blended stream with an interest rail bolted on top -
-   decoration standing in for structure.
+2. **Instagram-alike** - "too similar to Instagram", and it collapsed the
+   product model into one stream with an interest rail bolted on as decoration.
 3. **Almanac / Index / Rooms** - "should show posts, not like news." Chasing
-   "not Instagram" produced type-led magazine layouts with postage-stamp
-   thumbnails. The posts are the content.
-4. **Mosaic / Shelves / Immersive** - media-forward, but still sectioned by
+   "not Instagram" produced magazine layouts with postage-stamp thumbnails.
+4. **Mosaic / Shelves / Immersive** - media-forward but still sectioned by
    interest, which the learned feed removes.
-5. **The blended immersive feed** - one post per screen, and a "why you're
-   seeing this" sheet. Two faults: the owner wants SEVERAL posts on screen
-   (Xiaohongshu's waterfall), and the ranking is the backend's business - the
-   UI should say nothing about it.
+5. **Blended immersive + "why you're seeing this"** - one post per screen when
+   the ask was several, and the ranking is the backend's business.
+6. **Risograph printed matter** - "too fancy; if too complex, the user will not
+   use it." Correct. Style at the cost of usability is not style.
 
-## Known gaps
+Each pass failed for a nameable reason, and the reasons did not repeat.
 
-- **Media is a duotone plate, not a photograph.** This is the thing to test
-  first: real images will fight the grain and the mis-registered ink blocks,
-  and how hard they fight decides whether the ink treatment applies to the
-  whole card or only to its border.
-- **Cold start is undesigned.** A learned feed has nothing to learn from on day
-  one; what a new account sees is an open question, and picking interests at
-  signup is the obvious answer that this design currently has no screen for.
+## Still open
+
+- **Media is a soft gradient, not a photograph.** Real images change the
+  balance of every card - they are the first thing to drop in.
+- **Cold start.** A ranked feed has nothing to learn from on day one, and there
+  is no screen yet for what a new account sees.
+- **The constitution.** Principle I ("Interest Is the Organising Principle") is
+  marked NON-NEGOTIABLE and 001/FR-033 has a negative test enforcing it. A
+  ranked, blended feed replaces both, so `/speckit-constitution` comes before
+  any spec. One thing must NOT change: ranking picks candidates,
+  `VisibilityFilter` still decides at read time.
+- **Disclosure.** Dropping the "why you're seeing this" sheet removes it from
+  the post, not the obligation: dwell-time collection still has to be
+  disclosed somewhere findable, and a reset still has to exist.
 
 ## Regenerating the canvas
 
