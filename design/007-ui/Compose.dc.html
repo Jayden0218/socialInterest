@@ -1,0 +1,61 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><script src="./support.js"></script></head><body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+  <style>body{margin:0}a{color:#1F6B3F}a:hover{color:#17542f}.t{font-family:'Plus Jakarta Sans',system-ui,sans-serif}</style>
+</helmet>
+<div class="t" style="width:390px;height:844px;background:#FBFAF8;color:#16211A;overflow:hidden;display:flex;flex-direction:column;">
+  <div style="height:44px;flex-shrink:0;"></div>
+  <div style="height:50px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 16px;">
+    <span style="font-size:15px;font-weight:500;color:#6B7770;">Cancel</span>
+    <span style="font-size:16px;font-weight:700;">New post</span>
+    <div style="height:34px;padding:0 16px;border-radius:17px;background:#1F6B3F;display:flex;align-items:center;">
+      <span style="font-size:13.5px;font-weight:600;color:#fff;">Share</span>
+    </div>
+  </div>
+  <div style="flex-grow:1;overflow:hidden;padding:8px 16px 0;">
+    <div style="display:flex;gap:8px;">
+      <div style="width:104px;height:130px;border-radius:12px;background:linear-gradient(160deg,#9db089,#4b5c43);"></div>
+      <div style="width:104px;height:130px;border-radius:12px;background:linear-gradient(160deg,#c3bda9,#8d8a73);"></div>
+      <div style="width:104px;height:130px;border-radius:12px;border:1px dashed #DDD9D0;display:flex;align-items:center;justify-content:center;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8A948C" stroke-width="1.9" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+      </div>
+    </div>
+    <div style="padding:18px 0 0;">
+      <span style="font-size:15px;line-height:22px;color:#16211A;">First clean send of the season. Three months on this one problem.</span>
+    </div>
+    <div style="height:1px;background:#ECEAE4;margin:18px 0;"></div>
+    <!-- the interest is REQUIRED and the post cannot be shared without one:
+         it is what the ranking learns over -->
+    <div style="display:flex;align-items:center;gap:12px;padding-bottom:16px;">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#6B7770" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h9"></path></svg>
+      <span style="font-size:14.5px;font-weight:500;flex-grow:1;">Interest</span>
+      <div style="height:30px;padding:0 13px;border-radius:15px;background:#EAF2ED;display:flex;align-items:center;">
+        <span style="font-size:13px;font-weight:600;color:#1F6B3F;">Bouldering</span>
+      </div>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8A948C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg>
+    </div>
+    <sc-for list="{{rows}}" as="r" hint-placeholder-count="3">
+      <div style="display:flex;align-items:center;gap:12px;padding-bottom:16px;">
+        <div style="width:19px;height:19px;border-radius:5px;background:#E6E2D8;"></div>
+        <span style="font-size:14.5px;font-weight:500;flex-grow:1;">{{r.label}}</span>
+        <span style="font-size:13.5px;color:#8A948C;">{{r.value}}</span>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8A948C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { rows: [
+      { label: 'Place', value: 'The Depot, Armley' },
+      { label: 'Who can see this', value: 'Everyone' },
+      { label: 'Comments', value: 'On' },
+    ] };
+  }
+}
+</script>
+</body></html>

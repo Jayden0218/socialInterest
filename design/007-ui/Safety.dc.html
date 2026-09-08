@@ -1,0 +1,47 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><script src="./support.js"></script></head><body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+  <style>body{margin:0}a{color:#1F6B3F}a:hover{color:#17542f}.t{font-family:'Plus Jakarta Sans',system-ui,sans-serif}</style>
+</helmet>
+<div class="t" style="width:390px;height:844px;background:#FBFAF8;color:#16211A;overflow:hidden;position:relative;">
+  <div style="position:absolute;inset:0;background:#FBFAF8;"></div>
+  <div style="position:absolute;inset:0;background:rgba(22,33,26,0.32);"></div>
+  <!-- SAFETY IS A SHEET THAT SCROLLS. Constitution IV: block must always be
+       reachable, whatever the screen height or the platform font size. -->
+  <div style="position:absolute;left:0;right:0;bottom:0;background:#FFFFFF;border-radius:20px 20px 0 0;padding:10px 0 30px;">
+    <div style="display:flex;justify-content:center;padding-bottom:14px;">
+      <div style="width:38px;height:4px;border-radius:2px;background:#E0DACE;"></div>
+    </div>
+    <div style="padding:0 20px 14px;">
+      <span style="font-size:19px;font-weight:700;letter-spacing:-0.018em;">Report this post</span>
+    </div>
+    <div style="padding:0 20px;display:flex;flex-direction:column;gap:8px;">
+      <sc-for list="{{reasons}}" as="r" hint-placeholder-count="6">
+        <div style="height:48px;border-radius:12px;border:1px solid {{r.line}};background:{{r.bg}};display:flex;align-items:center;padding:0 16px;">
+          <span style="font-size:14.5px;font-weight:{{r.weight}};color:#16211A;">{{r.label}}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="height:1px;background:#ECEAE4;margin:18px 20px;"></div>
+    <div style="padding:0 20px;display:flex;flex-direction:column;gap:10px;">
+      <span style="font-size:13px;line-height:19px;color:#6B7770;text-wrap:pretty;">Blocking is mutual and removes any follow between you. Unblocking later does not restore it.</span>
+      <div style="height:48px;border-radius:12px;border:1px solid #E8C9C5;background:#FCF3F2;display:flex;align-items:center;justify-content:center;">
+        <span style="font-size:14.5px;font-weight:600;color:#C0392B;">Block this person</span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const r = (label, on) => ({ label, weight: on ? '600' : '500',
+      bg: on ? '#EAF2ED' : '#FFFFFF', line: on ? '#1F6B3F' : '#E6E2D8' });
+    return { reasons: [r('Spam', false), r('Harassment or bullying', true), r('Explicit content', false),
+      r('Violence', false), r('Misinformation', false), r('Something else', false)] };
+  }
+}
+</script>
+</body></html>

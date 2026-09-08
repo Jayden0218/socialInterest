@@ -1,0 +1,70 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><script src="./support.js"></script></head><body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+  <style>body{margin:0}a{color:#1F6B3F}a:hover{color:#17542f}.t{font-family:'Plus Jakarta Sans',system-ui,sans-serif}</style>
+</helmet>
+<div class="t" style="width:390px;height:844px;background:#FBFAF8;color:#16211A;overflow:hidden;display:flex;flex-direction:column;">
+  <div style="height:44px;flex-shrink:0;"></div>
+  <div style="flex-shrink:0;padding:6px 16px 12px;display:flex;align-items:center;gap:10px;">
+    <div style="flex-grow:1;height:42px;border-radius:21px;background:#F3F1EC;display:flex;align-items:center;gap:9px;padding:0 15px;">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8A948C" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.7-3.7"></path></svg>
+      <span style="font-size:14px;color:#16211A;">bouldering</span>
+    </div>
+    <span style="font-size:14.5px;font-weight:600;color:#1F6B3F;">Cancel</span>
+  </div>
+  <!-- results are typed: interests, places and people are different things and
+       the app should not make you guess which one you tapped -->
+  <div style="flex-grow:1;overflow:hidden;">
+    <div style="padding:0 16px 8px;"><span style="font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#8A948C;">Interests</span></div>
+    <sc-for list="{{interests}}" as="i" hint-placeholder-count="3">
+      <div style="display:flex;align-items:center;gap:12px;padding:9px 16px;">
+        <div style="width:42px;height:42px;border-radius:12px;background:{{i.hue}};flex-shrink:0;"></div>
+        <div style="display:flex;flex-direction:column;gap:2px;flex-grow:1;">
+          <span style="font-size:14.5px;font-weight:600;">{{i.name}}</span>
+          <span style="font-size:12px;color:#8A948C;">{{i.meta}}</span>
+        </div>
+        <div style="height:34px;padding:0 16px;border-radius:17px;border:1px solid {{i.btnLine}};background:{{i.btnBg}};display:flex;align-items:center;">
+          <span style="font-size:13px;font-weight:600;color:{{i.btnFg}};">{{i.btn}}</span>
+        </div>
+      </div>
+    </sc-for>
+    <div style="padding:16px 16px 8px;"><span style="font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#8A948C;">Places</span></div>
+    <div style="display:flex;align-items:center;gap:12px;padding:9px 16px;">
+      <div style="width:42px;height:42px;border-radius:12px;background:#E6E2D8;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#6B7770" stroke-width="1.8" stroke-linejoin="round"><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11z"></path><circle cx="12" cy="10" r="2.4"></circle></svg>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px;flex-grow:1;">
+        <span style="font-size:14.5px;font-weight:600;">The Depot Climbing</span>
+        <span style="font-size:12px;color:#8A948C;">Armley · 4.6 ★ · 128 posts</span>
+      </div>
+    </div>
+    <div style="padding:16px 16px 8px;"><span style="font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#8A948C;">People</span></div>
+    <sc-for list="{{people}}" as="p" hint-placeholder-count="2">
+      <div style="display:flex;align-items:center;gap:12px;padding:9px 16px;">
+        <div style="width:42px;height:42px;border-radius:50%;background:{{p.av}};flex-shrink:0;"></div>
+        <div style="display:flex;flex-direction:column;gap:2px;flex-grow:1;">
+          <span style="font-size:14.5px;font-weight:600;">{{p.name}}</span>
+          <span style="font-size:12px;color:#8A948C;">@{{p.handle}}</span>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      interests: [
+        { name: 'Bouldering', meta: '12.4k posts · 3,180 following', hue: '#1F6B3F', btn: 'Following', btnBg: '#FFFFFF', btnLine: '#DDD9D0', btnFg: '#16211A' },
+        { name: 'Bouldering · Outdoor', meta: '4.1k posts', hue: '#2E7D4C', btn: 'Follow', btnBg: '#1F6B3F', btnLine: '#1F6B3F', btnFg: '#FFFFFF' },
+        { name: 'Bouldering · Comp', meta: '980 posts', hue: '#3A8C59', btn: 'Follow', btnBg: '#1F6B3F', btnLine: '#1F6B3F', btnFg: '#FFFFFF' },
+      ],
+      people: [ { name: 'Maren Kohl', handle: 'maren', av: '#cfdcd2' }, { name: 'Jonas Vik', handle: 'jonasv', av: '#d8d2e4' } ],
+    };
+  }
+}
+</script>
+</body></html>

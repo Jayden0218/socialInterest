@@ -1,0 +1,65 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><script src="./support.js"></script></head><body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+  <style>body{margin:0}a{color:#1F6B3F}a:hover{color:#17542f}.t{font-family:'Plus Jakarta Sans',system-ui,sans-serif}</style>
+</helmet>
+<div class="t" style="width:390px;height:844px;background:#FBFAF8;color:#16211A;overflow:hidden;display:flex;flex-direction:column;">
+  <div style="height:44px;flex-shrink:0;"></div>
+  <div style="height:52px;flex-shrink:0;display:flex;align-items:center;gap:11px;padding:0 16px;border-bottom:1px solid #ECEAE4;">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16211A" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19l-7-7 7-7"></path></svg>
+    <div style="width:34px;height:34px;border-radius:50%;background:#cfdcd2;"></div>
+    <div style="display:flex;flex-direction:column;gap:1px;flex-grow:1;">
+      <span style="font-size:14.5px;font-weight:600;">Tuesday Climbers</span>
+      <span style="font-size:11.5px;color:#8A948C;">6 people</span>
+    </div>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="#16211A"><circle cx="5" cy="12" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="19" cy="12" r="1.8"></circle></svg>
+  </div>
+  <div style="flex-grow:1;overflow:hidden;padding:14px 16px 0;display:flex;flex-direction:column;gap:12px;">
+    <div style="display:flex;justify-content:center;"><span style="font-size:11.5px;font-weight:500;color:#8A948C;">Today</span></div>
+    <sc-for list="{{msgs}}" as="m" hint-placeholder-count="5">
+      <div style="display:flex;gap:9px;align-items:flex-end;justify-content:{{m.side}};">
+        <sc-if value="{{m.them}}" hint-placeholder-val="{{ true }}">
+          <div style="width:28px;height:28px;border-radius:50%;background:{{m.av}};flex-shrink:0;"></div>
+        </sc-if>
+        <div style="max-width:250px;display:flex;flex-direction:column;gap:4px;">
+          <sc-if value="{{m.showName}}" hint-placeholder-val="{{ true }}">
+            <span style="font-size:11.5px;font-weight:600;color:#8A948C;padding-left:2px;">{{m.who}}</span>
+          </sc-if>
+          <div style="padding:10px 14px;border-radius:{{m.radius}};background:{{m.bg}};">
+            <span style="font-size:14px;line-height:20px;color:{{m.fg}};text-wrap:pretty;">{{m.text}}</span>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+  <div style="flex-shrink:0;height:78px;background:#FFFFFF;border-top:1px solid #ECEAE4;display:flex;align-items:center;gap:10px;padding:12px 16px 18px;">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6B7770" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"></rect><circle cx="9" cy="10" r="1.6"></circle><path d="M4 17l5-4 4 3 3-2 4 3"></path></svg>
+    <div style="flex-grow:1;height:42px;border-radius:21px;background:#F3F1EC;display:flex;align-items:center;padding:0 16px;">
+      <span style="font-size:13.5px;color:#8A948C;">Message…</span>
+    </div>
+    <div style="width:42px;height:42px;border-radius:21px;background:#1F6B3F;display:flex;align-items:center;justify-content:center;">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l16-7-6 16-2.5-6.5L4 12z"></path></svg>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const them = (who, text, av, showName) => ({ who, text, av, showName, them: true, side: 'flex-start',
+      bg: '#FFFFFF', fg: '#16211A', radius: '18px 18px 18px 5px' });
+    const me = (text) => ({ who: '', text, av: '', showName: false, them: false, side: 'flex-end',
+      bg: '#1F6B3F', fg: '#FFFFFF', radius: '18px 18px 5px 18px' });
+    return { msgs: [
+      them('jonas', 'Anyone up for the quarry on Saturday?', '#d8d2e4', true),
+      them('perla', 'I can do after 2', '#e3d3c6', true),
+      me('Works for me. Forecast looks dry.'),
+      them('jonas', 'Moving it to 7 if that works — the light goes early now', '#d8d2e4', true),
+      me('Even better'),
+    ] };
+  }
+}
+</script>
+</body></html>

@@ -1,0 +1,72 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><script src="./support.js"></script></head><body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+  <style>body{margin:0}a{color:#1F6B3F}a:hover{color:#17542f}.t{font-family:'Plus Jakarta Sans',system-ui,sans-serif}</style>
+</helmet>
+<div class="t" style="width:390px;height:844px;background:#FBFAF8;color:#16211A;overflow:hidden;display:flex;flex-direction:column;">
+  <div style="height:44px;flex-shrink:0;"></div>
+  <div style="height:50px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 16px;">
+    <span style="font-size:22px;font-weight:700;letter-spacing:-0.02em;">Activity</span>
+  </div>
+  <div style="flex-grow:1;overflow:hidden;padding:4px 0 0;">
+    <div style="padding:8px 16px 6px;"><span style="font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#8A948C;">This week</span></div>
+    <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;">
+        <div style="width:42px;height:42px;border-radius:50%;background:{{r.av}};flex-shrink:0;"></div>
+        <div style="flex-grow:1;">
+          <span style="font-size:13.5px;line-height:19px;color:#43514A;"><span style="font-weight:600;color:#16211A;">{{r.who}}</span> {{r.what}} <span style="color:#8A948C;">{{r.when}}</span></span>
+        </div>
+        <sc-if value="{{r.hasThumb}}" hint-placeholder-val="{{ true }}">
+          <div style="width:42px;height:42px;border-radius:8px;background:{{r.thumb}};flex-shrink:0;"></div>
+        </sc-if>
+        <sc-if value="{{r.hasBtn}}" hint-placeholder-val="{{ false }}">
+          <div style="height:32px;padding:0 15px;border-radius:16px;background:#1F6B3F;display:flex;align-items:center;flex-shrink:0;">
+            <span style="font-size:13px;font-weight:600;color:#fff;">Follow</span>
+          </div>
+        </sc-if>
+      </div>
+    </sc-for>
+  </div>
+  <div style="height:76px;flex-shrink:0;background:#FFFFFF;border-top:1px solid #ECEAE4;display:flex;align-items:flex-start;padding-top:10px;">
+    <sc-for list="{{tabs}}" as="t" hint-placeholder-count="5">
+      <div style="flex-grow:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <sc-if value="{{t.plus}}" hint-placeholder-val="{{ false }}">
+          <div style="width:46px;height:34px;border-radius:11px;background:#1F6B3F;display:flex;align-items:center;justify-content:center;margin-top:3px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+          </div>
+        </sc-if>
+        <sc-if value="{{t.normal}}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+            <div style="width:24px;height:24px;border-radius:7px;background:{{t.mark}};"></div>
+            <span style="font-size:10.5px;font-weight:600;color:{{t.fg}};">{{t.label}}</span>
+          </div>
+        </sc-if>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const tab = (label, on) => ({ label, normal: true, plus: false, fg: on ? "#1F6B3F" : "#8A948C", mark: on ? "#1F6B3F" : "#C8CFC9" });
+    const plus = { label: "", normal: false, plus: true, fg: "", mark: "" };
+    const th = (who, what, when, av, thumb) => ({ who, what, when, av, thumb, hasThumb: true, hasBtn: false });
+    const fl = (who, what, when, av) => ({ who, what, when, av, thumb: '', hasThumb: false, hasBtn: true });
+    return {
+      rows: [
+        th('jonas', 'commented: that heel hook is filthy', '1h', '#d8d2e4', 'linear-gradient(160deg,#9db089,#4b5c43)'),
+        th('perla and 42 others', 'liked your post', '3h', '#e3d3c6', 'linear-gradient(160deg,#c3bda9,#8d8a73)'),
+        fl('ilse', 'started following you', '5h', '#d5dcc9'),
+        th('rue', 'saved your post', '1d', '#c9dcda', 'linear-gradient(160deg,#a8c3c0,#47605e)'),
+        th('aleks', 'replied to your comment', '2d', '#cfd8e4', 'linear-gradient(160deg,#d4a882,#9c6f4e)'),
+        fl('nadia', 'started following you', '3d', '#e3d3c6'),
+      ],
+      tabs: [tab('Feed', false), tab('Explore', false), plus, tab('Chats', false), tab('You', false)],
+    };
+  }
+}
+</script>
+</body></html>

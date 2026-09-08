@@ -1,0 +1,89 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><script src="./support.js"></script></head><body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+  <style>body{margin:0}a{color:#1F6B3F}a:hover{color:#17542f}.t{font-family:'Plus Jakarta Sans',system-ui,sans-serif}</style>
+</helmet>
+<div class="t" style="width:390px;height:844px;background:#FBFAF8;color:#16211A;overflow:hidden;display:flex;flex-direction:column;">
+  <div style="height:44px;flex-shrink:0;"></div>
+  <div style="height:46px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 16px;">
+    <span style="font-size:16px;font-weight:700;">@maren</span>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16211A" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+  </div>
+  <div style="flex-shrink:0;padding:8px 16px 0;">
+    <div style="display:flex;align-items:center;gap:18px;">
+      <div style="width:74px;height:74px;border-radius:50%;background:#cfdcd2;flex-shrink:0;"></div>
+      <div style="display:flex;flex-grow:1;justify-content:space-around;">
+        <sc-for list="{{stats}}" as="s" hint-placeholder-count="3">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+            <span style="font-size:17px;font-weight:700;">{{s.n}}</span>
+            <span style="font-size:12px;color:#8A948C;">{{s.label}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="padding:14px 0 0;display:flex;flex-direction:column;gap:4px;">
+      <span style="font-size:16px;font-weight:700;letter-spacing:-0.015em;">Maren Kohl</span>
+      <span style="font-size:14px;line-height:20px;color:#43514A;">Climbing, clay, and things with feathers. Mostly outdoors.</span>
+    </div>
+    <div style="display:flex;gap:9px;padding:14px 0 0;">
+      <div style="flex-grow:1;height:40px;border-radius:20px;border:1px solid #DDD9D0;display:flex;align-items:center;justify-content:center;">
+        <span style="font-size:14px;font-weight:600;">Edit profile</span>
+      </div>
+      <div style="flex-grow:1;height:40px;border-radius:20px;border:1px solid #DDD9D0;display:flex;align-items:center;justify-content:center;">
+        <span style="font-size:14px;font-weight:600;">Share</span>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;padding:18px 16px 0;gap:24px;flex-shrink:0;border-bottom:1px solid #ECEAE4;">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:9px;">
+      <span style="font-size:14px;font-weight:600;">Posts</span>
+      <div style="height:2.5px;width:30px;background:#1F6B3F;border-radius:2px;"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:9px;">
+      <span style="font-size:14px;font-weight:500;color:#8A948C;">Saved</span>
+      <div style="height:2.5px;width:30px;background:transparent;"></div>
+    </div>
+  </div>
+  <div style="flex-grow:1;overflow:hidden;padding:3px 0 0;">
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px;">
+      <sc-for list="{{tiles}}" as="t" hint-placeholder-count="9">
+        <div style="height:129px;background:{{t}};"></div>
+      </sc-for>
+    </div>
+  </div>
+  <div style="height:76px;flex-shrink:0;background:#FFFFFF;border-top:1px solid #ECEAE4;display:flex;align-items:flex-start;padding-top:10px;">
+    <sc-for list="{{tabs}}" as="t" hint-placeholder-count="5">
+      <div style="flex-grow:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <sc-if value="{{t.plus}}" hint-placeholder-val="{{ false }}">
+          <div style="width:46px;height:34px;border-radius:11px;background:#1F6B3F;display:flex;align-items:center;justify-content:center;margin-top:3px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+          </div>
+        </sc-if>
+        <sc-if value="{{t.normal}}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+            <div style="width:24px;height:24px;border-radius:7px;background:{{t.mark}};"></div>
+            <span style="font-size:10.5px;font-weight:600;color:{{t.fg}};">{{t.label}}</span>
+          </div>
+        </sc-if>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const tab = (label, on) => ({ label, normal: true, plus: false, fg: on ? "#1F6B3F" : "#8A948C", mark: on ? "#1F6B3F" : "#C8CFC9" });
+    const plus = { label: "", normal: false, plus: true, fg: "", mark: "" };
+    const g = ['#9db089','#c3bda9','#a8c3c0','#d4a882','#b3bfa4','#8fa87f','#cbc3b2','#9fb3ae','#c9b79c'];
+    return {
+      stats: [{ n: '142', label: 'posts' }, { n: '1,204', label: 'followers' }, { n: '318', label: 'following' }],
+      tiles: g.map((c) => 'linear-gradient(160deg,' + c + ',#5c6650)'),
+      tabs: [tab('Feed', false), tab('Explore', false), plus, tab('Chats', false), tab('You', true)],
+    };
+  }
+}
+</script>
+</body></html>

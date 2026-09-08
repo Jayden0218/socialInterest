@@ -1,12 +1,18 @@
-# Feed and post — design source
+# The whole app — design source
 
-Two artboards at 390x844. Static mockups, made to settle the look before a
-requirement is written.
+Twenty artboards at 390x844, laid out on the canvas in six rows by flow.
+Static mockups, made to settle the design before a requirement is written.
 
-| File | Screen |
+| Row | Screens |
 |---|---|
-| `Main.dc.html` | Two-column waterfall feed |
-| `Post.dc.html` | A post |
+| First run | `SignIn` · `ColdStart` |
+| Browse | `Main` (feed) · `Post` · `Comments` · `Explore` · `Interest` · `Place` |
+| Create | `Compose` · `MediaPicker` |
+| You | `Profile` · `PersonProfile` · `Saved` · `EditProfile` · `Settings` |
+| Talk | `Chats` · `Conversation` · `NewGroup` · `Activity` |
+| Safety | `Safety` (report and block) |
+
+`_tokens.md` is the system in fifteen lines.
 
 ## The position: calm, not clever
 
@@ -64,6 +70,25 @@ it is deliberately all of it.
    use it." Correct. Style at the cost of usability is not style.
 
 Each pass failed for a nameable reason, and the reasons did not repeat.
+
+## Decisions worth not re-litigating
+
+- **Cold start is a seed, not a subscription.** A ranked feed has nothing to
+  learn from on day one, so the first session asks once and never again. Those
+  picks seed the ranking; they do not become a subscription list.
+- **An interest is required on a post** (`Compose`) and cannot be skipped. It
+  is the dimension the ranking learns over - a post without one is a post the
+  system cannot place.
+- **A place never carries the interest colour treatment** (`Place`). Following
+  a place deliberately does not put its posts in your feed (004/FR-019), and a
+  shared visual language would say it does.
+- **The safety sheet scrolls** (`Safety`). Emulator run 35 found `Block this
+  person` unreachable below the fold on a short screen - a Constitution IV
+  control with no way to get to it. It is a scrolling sheet here by design.
+- **Where the feed explanation went.** Dropping "why you're seeing this" took
+  it off the post, not out of the product: `Settings` carries what the feed is
+  built from and a way to clear the signals. That is the Principle III
+  obligation, kept somewhere findable instead of somewhere loud.
 
 ## Still open
 

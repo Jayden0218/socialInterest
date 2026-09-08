@@ -1,12 +1,232 @@
 {
-  "artboards": [
-    { "file": "Main.dc.html", "x": 0,   "y": 0, "w": 390, "h": 844, "title": "Feed" },
-    { "file": "Post.dc.html", "x": 500, "y": 0, "w": 390, "h": 844, "title": "Post" }
-  ],
-  "annotations": [
-    { "id": "principle", "x": 0, "y": -195, "w": 500, "text": "CALM, NOT CLEVER.\n\nThe last pass was a poster: grain, mis-registration, art-school type. Impressive once, tiring at the fortieth open. This is the same two-column waterfall, designed to disappear.\n\nOne typeface. One accent colour. No shadows — depth is the white card on the warm ground, nothing more. Everything else is spacing." },
-    { "id": "detail", "x": 500, "y": -195, "w": 470, "text": "THE ONE SIGNATURE, and it is quiet: the interest is a coloured WORD under each card — not a chip, not a badge, not a stamp.\n\nIt colour-codes the whole feed so the eye can sort it while scrolling, and it costs no space and makes no noise. That is the entire visual identity, and it is enough." },
-    { "id": "sizes", "x": 0, "y": 900, "w": 970, "text": "Legibility, since that was the point:\n\n· Card titles 13.5px semibold at 18px line height — readable at arm's length, two lines before truncation.\n· Body 14px / 21px on the post. Meta never below 11.5px.\n· Tab labels 10.5px, always paired with an icon, never the only cue.\n· Every tap target is at least 44px tall, including the compose button and the tab items.\n· Type scales with the platform font setting; nothing is a fixed-height box around text." }
-  ],
-  "launch": { "view": "canvas" }
+ "artboards": [
+  {
+   "file": "SignIn.dc.html",
+   "x": 0,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "Welcome"
+  },
+  {
+   "file": "ColdStart.dc.html",
+   "x": 500,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "Pick interests"
+  },
+  {
+   "file": "Main.dc.html",
+   "x": 0,
+   "y": 1020,
+   "w": 390,
+   "h": 844,
+   "title": "Feed"
+  },
+  {
+   "file": "Post.dc.html",
+   "x": 500,
+   "y": 1020,
+   "w": 390,
+   "h": 844,
+   "title": "Post"
+  },
+  {
+   "file": "Comments.dc.html",
+   "x": 1000,
+   "y": 1020,
+   "w": 390,
+   "h": 844,
+   "title": "Comments"
+  },
+  {
+   "file": "Explore.dc.html",
+   "x": 1500,
+   "y": 1020,
+   "w": 390,
+   "h": 844,
+   "title": "Search"
+  },
+  {
+   "file": "Interest.dc.html",
+   "x": 2000,
+   "y": 1020,
+   "w": 390,
+   "h": 844,
+   "title": "Interest space"
+  },
+  {
+   "file": "Place.dc.html",
+   "x": 2500,
+   "y": 1020,
+   "w": 390,
+   "h": 844,
+   "title": "Place"
+  },
+  {
+   "file": "Compose.dc.html",
+   "x": 0,
+   "y": 2040,
+   "w": 390,
+   "h": 844,
+   "title": "New post"
+  },
+  {
+   "file": "MediaPicker.dc.html",
+   "x": 500,
+   "y": 2040,
+   "w": 390,
+   "h": 844,
+   "title": "Choose media"
+  },
+  {
+   "file": "Profile.dc.html",
+   "x": 0,
+   "y": 3060,
+   "w": 390,
+   "h": 844,
+   "title": "Your profile"
+  },
+  {
+   "file": "PersonProfile.dc.html",
+   "x": 500,
+   "y": 3060,
+   "w": 390,
+   "h": 844,
+   "title": "Someone else"
+  },
+  {
+   "file": "Saved.dc.html",
+   "x": 1000,
+   "y": 3060,
+   "w": 390,
+   "h": 844,
+   "title": "Saved"
+  },
+  {
+   "file": "EditProfile.dc.html",
+   "x": 1500,
+   "y": 3060,
+   "w": 390,
+   "h": 844,
+   "title": "Edit profile"
+  },
+  {
+   "file": "Settings.dc.html",
+   "x": 2000,
+   "y": 3060,
+   "w": 390,
+   "h": 844,
+   "title": "Settings"
+  },
+  {
+   "file": "Chats.dc.html",
+   "x": 0,
+   "y": 4080,
+   "w": 390,
+   "h": 844,
+   "title": "Inbox"
+  },
+  {
+   "file": "Conversation.dc.html",
+   "x": 500,
+   "y": 4080,
+   "w": 390,
+   "h": 844,
+   "title": "A group chat"
+  },
+  {
+   "file": "NewGroup.dc.html",
+   "x": 1000,
+   "y": 4080,
+   "w": 390,
+   "h": 844,
+   "title": "New group"
+  },
+  {
+   "file": "Activity.dc.html",
+   "x": 1500,
+   "y": 4080,
+   "w": 390,
+   "h": 844,
+   "title": "Activity"
+  },
+  {
+   "file": "Safety.dc.html",
+   "x": 0,
+   "y": 5100,
+   "w": 390,
+   "h": 844,
+   "title": "Report and block"
+  }
+ ],
+ "annotations": [
+  {
+   "id": "row-first-run",
+   "x": -330,
+   "y": 300,
+   "w": 260,
+   "text": "First run"
+  },
+  {
+   "id": "row-browse",
+   "x": -330,
+   "y": 1320,
+   "w": 260,
+   "text": "Browse"
+  },
+  {
+   "id": "row-create",
+   "x": -330,
+   "y": 2340,
+   "w": 260,
+   "text": "Create"
+  },
+  {
+   "id": "row-you",
+   "x": -330,
+   "y": 3360,
+   "w": 260,
+   "text": "You"
+  },
+  {
+   "id": "row-talk",
+   "x": -330,
+   "y": 4380,
+   "w": 260,
+   "text": "Talk"
+  },
+  {
+   "id": "row-safety",
+   "x": -330,
+   "y": 5400,
+   "w": 260,
+   "text": "Safety"
+  },
+  {
+   "id": "system",
+   "x": -330,
+   "y": -260,
+   "w": 300,
+   "text": "THE SYSTEM\n\nOne typeface (Plus Jakarta Sans).\nOne accent (#1F6B3F).\nNo shadows anywhere \u2014 depth is a white card on a warm ground plus the gutter.\nEverything else is spacing.\n\nThe one signature: an interest is a coloured WORD, never a chip or a badge."
+  },
+  {
+   "id": "brief",
+   "x": 0,
+   "y": -260,
+   "w": 560,
+   "text": "THE WHOLE APP, twenty screens in one language.\n\nFeed is Xiaohongshu's two-column waterfall \u2014 image height drives card height, four to five posts on screen, no sections. The feed is ranked server-side and the UI never mentions it.\n\nEvery tap target is at least 44px. Card titles are 13.5px semibold at 18px line height. Nothing meta drops below 11.5px. Type scales with the platform font setting."
+  },
+  {
+   "id": "open",
+   "x": 620,
+   "y": -260,
+   "w": 460,
+   "text": "THREE THINGS STILL OPEN\n\n1. Media is a soft gradient, not a photograph. Real images change the balance of every card and are the first thing to drop in.\n2. The constitution: Principle I is NON-NEGOTIABLE and FR-033 has a negative test. A ranked blended feed replaces both, so /speckit-constitution comes before any spec.\n3. Ranking picks candidates; VisibilityFilter must still decide at read time, or a block stops landing immediately."
+  }
+ ],
+ "launch": {
+  "view": "canvas"
+ }
 }

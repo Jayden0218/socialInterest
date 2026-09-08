@@ -1,0 +1,43 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><script src="./support.js"></script></head><body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+  <style>body{margin:0}a{color:#1F6B3F}a:hover{color:#17542f}.t{font-family:'Plus Jakarta Sans',system-ui,sans-serif}</style>
+</helmet>
+<div class="t" style="width:390px;height:844px;background:#FBFAF8;color:#16211A;overflow:hidden;display:flex;flex-direction:column;">
+  <div style="height:44px;flex-shrink:0;"></div>
+  <div style="height:50px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 16px;">
+    <span style="font-size:15px;font-weight:500;color:#6B7770;">Cancel</span>
+    <span style="font-size:16px;font-weight:700;">Edit profile</span>
+    <span style="font-size:14.5px;font-weight:600;color:#1F6B3F;">Save</span>
+  </div>
+  <div style="flex-grow:1;overflow:hidden;padding:12px 0 0;">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:9px;padding-bottom:20px;">
+      <div style="width:82px;height:82px;border-radius:50%;background:#cfdcd2;"></div>
+      <span style="font-size:13.5px;font-weight:600;color:#1F6B3F;">Change photo</span>
+    </div>
+    <sc-for list="{{fields}}" as="f" hint-placeholder-count="4">
+      <div style="padding:0 16px 14px;display:flex;flex-direction:column;gap:6px;">
+        <span style="font-size:12px;font-weight:600;letter-spacing:0.03em;text-transform:uppercase;color:#8A948C;">{{f.label}}</span>
+        <div style="min-height:46px;border-radius:12px;background:#FFFFFF;border:1px solid #E6E2D8;display:flex;align-items:center;padding:12px 15px;">
+          <span style="font-size:14.5px;line-height:20px;color:{{f.fg}};text-wrap:pretty;">{{f.value}}</span>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { fields: [
+      { label: 'Name', value: 'Maren Kohl', fg: '#16211A' },
+      { label: 'Handle', value: '@maren', fg: '#16211A' },
+      { label: 'Bio', value: 'Climbing, clay, and things with feathers. Mostly outdoors.', fg: '#16211A' },
+      { label: 'Link', value: 'Add a link', fg: '#8A948C' },
+    ] };
+  }
+}
+</script>
+</body></html>

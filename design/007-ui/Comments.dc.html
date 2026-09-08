@@ -1,0 +1,54 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><script src="./support.js"></script></head><body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+  <style>body{margin:0}a{color:#1F6B3F}a:hover{color:#17542f}.t{font-family:'Plus Jakarta Sans',system-ui,sans-serif}</style>
+</helmet>
+<div class="t" style="width:390px;height:844px;background:#FBFAF8;color:#16211A;overflow:hidden;display:flex;flex-direction:column;">
+  <div style="height:44px;flex-shrink:0;"></div>
+  <div style="height:48px;flex-shrink:0;display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid #ECEAE4;">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16211A" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19l-7-7 7-7"></path></svg>
+    <span style="font-size:16px;font-weight:700;letter-spacing:-0.015em;">86 comments</span>
+  </div>
+  <div style="flex-grow:1;overflow:hidden;padding:14px 16px 0;display:flex;flex-direction:column;gap:18px;">
+    <sc-for list="{{comments}}" as="c" hint-placeholder-count="5">
+      <div style="display:flex;gap:11px;align-items:flex-start;padding-left:{{c.indent}};">
+        <div style="width:32px;height:32px;border-radius:50%;background:{{c.av}};flex-shrink:0;"></div>
+        <div style="display:flex;flex-direction:column;gap:5px;flex-grow:1;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:13.5px;font-weight:600;">{{c.who}}</span>
+            <span style="font-size:11.5px;color:#8A948C;">{{c.when}}</span>
+          </div>
+          <span style="font-size:14px;line-height:20px;color:#43514A;text-wrap:pretty;">{{c.text}}</span>
+          <div style="display:flex;gap:16px;padding-top:1px;">
+            <span style="font-size:12.5px;font-weight:600;color:#8A948C;">Reply</span>
+            <span style="font-size:12.5px;font-weight:600;color:#8A948C;">{{c.likes}}</span>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+  <div style="flex-shrink:0;height:76px;background:#FFFFFF;border-top:1px solid #ECEAE4;display:flex;align-items:center;gap:10px;padding:12px 16px 18px;">
+    <div style="width:32px;height:32px;border-radius:50%;background:#cfdcd2;flex-shrink:0;"></div>
+    <div style="flex-grow:1;height:42px;border-radius:21px;background:#F3F1EC;display:flex;align-items:center;padding:0 16px;">
+      <span style="font-size:13.5px;color:#8A948C;">Add a comment…</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const c = (who, text, when, likes, av, indent) => ({ who, text, when, likes, av, indent: indent + 'px' });
+    return { comments: [
+      c('jonas', 'That heel hook is filthy. Congrats.', '1h', '12', '#d8d2e4', 0),
+      c('maren', 'Took me about forty goes to trust it', '54m', '4', '#cfdcd2', 40),
+      c('perla', 'Been stuck on this for weeks — any beta for the start?', '42m', '3', '#e3d3c6', 0),
+      c('ilse', 'Conditions were unreal this morning', '20m', '1', '#d5dcc9', 0),
+      c('rue', 'Which mat setup did you use?', '8m', '0', '#c9dcda', 0),
+    ] };
+  }
+}
+</script>
+</body></html>

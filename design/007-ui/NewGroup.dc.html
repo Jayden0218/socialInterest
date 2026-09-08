@@ -1,0 +1,71 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><script src="./support.js"></script></head><body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+  <style>body{margin:0}a{color:#1F6B3F}a:hover{color:#17542f}.t{font-family:'Plus Jakarta Sans',system-ui,sans-serif}</style>
+</helmet>
+<div class="t" style="width:390px;height:844px;background:#FBFAF8;color:#16211A;overflow:hidden;display:flex;flex-direction:column;">
+  <div style="height:44px;flex-shrink:0;"></div>
+  <div style="height:50px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 16px;">
+    <span style="font-size:15px;font-weight:500;color:#6B7770;">Cancel</span>
+    <span style="font-size:16px;font-weight:700;">New group</span>
+    <span style="font-size:14.5px;font-weight:600;color:#1F6B3F;">Create</span>
+  </div>
+  <div style="flex-shrink:0;padding:8px 16px 0;">
+    <div style="height:46px;border-radius:12px;background:#FFFFFF;border:1px solid #E6E2D8;display:flex;align-items:center;padding:0 15px;">
+      <span style="font-size:14.5px;">Tuesday Climbers</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;padding:14px 0 0;">
+      <sc-for list="{{picked}}" as="p" hint-placeholder-count="3">
+        <div style="height:34px;padding:0 6px 0 6px;border-radius:17px;background:#EAF2ED;display:flex;align-items:center;gap:7px;">
+          <div style="width:22px;height:22px;border-radius:50%;background:{{p.av}};"></div>
+          <span style="font-size:13px;font-weight:600;color:#1F6B3F;">{{p.name}}</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1F6B3F" stroke-width="2.4" stroke-linecap="round" style="margin-right:6px;"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+        </div>
+      </sc-for>
+    </div>
+    <div style="padding:14px 0 0;">
+      <div style="height:42px;border-radius:21px;background:#F3F1EC;display:flex;align-items:center;gap:9px;padding:0 15px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8A948C" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.7-3.7"></path></svg>
+        <span style="font-size:14px;color:#8A948C;">Search people</span>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:16px 0 8px;">
+      <span style="font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#8A948C;">Suggested</span>
+      <span style="font-size:12px;font-weight:600;color:#8A948C;">3 of 20</span>
+    </div>
+  </div>
+  <div style="flex-grow:1;overflow:hidden;">
+    <sc-for list="{{people}}" as="p" hint-placeholder-count="6">
+      <div style="display:flex;align-items:center;gap:12px;padding:9px 16px;">
+        <div style="width:42px;height:42px;border-radius:50%;background:{{p.av}};flex-shrink:0;"></div>
+        <div style="display:flex;flex-direction:column;gap:2px;flex-grow:1;">
+          <span style="font-size:14.5px;font-weight:600;">{{p.name}}</span>
+          <span style="font-size:12px;color:#8A948C;">@{{p.handle}}</span>
+        </div>
+        <div style="width:24px;height:24px;border-radius:50%;border:1.6px solid {{p.line}};background:{{p.fill}};display:flex;align-items:center;justify-content:center;">
+          <sc-if value="{{p.on}}" hint-placeholder-val="{{ true }}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l5 5L19 7"></path></svg>
+          </sc-if>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = (name, handle, av, on) => ({ name, handle, av, on,
+      line: on ? '#1F6B3F' : '#DDD9D0', fill: on ? '#1F6B3F' : 'transparent' });
+    return {
+      picked: [{ name: 'jonas', av: '#d8d2e4' }, { name: 'perla', av: '#e3d3c6' }, { name: 'ilse', av: '#d5dcc9' }],
+      people: [ p('Jonas Vik', 'jonasv', '#d8d2e4', true), p('Perla Adeyemi', 'perla', '#e3d3c6', true),
+        p('Ilse Brandt', 'ilse', '#d5dcc9', true), p('Rue Okafor', 'rue', '#c9dcda', false),
+        p('Aleks Nowak', 'aleks', '#cfd8e4', false), p('Nadia Reyes', 'nadia', '#e0d5c6', false) ],
+    };
+  }
+}
+</script>
+</body></html>
