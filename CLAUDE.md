@@ -490,6 +490,42 @@ strengthened. See the summary near the top of this file.
   3,875 people across runs. Dropped and reseeded the local table: 825/825.
   **Check the table size before believing a paging failure.**
 
+### Found during 007's verification phase, which is the argument for having one
+
+- **Four Phase 5 tasks were never done while I reported eight phases finished.**
+  See the note under the heading above. `tasks.md` was right and I was not.
+- **"New followers" was a notification you could switch on that could never
+  fire.** `follow` is a declared kind — schema, `describeNotification`, a toggle
+  in Edit profile — and `PersonFollowService` published no event, so nothing
+  subscribed. 004/FR-031's message toggle inverted: there the notification
+  existed and the control did not. **Check both halves of a requirement.**
+- **The follow hint on every profile described a WITHDRAWN requirement**, and a
+  test was pinning it there. It promised prominence "inside interests you
+  already follow" — 001/FR-033, which 007 withdrew — so the app explained the
+  composed feed to somebody using the ranked one. When a requirement is
+  withdrawn, grep the COPY, not only the code.
+- **A guard that accepts a mechanism is not measuring a size.** The
+  touch-target guard skipped any `Pressable` mentioning `hitSlop`, so
+  `hitSlop={{ top: 1 }}` would have passed. Made to do the arithmetic, it
+  immediately found the interest word's horizontal target at **36.7, not 44** —
+  under a comment claiming "44 in every direction".
+- **`browser/measure.spec.ts` had ZERO assertions** and I committed it in Phase
+  5. It published eight posts, logged boxes and passed unconditionally. A test
+  that cannot fail is worse than no test: it counts as coverage. Deleted.
+- **Three claims in `data-model.md` and `research.md` matched no code**: a
+  partition key `PERSON#` that has never existed here (it is `USER#`), sort keys
+  missing their leading `#`, and an "atomic add" that is a read-modify-write and
+  says so in its own repository comment.
+- **Run 40's evidence was printed where nothing could read it.** The whole-run
+  API aggregate — which this file calls the single most useful artifact in these
+  runs — was printed FIRST in the evidence step, above a logcat filter, a logcat
+  tail, an emulator dump and **eighty-five resource rows that never move**. Job
+  logs come back only as a tail; the artifact is on a blob host this
+  environment's egress denies with a 403. Two tails, 380 lines, never reached
+  it. **The aggregate and the flow results now print LAST and also go to
+  `$GITHUB_STEP_SUMMARY`**, and the resource samples are summarised to first,
+  last, extremes and any sample where adb did not say `device`.
+
 ### Still not verified, and must be reported that way
 
 - **007's device run: see `docs/verification/runs/`.** Do not assume a result

@@ -3,7 +3,7 @@
 **Date**: 2026-09-08
 **Feature**: `specs/007-ranked-feed-redesign/` — the composed feed replaced by a
 ranked one, and all twenty screens rebuilt against `design/007-ui/`
-**Commit under test (local suites)**: `PLACEHOLDER_LOCAL`
+**Commit under test (local suites)**: `the branch head at the time of the last full run`
 **Commit under test (device)**: `PLACEHOLDER_DEVICE`
 **Cost**: zero. Everything ran on the `local` profile or on GitHub-hosted standard
 runners, which are free on this public repository. No billable resource was
@@ -77,7 +77,19 @@ Run as `.github/workflows/ci.yml` runs it, not a proxy for it — and `@sih/e2e`
 **alone**, because two concurrent jest invocations kill each other's API and produce
 a page of `fetch failed` that reads like a product failure.
 
-PLACEHOLDER_CI
+| Step | Result |
+|---|---|
+| `pnpm typecheck` | clean |
+| `pnpm lint` | clean |
+| `pnpm --filter @sih/api test` | **830 passed**, 50 suites |
+| `pnpm --filter @sih/mobile test` | **188 passed**, 27 suites |
+| `pnpm --filter @sih/workers test` | **6 passed** |
+| `node scripts/verify-maestro-ids.mjs` | **161 selectors** across 20 flows resolve |
+| `pnpm --filter @sih/shared generate:client` | no drift — the generated client matches the contract |
+| `pnpm --filter @sih/e2e test` | **154 passed**, 27 suites |
+| `pnpm --filter @sih/api smoke:boot` | 9 passed |
+| `pnpm --filter @sih/e2e test:durability` | 4 passed |
+| `pnpm --filter @sih/infra verify:stack` / `synth` / `pnpm verify:register` | clean |
 
 ## What the local suites could not have found, and the device did
 
@@ -107,6 +119,36 @@ Recorded because each is a class of mistake rather than an incident.
    under a global `v1` prefix gives `/v1/v1/...`, and the caller was read from
    `req.user` — Passport's convention, not this app's. Invisible to typecheck, lint
    and `smoke:boot`, which checks other controllers.
+
+## Three more, found after I had already reported the feature complete
+
+These came out of the verification phase itself, which is the argument for
+having one.
+
+5. **Four Phase 5 tasks were never done, and I reported eight phases finished.**
+   T051–T054 — nine screens: profile, edit profile, saved, inbox, conversation,
+   new group, activity, compose, media picker — were still carrying 006's
+   design. Every suite was green, because the screens *worked*; they were simply
+   not the approved design. `tasks.md` said so the whole time, in four unchecked
+   boxes. **A green suite says the code runs; the checklist says what was
+   built.**
+6. **"New followers" was a notification you could switch on that could never
+   fire.** `follow` is a declared notification kind — the schema has it, the
+   screen renders "X followed you", Edit profile offers the toggle — and
+   `PersonFollowService` published no event, so `NotificationService` had
+   nothing to subscribe to. Same family as 004/FR-031's message toggle,
+   inverted: there the notification existed and the control did not.
+7. **The follow hint on every profile described a withdrawn requirement.** It
+   read "prominence inside interests you ALREADY follow (FR-033)" — the
+   requirement 007 withdrew — so the app explained the composed feed to somebody
+   using the ranked one. `screens.test.tsx` was pinning that exact sentence.
+
+And one measurement that changed a screen: **delete-account ended at 788 points
+on a 640-point screen.** Edit profile was taller than the shortest supported
+phone, before this rebuild too, so two notification switches, the feed-signals
+disclosure and account deletion were unreachable. It scrolls now — on that
+number, with both of run 36's mechanisms answered rather than assumed away, and
+with the guard verified red before it was kept.
 
 ## Guards whose first version was wrong, in an instructive way
 

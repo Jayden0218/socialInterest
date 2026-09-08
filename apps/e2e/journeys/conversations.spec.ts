@@ -270,11 +270,21 @@ describe('004/US1 - two people can talk', () => {
     const viewer = await actor('widenViewer');
     const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
     await viewer.data.interests.follow(interest.interestId);
-    await publishReadyImage(author, [interest.interestId]);
-    await publishReadyImage(author, [interest.interestId]);
+    const declared = [
+      await publishReadyImage(author, [interest.interestId]),
+      await publishReadyImage(author, [interest.interestId]),
+    ];
 
     const before = await viewer.data.feed.home({ limit: 20 });
     expect(before.items.length).toBeGreaterThan(0);
+    const beforeSignals = await viewer.data.signals.disclosure();
+    // The posts this viewer's DECLARED interest earns are in the first draw.
+    // If they were not, the comparison below would be about exploration noise
+    // rather than about the conversation.
+    for (const postId of declared) {
+      expect({ postId, present: before.items.some((p) => p.postId === postId) })
+        .toEqual({ postId, present: true });
+    }
 
     const conv = await viewer.data.conversations.open(author.handle);
     await viewer.data.conversations.send(conv.conversationId, { body: 'nice photo' });
@@ -282,9 +292,55 @@ describe('004/US1 - two people can talk', () => {
     await viewer.data.conversations.send(conv.conversationId, { body: 'where was it' });
 
     const after = await viewer.data.feed.home({ limit: 20 });
-    // Identical ids AND identical order. Ranking may not read message activity
-    // any more than membership may.
-    expect(after.items.map((p) => p.postId)).toEqual(before.items.map((p) => p.postId));
+
+    /**
+     * TWO RANKED DRAWS CANNOT BE COMPARED TO EACH OTHER AT ALL — not by order,
+     * and not by set either. This assertion learned that in two steps and both
+     * are worth recording.
+     *
+     * It began as `toEqual` on the id ARRAY, which was right against 004's
+     * composed feed: that order was deterministic. Against 007's ranked feed it
+     * is not. Exploration is epsilon-greedy at ε = 0.2 and **re-samples on
+     * every call**, so roughly one slot in five is a fresh random draw and two
+     * consecutive requests differ with nothing whatsoever having changed. The
+     * old assertion passed only when the draws happened to coincide.
+     *
+     * Relaxing it to compare SETS did not fix it, and the failure said why:
+     * exploration changes WHICH POSTS ARE DRAWN, not merely their positions, so
+     * a post present in one draw is legitimately absent from the next. That is
+     * the same mistake `contracts/ranking-boundary.md`'s first version made —
+     * comparing two draws and concluding something about neither — made twice
+     * here before the second failure made it obvious.
+     *
+     * So FR-012 is asserted where the answer is DETERMINISTIC. The posts the
+     * viewer's declared interest earns are exploitation results, not
+     * exploration ones: they are in every draw, before and after. A
+     * conversation that admitted or removed content would move them.
+     */
+    for (const postId of declared) {
+      expect({ postId, present: after.items.some((p) => p.postId === postId) })
+        .toEqual({ postId, present: true });
+    }
+
+    /**
+     * And the ordering half, asserted where it is deterministic: the ranker's
+     * INPUT rather than its output. FR-012 says ranking may not read message activity, and what
+     * ranking reads is the signal profile — so three messages must move no
+     * weight at all. `contracts/signals.md` names four kinds and messages are
+     * not among them; this is that guarantee observed rather than assumed.
+     *
+     * Checking the profile instead of the output is what makes it a real test:
+     * an assertion on ordering could never distinguish "messages moved the
+     * ranking" from "exploration re-drew".
+     */
+    const signals = await viewer.data.signals.disclosure();
+    // NOT VACUOUS: an empty-vs-empty comparison would pass whatever messages
+    // did. The viewer followed an interest above, and FR-030 makes a follow a
+    // standing declaration the ranker reads - so the disclosure has something
+    // in it, and this says so before comparing.
+    expect(beforeSignals.interests.length).toBeGreaterThan(0);
+    expect(signals.interests.map((i) => i.interestId).sort())
+      .toEqual(beforeSignals.interests.map((i) => i.interestId).sort());
   });
 
   /**
