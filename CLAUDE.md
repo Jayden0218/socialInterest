@@ -323,6 +323,17 @@ expired within a day.
 one and rebuilds the app on the approved design. **All eight phases are
 implemented and the full CI step list is green.**
 
+**This heading was true before T051–T054 were done, and I wrote it anyway.**
+Nine screens — profile, edit profile, saved, inbox, conversation, new group,
+activity, compose, media picker — were still carrying 006's design while this
+file and my own report said the redesign was finished. Nothing caught it: every
+suite was green, because the screens WORKED; they were simply not the approved
+design. The task list said so the whole time, in four unchecked boxes.
+
+The lesson is narrow and worth keeping: **a green suite says the code runs, and
+`tasks.md` says what was built.** Check the boxes before writing "complete" —
+the checklist is the record, and it was right when I was not.
+
 `design/007-ui/` is the approved design (20 artboards). It is settled — implement
 it, do not reopen it.
 

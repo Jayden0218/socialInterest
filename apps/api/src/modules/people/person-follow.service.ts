@@ -3,14 +3,20 @@ import { DomainError } from '../../common/errors/problem.filter';
 import { BlockRepository } from '../../persistence/block.repository';
 import { PersonFollowRepository } from '../../persistence/person-follow.repository';
 import { PersonRepository } from '../../persistence/person.repository';
+import { EVENT_BUS, type EventBus } from '../../ports';
 
 /**
  * FR-037 person following.
  *
- * Following someone does NOT widen their feed - see FR-033 in FeedService. This
- * service only records the relationship; what it grants is decided at read time
- * in two places: the visibility filter (followers-only posts) and the feed's
- * intersection rule (prominence within followed interests only).
+ * Following someone does NOT widen their feed. This service only records the
+ * relationship; what it grants is decided at read time in two places: the
+ * visibility filter (followers-only posts) and, since 007, `RankingService` -
+ * where 007/FR-029 gives a follow a BOUNDED BOOST that reorders and never
+ * admits.
+ *
+ * The old wording here named 001/FR-033's "intersection rule (prominence within
+ * followed interests only)", which 007 withdrew: a ranked feed has no
+ * followed-interest set to be confined to.
  */
 @Injectable()
 export class PersonFollowService {
@@ -18,6 +24,7 @@ export class PersonFollowService {
     @Inject(PersonFollowRepository) private readonly follows: PersonFollowRepository,
     @Inject(PersonRepository) private readonly people: PersonRepository,
     @Inject(BlockRepository) private readonly blocks: BlockRepository,
+    @Inject(EVENT_BUS) private readonly events: EventBus,
   ) {}
 
   async follow(followerId: string, followeeHandle: string): Promise<{ alreadyFollowing: boolean }> {
@@ -45,6 +52,30 @@ export class PersonFollowService {
       this.people.incrementCounter(followee.userId, 'followerCount', 1),
       this.people.incrementCounter(followerId, 'followingCount', 1),
     ]);
+
+    /**
+     * 007/T053 — AND THIS EVENT DID NOT EXIST.
+     *
+     * `follow` is a declared notification kind: the schema has it,
+     * `describeNotification` renders "X followed you", and Edit profile offers
+     * "New followers" as a toggle somebody can switch on. Nothing ever created
+     * one. A person could turn on a notification that could not fire, and the
+     * only way to find out was to look for the notification and not find it —
+     * which is what `response-shape.spec.ts` now does.
+     *
+     * Same family as 004/FR-031's message toggle, inverted: there the
+     * notification existed and the control did not; here the control existed
+     * and the notification did not. Both are a requirement reported complete
+     * because only one half of it was looked at.
+     *
+     * Published rather than written here, so the preference check stays in
+     * `NotificationService` — a second place that decides whether to notify is
+     * a second place to get FR-049 wrong.
+     */
+    await this.events.publish({
+      type: 'person.followed',
+      payload: { followerId, followeeId: followee.userId },
+    });
     return { alreadyFollowing: false };
   }
 

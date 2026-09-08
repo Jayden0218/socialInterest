@@ -49,6 +49,29 @@ export class NotificationService implements OnModuleInit {
       };
       await this.notifyOtherParticipant(conversationId, authorId);
     });
+    /**
+     * 007/T053. `follow` was a notification kind nothing ever produced — see
+     * the note on `PersonFollowService.follow`. FR-049's preference is checked
+     * here with the others, not at the publisher.
+     */
+    this.events.subscribe('person.followed', async (e) => {
+      const { followerId, followeeId } = e.payload as { followerId: string; followeeId: string };
+      await this.notifyFollowed(followeeId, followerId);
+    });
+  }
+
+  /**
+   * A follow notification has NO POST, so there is nothing to check visibility
+   * on and nothing to draw a thumbnail from — `postThumbUrl` is null and the
+   * row renders without a tile. That asymmetry is why the test asserts both
+   * cases rather than only the interesting one.
+   */
+  private async notifyFollowed(followeeId: string, actorId: string): Promise<void> {
+    if (followeeId === actorId) return; // the service refuses this anyway
+    const recipient = await this.people.findById(followeeId);
+    if (!recipient || recipient.status !== 'active') return;
+    if (recipient.notificationPrefs.follow === false) return; // FR-049
+    await this.notifications.create({ recipientId: followeeId, kind: 'follow', actorId });
   }
 
   /**

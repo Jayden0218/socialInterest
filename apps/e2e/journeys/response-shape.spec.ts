@@ -1,4 +1,5 @@
 import { actor, anonymous } from '../support/client';
+import { eventually } from '../support/eventually';
 import { publishReadyImage } from '../support/publish';
 import type { Post } from '@sih/shared';
 
@@ -191,4 +192,63 @@ describe('no surface returns VisibilityFilter candidates as a response', () => {
     expect(fetched.ratingSummary).toEqual({ average: null, count: 0 });
     expect(fetched.ratingSummary?.average).not.toBe(0);
   });
+});
+
+/**
+ * 007/T053 — THE NOTIFICATION THUMBNAIL IS A RESPONSE FIELD, SO IT IS ASKED FOR.
+ *
+ * `Activity.dc.html` shows a thumbnail beside a post row, and the field that
+ * carries it (`postThumbUrl`) is served from the post `listVisible` already
+ * fetched to decide visibility. Every previous instance of a response-shape
+ * defect in this codebase survived because nothing asked what the server
+ * actually sent, so this asks — on the same principle as the file above it.
+ *
+ * Three claims, and the third is the one that matters:
+ *
+ *   1. A reaction notification carries a url.
+ *   2. A follow notification carries null — there is no post.
+ *   3. It is a REAL, FETCHABLE url, not a raw key. `MinioObjectStore.publicUrl`
+ *      returned an unsigned url for a private bucket for five features, and
+ *      nothing noticed until something rendered an image (006/R4b). A string
+ *      that is present but 403s is exactly that defect again.
+ */
+describe('007/T053 the notification thumbnail', () => {
+  it('is present for a post notification, null for a follow, and actually fetchable', async () => {
+    const author = await actor('thumbAuthor');
+    const reactor = await actor('thumbReactor');
+    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const postId = await publishReadyImage(author, [interest.interestId], { caption: 'thumb' });
+
+    await reactor.data.engagement.react(postId);
+    await reactor.data.people.follow(author.handle);
+
+    /**
+     * WAITED FOR, not slept on. Notifications are produced through the event
+     * bus, so a single read races the pipeline - and 004 records four tests in
+     * this repository that waited for a DURATION instead of a condition and
+     * were red in CI and green locally. The condition is both kinds present.
+     */
+    const page = await eventually(
+      () => author.data.notifications.list({ limit: 20 }),
+      (p) => p.items.some((n) => n.kind === 'reaction') && p.items.some((n) => n.kind === 'follow'),
+      { timeoutMs: 15_000, describe: 'a reaction and a follow notification' },
+    );
+
+    const reaction = page.items.find((n) => n.kind === 'reaction' && n.postId === postId);
+    expect({ found: Boolean(reaction), kinds: page.items.map((n) => n.kind) })
+      .toMatchObject({ found: true });
+    expect(typeof reaction!.postThumbUrl).toBe('string');
+
+    const follow = page.items.find((n) => n.kind === 'follow')!;
+    // Null, not absent and not an empty string: there is no post, and the
+    // client renders no tile.
+    expect(follow!.postThumbUrl ?? null).toBeNull();
+
+    // The claim a present string does not make. A presigned GET issued after
+    // VisibilityFilter decided should answer 200; an unsigned url against a
+    // private bucket answers 403, which is the shape of 006's five-feature
+    // defect.
+    const res = await fetch(reaction!.postThumbUrl as string);
+    expect({ status: res.status, url: reaction!.postThumbUrl }).toMatchObject({ status: 200 });
+  }, 120_000);
 });
