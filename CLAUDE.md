@@ -220,6 +220,59 @@ same execution as the first observation — a local run of
 **make it visible before changing anything**, and prefer the free observation to
 the expensive guess.
 
+### A SOFT KEYBOARD CANNOT BE MEASURED IN A BROWSER (runs 38-42, 2026-09-08)
+
+Four failed runs, about an hour of Actions time, and three of the four were
+mine. The findings are worth more than the runs cost.
+
+**A guard containing an invented constant tests the constant.**
+`signin-fit.spec.ts` was written after run 39, verified RED against run 39's
+exact numbers, and then passed through runs 40 and 41 while the device failed
+identically each time. It opened the page at 320x390 - "what is left of a 640pt
+screen once a keyboard takes 250" - and checked the submit button against 390.
+**250 was invented.** react-native-web has no soft keyboard, so no browser
+measurement can ever supply that number.
+
+The fix is to stop needing it: **the submit button is ABOVE the field.** A
+control above the field cannot be covered by a keyboard that opens below it, at
+any keyboard height, under `adjustResize` and `adjustPan` alike. That is an
+invariant, not another number to be wrong about.
+
+**But the rule is NOT "never put a submit below a field."** The comment and
+message composers do exactly that and passed runs 34 and 37, because each sits
+under a `flex: 1` list that absorbs the resize, so the composer rides up with
+the fold. Sign-in had no absorber - top-aligned content, fixed offsets - so the
+keyboard simply covered what fell below. **A screen with nothing to absorb the
+resize cannot put a control where a keyboard can reach it.**
+
+**When it IS the flow and not the product.** Run 42's compose place picker
+(y=642) and profile caption (y=659) were both past a 640pt fold, and both are
+one swipe away on surfaces built to scroll - the artboards are drawn at 390x844.
+Sign-in was different in kind: that screen does not scroll AT ALL, so the control
+was unreachable rather than un-scrolled-to. The first two are flow fixes and the
+third was a product fix, and confusing the two in either direction is how run 36
+happened.
+
+**A device-anchored bound beats an arithmetic one.** Where an invariant is not
+available - a search results list is necessarily BELOW its field - bound the
+guard by what a device demonstrably reached (`ngmeasure.spec.ts`: 289, from runs
+34 and 37) rather than by 640 minus a guess.
+
+**Evidence you cannot reach is the failure runs 1-6 were spent on, again.** The
+whole-run API aggregate was printed FIRST in the evidence step, above a logcat
+filter, a logcat tail, an emulator dump and eighty-five resource rows that never
+move. Job logs come back only as a TAIL, and the artifact holding the same data
+is on a blob host this environment's egress denies with a 403. Two tails, 380
+lines, never reached it - which is why run 40 is recorded as **cause unknown**
+rather than given a story. The aggregate and flow results print LAST now and go
+to `$GITHUB_STEP_SUMMARY`; run 41 named its failing step in the first tail taken.
+
+**And a claim of mine that the evidence did not support.** I wrote that a
+113-point layout regression "would have cost run 42 or the one after". Run 42
+drove the pre-fix layout and that flow PASSED. The measurement was real; the
+near-miss was invented. Reaching for the more dramatic reading of your own
+evidence is the habit these records exist to check.
+
 **The app runs on Android and ALL NINETEEN journeys pass** - run 37, 2026-09-08,
 `19/19`, every flow on its first attempt, on the redesigned UI. Record:
 `docs/verification/runs/2026-09-08-feature-006-record.md`.
