@@ -1,59 +1,95 @@
 <!--
 Sync Impact Report
 ==================
-Version change: (none) → 1.0.0
-Rationale: Initial ratification. The file was previously the unfilled scaffold with 20
-placeholder tokens and zero normative statements, so no prior version existed to bump.
+Version change: 1.0.0 → 2.0.0
+Rationale: MAJOR. Principle I, marked NON-NEGOTIABLE, is REDEFINED — not clarified.
+The project owner decided on 2026-09-08 that the home feed is RANKED FROM BEHAVIOUR
+(one blended stream, no interest sections) rather than composed from the interests a
+person follows. Under the governance rules below a NON-NEGOTIABLE principle is changed
+by explicit amendment or not at all; this is that amendment.
 
-Principles defined (all new):
-  I.   Interest Is the Organising Principle (NON-NEGOTIABLE)
-  II.  Visibility Is Decided Once (NON-NEGOTIABLE)
-  III. Privacy Guarantees Are Enforced Server-Side
-  IV.  Safety Ships With the Product
-  V.   Emulation Is Not Evidence
+Principles modified:
+  I.  Interest Is the Organising Principle  →  Interest Is the Unit of Meaning
+      (NON-NEGOTIABLE in both versions; the guarantee changed, the standing did not)
+  II. Visibility Is Decided Once — STRENGTHENED, not weakened. A new clause states
+      that ranking selects CANDIDATES and the visibility boundary still decides at
+      read time. Added because a ranked feed is exactly the change that tends to
+      quietly acquire its own visibility predicate.
+  III. Privacy Guarantees Are Enforced Server-Side — new clause on BEHAVIOURAL
+      SIGNALS, because the ranked feed collects dwell time, which the product did not
+      previously collect at all.
 
-Sections added:
-  - Cost and Environment Constraints (from the deferred-AWS decision of 2026-09-05)
-  - Development Workflow and Quality Gates
-  - Governance
+Principles unchanged: IV (Safety Ships With the Product), V (Emulation Is Not Evidence).
+Sections added: none. Sections removed: none.
 
-Sections removed: none.
+WHAT THIS AMENDMENT INVALIDATES, and how it is brought into line
+----------------------------------------------------------------
+The old Principle I required that a person-follow never widen a viewer's feed beyond
+their followed interests. A ranked feed has no such boundary, so the following are
+invalidated and MUST be resolved by the feature that implements the ranked feed:
 
-Provenance: every principle is derived from a decision already recorded in
-specs/001-interest-media-sharing/ (spec.md, plan.md, research.md D1/D6/D9, and
-contracts/visibility-matrix.md). Nothing here is aspirational boilerplate.
+  · 001/FR-033 (person-follow must not widen the feed) — WITHDRAWN. The requirement
+    describes a subscription feed that no longer exists.
+  · apps/api/tests/integration/us4-fr033-boundary.spec.ts — the negative test that
+    enforced FR-033. It MUST be deleted, not adjusted: a weakened version of it would
+    assert a boundary the product no longer has and would read as coverage.
+  · apps/e2e/journeys/feed.spec.ts and apps/e2e/scripts/seed-fr033-fixture.ts — the
+    journey and fixture built on the same boundary.
+  · 001/SC-006 and 001/US4 — the user story and criterion stated in those terms.
+  · apps/api/src/modules/feed/feed.service.ts and ranking.ts — the read-time feed
+    composed from followed interests.
+  · specs/001-interest-media-sharing/{spec,plan}.md — the feed-composition
+    requirements and the Constitution Check written against version 1.0.0.
+  · CLAUDE.md — the D1 note describing read-time assembly as feed COMPOSITION.
 
-Deliberately NOT adopted: a blanket test-first (TDD) mandate. The existing task list
-writes tests first only where they define a contract. A universal TDD principle would
-invalidate that ordering across 172 tasks without a decision having been made. Raise it
-as an amendment if wanted.
+Deletion of a guard is the dangerous half of this amendment. It is permitted here only
+because the guarantee it enforced has been withdrawn deliberately and in writing. Any
+guard whose principle still stands MUST NOT be removed on the strength of this note.
+
+Deliberately NOT changed: D1 (read-time assembly). It was forced by FR-017 + SC-009 —
+a visibility change must land on every surface immediately — and that requirement is
+untouched. Ranking may precompute CANDIDATES; it may not precompute what a viewer is
+allowed to see.
 
 Follow-up TODOs:
-  - specs/001-interest-media-sharing/plan.md § Constitution Check records "no gates
-    defined" and is now stale. It MUST be re-evaluated against this document before
-    /speckit-implement. Out of scope for /speckit-constitution, which writes only this file.
+  - The feature implementing the ranked feed MUST carry the withdrawals above as
+    explicit tasks. An invalidated requirement that is merely ignored is worse than one
+    that is deleted, because it still reads as a promise.
 -->
 
 # socialInterest Constitution
 
 ## Core Principles
 
-### I. Interest Is the Organising Principle (NON-NEGOTIABLE)
+### I. Interest Is the Unit of Meaning (NON-NEGOTIABLE)
 
-Content is organised by interest, never by a social graph. Every post MUST be filed under
-at least one interest. A person's home feed MUST be composed from the interests they
-follow; posts by a followed person MUST reach that feed only inside interests the viewer
-also follows.
+Every post MUST be filed under at least one interest. Publishing without one MUST fail;
+there is no "uncategorised". The interest is the dimension the product reasons over —
+what a ranking learns from, what a person browses by, and what a report or a moderation
+decision is scoped to.
 
-Following a person MUST NOT introduce content from an interest the viewer has not chosen.
-Any change that would let a person-follow widen a viewer's feed beyond their followed
-interests is a violation of this principle, not a product tweak.
+Interests MUST remain first-class surfaces, not metadata. An interest space listing that
+interest's posts, search by interest, and the interest shown on a post MUST all remain
+reachable and complete. The ranked home feed is ONE surface among these, never the only
+way to reach content.
 
-**Rationale**: This is the product's identity and its only real differentiator. The
-failure mode is silent — a ranking change or a "just show more from people you follow"
-convenience turns the product into an ordinary follower feed, and nobody notices until
-the interest structure is vestigial. Requiring a test that asserts the negative case
-(FR-033) is what keeps this honest.
+A person MUST be able to see what their feed is built from, and to reset it. A ranking
+that cannot be inspected or reset is not permitted by this constitution.
+
+**Rationale**: Version 1.0.0 of this principle made the interest the STRUCTURE of the
+home feed and forbade a person-follow from widening it. The project owner replaced that
+with a ranked feed on 2026-09-08, and the honest consequence is that the old guarantee is
+gone rather than reworded.
+
+What remains non-negotiable is that interests stay LOAD-BEARING. The failure mode this
+clause exists to prevent is specific and observable: once a feed ranks well, the interest
+becomes a tag nobody navigates, then a tag nobody sets, then a column nobody reads — and
+the product is an ordinary media feed with a vestigial taxonomy. Requiring every post to
+carry one, requiring the interest surfaces to stay complete, and requiring the ranking to
+be inspectable and resettable are the three things that keep that from happening quietly.
+
+The reset requirement is not a courtesy. A feed learned from behaviour that a person can
+neither see into nor correct leaves abandoning the account as the only remedy.
 
 ### II. Visibility Is Decided Once (NON-NEGOTIABLE)
 
@@ -69,6 +105,13 @@ this principle first.
 
 Every surface that can return a post MUST be enumerated in the visibility contract test.
 Adding a surface without adding it to that test is an incomplete change.
+
+**Ranking selects candidates; the boundary decides.** A ranker, recommender, or any other
+ordering mechanism MAY choose which posts are considered and in what order. It MUST NOT
+determine whether a viewer may see one. Every ranked result set MUST pass through the same
+visibility boundary, at read time, before it reaches a viewer. A ranking pipeline that
+filters for visibility itself — or that serves a precomputed set assembled before the
+viewer was known — is a second visibility predicate and is prohibited by this principle.
 
 **Rationale**: Six independently written predicates give six chances to leak, and the
 leak is silent and privacy-affecting. One implementation with a generated matrix turns a
@@ -87,8 +130,19 @@ Tests for such guarantees MUST exercise the path a modified or hostile client wo
 A test that only drives the well-behaved first-party client does not verify a server-side
 guarantee and MUST NOT be treated as covering one.
 
+**Behavioural signals are personal data.** Where the product records what a person opens,
+how long they stay, or what they save in order to rank what they see next, that collection
+MUST be disclosed somewhere a person can find without being told where to look, and MUST be
+resettable by them. Such signals MUST NOT be readable by another person through any surface,
+and MUST NOT be inferable from a public count, ordering, or aggregate.
+
 **Rationale**: A client-side strip is a courtesy, not a guarantee. The distinction only
 shows up under a client that skips it, which is exactly the client that will exist.
+
+Behavioural signals are covered here rather than in a separate principle because they are
+the same failure: a guarantee the client cannot be trusted to keep. The product did not
+collect them at all before 2026-09-08, so this clause is new obligation, not restated
+practice.
 
 ### IV. Safety Ships With the Product
 
@@ -188,4 +242,4 @@ Complexity Tracking table; an unjustified violation blocks implementation. A pla
 before an amendment MUST be re-evaluated against the amended document before further
 implementation proceeds.
 
-**Version**: 1.0.0 | **Ratified**: 2026-09-05 | **Last Amended**: 2026-09-05
+**Version**: 2.0.0 | **Ratified**: 2026-09-05 | **Last Amended**: 2026-09-08
