@@ -122,7 +122,15 @@ scaled text.
 
 ## Theme resolution
 
-- Two palettes, `light` and `dark` (FR-017), resolved by `useTheme()`.
+- Two palettes, `light` and `dark` (FR-017). **`useTheme()` exists and returns
+  `activePalette`, which is `dark`; it does NOT follow the platform**, and that
+  is a stated limit rather than a bug. Screens read the palette at module scope,
+  and a style object built once at import time cannot call a hook — so following
+  `useColorScheme()` requires every screen to build its styles inside the
+  component. Doing half of it is worse than none: the first capture after
+  `PostCard` landed showed white cards inside dark green chrome, because the
+  browser reported `light` while the module-scope reads were dark. One palette,
+  one source of truth, until the shape changes.
 - Both palettes define **every** token. A token defined in only one is a build
   failure, not a fallback — a missing dark value is how a screen ends up with
   black text on a black background.

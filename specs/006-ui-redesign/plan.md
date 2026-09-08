@@ -139,9 +139,27 @@ apps/e2e/scripts/capture-screens.ts  # unchanged; re-run for before/after
 docs/screens/                        # before set exists; after set added
 ```
 
-**Structure decision**: everything lands in `apps/mobile`. No API, worker, infra
-or contract file is touched — which is what makes FR-027 and FR-028 true by
-construction rather than by review.
+**Structure decision**: everything lands in `apps/mobile` — **except three API
+files, which is a departure from this plan as written and is recorded rather
+than smoothed over.** `ports/object-store.port.ts`, `adapters/local/minio-object-store.ts`
+and `modules/posts/post-query.service.ts` changed so a post's media URL is
+presigned (research R4b). The plan claimed FR-027 and FR-028 were "true by
+construction" because no API file would be touched; that is no longer the
+argument for FR-027, and it was never going to hold, because the app could not
+fetch its own media at all and SC-002 asks it to.
+
+**FR-028 does still hold by construction**, and for a reason worth keeping: the
+presigned URL is issued inside `PostQueryService.toMediaItem`, which runs only
+after `VisibilityFilter` has already decided this viewer may see this post. No
+read path was added — that was R4b's rejected option 2, rejected precisely
+because Principle II would then require enumerating a new surface in the
+matrix.
+
+Four other files outside `apps/mobile` changed and are named for completeness,
+none of them product API: `apps/api/scripts/smoke-boot.ts` (it exited 1 printing
+nothing), `apps/e2e/journeys/negative.spec.ts` (N-04 had never tested the
+guarantee it names — R4b), `apps/e2e/scripts/capture-screens.ts` and
+`apps/e2e/support/publish.ts`.
 
 ## Phasing
 
@@ -150,14 +168,14 @@ guards, and the shared card must exist before five surfaces adopt it.
 
 | Phase | Contents | Status | Gate to the next |
 |---|---|---|---|
-| **1. Guards first** | contrast test (R7), colourless-`Text` guard, testID snapshot (R3), touch-target test | **Partly done** — contrast and `text-has-colour` exist and pass; testID snapshot and touch-target **not written** | All must pass against the CURRENT code, so a later failure means the redesign broke something rather than that the guard is wrong |
+| **1. Guards first** | contrast test (R7), colourless-`Text` guard, testID snapshot (R3), touch-target test | **Done** — all four exist and pass | All must pass against the CURRENT code, so a later failure means the redesign broke something rather than that the guard is wrong |
 | **2. Tokens** | palettes, type scale, spacing, radius, elevation, interest colour | **Done** | Contrast test passes over the whole generated space — 720 colours, both palettes |
-| **3. Primitives** | Button, Banner, EmptyState, Row, Screen on tokens | **Not started.** `theme.ts` aliases the palette, so the primitives are already *green*, but they read the old flat names and not the semantic tokens | Every existing mobile test still passes; testID snapshot unchanged |
-| **4. The card** | `Avatar`, `InterestChip`, `Skeleton`, `PostCard` | **Not started** — this is the phase that closes SC-001, the largest gap | `post-card.test.tsx` proves it renders media, author, interest and counts, and imports nothing from `data/` |
-| **5. Adoption** | five post surfaces, then conversations, reviews, places, profile | **Not started** | testID snapshot unchanged; browser journeys pass |
-| **6. Evidence** | recapture 20 screens; full CI step list; **emulator run** | Screens recaptured; **no device run** | G5 — not complete without the device run |
+| **3. Primitives** | Button, Banner, EmptyState, Row, Screen on tokens | **Done** — on the semantic tokens and the type roles, and `#d97706` was found hard-coded in `Banner` by reading, not by a test: the hard-coded-style guard was scoped to `features/` and `ui/` is where values are defined | Every existing mobile test still passes; testID snapshot unchanged |
+| **4. The card** | `Avatar`, `InterestChip`, `Skeleton`, `PostCard` | **Done** | `post-card.test.tsx` proves it renders media, author, interest and counts, and imports nothing from `data/` |
+| **5. Adoption** | five post surfaces, then conversations, reviews, places, profile | **Done** — and the ALIAS LAYER IS DELETED, so a return to `theme.color.*` is a typecheck failure rather than a lint opinion | testID snapshot unchanged; browser journeys pass |
+| **6. Evidence** | recapture 20 screens; full CI step list; **emulator run** | Screens recaptured with the before/after pair (`docs/screens/README.md`); full CI step list green; **device run dispatched, result recorded in `docs/verification/runs/`** | G5 — not complete without the device run |
 
-### What actually exists, as of 2026-09-07
+### What actually exists, as of 2026-09-08
 
 Recorded here because a plan that describes only intentions is the thing this
 project keeps finding out is wrong. Committed and green:
@@ -167,12 +185,37 @@ project keeps finding out is wrong. Committed and green:
 | `ui/color.ts` | OKLCH→sRGB, gamut fitting, WCAG contrast, `stableHash` (FNV-1a) |
 | `ui/tokens.ts` | Both palettes, type scale, space, radius, elevation, `MIN_TOUCH_TARGET` |
 | `ui/interest-colour.ts` | Hue from id, parent hue for sub-interests, whole-space enumeration |
-| `ui/theme.ts` | Alias layer, so ~40 files went dark green in one diff |
-| `__tests__/contrast.test.ts` | Both palettes + all 720 interest colours |
-| `__tests__/text-has-colour.test.ts` | Every `<Text>` chooses a colour |
+| `ui/theme.ts` | `activePalette` only. The alias layer is DELETED — see below |
+| `ui/primitives.tsx` | Button, Banner, EmptyState, Row, Screen on semantic tokens and type roles |
+| `components/PostCard.tsx` | The shared card, on all five post surfaces (+ `Avatar`, `InterestChip`, `Skeleton`) |
+| 12 of the 17 files in `__tests__/`, added by 006 | contrast (both palettes, 720 interest colours), colourless-`Text`, testID snapshot, touch target, stable hash, post-card, `post-card-reads-nothing`, interest colour, interest chip, `interest-treatment` (G1), `no-hardcoded-style`, safety and empty states |
 
-Verified: 86 mobile tests, 129 e2e across 21 suites, typecheck, lint,
-`verify-maestro-ids`. **Not verified: anything on a device** (G5).
+Verified: **143 mobile tests**, 815 API, 6 workers, 129 e2e across 21 suites, 4
+durability, typecheck, lint, `verify-maestro-ids`, generated-client diff,
+`smoke:boot`, `verify:stack`, `synth`, `verify:register` — the real CI step
+list, not a proxy for it.
+
+### The alias layer was a migration step, and it is gone
+
+`theme.color.bg` / `theme.font.md` existed so ~40 screens could be re-pointed at
+the new palette in one diff. Every call site has since moved to the semantic
+names, and the shim was then **deleted rather than left exported**: a name that
+does not exist is a typecheck failure the moment somebody writes it again, which
+is a stronger guard than a test asserting nobody did.
+
+The migration was not only a rename, which is why it was worth finishing rather
+than deferring a third time. **`theme.font.X` carried a size and nothing else**,
+so every screen outside `ui/` rendered with the platform's default line height
+and the scale's `lineHeight` was dead data everywhere except `primitives.tsx`.
+FR-018 asks for roles; the app was using a quarter of one.
+
+One consequence to state plainly rather than leave implied: `useTheme()` still
+returns `activePalette` and **does not follow the platform**. Screens read the
+palette at module scope, and a style object built once at import time cannot
+call a hook — so following `useColorScheme()` needs every screen to build its
+styles *inside* the component, which is a change of shape rather than of names.
+FR-017 is met (both palettes exist and both pass contrast); a working light mode
+is not claimed.
 
 ### Two defects found by looking at a screenshot
 

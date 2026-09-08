@@ -193,7 +193,7 @@ testID snapshot a rename is found by an emulator run.
 - [ ] T045 Dispatch `.github/workflows/android-emulator.yml` and record the result — **G5**. Free on this public repository, and the only place native layout, fonts, safe areas and touch handling are observed. **Expected 19/19**; a redesign touching every screen is exactly what a device run is for
 - [ ] T046 [P] Write the run record in `docs/verification/runs/`, naming each criterion with the command that measured it, and each criterion NOT met — **FR-008 must appear there as unmet**
 - [ ] T047 [P] Update `CLAUDE.md` with what 006 established and what it did not
-- [ ] T048 Re-check `spec.md`, `plan.md`, `research.md` and `contracts/` for drift against what was actually built — the artifacts drifted once already this feature and it was noticed by the owner, not by me
+- [X] T048 Re-check `spec.md`, `plan.md`, `research.md` and `contracts/` for drift against what was actually built — the artifacts drifted once already this feature and it was noticed by the owner, not by me. **Four corrections made**: the plan's phase table still said phases 3-5 "Not started"; the plan claimed FR-027/FR-028 true "by construction" because no API file would be touched, which R4b made false; FR-027 itself was never amended for the presigned-URL exception; and the token contract said `useTheme()` resolves the palette, when it returns `activePalette` and does not follow the platform. The token VALUES were checked mechanically against `tokens.ts` and all 15 rows in both palettes agree
 
 ---
 

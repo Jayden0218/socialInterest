@@ -168,7 +168,16 @@ visibly one system.
   element is not.
 - **FR-026**: No screen may be added, removed, or moved between the tab root and
   the pushed stack.
-- **FR-027**: No API request, response shape, or data-layer method may change.
+- **FR-027**: No API request, response shape, or data-layer method may change —
+  **with one recorded exception, which this requirement failed to anticipate.**
+  A post's media URL is now a presigned GET URL rather than an unsigned one
+  (research R4b). The requirement assumed the API already had a working media
+  read path and that this feature only had to render it; it did not. Nothing
+  could fetch media at all, in any client, because `publicUrl` returned an
+  unsigned URL for a private bucket. Rendering media (SC-002) was therefore
+  impossible without an API change, and the exception is stated here rather
+  than left as a quietly broken constraint. The request shape, the field name
+  and the field's type are unchanged; only the URL's authorisation is.
 - **FR-028**: Every visibility, blocking and safety behaviour MUST be unchanged;
   no read path may be added or bypassed.
 - **FR-029**: The app MUST continue to render under `react-native-web`, because
