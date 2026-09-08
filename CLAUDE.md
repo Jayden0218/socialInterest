@@ -14,6 +14,8 @@ Read before doing anything substantive:
 | `specs/001-interest-media-sharing/data-model.md` | DynamoDB single-table design, 20 access patterns |
 | `specs/001-interest-media-sharing/contracts/` | OpenAPI + the visibility matrix contract |
 | `specs/001-interest-media-sharing/tasks.md` | 172 tasks, T001–T172, ordered |
+| `specs/007-ranked-feed-redesign/` | **The current feature.** Ranked feed + redesign; Phases 1–4 done |
+| `design/007-ui/` | The **approved** design, 20 artboards. Settled — implement, do not reopen |
 
 Do not re-litigate a decision in `research.md` without reading why it was made. Several
 look arbitrary and are not — see "Decisions that look wrong but aren't" below.
@@ -314,6 +316,105 @@ so GitHub-hosted standard runners are free on it, and CI runs 169-176 plus emula
 on this repository does not spend - so dispatching the emulator job is not the owner's
 call any more. Check the facts before repeating either claim; both halves of this one
 expired within a day.
+
+## What spec 007 built so far (2026-09-08) — Phases 1-4, the MVP
+
+`specs/007-ranked-feed-redesign/` replaces the composed feed with a **ranked**
+one and redesigns the app. **Phases 1-4 are done and green; Phases 5-8 (the
+21-task redesign, interests, publish/safety, evidence) are NOT started.**
+
+`design/007-ui/` is the approved design (20 artboards). It is settled; Phase 5
+implements it and does not reopen it.
+
+**Constitution amended to 2.0.0.** Principle I rewritten, Principle II
+strengthened. See the summary near the top of this file.
+
+**Established:**
+
+- **THE COMPOSED FEED SATISFIED PRINCIPLE II BY ACCIDENT.** It read only
+  partitions the viewer had subscribed to, so its candidate set was already
+  viewer-scoped and could not over-admit whatever the ordering did. Nothing
+  asserted the boundary's POSITION. A ranked feed reads across the catalogue,
+  which removes the accident - hence `contracts/ranking-boundary.md`, a
+  build-failing dependency guard (`ranking-cannot-admit.spec.ts`) and a
+  behavioural one (`ranking-boundary.spec.ts`, C2-C5).
+- **An interest follow had to be given a meaning again.** Withdrawing
+  001/FR-032 left the follow control in the app doing NOTHING, and neither the
+  withdrawal list nor `/speckit-analyze` caught it - four 001 suites going red
+  during implementation did. **FR-030**: a follow is a STANDING DECLARATION
+  worth one unit, the same as a like. It adds weight, never a boundary.
+- **The place-follow guard was reading the wrong file.** It guarded
+  `feed.service.ts`, which no longer chooses candidates. Widened to
+  `RankingService` and `CandidateSource`, verified red on a real import.
+- **Exploration is CORRECTNESS, not taste** (FR-007). A purely exploitative
+  ranker is a positive feedback loop: it shows what the profile favours, the
+  profile updates only from what was shown, so the signals that would broaden it
+  are never generated. No later tuning helps - the data was never collected.
+
+### Four defects, and not one was visible to a green suite
+
+1. **THE APP HAD NEVER LOADED A SECOND PAGE OF ANYTHING.** `ApiPage<T>`
+   declared `nextCursor` at the top level; every list endpoint nests it under
+   `page`. `usePaged` read `undefined`, marked every list exhausted, and
+   infinite scroll stopped after page one - feed, interest spaces, profiles,
+   comments, notifications. `emptyStateHint` never arrived either, so no empty
+   state has ever rendered from a real response. **Five features of green tests,
+   because every mobile test STUBS the data layer and the stubs were wrong in
+   exactly the same way the type was** - they agreed with each other and neither
+   agreed with the server. Only a request found it.
+2. **The feed crashed on its SECOND render.** `FlatList` throws on a changed
+   `onViewableItemsChanged`; an inline arrow is a new identity every render. I
+   guarded the `viewabilityConfig` object and missed that the callback carries
+   the same rule. 165 mobile tests green - none renders a real `FlatList` - and
+   every browser journey timed out with no reason given. **Found in seconds by
+   attaching a page-error listener.**
+3. **A viewer with nothing declared got an EMPTY feed.** Exploration drew four
+   random interests from a catalogue of hundreds, most of which hold no posts.
+   Unit tests stub an index where every partition is populated, so the emptiness
+   only exists against a real sparse catalogue. An under-filled page now reads
+   more partitions, bounded twice over.
+4. **Every signals route answered 500, and 404 before that.**
+   `@Controller('v1')` under a global `v1` prefix gives `/v1/v1/...`, and the
+   caller was read from `req.user` - Passport's convention, not this app's.
+   Invisible to typecheck, lint and `smoke:boot`, which checks other controllers.
+
+### Guards whose FIRST version was wrong, in an instructive way
+
+- **The boundary contract compared two different draws.** It called
+  `RankingService.rank` separately and compared to a separate HTTP response -
+  but exploration re-samples per call, so the two sets simply differ and the
+  comparison said nothing. The proposal is now intercepted inside the request
+  that served it.
+- **A privacy assertion written from its own prose.** It checked the victim's
+  userId was absent from every surface and failed on `GET /people/:handle`,
+  which returns that id because it is their profile. FR-013 protects what the
+  SIGNALS say, not the existence of the person. It then scanned the disclosure
+  endpoint for signal-shaped keys - the one surface where that shape belongs.
+- **The dwell test captured `undefined`.** Reading
+  `AppState.addEventListener.mock.calls` off a function that is not a mock under
+  the RN preset delivered no background event, and reported the hook as broken
+  when the test was.
+
+### 007's own reminders, all of them old lessons in new places
+
+- **A toggle is not idempotent and a PUSHED screen has no tab bar.** Signing in
+  now lands on the cold start, a pushed screen, which broke all fifteen
+  navigation journeys in one commit - exactly what 005/J-21 recorded.
+- **`/speckit-analyze` missed 001/FR-032 entirely.** The withdrawal list, the
+  analysis pass and I all read past the sentence the whole feature replaces.
+- **Two local suite failures were NOT regressions.** `people-search-scale` and
+  `review-moderation` walk a bounded page of a shared table that had grown to
+  3,875 people across runs. Dropped and reseeded the local table: 825/825.
+  **Check the table size before believing a paging failure.**
+
+### Still not verified, and must be reported that way
+
+- **007 HAS NEVER RUN ON A DEVICE.** No emulator run since the ranked feed
+  landed. The Maestro flows still describe the pre-007 feed.
+- **Phases 5-8 are not started**: the redesign, the interest surfaces, the
+  publish/safety pass and the evidence phase.
+- 001/SC-011 (a video PLAYING), iOS, 002/SC-002, real usage, and the datastore
+  decision are all unchanged and all still open.
 
 ## What spec 006 built and established (2026-09-08)
 
