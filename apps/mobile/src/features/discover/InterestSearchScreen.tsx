@@ -1,6 +1,6 @@
 import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
 import type { InterestRef, PlaceSummary, PublicProfile } from '@sih/shared';
-import { activePalette as palette, radius, space, type } from '../../ui/theme';
+import { activePalette as palette, radius, space, textStyle } from '../../ui/theme';
 import { interestColour } from '../../ui/interest-colour';
 import { EmptyState, Row, Screen } from '../../ui/primitives';
 import { labelWithParent } from './InterestScreen';
@@ -67,8 +67,7 @@ export function InterestSearchScreen({
           borderColor: palette.line.hairline,
           borderRadius: radius.md,
           padding: space.md,
-          fontSize: type.body.size,
-          lineHeight: type.body.lineHeight,
+          ...textStyle.body,
           color: palette.text.primary,
         }}
       />
@@ -86,8 +85,7 @@ export function InterestSearchScreen({
             borderColor: palette.line.hairline,
             borderRadius: radius.md,
             padding: space.md,
-            fontSize: type.body.size,
-            lineHeight: type.body.lineHeight,
+            ...textStyle.body,
             color: palette.text.primary,
           }}
         />
@@ -95,8 +93,7 @@ export function InterestSearchScreen({
 
       {places && places.length > 0 && onSelectPlace ? (
         <View testID="place-results" style={{ gap: space.xs }}>
-          <Text style={{ fontSize: type.caption.size,
- lineHeight: type.caption.lineHeight, color: palette.text.muted }}>Places</Text>
+          <Text style={{ ...textStyle.caption, color: palette.text.muted }}>Places</Text>
           {places.map((p) => (
             <Pressable
               key={p.placeId}
@@ -105,8 +102,7 @@ export function InterestSearchScreen({
               onPress={() => onSelectPlace(p.placeId)}
               style={{ paddingVertical: space.sm }}
             >
-              <Text style={{ fontSize: type.body.size,
- lineHeight: type.body.lineHeight, color: palette.text.primary }}>
+              <Text style={{ ...textStyle.body, color: palette.text.primary }}>
                 {`${p.name} · ${p.category} · ${p.locality}`}
               </Text>
             </Pressable>
@@ -116,8 +112,7 @@ export function InterestSearchScreen({
 
       {people && people.length > 0 && onSelectPerson ? (
         <View testID="people-results" style={{ gap: space.xs }}>
-          <Text style={{ fontSize: type.caption.size,
- lineHeight: type.caption.lineHeight, color: palette.text.muted }}>People</Text>
+          <Text style={{ ...textStyle.caption, color: palette.text.muted }}>People</Text>
           {people.map((p) => (
             <Pressable
               key={p.handle}
@@ -126,8 +121,7 @@ export function InterestSearchScreen({
               onPress={() => onSelectPerson(p.handle)}
               style={{ paddingVertical: space.sm }}
             >
-              <Text style={{ fontSize: type.body.size,
- lineHeight: type.body.lineHeight, color: palette.text.primary }}>
+              <Text style={{ ...textStyle.body, color: palette.text.primary }}>
                 {`${p.displayName} · @${p.handle}`}
               </Text>
             </Pressable>
@@ -178,8 +172,7 @@ export function InterestSearchScreen({
                   }}
                 />
                 {/* Always parent-qualified, so two same-named interests are distinguishable. */}
-                <Text style={{ fontSize: type.body.size,
- lineHeight: type.body.lineHeight, color: palette.text.primary }}>{resultLabel(item)}</Text>
+                <Text style={{ ...textStyle.body, color: palette.text.primary }}>{resultLabel(item)}</Text>
               </Row>
             </Pressable>
           )}

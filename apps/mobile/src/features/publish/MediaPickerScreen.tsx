@@ -1,5 +1,5 @@
 import { FlatList, Image, Pressable, Text, View } from 'react-native';
-import { activePalette as palette, radius, space, type } from '../../ui/theme';
+import { activePalette as palette, radius, space, textStyle } from '../../ui/theme';
 import { Banner, Button, Screen } from '../../ui/primitives';
 import { MEDIA_LIMITS_HINT } from './limits';
 
@@ -47,10 +47,8 @@ export function MediaPickerScreen({
 
   return (
     <Screen testID="media-picker-screen">
-      <Text style={{ fontSize: type.display.size,
- lineHeight: type.display.lineHeight, fontWeight: '700', color: palette.text.primary }}>Choose media</Text>
-      <Text style={{ fontSize: type.caption.size,
- lineHeight: type.caption.lineHeight, color: palette.text.muted }}>{MEDIA_LIMITS_HINT}</Text>
+      <Text style={{ ...textStyle.display, fontWeight: '700', color: palette.text.primary }}>Choose media</Text>
+      <Text style={{ ...textStyle.caption, color: palette.text.muted }}>{MEDIA_LIMITS_HINT}</Text>
 
       {/*
         FR-012. A refused permission must explain itself. Falling back silently

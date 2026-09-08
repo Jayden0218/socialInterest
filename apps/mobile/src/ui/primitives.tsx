@@ -1,5 +1,5 @@
-import { Pressable, Text, View, type ViewStyle } from 'react-native';
-import { activePalette as palette, MIN_TOUCH_TARGET, radius, space, type } from './theme';
+import { Pressable, ScrollView, Text, View, type ViewStyle } from 'react-native';
+import { activePalette as palette, MIN_TOUCH_TARGET, radius, space, textStyle, type } from './theme';
 
 export function Button({
   label,
@@ -46,8 +46,7 @@ export function Button({
       <Text
         style={{
           color: fg,
-          fontSize: type.label.size,
-          lineHeight: type.label.lineHeight,
+          ...textStyle.label,
           fontWeight: type.label.weight,
         }}
       >
@@ -94,8 +93,7 @@ export function Banner({
       <Text
         style={{
           color: palette.text.primary,
-          fontSize: type.body.size,
-          lineHeight: type.body.lineHeight,
+          ...textStyle.body,
         }}
       >
         {children}
@@ -121,8 +119,7 @@ export function EmptyState({
     <View testID={testID} style={{ padding: space.xl, alignItems: 'center', gap: space.md }}>
       <Text
         style={{
-          fontSize: type.title.size,
-          lineHeight: type.title.lineHeight,
+          ...textStyle.title,
           fontWeight: type.title.weight,
           color: palette.text.primary,
         }}
@@ -137,8 +134,7 @@ export function EmptyState({
       */}
       <Text
         style={{
-          fontSize: type.body.size,
-          lineHeight: type.body.lineHeight,
+          ...textStyle.body,
           color: palette.text.secondary,
           textAlign: 'center',
         }}
@@ -158,9 +154,51 @@ export function Row({ children, style }: { children: React.ReactNode; style?: Vi
   );
 }
 
-export function Screen({ children, testID }: { children: React.ReactNode; testID?: string }) {
+/**
+ * 006/FR-020, and a defect a DEVICE found: `scroll`.
+ *
+ * `Screen` was a plain `View`, so anything taller than the display was simply
+ * unreachable - no scroll, no indication, the control just not there. Emulator
+ * run 35 failed `09-report-and-block` on `block-person is visible`, and the
+ * measurement (`browser/safety-fit.spec.ts`) puts that button's bottom edge at
+ * 665px on a 640px-tall screen.
+ *
+ * 006 made it worse and did not cause it. With pre-006 line metrics the same
+ * button measured 627 - inside 640 by THIRTEEN PIXELS. The type scale's line
+ * heights added ~38px and pushed it out; a longer block warning, a larger font
+ * setting or a shorter phone would each have done the same on their own.
+ *
+ * Off by default, deliberately. A `ScrollView` around a `FlatList` breaks
+ * virtualisation and React Native says so loudly, and most screens here own a
+ * list that already scrolls. This is for the ones whose content is STATIC and
+ * can still outgrow the display - a sheet of options, a form.
+ */
+export function Screen({
+  children,
+  testID,
+  scroll = false,
+}: {
+  children: React.ReactNode;
+  testID?: string;
+  scroll?: boolean;
+}) {
+  const style = { backgroundColor: palette.bg.base, padding: space.lg, gap: space.lg };
+  if (scroll) {
+    return (
+      <ScrollView
+        testID={testID}
+        style={{ flex: 1, backgroundColor: palette.bg.base }}
+        // The gap and padding belong to the CONTENT, not the viewport: put them
+        // on the ScrollView itself and the last child is clipped by the padding
+        // instead of scrolled to.
+        contentContainerStyle={{ ...style, flexGrow: 1 }}
+      >
+        {children}
+      </ScrollView>
+    );
+  }
   return (
-    <View testID={testID} style={{ flex: 1, backgroundColor: palette.bg.base, padding: space.lg, gap: space.lg }}>
+    <View testID={testID} style={{ flex: 1, ...style }}>
       {children}
     </View>
   );

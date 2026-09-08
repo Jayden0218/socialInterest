@@ -48,14 +48,14 @@ export function SharedPostScreen({
 
   if (outcome.kind !== 'visible' || !post) {
     return (
-      <Screen testID="shared-post-screen">
+      <Screen testID="shared-post-screen" scroll>
         <EmptyState testID="shared-post-unavailable" title={copy.title} body={copy.body} />
       </Screen>
     );
   }
 
   return (
-    <Screen testID="shared-post-screen">
+    <Screen testID="shared-post-screen" scroll>
       <PostDetailScreen post={post} />
       <EmptyState testID="join-prompt" title="" body="" actionLabel={copy.cta} onAction={onJoin} />
     </Screen>

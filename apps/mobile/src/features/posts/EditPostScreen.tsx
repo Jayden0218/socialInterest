@@ -1,6 +1,6 @@
 import { Text, TextInput, View } from 'react-native';
 import type { InterestRef, Visibility } from '@sih/shared';
-import { activePalette as palette, radius, space, type } from '../../ui/theme';
+import { activePalette as palette, radius, space, textStyle } from '../../ui/theme';
 import { Banner, Button, Screen } from '../../ui/primitives';
 import { InterestSelector } from '../publish/InterestSelector';
 import { VisibilityControl } from '../publish/VisibilityControl';
@@ -50,9 +50,8 @@ export function EditPostScreen({
   const warning = narrowingWarning(original.visibility, draft.visibility);
 
   return (
-    <Screen testID="edit-post-screen">
-      <Text style={{ fontSize: type.display.size,
- lineHeight: type.display.lineHeight, fontWeight: '700', color: palette.text.primary }}>Edit post</Text>
+    <Screen testID="edit-post-screen" scroll>
+      <Text style={{ ...textStyle.display, fontWeight: '700', color: palette.text.primary }}>Edit post</Text>
 
       <TextInput
         testID="edit-caption-input"
@@ -68,8 +67,7 @@ export function EditPostScreen({
           padding: space.md,
           minHeight: 88,
           color: palette.text.primary,
-          fontSize: type.body.size,
-          lineHeight: type.body.lineHeight,
+          ...textStyle.body,
         }}
       />
 

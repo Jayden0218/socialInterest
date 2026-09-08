@@ -1,6 +1,6 @@
-import { dark, light, elevation, radius, space, type, touchTarget, MIN_TOUCH_TARGET, type Palette } from './tokens';
+import { dark, light, elevation, radius, space, type, textStyle, touchTarget, MIN_TOUCH_TARGET, type Palette } from './tokens';
 
-export { dark, light, elevation, radius, space, type, touchTarget, MIN_TOUCH_TARGET };
+export { dark, light, elevation, radius, space, type, textStyle, touchTarget, MIN_TOUCH_TARGET };
 export type { Palette };
 
 /**

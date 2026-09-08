@@ -1,6 +1,6 @@
 import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
 import type { Interest, InterestRef, Post } from '@sih/shared';
-import { activePalette as palette, radius, space, type } from '../../ui/theme';
+import { activePalette as palette, radius, space, textStyle } from '../../ui/theme';
 import { Screen } from '../../ui/primitives';
 import { interestColour } from '../../ui/interest-colour';
 import { PagedPostList, type PagedState } from '../../components/PagedPostList';
@@ -108,12 +108,10 @@ export function InterestScreen({
             ),
           }}
         />
-        <Text style={{ fontSize: type.display.size,
- lineHeight: type.display.lineHeight, fontWeight: '700', color: palette.text.primary }}>
+        <Text style={{ ...textStyle.display, fontWeight: '700', color: palette.text.primary }}>
           {data.interest.name}
         </Text>
-        <Text testID="interest-counts" style={{ fontSize: type.caption.size,
- lineHeight: type.caption.lineHeight, color: palette.text.muted }}>
+        <Text testID="interest-counts" style={{ ...textStyle.caption, color: palette.text.muted }}>
           {data.interest.postCount} posts · {data.interest.followerCount} followers
         </Text>
 
@@ -124,14 +122,12 @@ export function InterestScreen({
         */}
         {data.interest.description ? (
           <View style={{ gap: space.xs }}>
-            <Text testID="interest-description" style={{ fontSize: type.body.size,
- lineHeight: type.body.lineHeight, color: palette.text.primary }}>
+            <Text testID="interest-description" style={{ ...textStyle.body, color: palette.text.primary }}>
               {data.interest.description}
             </Text>
             {onReportDescription ? (
               <Pressable testID="report-description" onPress={onReportDescription}>
-                <Text style={{ fontSize: type.caption.size,
- lineHeight: type.caption.lineHeight, color: palette.text.muted }}>Report this description</Text>
+                <Text style={{ ...textStyle.caption, color: palette.text.muted }}>Report this description</Text>
               </Pressable>
             ) : null}
           </View>
@@ -145,8 +141,7 @@ export function InterestScreen({
 
       {data.subInterests && data.subInterests.length > 0 ? (
         <View testID="sub-interest-list" style={{ gap: space.sm }}>
-          <Text style={{ fontSize: type.caption.size,
- lineHeight: type.caption.lineHeight, color: palette.text.muted }}>Within {data.interest.name}</Text>
+          <Text style={{ ...textStyle.caption, color: palette.text.muted }}>Within {data.interest.name}</Text>
           <FlatList
             horizontal
             data={data.subInterests}
@@ -166,8 +161,7 @@ export function InterestScreen({
                   borderColor: palette.line.hairline,
                 }}
               >
-                <Text style={{ fontSize: type.caption.size,
- lineHeight: type.caption.lineHeight, color: palette.text.primary }}>{item.name}</Text>
+                <Text style={{ ...textStyle.caption, color: palette.text.primary }}>{item.name}</Text>
               </Pressable>
             )}
           />
@@ -175,8 +169,7 @@ export function InterestScreen({
       ) : null}
 
       {caption ? (
-        <Text testID="rollup-caption" style={{ fontSize: type.caption.size,
- lineHeight: type.caption.lineHeight, color: palette.text.muted }}>
+        <Text testID="rollup-caption" style={{ ...textStyle.caption, color: palette.text.muted }}>
           {caption}
         </Text>
       ) : null}
@@ -199,8 +192,7 @@ export function InterestScreen({
                 borderColor: palette.line.hairline,
                 borderRadius: radius.md,
                 padding: space.sm,
-                fontSize: type.body.size,
-                lineHeight: type.body.lineHeight,
+                ...textStyle.body,
                 color: palette.text.primary,
               }}
             />
@@ -223,8 +215,7 @@ export function InterestScreen({
                 >
                   <Text
                     style={{
-                      fontSize: type.caption.size,
-                      lineHeight: type.caption.lineHeight,
+                      ...textStyle.caption,
                       color: (order ?? 'new') === o.key ? palette.intent.accent : palette.text.muted,
                     }}
                   >

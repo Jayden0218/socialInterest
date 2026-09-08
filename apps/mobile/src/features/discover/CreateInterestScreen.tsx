@@ -1,6 +1,6 @@
 import { Pressable, Text, TextInput, View } from 'react-native';
 import type { Interest } from '@sih/shared';
-import { activePalette as palette, radius, space, touchTarget, type } from '../../ui/theme';
+import { activePalette as palette, radius, space, textStyle, touchTarget } from '../../ui/theme';
 import { Banner, Button, Screen } from '../../ui/primitives';
 
 export interface SimilarCandidate {
@@ -57,9 +57,8 @@ export function CreateInterestScreen({
   const candidates = state.kind === 'similar_found' || state.kind === 'blocked' ? state.candidates : [];
 
   return (
-    <Screen testID="create-interest-screen">
-      <Text style={{ fontSize: type.display.size,
- lineHeight: type.display.lineHeight, fontWeight: '700', color: palette.text.primary }}>
+    <Screen testID="create-interest-screen" scroll>
+      <Text style={{ ...textStyle.display, fontWeight: '700', color: palette.text.primary }}>
         New interest in {parentName}
       </Text>
 
@@ -75,8 +74,7 @@ export function CreateInterestScreen({
           borderColor: state.kind === 'blocked' ? palette.intent.danger : palette.line.hairline,
           borderRadius: radius.md,
           padding: space.md,
-          fontSize: type.body.size,
-          lineHeight: type.body.lineHeight,
+          ...textStyle.body,
           color: palette.text.primary,
         }}
       />
@@ -95,17 +93,15 @@ export function CreateInterestScreen({
               accessibilityRole="button"
               onPress={() => onJoinExisting(c.interest.interestId)}
               style={{
-        ...touchTarget,
+                ...touchTarget,
                 padding: space.md,
                 borderWidth: 1,
                 borderColor: palette.line.hairline,
                 borderRadius: radius.md,
               }}
             >
-              <Text style={{ fontSize: type.body.size,
- lineHeight: type.body.lineHeight, color: palette.text.primary }}>{c.interest.name}</Text>
-              <Text style={{ fontSize: type.caption.size,
- lineHeight: type.caption.lineHeight, color: palette.text.muted }}>
+              <Text style={{ ...textStyle.body, color: palette.text.primary }}>{c.interest.name}</Text>
+              <Text style={{ ...textStyle.caption, color: palette.text.muted }}>
                 {c.interest.postCount} posts
               </Text>
             </Pressable>

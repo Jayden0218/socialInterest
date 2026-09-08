@@ -1,5 +1,5 @@
 import { Pressable, Text, View } from 'react-native';
-import { activePalette as palette, radius, space, touchTarget, type } from '../../ui/theme';
+import { activePalette as palette, radius, space, textStyle, touchTarget } from '../../ui/theme';
 import { Banner, Button, Screen } from '../../ui/primitives';
 
 /**
@@ -75,9 +75,14 @@ export function SafetyActions({
   onBlock?: () => void;
 }) {
   return (
-    <Screen testID="safety-actions">
-      <Text style={{ fontSize: type.title.size,
- lineHeight: type.title.lineHeight, fontWeight: '600', color: palette.text.primary }}>
+    <Screen testID="safety-actions" scroll>
+      <Text
+        style={{
+          ...textStyle.title,
+          fontWeight: '600',
+          color: palette.text.primary,
+        }}
+      >
         {reportActionLabel(subject)}
       </Text>
 
@@ -90,15 +95,21 @@ export function SafetyActions({
             accessibilityState={{ selected: selectedReason === r.value }}
             onPress={() => onSelectReason(r.value)}
             style={{
-        ...touchTarget,
+              ...touchTarget,
               padding: space.md,
               borderWidth: 1,
               borderRadius: radius.md,
               borderColor: selectedReason === r.value ? palette.intent.accent : palette.line.hairline,
             }}
           >
-            <Text style={{ fontSize: type.body.size,
- lineHeight: type.body.lineHeight, color: palette.text.primary }}>{r.label}</Text>
+            <Text
+              style={{
+                ...textStyle.body,
+                color: palette.text.primary,
+              }}
+            >
+              {r.label}
+            </Text>
           </Pressable>
         ))}
       </View>

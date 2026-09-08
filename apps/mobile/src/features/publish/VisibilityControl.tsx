@@ -1,6 +1,6 @@
 import { Pressable, Text, View } from 'react-native';
 import type { Visibility } from '@sih/shared';
-import { activePalette as palette, radius, space, touchTarget, type } from '../../ui/theme';
+import { activePalette as palette, radius, space, textStyle, touchTarget, type } from '../../ui/theme';
 
 export interface VisibilityControlProps {
   value: Visibility;
@@ -19,8 +19,7 @@ export const VISIBILITY_OPTIONS: { value: Visibility; label: string; hint: strin
 export function VisibilityControl({ value, onChange }: VisibilityControlProps) {
   return (
     <View testID="visibility-control" style={{ gap: space.sm }}>
-      <Text style={{ fontSize: type.caption.size,
- lineHeight: type.caption.lineHeight, color: palette.text.muted }}>Who can see this</Text>
+      <Text style={{ ...textStyle.caption, color: palette.text.muted }}>Who can see this</Text>
       <View style={{ flexDirection: 'row', gap: space.sm }}>
         {VISIBILITY_OPTIONS.map((option) => {
           const selected = option.value === value;
@@ -33,7 +32,7 @@ export function VisibilityControl({ value, onChange }: VisibilityControlProps) {
               accessibilityHint={option.hint}
               onPress={() => onChange(option.value)}
               style={{
-        ...touchTarget,
+                ...touchTarget,
                 paddingVertical: space.sm,
                 paddingHorizontal: space.md,
                 borderRadius: radius.pill,
@@ -51,8 +50,7 @@ export function VisibilityControl({ value, onChange }: VisibilityControlProps) {
       </View>
       {/* The hint is always shown, so the consequence of the choice is visible
           before publishing rather than discovered afterwards. */}
-      <Text style={{ fontSize: type.caption.size,
- lineHeight: type.caption.lineHeight, color: palette.text.muted }}>
+      <Text style={{ ...textStyle.caption, color: palette.text.muted }}>
         {VISIBILITY_OPTIONS.find((o) => o.value === value)?.hint}
       </Text>
     </View>

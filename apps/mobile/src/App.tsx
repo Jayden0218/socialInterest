@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { SafeAreaView, StatusBar, Text, View } from 'react-native';
-import { activePalette as palette, space, type } from './ui/theme';
+import { activePalette as palette, space, textStyle } from './ui/theme';
 import { Button, Row } from './ui/primitives';
 import { DataProvider, useData } from './data-provider';
 import {
@@ -105,8 +105,7 @@ function Header({ title, onBack }: { title: string; onBack: () => void }) {
       }}
     >
       <Button testID="nav-back" label="Back" variant="secondary" onPress={onBack} />
-      <Text style={{ fontSize: type.body.size,
- lineHeight: type.body.lineHeight, fontWeight: '600', color: palette.text.primary }}>{title}</Text>
+      <Text style={{ ...textStyle.body, fontWeight: '600', color: palette.text.primary }}>{title}</Text>
     </Row>
   );
 }

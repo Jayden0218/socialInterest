@@ -1,6 +1,6 @@
 import { Pressable, Text, TextInput, View } from 'react-native';
 import type { PlaceRatingSummary } from '@sih/shared';
-import { activePalette as palette, radius, space, type } from '../../ui/theme';
+import { activePalette as palette, radius, space, textStyle } from '../../ui/theme';
 import { Button, Row } from '../../ui/primitives';
 
 const STARS = [1, 2, 3, 4, 5] as const;
@@ -41,8 +41,7 @@ export function RatingControl({
       */}
       <Text
         testID="rating-summary"
-        style={{ fontSize: type.body.size,
- lineHeight: type.body.lineHeight, color: palette.text.primary }}
+        style={{ ...textStyle.body, color: palette.text.primary }}
       >
         {summary.average === null
           ? 'Not yet rated'
@@ -65,8 +64,7 @@ export function RatingControl({
               >
                 <Text
                   style={{
-                    fontSize: type.title.size,
-                    lineHeight: type.title.lineHeight,
+                    ...textStyle.title,
                     // The viewer's own rating fills up to the star they chose,
                     // so the control opens in the state they left it (FR-002) -
                     // rather than empty, which invites a second rating that
@@ -110,8 +108,7 @@ export function RatingControl({
               borderRadius: radius.md,
               padding: space.sm,
               minHeight: 56,
-              fontSize: type.body.size,
-              lineHeight: type.body.lineHeight,
+              ...textStyle.body,
               color: palette.text.primary,
             }}
           />
@@ -125,8 +122,7 @@ export function RatingControl({
           />
         </>
       ) : (
-        <Text testID="rating-signed-out" style={{ fontSize: type.caption.size,
- lineHeight: type.caption.lineHeight, color: palette.text.muted }}>
+        <Text testID="rating-signed-out" style={{ ...textStyle.caption, color: palette.text.muted }}>
           Sign in to rate this place.
         </Text>
       )}

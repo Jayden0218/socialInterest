@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native';
 import type { InterestRef, Post } from '@sih/shared';
-import { activePalette as palette, space, type } from '../../ui/theme';
+import { activePalette as palette, space, textStyle } from '../../ui/theme';
 import { Button, Row, Screen } from '../../ui/primitives';
 import { PagedPostList, type PagedState } from '../../components/PagedPostList';
 
@@ -56,29 +56,23 @@ export function ProfileScreen({
   return (
     <Screen testID="profile-screen">
       <View style={{ gap: space.sm }}>
-        <Text style={{ fontSize: type.display.size,
- lineHeight: type.display.lineHeight, fontWeight: '700', color: palette.text.primary }}>
+        <Text style={{ ...textStyle.display, fontWeight: '700', color: palette.text.primary }}>
           {profile.displayName}
         </Text>
-        <Text style={{ fontSize: type.caption.size,
- lineHeight: type.caption.lineHeight, color: palette.text.muted }}>@{profile.handle}</Text>
-        {profile.bio ? <Text style={{ fontSize: type.body.size,
- lineHeight: type.body.lineHeight, color: palette.text.primary }}>{profile.bio}</Text> : null}
+        <Text style={{ ...textStyle.caption, color: palette.text.muted }}>@{profile.handle}</Text>
+        {profile.bio ? <Text style={{ ...textStyle.body, color: palette.text.primary }}>{profile.bio}</Text> : null}
 
         <Row>
-          <Text testID="follower-count" style={{ fontSize: type.caption.size,
- lineHeight: type.caption.lineHeight, color: palette.text.muted }}>
+          <Text testID="follower-count" style={{ ...textStyle.caption, color: palette.text.muted }}>
             {profile.followerCount} followers
           </Text>
-          <Text testID="following-count" style={{ fontSize: type.caption.size,
- lineHeight: type.caption.lineHeight, color: palette.text.muted }}>
+          <Text testID="following-count" style={{ ...textStyle.caption, color: palette.text.muted }}>
             {profile.followingCount} following
           </Text>
         </Row>
 
         {profile.topInterests.length > 0 ? (
-          <Text testID="top-interests" style={{ fontSize: type.caption.size,
- lineHeight: type.caption.lineHeight, color: palette.intent.accent }}>
+          <Text testID="top-interests" style={{ ...textStyle.caption, color: palette.intent.accent }}>
             {profile.topInterests.map((i) => i.name).join(' · ')}
           </Text>
         ) : null}
@@ -92,8 +86,7 @@ export function ProfileScreen({
               disabled={followPending}
               onPress={() => onToggleFollow(!profile.viewerIsFollowing)}
             />
-            <Text testID="follow-hint" style={{ fontSize: type.caption.size,
- lineHeight: type.caption.lineHeight, color: palette.text.muted }}>
+            <Text testID="follow-hint" style={{ ...textStyle.caption, color: palette.text.muted }}>
               {followHint(profile, viewerFollowsAnyOfTheirInterests)}
             </Text>
             {/*

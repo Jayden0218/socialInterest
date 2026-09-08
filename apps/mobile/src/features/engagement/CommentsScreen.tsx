@@ -1,6 +1,6 @@
 import { FlatList, Text, TextInput, View } from 'react-native';
 import type { Comment } from '@sih/shared';
-import { activePalette as palette, radius, space, type } from '../../ui/theme';
+import { activePalette as palette, radius, space, textStyle } from '../../ui/theme';
 import { Banner, Button, EmptyState, Screen } from '../../ui/primitives';
 
 export const MAX_COMMENT_LENGTH = 1000;
@@ -58,12 +58,10 @@ export function CommentsScreen({
           contentContainerStyle={{ gap: space.md }}
           renderItem={({ item, index }) => (
             <View testID={`comment-${index}`} style={{ gap: space.xs }}>
-              <Text style={{ fontSize: type.caption.size,
- lineHeight: type.caption.lineHeight, color: palette.text.muted }}>
+              <Text style={{ ...textStyle.caption, color: palette.text.muted }}>
                 {item.author.displayName}
               </Text>
-              <Text style={{ fontSize: type.body.size,
- lineHeight: type.body.lineHeight, color: palette.text.primary }}>{item.body}</Text>
+              <Text style={{ ...textStyle.body, color: palette.text.primary }}>{item.body}</Text>
             </View>
           )}
         />
@@ -84,8 +82,7 @@ export function CommentsScreen({
             borderRadius: radius.md,
             padding: space.md,
             color: palette.text.primary,
-            fontSize: type.body.size,
-            lineHeight: type.body.lineHeight,
+            ...textStyle.body,
           }}
         />
         <Button

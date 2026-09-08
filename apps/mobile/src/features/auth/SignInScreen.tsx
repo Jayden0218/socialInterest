@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
-import { activePalette as palette, radius, space, type } from '../../ui/theme';
+import { activePalette as palette, radius, space, textStyle } from '../../ui/theme';
 import { Banner, Button, Screen } from '../../ui/primitives';
 
 /**
@@ -26,13 +26,11 @@ export interface SignInScreenProps {
 
 export function SignInScreen({ token, submitting, error, onTokenChange, onSubmit }: SignInScreenProps) {
   return (
-    <Screen testID="sign-in-screen">
+    <Screen testID="sign-in-screen" scroll>
       <View style={{ gap: space.lg }}>
-        <Text style={{ fontSize: type.display.size,
- lineHeight: type.display.lineHeight, fontWeight: '700', color: palette.text.primary }}>Sign in</Text>
+        <Text style={{ ...textStyle.display, fontWeight: '700', color: palette.text.primary }}>Sign in</Text>
 
-        <Text style={{ fontSize: type.caption.size,
- lineHeight: type.caption.lineHeight, color: palette.text.muted }}>
+        <Text style={{ ...textStyle.caption, color: palette.text.muted }}>
           This build talks to a local API, which issues its own tokens. Paste one to continue.
         </Text>
 
@@ -75,7 +73,7 @@ export function SignInScreen({ token, submitting, error, onTokenChange, onSubmit
 /** Signed-out state for a surface that needs an identity. */
 export function SignedOutNotice({ onSignIn }: { onSignIn: () => void }) {
   return (
-    <Screen testID="signed-out">
+    <Screen testID="signed-out" scroll>
       <View style={{ gap: space.md }}>
         <Text style={{ color: palette.text.primary }}>Sign in to do this.</Text>
         <Button testID="signed-out-sign-in" label="Sign in" onPress={onSignIn} />

@@ -1,6 +1,6 @@
 import { Text, TextInput, View } from 'react-native';
 import type { PlaceCategory, PlaceSummary } from '@sih/shared';
-import { activePalette as palette, space, type } from '../../ui/theme';
+import { activePalette as palette, space, textStyle } from '../../ui/theme';
 import { Banner, Button, Row, Screen } from '../../ui/primitives';
 
 export const PLACE_CATEGORIES: { value: PlaceCategory; label: string }[] = [
@@ -50,7 +50,7 @@ export function CreatePlaceScreen({
   };
 
   return (
-    <Screen testID="create-place-screen">
+    <Screen testID="create-place-screen" scroll>
       <View style={{ padding: space.sm, gap: space.sm }}>
         <TextInput
           testID="place-name-input"
@@ -77,8 +77,7 @@ export function CreatePlaceScreen({
           onChangeText={(next) => onChange({ address: next })}
         />
 
-        <Text style={{ fontSize: type.caption.size,
- lineHeight: type.caption.lineHeight, color: palette.text.muted }}>Category</Text>
+        <Text style={{ ...textStyle.caption, color: palette.text.muted }}>Category</Text>
         <View style={{ gap: space.xs }}>
           {PLACE_CATEGORIES.map((c) => (
             <Button

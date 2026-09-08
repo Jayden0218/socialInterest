@@ -1,6 +1,6 @@
 import { FlatList, Pressable, Text, View } from 'react-native';
 import type { InterestRef } from '@sih/shared';
-import { activePalette as palette, radius, space, touchTarget, type } from '../../ui/theme';
+import { activePalette as palette, radius, space, textStyle, touchTarget, type } from '../../ui/theme';
 
 export interface InterestSelectorProps {
   selected: InterestRef[];
@@ -28,8 +28,7 @@ export function InterestSelector({ selected, options, onChange }: InterestSelect
 
   return (
     <View testID="interest-selector" style={{ gap: space.sm }}>
-      <Text style={{ fontSize: type.caption.size,
- lineHeight: type.caption.lineHeight, color: palette.text.muted }}>
+      <Text style={{ ...textStyle.caption, color: palette.text.muted }}>
         {selected.length === 0 ? 'Choose an interest (required)' : 'Filed under'}
       </Text>
       <FlatList
@@ -47,7 +46,7 @@ export function InterestSelector({ selected, options, onChange }: InterestSelect
               accessibilityState={{ checked: isSelected }}
               onPress={() => toggle(item)}
               style={{
-        ...touchTarget,
+                ...touchTarget,
                 paddingVertical: space.sm,
                 paddingHorizontal: space.md,
                 borderRadius: radius.pill,

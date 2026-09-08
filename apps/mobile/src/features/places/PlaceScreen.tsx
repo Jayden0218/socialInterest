@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native';
 import type { Place, Post, Review } from '@sih/shared';
-import { activePalette as palette, space, type } from '../../ui/theme';
+import { activePalette as palette, space, textStyle } from '../../ui/theme';
 import { Button, Row, Screen } from '../../ui/primitives';
 import { PagedPostList, type PagedState } from '../../components/PagedPostList';
 import { RatingControl } from './RatingControl';
@@ -57,23 +57,19 @@ export function PlaceScreen({
   return (
     <Screen testID="place-screen">
       <View style={{ padding: space.sm, gap: space.xs }}>
-        <Text testID="place-name" style={{ fontSize: type.title.size,
- lineHeight: type.title.lineHeight, color: palette.text.primary, fontWeight: '600' }}>
+        <Text testID="place-name" style={{ ...textStyle.title, color: palette.text.primary, fontWeight: '600' }}>
           {place.name}
         </Text>
-        <Text testID="place-meta" style={{ fontSize: type.caption.size,
- lineHeight: type.caption.lineHeight, color: palette.text.muted }}>
+        <Text testID="place-meta" style={{ ...textStyle.caption, color: palette.text.muted }}>
           {place.category} · {place.locality}
           {place.address ? ` · ${place.address}` : ''}
         </Text>
-        <Text testID="place-follower-count" style={{ fontSize: type.caption.size,
- lineHeight: type.caption.lineHeight, color: palette.text.muted }}>
+        <Text testID="place-follower-count" style={{ ...textStyle.caption, color: palette.text.muted }}>
           {place.followerCount} following
         </Text>
 
         {place.interests && place.interests.length > 0 ? (
-          <Text testID="place-interests" style={{ fontSize: type.caption.size,
- lineHeight: type.caption.lineHeight, color: palette.intent.accent }}>
+          <Text testID="place-interests" style={{ ...textStyle.caption, color: palette.intent.accent }}>
             {place.interests.map((i) => i.name).join(' · ')}
           </Text>
         ) : null}
@@ -95,8 +91,7 @@ export function PlaceScreen({
           which is surprising, and a control that surprises people silently is a
           control they will misread.
         */}
-        <Text testID="place-follow-hint" style={{ fontSize: type.caption.size,
- lineHeight: type.caption.lineHeight, color: palette.text.muted }}>
+        <Text testID="place-follow-hint" style={{ ...textStyle.caption, color: palette.text.muted }}>
           Following a place saves it for you. Posts reach your feed through the interests you follow.
         </Text>
       </View>

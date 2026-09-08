@@ -1,6 +1,6 @@
 import { Image, Pressable, Text, View } from 'react-native';
 import type { MediaItem, Post } from '@sih/shared';
-import { activePalette as palette, radius, space, type } from '../../ui/theme';
+import { activePalette as palette, radius, space, textStyle } from '../../ui/theme';
 import { Banner, Screen } from '../../ui/primitives';
 
 /**
@@ -39,7 +39,7 @@ export function PostDetailScreen({
   const first = post.media?.[0];
 
   return (
-    <Screen testID="post-detail-screen">
+    <Screen testID="post-detail-screen" scroll>
       {notice ? <Banner tone="info" testID="processing-notice">{notice}</Banner> : null}
 
       {first ? (
@@ -55,16 +55,14 @@ export function PostDetailScreen({
       ) : null}
 
       {post.caption ? (
-        <Text testID="post-caption" style={{ fontSize: type.body.size,
- lineHeight: type.body.lineHeight, color: palette.text.primary }}>
+        <Text testID="post-caption" style={{ ...textStyle.body, color: palette.text.primary }}>
           {post.caption}
         </Text>
       ) : null}
 
       <View testID="post-interests" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
         {post.interests.map((i) => (
-          <Text key={i.interestId} style={{ fontSize: type.caption.size,
- lineHeight: type.caption.lineHeight, color: palette.intent.accent }}>
+          <Text key={i.interestId} style={{ ...textStyle.caption, color: palette.intent.accent }}>
             {i.parent ? `${i.name} · ${i.parent.name}` : i.name}
           </Text>
         ))}
@@ -78,8 +76,7 @@ export function PostDetailScreen({
       */}
       {post.place && onOpenPlace ? (
         <Pressable testID="post-place" onPress={() => onOpenPlace(post.place!.placeId)}>
-          <Text style={{ fontSize: type.caption.size,
- lineHeight: type.caption.lineHeight, color: palette.intent.accent }}>
+          <Text style={{ ...textStyle.caption, color: palette.intent.accent }}>
             {`${post.place.name} · ${post.place.locality}`}
           </Text>
         </Pressable>

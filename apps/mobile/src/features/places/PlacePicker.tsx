@@ -1,6 +1,6 @@
 import { Text, TextInput, View } from 'react-native';
 import type { PlaceSummary } from '@sih/shared';
-import { activePalette as palette, space, type } from '../../ui/theme';
+import { activePalette as palette, space, textStyle } from '../../ui/theme';
 import { Button, Row } from '../../ui/primitives';
 
 /**
@@ -57,8 +57,7 @@ export function PlacePicker({
 
   return (
     <View testID="place-picker" style={{ gap: space.sm }}>
-      <Text style={{ fontSize: type.caption.size,
- lineHeight: type.caption.lineHeight, color: palette.text.muted }}>
+      <Text style={{ ...textStyle.caption, color: palette.text.muted }}>
         Add a place (optional)
       </Text>
       <TextInput

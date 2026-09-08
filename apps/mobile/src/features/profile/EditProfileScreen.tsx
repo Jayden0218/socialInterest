@@ -1,5 +1,5 @@
 import { Switch, Text, TextInput, View } from 'react-native';
-import { activePalette as palette, radius, space, type } from '../../ui/theme';
+import { activePalette as palette, radius, space, textStyle } from '../../ui/theme';
 import { Banner, Button, Row, Screen } from '../../ui/primitives';
 
 import type { NotificationPrefs } from '../../data/session';
@@ -57,7 +57,7 @@ export function EditProfileScreen({
   onDeleteAccount: () => void;
 }) {
   return (
-    <Screen testID="edit-profile-screen">
+    <Screen testID="edit-profile-screen" scroll>
       <TextInput
         testID="display-name-input"
         accessibilityLabel="Display name"
@@ -69,8 +69,7 @@ export function EditProfileScreen({
           borderColor: palette.line.hairline,
           borderRadius: radius.md,
           padding: space.md,
-          fontSize: type.body.size,
-          lineHeight: type.body.lineHeight,
+          ...textStyle.body,
           color: palette.text.primary,
         }}
       />
@@ -87,19 +86,16 @@ export function EditProfileScreen({
           borderRadius: radius.md,
           padding: space.md,
           minHeight: 72,
-          fontSize: type.body.size,
-          lineHeight: type.body.lineHeight,
+          ...textStyle.body,
           color: palette.text.primary,
         }}
       />
 
       <View testID="notification-prefs" style={{ gap: space.sm }}>
-        <Text style={{ fontSize: type.caption.size,
- lineHeight: type.caption.lineHeight, color: palette.text.muted }}>Notify me about</Text>
+        <Text style={{ ...textStyle.caption, color: palette.text.muted }}>Notify me about</Text>
         {CATEGORIES.map((c) => (
           <Row key={c.key} style={{ justifyContent: 'space-between' }}>
-            <Text style={{ fontSize: type.body.size,
- lineHeight: type.body.lineHeight, color: palette.text.primary }}>{c.label}</Text>
+            <Text style={{ ...textStyle.body, color: palette.text.primary }}>{c.label}</Text>
             <Switch
               testID={`pref-${c.key}`}
               accessibilityLabel={c.label}

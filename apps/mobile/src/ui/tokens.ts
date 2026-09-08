@@ -122,6 +122,30 @@ export const type = {
   caption: { size: 12, lineHeight: 16, weight: '400' as const },
 } as const;
 
+/**
+ * The type roles as react-native STYLE objects, so a caller spreads one thing.
+ *
+ * `type.body` names the role; `textStyle.body` is the role expressed in the
+ * property names a `<Text>` actually takes. Without it every call site writes
+ * `fontSize: type.body.size, lineHeight: type.body.lineHeight` - two properties
+ * that must move together and, being separate, do not have to. 006's migration
+ * off the old alias layer found the failure mode: the previous shape carried a
+ * SIZE ONLY, so the whole app rendered at the platform's default line height
+ * and the scale's `lineHeight` was dead data (FR-018).
+ *
+ * Weight is deliberately NOT included. Several screens set a weight that is not
+ * their role's, and folding it in would make whether the override wins depend
+ * on the order properties happen to appear in - a silent, positional bug in
+ * place of an explicit line.
+ */
+export const textStyle = {
+  display: { fontSize: type.display.size, lineHeight: type.display.lineHeight },
+  title: { fontSize: type.title.size, lineHeight: type.title.lineHeight },
+  body: { fontSize: type.body.size, lineHeight: type.body.lineHeight },
+  label: { fontSize: type.label.size, lineHeight: type.label.lineHeight },
+  caption: { fontSize: type.caption.size, lineHeight: type.caption.lineHeight },
+} as const;
+
 /** A 4-point rhythm. Every gap and pad in the app is one of these. */
 export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;
 

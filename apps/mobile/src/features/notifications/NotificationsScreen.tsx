@@ -1,6 +1,6 @@
 import { FlatList, Text, View } from 'react-native';
 import type { Notification } from '@sih/shared';
-import { activePalette as palette, space, type } from '../../ui/theme';
+import { activePalette as palette, space, textStyle } from '../../ui/theme';
 import { EmptyState, Screen } from '../../ui/primitives';
 
 import type { NotificationPrefs } from '../../data/session';
@@ -82,8 +82,7 @@ export function NotificationsScreen({
             <Text
               accessibilityRole="button"
               onPress={() => onOpen(item)}
-              style={{ fontSize: type.body.size,
- lineHeight: type.body.lineHeight, color: palette.text.primary }}
+              style={{ ...textStyle.body, color: palette.text.primary }}
             >
               {describeNotification(item)}
             </Text>
