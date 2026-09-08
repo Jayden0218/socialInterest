@@ -273,8 +273,12 @@ drove the pre-fix layout and that flow PASSED. The measurement was real; the
 near-miss was invented. Reaching for the more dramatic reading of your own
 evidence is the habit these records exist to check.
 
-**The app runs on Android and ALL NINETEEN journeys pass** - run 37, 2026-09-08,
-`19/19`, every flow on its first attempt, on the redesigned UI. Record:
+**The app runs on Android and EVERY journey passes** - run 43, 2026-09-08,
+**20/20** on 007's ranked feed and redesign (the suite gained
+`22-cold-start`). Record:
+`docs/verification/runs/2026-09-08-feature-007-record.md`.
+
+Before it, run 37, `19/19` on 006, every flow on its first attempt. Record:
 `docs/verification/runs/2026-09-08-feature-006-record.md`.
 
 Earlier milestones, kept because each records something the next one assumes:
@@ -581,8 +585,15 @@ strengthened. See the summary near the top of this file.
 
 ### Still not verified, and must be reported that way
 
-- **007's device run: see `docs/verification/runs/`.** Do not assume a result
-  from this file; the record names what passed and what did not.
+- **007 RUNS ON ANDROID: 20/20, run 43, 2026-09-08.** Record:
+  `docs/verification/runs/2026-09-08-feature-007-record.md`. Asserted through
+  the SERVICE: **`POST /v1/signals` 201 eleven times** and
+  `GET /v1/me/feed-signals` 200 nineteen times — 007's whole premise, working on
+  a device — plus 26 `GET /v1/feed/home` 200, 8 publishes, 2
+  `POST /v1/me/seed-interests` 201 (the cold start), `POST /v1/reports` 201, the
+  full group lifecycle, and 2 `PUT /v1/places/:id/rating` 200.
+  **It took six runs and four of the five failures were mine** — see "A soft
+  keyboard cannot be measured in a browser" above.
 - 001/SC-011 (a video PLAYING), iOS, 002/SC-002 (10,000 concurrent), real usage,
   and the datastore decision are all unchanged and all still open.
 - **SC-002's 60-second half needs a person.** The journey asserts the PATH is

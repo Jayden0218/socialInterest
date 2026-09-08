@@ -3,8 +3,9 @@
 **Date**: 2026-09-08
 **Feature**: `specs/007-ranked-feed-redesign/` — the composed feed replaced by a
 ranked one, and all twenty screens rebuilt against `design/007-ui/`
-**Commit under test (local suites)**: `the branch head at the time of the last full run`
-**Commit under test (device)**: `PLACEHOLDER_DEVICE`
+**Commit under test (local suites)**: `3d20947`, the same commit run 43 drove
+**Commit under test (device)**: `3d20947` — run 43, **20/20**
+**Run**: https://github.com/Jayden0218/socialInterest/actions/runs/34226315318
 **Cost**: zero. Everything ran on the `local` profile or on GitHub-hosted standard
 runners, which are free on this public repository. No billable resource was
 provisioned, and none was requested.
@@ -93,9 +94,31 @@ a page of `fetch failed` that reads like a product failure.
 
 ## What the local suites could not have found, and the device did
 
-**Five device runs are recorded, not one.** Four of the five failed, three of
-those four were mine, and the fourth was a defect only a device could show. The
-failures are the useful part of this record.
+**007 RUNS ON ANDROID: 20/20, run 43, 2026-09-08.**
+
+**Six device runs are recorded, not one.** Five of the six failed, four of those
+five were mine, and the failures are the useful part of this record. Reporting
+only the green one would delete both the reason this feature needed a device and
+the three mistakes that cost the other runs.
+
+What run 43 asserted through the SERVICE, not the view hierarchy — this is the
+aggregate, and it is what makes "20/20" mean something:
+
+| | |
+|---|---|
+| `GET /v1/feed/home` 200 | **26** |
+| `POST /v1/signals` 201 | **11** — 007's signal ingestion, on a device |
+| `GET /v1/me/feed-signals` 200 | **19** — FR-011's disclosure |
+| `POST /v1/posts` 201 | 8, with 8 `POST /v1/media/uploads` 201 |
+| `POST /v1/me/seed-interests` 201 | 2 — FR-014's cold start |
+| `POST /v1/reports` 201 | 1 — Constitution IV, the line absent from runs 35 and 36 |
+| group lifecycle | `groups` 201, `participants` 204, `accept` 204, `leave` 204 |
+| `PUT /v1/places/:placeId/rating` 200 | 2 |
+| `PATCH /v1/me` 200, `PUT /v1/posts/:postId/save` 204 | 1 each |
+
+The 21 `GET /v1/feed/home` **401** in the same aggregate are the anonymous polls
+before sign-in and are present in passing runs too — which is exactly why runs
+39 and 41 had to be read as *401s and no 200s*, rather than as "there are 401s".
 
 | Run | Result | What it established |
 |---|---|---|
@@ -104,7 +127,7 @@ failures are the useful part of this record.
 | 40 | failed | Same defect. **And I could not say so**, because the evidence was unreachable — see below. |
 | 41 | 0/19 | Same defect, and this time the log **named the step**: Maestro tapped `sign-in-token`, typed the token, and could not find `sign-in-submit` for 54 seconds. The button was under the soft keyboard. |
 | 42 | **14/19** | **Sign-in works.** The invariant fix landed: the app signed in and drove fourteen journeys including the whole group lifecycle. Five failures, three causes, all flows asserting something the product never promised — see below. |
-| 43 | PLACEHOLDER_43 | PLACEHOLDER_43_NOTE |
+| 43 | **20/20** | **PASS.** "the real APK ran on Android, exercised the real API, and completed the journeys." Every flow in `.maestro/`, one Maestro session each; the runner fails if any is in `FAILED`. |
 
 ### The three things those four runs actually taught
 
