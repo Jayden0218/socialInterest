@@ -90,7 +90,7 @@ describe('the home feed never consults place follows or ratings (FR-019, 005)', 
     // follow-expansion left with the composed feed - and gave the two numbers
     // below the same job for the ranker.
     expect(FeedService.length).toBe(5);
-    expect(RankingService.length).toBe(2);
+    expect(RankingService.length).toBe(3);
     expect(CandidateSource.length).toBe(2);
   });
 });

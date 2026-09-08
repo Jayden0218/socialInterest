@@ -65,3 +65,15 @@ export const SIGNAL_BATCH_MAX = 50;
  * consume the exploration share.
  */
 export const FOLLOWED_AUTHOR_BOOST_MS = 6 * 60 * 60 * 1000;
+
+/**
+ * 007/FR-030. What a STANDING DECLARATION is worth — a seed pick at first run,
+ * or an interest the person went and followed.
+ *
+ * One unit, the same as a like. Deliberately comparable to a single strong
+ * behavioural signal rather than dominant over them: a declaration should be
+ * enough to shape a feed that has no behaviour to go on, and should be overtaken
+ * by a person who then reads something else for a fortnight. A large constant
+ * here would rebuild the subscription feed inside the ranker.
+ */
+export const DECLARED_INTEREST_WEIGHT = 1;

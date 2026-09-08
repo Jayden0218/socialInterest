@@ -228,6 +228,14 @@ safety sheet on a 640pt-tall screen and reach the block control.
 
 **A follow still means something**
 
+- **FR-030**: Following an INTEREST MUST act as a standing declaration that feeds the
+  ranking, at a weight behaviour can overtake. It MUST NOT bound the candidate set. This
+  replaces 001/FR-032 (RS-008): without it the interest-follow control would remain in the
+  app and do nothing, which is worse than removing it, because a control that silently does
+  nothing teaches a person that the app does not respond to them. It is not a subscription
+  and does not reintroduce one — the candidate set is still drawn across the catalogue and
+  the exploration share (FR-007) is unaffected, so a followed interest changes ORDER and
+  never MEMBERSHIP. Seed picks (FR-014) work the same way and through the same path.
 - **FR-029**: A post by a person the viewer follows MUST receive a bounded boost in the
   ranking. The boost MUST NOT admit a post the ranking would not otherwise have considered,
   and MUST NOT override the exploration share of FR-007.
@@ -267,6 +275,13 @@ safety sheet on a 640pt-tall screen and reach the block control.
   against version 1.0.0 and MUST be re-evaluated against 2.0.0.
 - **RS-006**: The project guide's description of the feed as *composed* from followed
   interests MUST be corrected.
+- **RS-008**: **001/FR-032 is WITHDRAWN as written.** "A home feed composed of posts from
+  the interests a person follows" is the sentence this whole feature replaces, and it was
+  missed by both the original withdrawal list and the `/speckit-analyze` pass — found only
+  when four 001 integration suites went red during implementation. An interest follow
+  therefore needs a meaning, or the follow control in the app does nothing: see FR-030.
+  001/FR-036 (a helpful empty state) SURVIVES — only its `no_followed_interests` branch is
+  gone, because a ranked feed is never in that state.
 - **RS-007**: **001/FR-034 is WITHDRAWN as written.** "Posts by followed people rank above
   unfollowed authors **within the same interest**" names a grouping the ranked feed does not
   have. Its intent is carried forward by FR-029 above. Its implementation

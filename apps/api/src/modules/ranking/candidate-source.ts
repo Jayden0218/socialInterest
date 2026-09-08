@@ -27,6 +27,10 @@ export interface Candidate {
 @Injectable()
 export class CandidateSource {
   private static readonly PER_INTEREST_OVERFETCH = 2;
+  /** Bounds on the top-up below. A feed request must not walk the catalogue. */
+  private static readonly TOP_UP_ROUNDS = 4;
+  private static readonly TOP_UP_WIDTH = 8;
+  private static readonly MAX_FAN_OUT = 40;
 
   constructor(
     @Inject(PostInterestIndexRepository) private readonly index: PostInterestIndexRepository,
@@ -64,26 +68,56 @@ export class CandidateSource {
      */
     const perInterest =
       Math.max(3, Math.ceil(limit / 2)) * CandidateSource.PER_INTEREST_OVERFETCH * (depth + 1);
-    const pages = await Promise.all(
-      effective.map((interestId) =>
-        this.index
-          .listByInterest(interestId, { limit: perInterest })
-          .catch(() => ({ items: [], nextCursor: null })),
-      ),
-    );
 
-    // De-duplicate: FR-024 writes an index item per interest, so a post filed
-    // under a sub-interest and its parent appears twice.
     const seen = new Set<string>();
     const candidates: Candidate[] = [];
-    for (const page of pages) {
-      for (const item of page.items) {
-        if (seen.has(item.postId)) continue;
-        seen.add(item.postId);
-        candidates.push(item as Candidate);
+    const read = new Set<string>();
+
+    const readPartitions = async (ids: string[]): Promise<void> => {
+      const fresh = ids.filter((id) => !read.has(id));
+      for (const id of fresh) read.add(id);
+      const pages = await Promise.all(
+        fresh.map((interestId) =>
+          this.index
+            .listByInterest(interestId, { limit: perInterest })
+            .catch(() => ({ items: [], nextCursor: null })),
+        ),
+      );
+      for (const page of pages) {
+        for (const item of page.items) {
+          // De-duplicate: FR-024 writes an index item per interest, so a post
+          // filed under a sub-interest and its parent appears twice.
+          if (seen.has(item.postId)) continue;
+          seen.add(item.postId);
+          candidates.push(item as Candidate);
+        }
       }
+    };
+
+    await readPartitions(effective);
+
+    /**
+     * TOP-UP, AND IT IS FR-015 RATHER THAN AN OPTIMISATION.
+     *
+     * Found by running it. A viewer with nothing declared draws four random
+     * interests out of a catalogue of hundreds, MOST OF WHICH HOLD NO POSTS -
+     * so the honest sample came back empty and the feed with it. Every unit
+     * test passed, because they stub an index where every partition is
+     * populated; the emptiness only exists against a real sparse catalogue.
+     *
+     * So an under-filled page reads MORE PARTITIONS rather than giving up.
+     * Bounded twice over - a fixed number of rounds and a fixed fan-out ceiling
+     * - because the failure this must not trade for is a feed request that
+     * walks the whole catalogue when the catalogue is genuinely empty.
+     */
+    const target = limit * 3;
+    for (let round = 0; candidates.length < target && round < CandidateSource.TOP_UP_ROUNDS; round++) {
+      if (read.size >= CandidateSource.MAX_FAN_OUT) break;
+      const more = chooseExploreInterests(catalogueIds, [...read], CandidateSource.TOP_UP_WIDTH);
+      if (more.length === 0) break;
+      await readPartitions(more);
     }
 
-    return { candidates, exploredInterests: explored, fanOutWidth: effective.length };
+    return { candidates, exploredInterests: explored, fanOutWidth: read.size };
   }
 }

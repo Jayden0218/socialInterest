@@ -111,8 +111,13 @@ paths:
       tags: [People]
       summary: Follow a person
       description: >
-        Serves FR-037. Idempotent. Following a person does not by itself add their
-        posts to the caller's home feed — see FR-033 and GET /feed/home.
+        Serves FR-037. Idempotent. Following a person gives their posts a bounded
+        boost in the caller's ranked feed (007/FR-029). It never admits a post the
+        ranking would not otherwise have considered.
+
+
+        The earlier wording — that a follow does not by itself add their posts to
+        the feed, per FR-033 — described the composed feed and is withdrawn with it.
       parameters:
         - $ref: '#/components/parameters/Handle'
       responses:
@@ -403,13 +408,31 @@ paths:
   /feed/home:
     get:
       tags: [Feed]
-      summary: The caller's home feed
+      summary: The caller's ranked home feed
       description: >
-        Serves FR-032, FR-033, FR-034, FR-035. Composed from followed interests only.
-        Posts by followed people are ranked higher **within those interests**; a
-        followed person's post in an unfollowed interest never appears. When the caller
-        follows nothing, returns an empty page with an onboarding hint (FR-036).
-        SC-005 sets the latency budget for this endpoint.
+        Serves 001/FR-032, FR-035 and 007/FR-005 through FR-009. **RANKED from the
+        caller's behaviour, not composed from what they follow** (007, constitution
+        2.0.0). One blended stream: no sections, no per-post explanation of why
+        anything is where it is (007/FR-010).
+
+
+        Ranking proposes candidates; the visibility boundary decides. Every page is
+        assembled per request against current state, so a visibility change lands
+        here on the first request after it (001/FR-017, SC-009, 007/FR-006).
+
+
+        Some of every page comes from outside the caller's established signals
+        (007/FR-007), so the feed cannot collapse to one interest. A caller with no
+        signals and no seed picks still gets a populated page (007/FR-015). If a
+        ranking cannot be produced the response is a defensible fallback ordering
+        rather than an error (007/FR-009).
+
+
+        `cursor` is opaque and carries what this session has already been shown, so
+        paging never repeats a post and a post published mid-scroll cannot shift the
+        reader's position (007/FR-008). A page that under-fills is the end of the feed
+        and returns a null cursor. The withdrawn `no_followed_interests` hint is gone:
+        a ranked feed is never in that state.
       parameters:
         - $ref: '#/components/parameters/Cursor'
         - $ref: '#/components/parameters/Limit'
@@ -419,6 +442,115 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PostPage' }
+
+  /signals:
+    post:
+      tags: [Feed]
+      summary: Record what the caller did with posts they were shown
+      description: >
+        Serves 007/FR-003, FR-004. **Written for the authenticated caller only** — the
+        subject comes from the token and never from the body.
+
+
+        The client REPORTS; the server decides what a report is worth. Dwell is clamped
+        to 30s and discarded below 3s, one weight is taken per kind per post per
+        session, the batch is bounded, and a signal naming a post the caller cannot see
+        is rejected rather than merely unweighted — recording it would store the fact
+        that this person looked at a post they are not permitted to know exists. Every
+        one of those bounds is enforced server-side and tested through the path a
+        hostile client would take (constitution 2.0.0, Principle III).
+
+
+        See `specs/007-ranked-feed-redesign/contracts/signals.md`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SignalBatch' }
+      responses:
+        '200':
+          description: Recorded. Counts are per signal, not per request.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SignalReceipt' }
+        '401': { $ref: '#/components/responses/Unauthorised' }
+
+  /me/feed-signals:
+    get:
+      tags: [Feed]
+      summary: What the caller's feed is built from
+      description: >
+        Serves 007/FR-011. Rendered from THE SAME weights the ranker reads, through the
+        same decay function, so the explanation cannot drift from the behaviour it
+        describes. An explanation computed separately is one that becomes false without
+        anyone noticing.
+
+
+        This is the account-level disclosure, and it is the ONLY place the product
+        explains its ranking: 007/FR-010 forbids a per-post "why am I seeing this" on
+        any browse or post surface.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FeedSignalDisclosure' }
+        '401': { $ref: '#/components/responses/Unauthorised' }
+    delete:
+      tags: [Feed]
+      summary: Clear everything the feed has learned about the caller
+      description: >
+        Serves 007/FR-012. Deletes the weighted profile AND the raw events. Both, or
+        the promise is false in a way nobody would notice. Afterwards the feed ranks as
+        it would for a new account holding the same seed picks.
+      responses:
+        '200':
+          description: Cleared
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [cleared]
+                properties:
+                  cleared: { type: boolean }
+        '401': { $ref: '#/components/responses/Unauthorised' }
+
+  /me/seed-interests:
+    post:
+      tags: [Feed]
+      summary: The one-time cold-start picks
+      description: >
+        Serves 007/FR-014. A SEED, not a subscription. These initialise the ranking on
+        an account with no behaviour to learn from and are then overtaken by it; they
+        are stored under their own item type rather than as interest follows, because
+        every later reader treats a follow as a follow and that would quietly recreate
+        the subscription feed 007 removes.
+
+
+        Skipping is allowed and produces a populated feed anyway (007/FR-015).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [interestIds]
+              properties:
+                interestIds:
+                  type: array
+                  maxItems: 20
+                  items: { type: string }
+      responses:
+        '200':
+          description: Stored
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [seedInterests]
+                properties:
+                  seedInterests: { type: array, items: { type: string } }
+        '401': { $ref: '#/components/responses/Unauthorised' }
 
   /posts/{postId}/reaction:
     put:
@@ -1618,6 +1750,71 @@ components:
           type: array
           items: { $ref: '#/components/schemas/Post' }
         page: { $ref: '#/components/schemas/PageMeta' }
+
+    SignalBatch:
+      type: object
+      required: [signals]
+      properties:
+        signals:
+          type: array
+          maxItems: 50
+          description: >
+            Bounded, and an over-long batch is REJECTED rather than truncated —
+            truncation would make a client's over-sending look like success.
+          items: { $ref: '#/components/schemas/Signal' }
+
+    Signal:
+      type: object
+      required: [kind, postId]
+      properties:
+        kind:
+          type: string
+          enum: [open, dwell, like, save]
+          description: >
+            What happened. `open` is the weakest and `save` the strongest, because a
+            save is the one a person takes deliberately and for their own benefit.
+        postId: { type: string }
+        dwellMs:
+          type: integer
+          minimum: 0
+          description: >
+            Only meaningful with `kind: dwell`. Clamped server-side to 30000 and
+            DISCARDED below 3000 — an uncapped dwell measures a phone left on a table,
+            and a below-floor one is data collected for no ranking benefit.
+
+    SignalReceipt:
+      type: object
+      required: [accepted, rejected]
+      properties:
+        accepted: { type: integer }
+        rejected:
+          type: integer
+          description: >
+            Deliberately not itemised. A per-signal reason would tell a caller which
+            postIds exist and which they may not see, which is the question the
+            visibility check is answering.
+
+    FeedSignalDisclosure:
+      type: object
+      required: [interests, seedInterests, collected]
+      properties:
+        interests:
+          type: array
+          description: The caller's strongest interests, decayed, strongest first.
+          items:
+            type: object
+            required: [interestId, name, weight]
+            properties:
+              interestId: { type: string }
+              name: { type: string }
+              weight: { type: number }
+        seedInterests:
+          type: array
+          items: { type: string }
+        collected:
+          type: array
+          description: What kinds of behaviour are recorded, in the person's own terms.
+          items: { type: string }
 
     InterestPage:
       type: object

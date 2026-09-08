@@ -17,6 +17,9 @@ import type { Candidate } from '../../src/modules/ranking/candidate-source';
  * not have been considered. Nothing else in the system now asserts that.
  */
 describe('the followed-author boost (FR-029)', () => {
+  /** FR-030's standing declarations are a separate concern; this file is FR-029. */
+  const NO_INTEREST_FOLLOWS = { listFollowed: async () => [] };
+
   const at = (iso: string, over: Partial<Candidate> = {}): Candidate => ({
     postId: `p-${iso}-${over.authorId ?? 'x'}`,
     authorId: 'stranger',
@@ -40,7 +43,7 @@ describe('the followed-author boost (FR-029)', () => {
       profile: async () => ({ weights, updatedAt: '2026-09-08T00:00:00.000Z' }),
       seeds: async () => [],
     };
-    return new RankingService(signals as never, source as never);
+    return new RankingService(signals as never, source as never, NO_INTEREST_FOLLOWS as never);
   };
 
   const NOW = Date.parse('2026-09-08T12:00:00.000Z');
@@ -104,7 +107,7 @@ describe('the followed-author boost (FR-029)', () => {
       })),
     };
     const signals = { profile: async () => null, seeds: async () => ['i1'] };
-    const ranking = new RankingService(signals as never, source as never);
+    const ranking = new RankingService(signals as never, source as never, NO_INTEREST_FOLLOWS as never);
 
     await ranking.rank('viewer', 20, new Set(['friend', 'friend2']), NOW);
     const [, limitArg] = source.collect.mock.calls[0] as unknown as [string[], number];

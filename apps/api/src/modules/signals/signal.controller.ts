@@ -1,21 +1,35 @@
 import { Body, Controller, Delete, Get, Inject, Post, Req } from '@nestjs/common';
-import type { Request } from 'express';
+import type { AppRequest } from '../../common/http/request';
 import { SignalService, type IncomingSignal } from './signal.service';
 import { SeedService } from './seed.service';
 import { SignalRepository } from '../../persistence/signal.repository';
-import { rankedInterests } from '../ranking/decay';
+import { RankingService } from '../ranking/ranking.service';
 import { CATALOGUE_SEARCH, type CatalogueSearch } from '../interests/catalogue.cache';
 
-function callerId(req: Request): string {
-  return (req as unknown as { user: { userId: string } }).user.userId;
+/**
+ * The caller, from the TOKEN. Never from the body — a signal names a post, and
+ * whose behaviour it is must not be something a client can state.
+ *
+ * `req.viewer` is what the auth guard sets. The first version of this file read
+ * `req.user`, which is Passport's convention and not this application's: it is
+ * always undefined here, so every one of these routes answered 500.
+ */
+function callerId(req: AppRequest): string {
+  return req.viewer!.userId;
 }
 
-@Controller('v1')
+/**
+ * No prefix here. `app.setGlobalPrefix('v1')` supplies it - a controller-level
+ * 'v1' would have produced `/v1/v1/...`, which 404s while every route the smoke
+ * test checks keeps passing, because it checks other controllers.
+ */
+@Controller()
 export class SignalController {
   constructor(
     @Inject(SignalService) private readonly signals: SignalService,
     @Inject(SeedService) private readonly seeds: SeedService,
     @Inject(SignalRepository) private readonly repo: SignalRepository,
+    @Inject(RankingService) private readonly ranking: RankingService,
     @Inject(CATALOGUE_SEARCH) private readonly catalogue: CatalogueSearch,
   ) {}
 
@@ -27,7 +41,7 @@ export class SignalController {
    * this as a hostile-client case because it is the obvious one to try.
    */
   @Post('signals')
-  async record(@Req() req: Request, @Body() body: { signals?: IncomingSignal[] }) {
+  async record(@Req() req: AppRequest, @Body() body: { signals?: IncomingSignal[] }) {
     return this.signals.record({ userId: callerId(req) }, body.signals ?? []);
   }
 
@@ -40,10 +54,17 @@ export class SignalController {
    * that becomes false without anyone noticing.
    */
   @Get('me/feed-signals')
-  async explain(@Req() req: Request) {
+  async explain(@Req() req: AppRequest) {
     const userId = callerId(req);
-    const profile = await this.repo.profile(userId);
-    const ranked = rankedInterests(profile?.weights ?? {});
+    /**
+     * Through the RANKER's own method, not a second computation of it. An
+     * explanation computed separately is an explanation that becomes false
+     * without anyone noticing - and it would have done so within one commit
+     * here: FR-030 added standing declarations to the ranking, and a disclosure
+     * reading only the behavioural profile would have omitted every interest
+     * the person had explicitly chosen.
+     */
+    const ranked = await this.ranking.weightsFor(userId);
     return {
       interests: ranked.slice(0, 8).map((r) => ({
         interestId: r.interestId,
@@ -64,7 +85,7 @@ export class SignalController {
    * that this endpoint returned 204.
    */
   @Delete('me/feed-signals')
-  async clear(@Req() req: Request) {
+  async clear(@Req() req: AppRequest) {
     const userId = callerId(req);
     await this.repo.clear(userId);
     this.signals.forget(userId);
@@ -73,7 +94,7 @@ export class SignalController {
 
   /** FR-014. The one-time cold-start selection. */
   @Post('me/seed-interests')
-  async seed(@Req() req: Request, @Body() body: { interestIds?: string[] }) {
+  async seed(@Req() req: AppRequest, @Body() body: { interestIds?: string[] }) {
     await this.seeds.choose(callerId(req), body.interestIds ?? []);
     return { seedInterests: await this.seeds.chosen(callerId(req)) };
   }

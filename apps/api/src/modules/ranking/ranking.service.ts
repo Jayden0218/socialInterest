@@ -1,8 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { SignalRepository } from '../../persistence/signal.repository';
+import { InterestFollowRepository } from '../../persistence/interest-follow.repository';
 import { CandidateSource, type Candidate } from './candidate-source';
 import { rankedInterests } from './decay';
-import { FOLLOWED_AUTHOR_BOOST_MS } from './constants';
+import { DECLARED_INTEREST_WEIGHT, FOLLOWED_AUTHOR_BOOST_MS } from './constants';
 
 export interface RankedResult {
   /** Ordered candidates. NOT a decision about who may see them. */
@@ -34,6 +35,7 @@ export class RankingService {
   constructor(
     @Inject(SignalRepository) private readonly signals: SignalRepository,
     @Inject(CandidateSource) private readonly source: CandidateSource,
+    @Inject(InterestFollowRepository) private readonly interestFollows: InterestFollowRepository,
   ) {}
 
   async rank(
@@ -55,14 +57,7 @@ export class RankingService {
     let fallback = false;
 
     try {
-      const profile = await this.signals.profile(userId);
-      weights = rankedInterests(profile?.weights ?? {}, now);
-      if (weights.length === 0) {
-        // No behaviour yet: the cold-start picks stand in until there is some
-        // (FR-014, FR-015). They are a seed, not a subscription.
-        const seeds = await this.signals.seeds(userId);
-        weights = seeds.map((interestId) => ({ interestId, weight: 1 }));
-      }
+      weights = await this.weightsFor(userId, now);
     } catch {
       /**
        * FR-009. A ranking that cannot be produced must not fail the request.
@@ -81,6 +76,66 @@ export class RankingService {
     const ordered = [...candidates].sort((a, b) => this.score(b, score, followedAuthorIds, now) - this.score(a, score, followedAuthorIds, now));
 
     return { candidates: ordered, fanOutWidth, fallback };
+  }
+
+  /**
+   * THE WEIGHTS. Behaviour plus declarations, in one place ON PURPOSE.
+   *
+   * FR-011 requires the disclosure in Settings to be rendered from THE SAME
+   * weights the ranker reads. "The same" is a promise that decays into a lie
+   * the moment there are two expressions of it, and the lie is invisible: the
+   * screen keeps rendering, the feed keeps ranking, and they quietly describe
+   * different products. So the controller calls THIS method rather than
+   * recomputing it, and the sameness is structural.
+   *
+   * BEHAVIOUR PLUS DECLARATIONS, added rather than chosen between (FR-030).
+   *
+   * A declaration - a cold-start seed pick, or an interest the person went and
+   * followed - is worth one unit, the same as a like. It is enough to shape a
+   * feed that has no behaviour to go on, and it is overtaken by somebody who
+   * then reads something else for a fortnight, because the behavioural half
+   * decays and this half does not need to.
+   *
+   * It adds WEIGHT and never a boundary. The candidate set is still drawn
+   * across the catalogue and the exploration share is untouched, so a followed
+   * interest changes the ORDER of a feed and never its membership. Treating it
+   * as a filter is how the subscription feed 007 removes would come back,
+   * inside the ranker, where the old FR-033 test no longer looks.
+   */
+  async weightsFor(userId: string, now = Date.now()): Promise<{ interestId: string; weight: number }[]> {
+    const [profile, declared] = await Promise.all([
+      this.signals.profile(userId),
+      this.declarations(userId),
+    ]);
+
+    const merged = new Map<string, number>();
+    for (const w of rankedInterests(profile?.weights ?? {}, now)) {
+      merged.set(w.interestId, w.weight);
+    }
+    for (const interestId of declared) {
+      merged.set(interestId, (merged.get(interestId) ?? 0) + DECLARED_INTEREST_WEIGHT);
+    }
+    return [...merged]
+      .map(([interestId, weight]) => ({ interestId, weight }))
+      .sort((a, b) => b.weight - a.weight);
+  }
+
+  /**
+   * FR-014 and FR-030 through ONE path, because they are the same thing said
+   * twice: an interest this person named, rather than one they demonstrated.
+   *
+   * Seeds are read from their own item type rather than from interest follows
+   * (research R4) - storing the cold-start picks as follows would be the easy
+   * path and would mean every later reader treats a first-run tap as a
+   * subscription. They meet here, at the point of use, which is the only place
+   * they should.
+   */
+  private async declarations(userId: string): Promise<string[]> {
+    const [seeds, followed] = await Promise.all([
+      this.signals.seeds(userId),
+      this.interestFollows.listFollowed(userId).then((rows) => rows.map((r) => r.interestId)),
+    ]);
+    return [...new Set([...seeds, ...followed])];
   }
 
   /**
