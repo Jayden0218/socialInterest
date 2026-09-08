@@ -699,16 +699,30 @@ CAPTURE_LOG="$(cd "$OUT" && pwd)/capture.log"
 CAPTURE_MARKER="$(mktemp)"
 if (cd "$CAPTURE_DIR" && maestro test "$CAPTURE_FLOW" \
       "${MAESTRO_ENV[@]}" > "$CAPTURE_LOG" 2>&1); then
-  found=0
-  while IFS= read -r img; do
-    [ -e "$img" ] || continue
-    # -n: never overwrite one already collected, so the first match wins and a
-    # duplicate elsewhere cannot quietly replace it.
-    mv -n "$img" "$CAPTURE_DIR/" 2>/dev/null && found=$((found + 1))
-  done < <(find "$PWD" "${HOME}/.maestro" -type f -name '[0-9][0-9]-*.png' \
-             -newer "$CAPTURE_MARKER" -not -path "$CAPTURE_DIR/*" 2>/dev/null)
-  echo "[screens] swept $found image(s) into $CAPTURE_DIR"
-  if [ "$found" -eq 0 ]; then
+  echo "[screens] the capture flow completed"
+else
+  echo "[screens] the capture flow did NOT complete. The journeys already"
+  echo "[screens] passed, so this is recorded and not fatal. Tail:"
+  tail -20 "$CAPTURE_LOG" 2>/dev/null || true
+fi
+
+# THE SWEEP RUNS EITHER WAY, and run 45 is why.
+#
+# It was inside the success branch. The flow reached screenshot 10 of 13 and
+# then failed navigating back to the profile tab - so TEN IMAGES EXISTED ON DISK
+# and the run collected none of them, because a partial capture took the else
+# branch. A capture is evidence, not an assertion: every screen it did reach is
+# worth having, and the one it did not is a line in the log.
+found=0
+while IFS= read -r img; do
+  [ -e "$img" ] || continue
+  # -n: never overwrite one already collected, so the first match wins and a
+  # duplicate elsewhere cannot quietly replace it.
+  mv -n "$img" "$CAPTURE_DIR/" 2>/dev/null && found=$((found + 1))
+done < <(find "$PWD" "${HOME}/.maestro" -type f -name '[0-9][0-9]-*.png' \
+           -newer "$CAPTURE_MARKER" -not -path "$CAPTURE_DIR/*" 2>/dev/null)
+echo "[screens] swept $found image(s) into $CAPTURE_DIR"
+if [ "$found" -eq 0 ]; then
     # MAKE THE FAILURE VISIBLE RATHER THAN GUESSING AGAIN. Run 44 spent a whole
     # run establishing only that the images were not where I assumed. If the
     # sweep also misses, this says what WAS written and where, so the next
@@ -719,12 +733,7 @@ if (cd "$CAPTURE_DIR" && maestro test "$CAPTURE_FLOW" \
     echo "[screens] tail of the capture log:"
     tail -30 "$CAPTURE_LOG" 2>/dev/null || true
   fi
-  echo "[screens] captured: $(ls "$CAPTURE_DIR"/*.png 2>/dev/null | wc -l) image(s)"
-else
-  echo "[screens] capture did not complete - the journeys already passed, so this is"
-  echo "[screens] recorded and not fatal. Tail of the capture log:"
-  tail -20 "$CAPTURE_LOG" 2>/dev/null || true
-fi
+echo "[screens] captured: $(ls "$CAPTURE_DIR"/*.png 2>/dev/null | wc -l) image(s)"
 rm -f "$CAPTURE_MARKER"
 # Blank images are worse than none: this project once filed an all-black capture
 # as evidence. Anything that fails the check is deleted rather than committed.

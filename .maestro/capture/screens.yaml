@@ -72,6 +72,16 @@ appId: app.socialinterest
     id: "tab-profile"
 - takeScreenshot: 09-profile
 
+# EVERY STEP FROM HERE IS CONDITIONAL, and run 45 is why.
+#
+# The flow reached screenshot 10 and then died on `tapOn: tab-profile` after a
+# `back` - "Element not found". Ten images existed and the run collected none,
+# because a hard tap that misses ENDS the capture.
+#
+# A capture is evidence, not an assertion. The journeys decide whether
+# navigation works and they already passed; this file's only job is to
+# photograph what it can reach. So each remaining screen is guarded by the
+# control that opens it, and a missing one costs that screen and nothing else.
 - runFlow:
     when:
       visible:
@@ -84,8 +94,6 @@ appId: app.socialinterest
       - takeScreenshot: 10-edit-profile
       - back
 
-- tapOn:
-    id: "tab-profile"
 - runFlow:
     when:
       visible:
@@ -97,8 +105,14 @@ appId: app.socialinterest
       - back
 
 # The waterfall card, opened. The feed is 007's whole subject.
-- tapOn:
-    id: "tab-feed"
+- runFlow:
+    when:
+      visible:
+        id: "tab-feed"
+    commands:
+      - tapOn:
+          id: "tab-feed"
+
 - runFlow:
     when:
       visible:
@@ -109,6 +123,11 @@ appId: app.socialinterest
       - takeScreenshot: 12-post-detail
       - back
 
-- tapOn:
-    id: "open-compose"
-- takeScreenshot: 13-compose-or-picker
+- runFlow:
+    when:
+      visible:
+        id: "open-compose"
+    commands:
+      - tapOn:
+          id: "open-compose"
+      - takeScreenshot: 13-compose-or-picker
