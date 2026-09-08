@@ -31,6 +31,22 @@ appId: app.socialinterest
 
 # The optional place step. Locality first: a place search without one cannot
 # dedupe, and would offer the wrong "Joe's" from another city.
+#
+# SCROLLED TO, not asserted where it happens to sit. Compose is a form longer
+# than a phone - this flow already scrolls to reach `publish-button` further
+# down - and 007 made it longer still by showing the picked MEDIA rather than a
+# line of text about it. Measured at 320x640 the picker sits at y=642, just past
+# the fold; the artboards are drawn at 390x844, where it is comfortably on
+# screen.
+#
+# This is a flow fix and NOT a product fix, and the distinction is the one run
+# 36 was about: the sign-in button was unreachable because that screen does not
+# scroll AT ALL. The place picker is one swipe away on a surface built to
+# scroll, and no requirement puts it above the fold.
+- scrollUntilVisible:
+    element:
+      id: "place-picker"
+    direction: DOWN
 - assertVisible:
     id: "place-picker"
 - tapOn:
@@ -53,6 +69,13 @@ appId: app.socialinterest
 - assertVisible:
     id: "place-selected"
 
+# Back UP for the caption, which sits above the place step. Maestro's `tapOn`
+# does not scroll on its own, so a flow that scrolled down to reach one control
+# has to come back for the ones above it.
+- scrollUntilVisible:
+    element:
+      id: "caption-input"
+    direction: UP
 - tapOn:
     id: "caption-input"
 - inputText: "published from a real device, at a place"

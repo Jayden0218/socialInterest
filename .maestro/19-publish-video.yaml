@@ -42,9 +42,21 @@ appId: app.socialinterest
 
 - tapOn:
     id: "tab-profile"
+# The post has to EXIST before it can be scrolled to, and a transcode takes a
+# while - so wait on the card, then scroll to the caption.
 - extendedWaitUntil:
-    visible: "a video from a real device"
+    visible:
+      id: "post-.*"
     timeout: 120000
+# SCROLLED TO. 007's profile header is the approved design - avatar, three
+# stats, name, bio, actions, the Posts/Saved strip - and it measures 327 points
+# before the list starts. At 390x844, where the artboards are drawn, the first
+# card's caption is on screen; at the emulator's 320x640 it sits at y=659, just
+# past the fold. A profile is a scrolling list, so the flow scrolls.
+- scrollUntilVisible:
+    element:
+      text: "a video from a real device"
+    direction: DOWN
 - tapOn: "a video from a real device"
 
 # FR-009. The POSTER, before playback - not an empty rectangle. This is the

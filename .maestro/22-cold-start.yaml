@@ -46,11 +46,28 @@ appId: app.socialinterest
 # anybody who declines to answer a questionnaire before seeing anything, and it
 # is the path nobody demos.
 #
-# Asserted on the fixture post rather than on any post: exploration draws from
-# the whole catalogue, so "something is there" would pass on a single stale row
-# while the ranked feed was returning nothing new.
+# ASSERTED ON A POPULATED FEED, NOT ON ONE PARTICULAR POST — and the previous
+# version of this assertion contradicted the fixture that feeds it.
+#
+# `seed-feed-fixture.ts` says, in its own comment, that the device person
+# DECLARES the interest "so the post is in the candidate set for a reason rather
+# than by the luck of an exploration draw (FR-030)", and warns that waiting on a
+# post exploration happened to surface "would fail intermittently twenty minutes
+# into a 25-minute run".
+#
+# This flow signs in as `COLD_TOKEN` — the account that declares NOTHING, which
+# is the entire point of FR-015 — and then asserted `${PRESENT}`, the post that
+# is only guaranteed for the DECLARING account. So it asked for exactly the
+# thing the fixture says cannot be relied on, and run 42 failed on it.
+#
+# What FR-015 actually requires is that the feed is POPULATED for somebody who
+# picked nothing. That is what is asserted. It cannot pass vacuously: an empty
+# ranked feed renders an empty state, and no `post-` card at all.
 - tapOn:
     id: "tab-feed"
 - assertVisible:
     id: "home-feed-screen"
-- assertVisible: "${PRESENT}"
+- extendedWaitUntil:
+    visible:
+      id: "post-.*"
+    timeout: 30000
