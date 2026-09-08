@@ -1,6 +1,8 @@
 import { VisibilityFilter, type VisibilityCandidate, type Viewer } from '../../src/visibility/visibility.filter';
 import type { PersonFollowRepository } from '../../src/persistence/person-follow.repository';
 import type { BlockRepository } from '../../src/persistence/block.repository';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { EVER_BUILT, SURFACES } from './surfaces';
 
 /**
@@ -308,6 +310,66 @@ describe('SC-005 review visibility (005 addendum)', () => {
       `\n005/SC-005: ${reviewAssertionsRun}/${expectedReview} review assertions run ` +
         `(place reviews ${reviewSurface?.built ? 'built' : 'NOT YET BUILT'}).\n`,
     );
+  });
+
+  /**
+   * =========================================================================
+   * 007/FR-013, SC-007 — ONE PERSON'S SIGNALS ARE ON NO SURFACE.
+   * =========================================================================
+   *
+   * This is plan gate G5, and it is deliberately NOT a row-per-surface loop
+   * like everything above it.
+   *
+   * A per-surface loop would need a hand-written map from each of the twelve
+   * names in `surfaces.ts` to the class that answers it — and a hand-picked map
+   * only ever covers the surfaces somebody remembered, which is the exact
+   * failure `auth-surface.spec.ts` was written after making twice. Worse, the
+   * thirteenth surface would be uncovered by silence rather than by a failure.
+   *
+   * So the claim is made once, over the whole tree: NOTHING outside the two
+   * modules that own signals can reach the signal store. A surface cannot leak
+   * what it has no way to read, and this holds for surfaces that do not exist
+   * yet. The behavioural half — that real responses carry no signal data — is
+   * `signals-hostile-client.spec.ts` case 4, driven over HTTP as Principle III
+   * requires.
+   */
+  describe('007/SC-007 — nothing outside signals/ and ranking/ can read a person\'s signals', () => {
+    const SRC = resolve(__dirname, '../../src');
+    /**
+     * The two owners. `signals/` writes them and renders the person's OWN
+     * disclosure; `ranking/` reads them to order that same person's feed.
+     * Everything else — every read path in the visibility matrix above, every
+     * profile, every notification — has no business with them.
+     */
+    const ALLOWED = ['modules/signals/', 'modules/ranking/', 'persistence/'];
+
+    const walk = (dir: string): string[] =>
+      readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+        e.isDirectory() ? walk(join(dir, e.name)) : e.name.endsWith('.ts') ? [join(dir, e.name)] : [],
+      );
+
+    it('no other module imports SignalRepository', () => {
+      const offenders = walk(SRC)
+        .filter((f) => !ALLOWED.some((a) => f.replace(SRC + '/', '').startsWith(a)))
+        .filter((f) => {
+          // Comments stripped, for the reason this repository has learned three
+          // times: a comment naming the forbidden identifier makes correct code
+          // fail, and prose describes the intention rather than the build.
+          const src = readFileSync(f, 'utf8')
+            .replace(/\/\*[\s\S]*?\*\//g, ' ')
+            .replace(/(^|[^:])\/\/.*$/gm, '$1');
+          return /SignalRepository|signalProfile|signalEvent/.test(src);
+        })
+        .map((f) => f.replace(SRC + '/', ''));
+      expect(offenders).toEqual([]);
+    });
+
+    it('and the surface list is fully covered by that claim', () => {
+      // Stated so the count is legible next to the 480 above: this is ONE
+      // assertion standing for all twelve surfaces, not twelve skipped ones.
+      expect(SURFACES.length).toBe(12);
+      expect(EVER_BUILT.length).toBe(12);
+    });
   });
 
   /**

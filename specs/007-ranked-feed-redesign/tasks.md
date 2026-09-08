@@ -34,7 +34,7 @@ contract is written BEFORE the implementations it governs; other tests may follo
 
 - [X] T001 Create the API module skeletons `apps/api/src/modules/signals/` and `apps/api/src/modules/ranking/` with empty Nest modules registered in `apps/api/src/app.module.ts`
 - [X] T002 [P] Add `SIGNAL_MAX_DWELL_MS = 30000`, `SIGNAL_MIN_DWELL_MS = 3000`, `SIGNAL_DECAY_HALF_LIFE_DAYS = 14` and `EXPLORE_EPSILON = 0.2` as named constants in `apps/api/src/modules/ranking/constants.ts` — research R2 and R5 chose values, not magic numbers
-- [ ] T003 [P] Extend `packages/shared/openapi.yaml` with the signals and feed-explanation operations, then regenerate the client (`pnpm --filter @sih/shared generate:client`) so both sides come from one document
+- [X] T003 [P] Extend `packages/shared/openapi.yaml` with the signals and feed-explanation operations, then regenerate the client (`pnpm --filter @sih/shared generate:client`) so both sides come from one document
 
 ---
 
@@ -45,7 +45,7 @@ test fails and the pressure is to weaken it — which is exactly what RS-002 for
 it while the old feed still passes keeps the decision clean.
 
 - [X] T004 Write the ranking-boundary contract test at `apps/api/tests/unit/ranking-cannot-admit.spec.ts` implementing C1 (a dependency check: `apps/api/src/modules/ranking/**` may not import `VisibilityFilter`, `Viewer`, or any block repository) — **G4**, and it must pass trivially now and keep passing later
-- [ ] T005 Write the behavioural half of the boundary contract at `apps/api/tests/integration/ranking-boundary.spec.ts` implementing C2–C5 from `contracts/ranking-boundary.md`. **C4 is the one that matters**: the served set is always a SUBSET of the proposed set — a ranker that drops a post is a bug, one that admits a post is a privacy failure
+- [X] T005 Write the behavioural half of the boundary contract at `apps/api/tests/integration/ranking-boundary.spec.ts` implementing C2–C5 from `contracts/ranking-boundary.md`. **C4 is the one that matters**: the served set is always a SUBSET of the proposed set — a ranker that drops a post is a bug, one that admits a post is a privacy failure
 - [X] T006 Delete `apps/api/tests/integration/us4-fr033-boundary.spec.ts` — **RS-002, deleted not weakened**. A softened version would assert a boundary the product no longer has and would read as coverage
 - [X] T007 Delete `apps/e2e/scripts/seed-fr033-fixture.ts` and remove its references from `apps/e2e/journeys/feed.spec.ts` and `apps/e2e/browser/authenticated.spec.ts` — RS-003
 - [X] T008 [P] Mark 001/FR-033, 001/SC-006 and 001/US4 as **WITHDRAWN by 007** in `specs/001-interest-media-sharing/spec.md`, each with a pointer to this feature — RS-001, RS-004. An invalidated requirement that is merely ignored still reads as a promise
@@ -75,7 +75,7 @@ the weighted interest appear earlier than posts from a skipped one.
 - [X] T014 [US1] Implement the decay function in `apps/api/src/modules/ranking/decay.ts`: `w × 0.5^(ageDays / 14)`, applied on READ from the stored timestamp. Never rewrite rows on a schedule — research R3
 - [X] T015 [US1] Implement `SignalService.record` (FR-003, FR-004) in `apps/api/src/modules/signals/signal.service.ts` applying every server-side bound from `contracts/signals.md`: clamp dwell to 30s, discard below 3s, one weight per kind per post per session, bounded batch
 - [X] T016 [US1] Implement `POST /v1/signals` in `apps/api/src/modules/signals/signal.controller.ts`, writing signals for the AUTHENTICATED CALLER ONLY and rejecting any signal for a post the caller cannot see
-- [ ] T017 [US1] Write the hostile-client test at `apps/api/tests/integration/signals-hostile-client.spec.ts` covering all five cases in `contracts/signals.md` — **G5**. Constitution III: a test that only drives the app's own client does not cover a server-side guarantee
+- [X] T017 [US1] Write the hostile-client test at `apps/api/tests/integration/signals-hostile-client.spec.ts` covering all five cases in `contracts/signals.md` — **G5**. Constitution III: a test that only drives the app's own client does not cover a server-side guarantee
 
 ### Ranking — deciding what to show
 
@@ -87,7 +87,7 @@ the weighted interest appear earlier than posts from a skipped one.
 - [X] T021 [US1] Implement the fallback ordering in `apps/api/src/modules/ranking/ranking.service.ts` for when a ranking cannot be produced — FR-009, a defensible order rather than an error screen
 - [X] T022 [US1] Wire `FeedService` (FR-005) in `apps/api/src/modules/feed/feed.service.ts` to call `RankingService` and then `VisibilityFilter.decide` on its output, in that order, per request. **Single-owner file**, and the order is the contract
 - [X] T023 [US1] Implement session-scoped de-duplication and continuous paging in `apps/api/src/modules/feed/feed.service.ts` — FR-008, no repeat within a session, no visible interruption at a page boundary
-- [ ] T024 [US1] Write `apps/api/tests/integration/ranked-feed.spec.ts` asserting SC-001 by COMPARING POSITIONS before and after a scripted session, not by inspecting output
+- [X] T024 [US1] Write `apps/api/tests/integration/ranked-feed.spec.ts` asserting SC-001 by COMPARING POSITIONS before and after a scripted session, not by inspecting output
 - [X] T025 [US1] Write `apps/api/tests/unit/explore.spec.ts` asserting SC-004: across 100 consecutive responses for a viewer whose signals all point at one interest, no response is entirely that interest
 - [ ] T026 [US1] Write `apps/e2e/journeys/feed.spec.ts` (FR-006) — REWRITTEN against the ranked feed (RS-003), asserting SC-005: a post flipped to private is absent on the FIRST request after the flip
 
@@ -117,9 +117,9 @@ the feed returns to seed state.
 
 - [X] T033 [US2] Implement `GET /v1/me/feed-signals` (FR-011) in `apps/api/src/modules/signals/signal.controller.ts`, rendering the explanation from THE SAME WEIGHTS the ranker reads so it cannot drift from the behaviour it describes
 - [X] T034 [US2] Implement `DELETE /v1/me/feed-signals` deleting the profile AND the raw events (B5), so clearing is verifiable rather than cosmetic — FR-012
-- [ ] T035 [US2] Write `apps/api/tests/integration/signal-reset.spec.ts` asserting the STORE is empty after a reset and that the next feed ranks as it would for a new account with the same seeds — **G3**
+- [X] T035 [US2] Write `apps/api/tests/integration/signal-reset.spec.ts` asserting the STORE is empty after a reset and that the next feed ranks as it would for a new account with the same seeds — **G3**
 - [ ] T036 [P] [US2] Add the "Your feed" group to `apps/mobile/src/features/profile/SettingsScreen.tsx` per `design/007-ui/Settings.dc.html` — what it is built from, and a clear control
-- [ ] T037 [US2] Extend `apps/api/tests/visibility/matrix.spec.ts` (FR-013) with a row asserting one person's signals are absent from every enumerated surface — **G5**, SC-007. **Single-owner file**
+- [X] T037 [US2] Extend `apps/api/tests/visibility/matrix.spec.ts` (FR-013) with a row asserting one person's signals are absent from every enumerated surface — **G5**, SC-007. **Single-owner file**
 - [ ] T038 [P] [US2] Write `apps/e2e/browser/settings-reset.spec.ts` asserting a person can find the disclosure and clear it from the app's main screen — SC-003
 
 **Checkpoint**: G3 and G5 discharged. The ranking is inspectable and resettable, which is what
