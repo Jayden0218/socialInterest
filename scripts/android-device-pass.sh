@@ -145,8 +145,24 @@ echo "-- visible text --"; visible | sed 's/^/   /'
 
 echo "== the shell must have rendered =="
 grep -q 'app-root\|resource-id' "$OUT/ui.xml" || { echo "FAIL: no UI hierarchy dumped"; exit 1; }
-for label in Feed Discover Activity; do
-  visible | grep -qx "$label" || { echo "FAIL: tab '$label' is not on screen"; exit 1; }
+
+# ASSERTED ON testIDs, NOT ON LABELS, and run 38 is why.
+#
+# This checked for the literal text `Discover`. 007 renamed that tab's LABEL to
+# `Explore` - the artboards' word, and the better one - and the tab key,
+# `tab-discover`, did not change, because it is in the testID snapshot and in
+# the Maestro flows. So the app rendered perfectly and the runner failed it,
+# 29 seconds in, before a single journey ran.
+#
+# A label is COPY. It will be reworded again, by somebody who has no reason to
+# think a shell script depends on it, and `verify-maestro-ids.mjs` cannot see
+# this file's assertions. A testID is an interface with a contract behind it
+# (006/FR-027, contracts/testid-preservation.md), which is exactly what a
+# smoke check should hold to.
+#
+# react-native maps testID to Android's resource-id, so the dump carries them.
+for id in tab-feed tab-discover tab-profile; do
+  grep -q "$id" "$OUT/ui.xml" || { echo "FAIL: '$id' is not on screen"; exit 1; }
 done
 
 echo "== the app must have TALKED to the API, not just rendered a shell =="
