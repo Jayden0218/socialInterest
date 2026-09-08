@@ -179,6 +179,20 @@ export const notificationSchema = z.object({
   kind: notificationKindSchema,
   actor: publicProfileSchema,
   postId: z.string().nullable().optional(),
+  /**
+   * 007/T053 - the thumbnail `Activity.dc.html` shows beside a post row.
+   *
+   * Costs no extra read: `listVisible` ALREADY fetches each post through
+   * `PostQueryService` to decide whether the notification survived the post
+   * being deleted or restricted, and threw the result away. So this is the
+   * post the viewer has already been judged able to see, and the url is
+   * presigned inside `toMediaItem` - after `VisibilityFilter` decided, never
+   * before (006/R4b).
+   *
+   * Null for a follow, for a post with no ready media, and for a video with no
+   * poster frame yet.
+   */
+  postThumbUrl: z.string().nullable().optional(),
   createdAt: z.string(),
   readAt: z.string().nullable().optional(),
 });

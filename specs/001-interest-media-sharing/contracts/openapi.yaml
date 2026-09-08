@@ -1728,6 +1728,14 @@ components:
         kind: { type: string, enum: [reaction, comment, follow] }
         actor: { $ref: '#/components/schemas/PublicProfile' }
         postId: { type: string, nullable: true }
+        postThumbUrl:
+          type: string
+          nullable: true
+          description: >
+            007/T053 — the thumbnail `Activity.dc.html` shows beside a post row.
+            A presigned GET url, issued only after `VisibilityFilter` has decided
+            this viewer may open the post. Null for a follow notification, for a
+            post whose media is not ready, and for a video with no poster frame.
         createdAt: { type: string, format: date-time }
         readAt: { type: string, format: date-time, nullable: true }
 

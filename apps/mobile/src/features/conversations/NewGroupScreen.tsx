@@ -1,7 +1,8 @@
-import { FlatList, Text, TextInput, View } from 'react-native';
+import { FlatList, Pressable, Text, View } from 'react-native';
 import type { PublicProfile } from '@sih/shared';
-import { activePalette as palette, space } from '../../ui/theme';
-import { Banner, Button, EmptyState, Row, Screen } from '../../ui/primitives';
+import { activePalette as palette, radius, space, textStyle, MIN_TOUCH_TARGET } from '../../ui/theme';
+import { Banner, Button, EmptyState, Field, Row, Screen } from '../../ui/primitives';
+import { Avatar } from '../../components/Avatar';
 
 /**
  * 005/FR-018, FR-024, FR-031.
@@ -78,39 +79,118 @@ export function NewGroupScreen({
   const blocking = !canCreateGroup(handles);
 
   return (
-    <Screen testID="new-group-screen">
-      <TextInput
-        testID="group-name-input"
-        style={inputStyle}
-        placeholder="Group name (optional)"
-        placeholderTextColor={palette.text.muted}
-        value={name}
-        onChangeText={onNameChange}
-      />
+    <Screen testID="new-group-screen" padded={false}>
+      {/*
+        `NewGroup.dc.html` puts Create in the HEADER, beside the title, rather
+        than at the bottom of the screen. `create-group` keeps its testID and
+        its disabled rule exactly - only where it sits changes.
+      */}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: space.lg,
+          minHeight: 50,
+        }}
+      >
+        <Text style={{ ...textStyle.title, color: palette.text.primary }}>New group</Text>
+        <Pressable
+          testID="create-group"
+          accessibilityRole="button"
+          accessibilityLabel={creating ? 'Creating group' : 'Create group'}
+          accessibilityState={{ disabled: blocking || creating === true }}
+          disabled={blocking || creating === true}
+          onPress={onCreate}
+          style={{ minHeight: MIN_TOUCH_TARGET, minWidth: MIN_TOUCH_TARGET, justifyContent: 'center', alignItems: 'flex-end' }}
+        >
+          <Text
+            style={{
+              ...textStyle.body,
+              fontWeight: '600',
+              color: blocking || creating === true ? palette.text.muted : palette.intent.accent,
+            }}
+          >
+            {creating ? 'Creating…' : 'Create'}
+          </Text>
+        </Pressable>
+      </View>
 
-      {selected.length > 0 ? (
-        <Row style={{ flexWrap: 'wrap', gap: space.xs }}>
-          {selected.map((p) => (
-            <Button
-              key={p.handle}
-              testID={`group-selected-${p.handle}`}
-              label={`${p.displayName} ✕`}
-              variant="secondary"
-              onPress={() => onToggle(p)}
-            />
-          ))}
+      <View style={{ paddingHorizontal: space.lg, gap: 14, paddingTop: space.sm }}>
+        <Field
+          testID="group-name-input"
+          accessibilityLabel="Group name (optional)"
+          placeholder="Group name (optional)"
+          value={name}
+          onChangeText={onNameChange}
+          style={{ borderRadius: radius.card, backgroundColor: palette.bg.raised, minHeight: 46 }}
+        />
+
+        {/*
+          The artboard's removal chips. `group-selected-<handle>` is unchanged
+          and still removes the person - it was a filled secondary button and is
+          now the design's pill, which reads as "chosen, tap to undo" instead of
+          as another action to take.
+        */}
+        {selected.length > 0 ? (
+          <Row style={{ flexWrap: 'wrap', gap: space.sm }}>
+            {selected.map((p) => (
+              <Pressable
+                key={p.handle}
+                testID={`group-selected-${p.handle}`}
+                accessibilityRole="button"
+                accessibilityLabel={`Remove ${p.displayName}`}
+                onPress={() => onToggle(p)}
+                style={{
+                  minHeight: MIN_TOUCH_TARGET,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 7,
+                  paddingHorizontal: 6,
+                  borderRadius: 17,
+                  backgroundColor: palette.bg.sunken,
+                }}
+              >
+                <Avatar userId={p.userId} displayName={p.displayName} size={22} />
+                <Text style={{ ...textStyle.label, color: palette.intent.accent }}>
+                  {p.displayName}
+                </Text>
+                <Text style={{ ...textStyle.label, color: palette.intent.accent, paddingRight: 6 }}>✕</Text>
+              </Pressable>
+            ))}
+          </Row>
+        ) : null}
+
+        <Field
+          testID="group-search-input"
+          accessibilityLabel="Search people"
+          placeholder="Search people"
+          value={query}
+          onChangeText={onQueryChange}
+          style={{ minHeight: 42 }}
+        />
+
+        <Row style={{ justifyContent: 'space-between' }}>
+          <Text
+            style={{
+              ...textStyle.caption,
+              fontWeight: '700',
+              letterSpacing: 0.7,
+              color: palette.text.muted,
+            }}
+          >
+            SUGGESTED
+          </Text>
+          {/*
+            The cap, shown as a count rather than only as a refusal. It is the
+            SERVER's rule (see MAX_PARTICIPANTS above) and this only says where
+            you are against it.
+          */}
+          <Text style={{ ...textStyle.caption, fontWeight: '600', color: palette.text.muted }}>
+            {`${selected.length} of ${MAX_PARTICIPANTS}`}
+          </Text>
         </Row>
-      ) : null}
-
-      <TextInput
-        testID="group-search-input"
-        style={inputStyle}
-        placeholder="Search people"
-        placeholderTextColor={palette.text.muted}
-        autoCapitalize="none"
-        value={query}
-        onChangeText={onQueryChange}
-      />
+      </View>
 
       {results.length === 0 ? (
         <EmptyState
@@ -130,12 +210,13 @@ export function NewGroupScreen({
           renderItem={({ item }) => {
             const chosen = handles.includes(item.handle);
             return (
-              <Row style={{ paddingVertical: space.sm }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: palette.text.primary, fontWeight: '600' }}>
+              <Row style={{ paddingVertical: 9, paddingHorizontal: space.lg, gap: space.md }}>
+                <Avatar userId={item.userId} displayName={item.displayName} size={42} />
+                <View style={{ flexGrow: 1, flexShrink: 1, gap: 2 }}>
+                  <Text style={{ ...textStyle.body, fontWeight: '600', color: palette.text.primary }}>
                     {item.displayName}
                   </Text>
-                  <Text style={{ color: palette.text.muted }}>@{item.handle}</Text>
+                  <Text style={{ ...textStyle.caption, color: palette.text.muted }}>@{item.handle}</Text>
                 </View>
                 <Button
                   testID={`group-participant-${item.handle}`}
@@ -166,20 +247,6 @@ export function NewGroupScreen({
         </Banner>
       ) : null}
 
-      <Button
-        testID="create-group"
-        label={creating ? 'Creating…' : 'Create group'}
-        disabled={blocking || creating === true}
-        onPress={onCreate}
-      />
     </Screen>
   );
 }
-
-const inputStyle = {
-  borderWidth: 1,
-  borderColor: palette.line.hairline,
-  borderRadius: 8,
-  color: palette.text.primary,
-  padding: space.sm,
-} as const;

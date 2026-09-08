@@ -53,6 +53,13 @@ describe('every control is reliably tappable', () => {
     'src/features/discover/InterestScreen.tsx',
     'src/features/posts/PostDetailScreen.tsx',
     'src/features/publish/MediaPickerScreen.tsx',
+    // 007/T052. The inbox row is a 50pt avatar with 11pt of padding above and
+    // below — 72 points, measured from the style it is built with, not guessed.
+    // Its two Pressables share one style object, which the tag scan cannot read
+    // through; the row is listed rather than the scan taught to resolve
+    // variables, because a scan that follows identifiers would approve any
+    // control whose style is named somewhere.
+    'src/features/conversations/InboxScreen.tsx',
   ]);
 
   /**
@@ -75,6 +82,14 @@ describe('every control is reliably tappable', () => {
       // this assertion caught, and why the floor is stated in the style now.
       boxWidth: MIN_TOUCH_TARGET,
       slop: { top: 14, bottom: 14, left: 8, right: 8 },
+    },
+    {
+      file: 'src/features/conversations/ConversationScreen.tsx',
+      label: 'report this message',
+      // A `small` line box; 10pt of slop gave 36 and this guard said so.
+      boxHeight: typeScale.small.lineHeight,
+      boxWidth: MIN_TOUCH_TARGET,
+      slop: { top: 14, bottom: 14, left: 12, right: 12 },
     },
     {
       file: 'src/App.tsx',

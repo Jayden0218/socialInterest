@@ -204,7 +204,7 @@ failure Principle I names.
 - [ ] T075 Dispatch `.github/workflows/android-emulator.yml` and record the result. **The feature is not complete without it** — Constitution V, and this project has three defects on record that only a device run found
 - [ ] T076 [P] Write the run record in `docs/verification/runs/`, naming each criterion, the command that measured it, and **each criterion NOT met**
 - [ ] T077 [P] Update `CLAUDE.md` with what 007 established and what it did not
-- [ ] T078 Re-check `spec.md`, `plan.md`, `research.md` and `contracts/` against what was actually built — the artifacts have drifted before and it was the owner who noticed, not me
+- [X] T078 Re-check `spec.md`, `plan.md`, `research.md` and `contracts/` against what was actually built — the artifacts have drifted before and it was the owner who noticed, not me
 
 ---
 

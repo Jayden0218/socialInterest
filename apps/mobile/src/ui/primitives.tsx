@@ -201,6 +201,7 @@ export function Field({
   testID,
   multiline = false,
   maxLength,
+  editable,
   style,
 }: {
   value: string;
@@ -210,6 +211,8 @@ export function Field({
   testID?: string;
   multiline?: boolean;
   maxLength?: number;
+  /** 007/T052. A composer is disabled when the server says the viewer cannot send. */
+  editable?: boolean;
   /** `TextStyle`, not `ViewStyle`: a field is text, and `textAlignVertical`
    *  is what keeps a multiline one from centring its first line on Android. */
   style?: TextStyle;
@@ -226,6 +229,7 @@ export function Field({
       autoCorrect={false}
       multiline={multiline}
       {...(maxLength === undefined ? {} : { maxLength })}
+      {...(editable === undefined ? {} : { editable })}
       style={{
         backgroundColor: palette.bg.sunken,
         borderRadius: multiline ? radius.card : radius.field,

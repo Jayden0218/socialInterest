@@ -1,7 +1,8 @@
-import { FlatList, Text, TextInput, View } from 'react-native';
+import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
 import type { Conversation, Message } from '@sih/shared';
-import { activePalette as palette, space } from '../../ui/theme';
-import { Banner, Button, EmptyState, Row, Screen } from '../../ui/primitives';
+import { activePalette as palette, radius, space, textStyle, MIN_TOUCH_TARGET } from '../../ui/theme';
+import { Banner, Button, EmptyState, Field, Row, Screen } from '../../ui/primitives';
+import { Avatar } from '../../components/Avatar';
 import { SharedPostBubble } from './SharedPostBubble';
 import { conversationTitle, isGroup } from './conversation-title';
 
@@ -87,48 +88,76 @@ export function ConversationScreen({
   return (
     <Screen testID="conversation-screen">
       {/*
-        005/FR-019, FR-024. WHO IS IN HERE, on the screen.
+        005/FR-019, FR-024. WHO IS IN HERE, on the screen. And 007/T052: `Conversation.dc.html` puts an
+        avatar, a title and "N people" in a header bar.
 
-        A group is identified by its name or by its people, never by the last
-        message - that is mutable by definition, and 004's flow-ordering defect
-        was a test asserting on exactly that preview and passing only because of
-        incidental ordering.
-
-        Someone who left is listed as having left rather than dropped: a group
-        that silently loses a name has no way to explain a message from somebody
-        who is no longer there.
+        `group-participants` still carries the FULL roster, because 005/FR-019
+        is that a group says who is in it and the header's count does not. It is
+        below the header rather than in it, where the design puts a subtitle,
+        and someone who left is still listed as having left: a group that
+        silently loses a name has no way to explain a message from somebody who
+        is no longer there.
       */}
-      {group ? (
-        <Row style={{ paddingHorizontal: space.sm, gap: space.sm }}>
-          <Text testID="group-participants" style={{ flex: 1, color: palette.text.muted }}>
-            {(conversation.participants ?? [])
-              .map((p) => (p.state === 'left' ? `${p.person.displayName} (left)` : p.person.displayName))
-              .join(', ')}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 11,
+          paddingHorizontal: space.lg,
+          paddingVertical: space.sm,
+          borderBottomWidth: 1,
+          borderBottomColor: palette.line.hairline,
+        }}
+      >
+        <Avatar
+          userId={conversation.conversationId}
+          displayName={conversationTitle(conversation)}
+          size={34}
+        />
+        <View style={{ flexGrow: 1, flexShrink: 1, gap: 1 }}>
+          <Text
+            numberOfLines={1}
+            style={{ ...textStyle.body, fontWeight: '600', color: palette.text.primary }}
+          >
+            {conversationTitle(conversation)}
           </Text>
-          {onLeave ? (
-            <Button testID="leave-group" label="Leave" variant="danger" onPress={onLeave} />
+          {group ? (
+            <Text style={{ ...textStyle.small, color: palette.text.muted }}>
+              {`${(conversation.participants ?? []).filter((p) => p.state !== 'left').length} people`}
+            </Text>
           ) : null}
-        </Row>
+        </View>
+        {group && onLeave ? (
+          <Button testID="leave-group" label="Leave" variant="danger" onPress={onLeave} />
+        ) : null}
+      </View>
+
+      {group ? (
+        <Text
+          testID="group-participants"
+          style={{
+            ...textStyle.small,
+            color: palette.text.muted,
+            paddingHorizontal: space.lg,
+            paddingTop: space.xs,
+          }}
+        >
+          {(conversation.participants ?? [])
+            .map((p) => (p.state === 'left' ? `${p.person.displayName} (left)` : p.person.displayName))
+            .join(', ')}
+        </Text>
       ) : null}
 
       {/* 005/FR-020. The id does not change when somebody is added (R1). */}
       {group && onAddParticipant ? (
-        <Row style={{ paddingHorizontal: space.sm, gap: space.sm }}>
-          <TextInput
+        <Row style={{ paddingHorizontal: space.lg, gap: space.sm, paddingTop: space.sm }}>
+          <Field
             testID="add-participant-input"
-            style={{
-              flex: 1,
-              borderWidth: 1,
-              borderColor: palette.line.hairline,
-              borderRadius: 8,
-              color: palette.text.primary,
-              padding: space.sm,
-            }}
+            accessibilityLabel="Add someone by handle"
             placeholder="Add someone by handle"
-            placeholderTextColor={palette.text.muted}
-            autoCapitalize="none"
             value={addHandle ?? ''}
-            onChangeText={onAddHandleChange}
+            onChangeText={onAddHandleChange ?? (() => undefined)}
+            style={{ flexGrow: 1, flexShrink: 1 }}
           />
           <Button
             testID="add-participant"
@@ -169,35 +198,86 @@ export function ConversationScreen({
           testID="message-list"
           data={messages}
           keyExtractor={(m) => m.messageId}
+          contentContainerStyle={{ paddingHorizontal: space.lg, paddingTop: 14, gap: 12 }}
           renderItem={({ item }) => {
             const mine = item.authorId === viewerId;
+            const removed = !item.body && item.moderationState === 'removed';
             return (
               <View
                 testID={`message-${item.messageId}`}
                 style={{
-                  padding: space.sm,
-                  gap: space.xs,
-                  alignItems: mine ? 'flex-end' : 'flex-start',
+                  flexDirection: 'row',
+                  gap: 9,
+                  alignItems: 'flex-end',
+                  justifyContent: mine ? 'flex-end' : 'flex-start',
                 }}
               >
-                {item.body ? (
-                  <Text style={{ color: palette.text.primary }}>{item.body}</Text>
-                ) : item.moderationState === 'removed' ? (
-                  // Moderation removes CONTENT. Saying so beats an empty bubble,
-                  // which reads as a bug to both people in the thread.
-                  <Text testID={`message-removed-${item.messageId}`} style={{ color: palette.text.muted }}>
-                    This message was removed.
-                  </Text>
-                ) : null}
-                <SharedPostBubble message={item} onOpen={onOpenPost} />
                 {mine ? null : (
-                  <Button
-                    testID={`report-message-${item.messageId}`}
-                    label="Report"
-                    variant="secondary"
-                    onPress={() => onReport(item.messageId)}
-                  />
+                  <Avatar userId={item.authorId} displayName={item.authorId} size={28} />
                 )}
+
+                <View style={{ maxWidth: 250, gap: space.xs, alignItems: mine ? 'flex-end' : 'flex-start' }}>
+                  {item.body || removed ? (
+                    <View
+                      style={{
+                        paddingVertical: 10,
+                        paddingHorizontal: 14,
+                        /**
+                         * The artboard's asymmetric corner: a bubble is square
+                         * on the side it was sent from, which is what makes a
+                         * column of them readable without a name on each one.
+                         */
+                        borderRadius: 18,
+                        borderBottomRightRadius: mine ? 5 : 18,
+                        borderBottomLeftRadius: mine ? 18 : 5,
+                        backgroundColor: mine ? palette.intent.accent : palette.bg.sunken,
+                      }}
+                    >
+                      {item.body ? (
+                        <Text
+                          style={{
+                            ...textStyle.body,
+                            color: mine ? palette.text.onAccent : palette.text.primary,
+                          }}
+                        >
+                          {item.body}
+                        </Text>
+                      ) : (
+                        // Moderation removes CONTENT. Saying so beats an empty
+                        // bubble, which reads as a bug to both people in the
+                        // thread.
+                        <Text
+                          testID={`message-removed-${item.messageId}`}
+                          style={{ ...textStyle.body, fontStyle: 'italic', color: palette.text.muted }}
+                        >
+                          This message was removed.
+                        </Text>
+                      )}
+                    </View>
+                  ) : null}
+
+                  <SharedPostBubble message={item} onOpen={onOpenPost} />
+
+                  {/*
+                    Constitution IV: reporting is a release gate, not polish, so
+                    it stays ON the message rather than behind a long press the
+                    artboard does not draw either. It is a quiet text control
+                    now instead of a filled button beside every bubble - the
+                    affordance is unchanged and still one tap.
+                  */}
+                  {mine ? null : (
+                    <Pressable
+                      testID={`report-message-${item.messageId}`}
+                      accessibilityRole="button"
+                      accessibilityLabel="Report this message"
+                      onPress={() => onReport(item.messageId)}
+                      hitSlop={{ top: 14, bottom: 14, left: 12, right: 12 }}
+                      style={{ minWidth: MIN_TOUCH_TARGET }}
+                    >
+                      <Text style={{ ...textStyle.small, color: palette.text.muted }}>Report</Text>
+                    </Pressable>
+                  )}
+                </View>
               </View>
             );
           }}
@@ -206,30 +286,68 @@ export function ConversationScreen({
 
       {notice ? <Banner tone="info" testID="composer-notice">{notice}</Banner> : null}
 
-      <Row style={{ padding: space.sm, gap: space.sm, alignItems: 'center' }}>
-        <TextInput
+      {/*
+        `Conversation.dc.html`'s composer: a pill field and a round accent send
+        button. The button carries a GLYPH and an accessibility label rather
+        than the word "Send" — which is why the label is spelled out here: an
+        icon-only control with no name is unusable with a screen reader, and
+        that is the failure mode of every redesign that reaches for icons.
+      */}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 10,
+          paddingHorizontal: space.lg,
+          paddingTop: space.md,
+          paddingBottom: 18,
+          backgroundColor: palette.bg.raised,
+          borderTopWidth: 1,
+          borderTopColor: palette.line.hairline,
+        }}
+      >
+        <Field
           testID="message-input"
-          style={{
-            flex: 1,
-            borderWidth: 1,
-            borderColor: palette.line.hairline,
-            borderRadius: 8,
-            color: palette.text.primary,
-            padding: space.sm,
-          }}
-          placeholder="Message"
-          placeholderTextColor={palette.text.muted}
+          accessibilityLabel="Message"
+          placeholder="Message…"
           value={draft}
           editable={conversation.viewerCanSend}
           onChangeText={onDraftChange}
+          style={{ flexGrow: 1, flexShrink: 1, minHeight: 42 }}
         />
-        <Button
+        <Pressable
           testID="send-message"
-          label={sending ? 'Sending…' : 'Send'}
+          accessibilityRole="button"
+          accessibilityLabel={sending ? 'Sending' : 'Send message'}
+          accessibilityState={{ disabled: !canSend(draft) || !conversation.viewerCanSend || sending === true }}
           disabled={!canSend(draft) || !conversation.viewerCanSend || sending === true}
           onPress={onSend}
-        />
-      </Row>
+          style={{
+            width: MIN_TOUCH_TARGET,
+            height: MIN_TOUCH_TARGET,
+            minHeight: MIN_TOUCH_TARGET,
+            borderRadius: MIN_TOUCH_TARGET / 2,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor:
+              canSend(draft) && conversation.viewerCanSend && sending !== true
+                ? palette.intent.accent
+                : palette.bg.sunken,
+          }}
+        >
+          <Text
+            style={{
+              ...textStyle.body,
+              color:
+                canSend(draft) && conversation.viewerCanSend && sending !== true
+                  ? palette.text.onAccent
+                  : palette.text.muted,
+            }}
+          >
+            {sending ? '···' : '➤'}
+          </Text>
+        </Pressable>
+      </View>
     </Screen>
   );
 }

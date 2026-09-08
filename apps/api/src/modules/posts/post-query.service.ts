@@ -195,6 +195,21 @@ export class PostQueryService {
   }
 
   /**
+   * The HYDRATED post this viewer may open, or null — 007/T053.
+   *
+   * `getById` hands its caller the raw `{ post, media }` it used to decide, and
+   * a caller that returns that to a client ships the defect this file records
+   * six times over. So the one caller that needs a response rather than a
+   * decision gets it from here, where `toResponse` runs on the rows already in
+   * hand: no second read, and no opportunity to build a seventh responder.
+   */
+  async visibleResponse(viewer: Viewer, postId: string): Promise<Record<string, unknown> | null> {
+    const result = await this.getById(viewer, postId);
+    if (!('post' in result)) return null;
+    return this.toResponse(result.post, result.media);
+  }
+
+  /**
    * Surface: interest space (A4).
    *
    * HYDRATED. It was not, until 004/US3 probed it with a real request: this

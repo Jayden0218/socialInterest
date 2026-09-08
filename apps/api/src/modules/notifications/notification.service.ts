@@ -93,8 +93,19 @@ export class NotificationService implements OnModuleInit {
   }
 
   async canOpen(viewerId: string, postId: string): Promise<boolean> {
-    const result = await this.queries.getById({ userId: viewerId }, postId);
-    return 'post' in result;
+    return (await this.openablePost(viewerId, postId)) !== null;
+  }
+
+  /**
+   * The post this viewer may open, or null.
+   *
+   * `canOpen` used to throw this away and return a boolean, and 007/T053 then
+   * needed the thumbnail `Activity.dc.html` shows - which was already in hand.
+   * Returning it costs nothing and adds no read; collapsing it to a boolean
+   * cost a second fetch that was never written.
+   */
+  private async openablePost(viewerId: string, postId: string): Promise<Record<string, unknown> | null> {
+    return this.queries.visibleResponse({ userId: viewerId }, postId);
   }
 
   /** Filters a stored list, since visibility can change after generation. */
@@ -104,12 +115,20 @@ export class NotificationService implements OnModuleInit {
   ): Promise<{ items: Record<string, unknown>[]; nextCursor: string | null }> {
     const page = await this.notifications.list(viewerId, opts);
     const kept: NotificationItem[] = [];
+    const thumbs = new Map<string, string | null>();
     for (const n of page.items) {
       // A notification generated when the post was visible must not survive the
       // post being deleted or restricted afterwards.
-      if (!n.postId || (await this.canOpen(viewerId, n.postId))) kept.push(n);
+      if (!n.postId) {
+        kept.push(n);
+        continue;
+      }
+      const post = await this.openablePost(viewerId, n.postId);
+      if (!post) continue;
+      kept.push(n);
+      thumbs.set(n.postId, thumbnailOf(post));
     }
-    return { items: await this.withActors(kept), nextCursor: page.nextCursor };
+    return { items: await this.withActors(kept, thumbs), nextCursor: page.nextCursor };
   }
 
   /**
@@ -121,7 +140,10 @@ export class NotificationService implements OnModuleInit {
    * comments, and now this - all a persistence shape escaping as a response.
    * Resolved once per distinct actor, not once per notification.
    */
-  private async withActors(items: NotificationItem[]): Promise<Record<string, unknown>[]> {
+  private async withActors(
+    items: NotificationItem[],
+    thumbs: Map<string, string | null> = new Map(),
+  ): Promise<Record<string, unknown>[]> {
     const ids = [...new Set(items.map((n) => n.actorId))];
     const profiles = new Map(
       (await Promise.all(ids.map((id) => this.people.findById(id)))).map((p, i) => [
@@ -140,9 +162,31 @@ export class NotificationService implements OnModuleInit {
           displayName: p?.displayName ?? 'Unknown',
         },
         postId: n.postId ?? null,
+        postThumbUrl: n.postId ? (thumbs.get(n.postId) ?? null) : null,
         createdAt: n.createdAt,
         readAt: n.readAt ?? null,
       };
     });
   }
+}
+
+/**
+ * The first ready image, or a video's poster frame. Reads the RESPONSE shape
+ * that `PostQueryService` produced, never a persistence row - the fifth-instance
+ * defect this file's own comment records is a persistence shape escaping as a
+ * response, and reaching past the query service would be the sixth.
+ */
+function thumbnailOf(post: Record<string, unknown>): string | null {
+  const media = post.media;
+  if (!Array.isArray(media)) return null;
+  for (const item of media as Record<string, unknown>[]) {
+    if (item.processingState !== 'ready') continue;
+    if (typeof item.posterUrl === 'string') return item.posterUrl;
+    const renditions = item.renditions;
+    if (renditions && typeof renditions === 'object') {
+      const first = Object.values(renditions as Record<string, unknown>).find((v) => typeof v === 'string');
+      if (typeof first === 'string') return first;
+    }
+  }
+  return null;
 }

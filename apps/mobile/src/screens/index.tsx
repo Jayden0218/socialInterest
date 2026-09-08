@@ -1284,6 +1284,7 @@ export function InboxContainer({
   const data = useData();
   const [inbox, setInbox] = useState<ConversationState>('accepted');
   const [items, setItems] = useState<ConversationSummary[]>([]);
+  const [requestCount, setRequestCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(
@@ -1304,6 +1305,31 @@ export function InboxContainer({
     void load(inbox);
   }, [load, inbox]);
 
+  /**
+   * The Requests badge in `Chats.dc.html`, which is the whole reason that tab is
+   * worth looking at: a request you have not seen is invisible from the
+   * Messages tab otherwise.
+   *
+   * A SEPARATE read, because the list request returns one inbox and the badge is
+   * about the other one. It runs once on mount rather than on every inbox
+   * switch, and a failure is swallowed: a decoration that cannot load must not
+   * turn into "Could not load messages" over a list that loaded fine.
+   */
+  useEffect(() => {
+    let live = true;
+    void (async () => {
+      try {
+        const page = await data.conversations.list({ state: 'requested', limit: 30 });
+        if (live) setRequestCount(page.items.length);
+      } catch {
+        if (live) setRequestCount(0);
+      }
+    })();
+    return () => {
+      live = false;
+    };
+  }, [data]);
+
   if (error) return <Failed message={error} />;
   return (
     <InboxScreen
@@ -1311,6 +1337,7 @@ export function InboxContainer({
       conversations={items}
       onSelectInbox={setInbox}
       onOpen={(c) => onOpen(c.conversationId, c.other?.handle ?? null)}
+      requestCount={requestCount}
       {...(onNewGroup ? { onNewGroup } : {})}
     />
   );
