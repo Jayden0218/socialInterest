@@ -1,63 +1,73 @@
-# Next UI pass — design source
+# A learned feed — design source
 
-Three directions for ONE screen (home), at 390x844, authored as Design
-Components and laid out by `canvas.json`. Static mockups: they exist to settle
-the look before a requirement is written.
+Two artboards at 390x844: the feed itself, and the control that lets a person
+correct it. Static mockups; they exist to settle the look and the model before
+a requirement is written.
 
-| File | Direction |
+| File | Screen |
 |---|---|
-| `Main.dc.html` | **A · Mosaic** — leading candidate |
-| `Shelves.dc.html` | **B · Shelves** |
-| `Immersive.dc.html` | **C · Immersive** |
+| `Main.dc.html` | One blended stream |
+| `Tune.dc.html` | Why you're seeing this |
 
-## Three rejected attempts, and why
+## The model
 
-**006, as shipped: "too general design, no design sense."** It built a token
-system and then painted the existing wireframe with it. Layout, hierarchy and
-control vocabulary never changed - no icons anywhere, every control the same
-pill, compose floating in the content flow, whole screens of dead space.
+**A learned feed, not a subscription.** No sections, no shelves, no interest
+axis: the next post is whatever the ranking picked. The server learns from what
+a person actually does - what they open, how long they stay, what they save -
+and serves more of it.
 
-**The first pass here: "too similar to Instagram."** Also correct, and the
-deeper fault was not visual. It collapsed the product's model - **you follow
-SUBJECTS, not people** - into a single blended stream with an interest rail
-bolted on top. Constitution I and 001/FR-033 say a person-follow must never
-widen a feed beyond followed interests. A design that renders one undifferentiated
-stream cannot express that, whatever colour it is painted.
+**The interest survives as a TAG, not as structure.** It is the dimension the
+model learns over ("this person watches climbing to the end"), which is why it
+still appears on every post and is still tappable. It is no longer the shape of
+the screen.
 
-**The second pass: a news reader.** "The design should show posts to let the
-user see, not like news." Also correct. Chasing "not Instagram" I went
-type-led - serif headlines, hairline rules, postage-stamp thumbnails - which is
-a magazine, not a media app. THE POSTS ARE THE CONTENT. A design where you read
-about the photographs instead of seeing them has failed whatever else it gets
-right.
+**The tuning sheet is not optional.** A feed learned from behaviour needs a way
+to see why and to say no, or the only way to correct it is to stop using the
+app. It also names the signals in plain words, which is where Principle III
+lands once dwell time is being measured.
 
-## What each direction is for
+## What this costs — recorded so the decision is deliberate
 
-All three lead with the media AND group by interest. Those are not in tension;
-the previous two passes each sacrificed one for the other.
+This is a change of premise, not of skin:
 
-- **A · Mosaic.** One section per interest, posts in a varied mosaic - a large
-  tile with two small, alternating side each section so it never reads as a
-  plain grid. Four posts per interest, roughly eight per screen. Trade: mixed
-  tile sizes mean crops you do not control.
-- **B · Shelves.** One shelf per interest: scroll DOWN through your interests,
-  sideways through the posts inside one. About a dozen posts reachable without
-  a tap, and a quiet interest is obvious because its shelf is short. Trade:
-  portrait tiles suit some media badly, and sideways scrolling hides posts.
-- **C · Immersive.** The post fills the screen; sideways moves between
-  interests, down moves through the posts inside one, so the axis you swipe IS
-  the organising principle. Trade: one post at a time, so browsing is slower
-  and the structure is felt rather than seen.
+- **Constitution Principle I** ("Interest Is the Organising Principle",
+  NON-NEGOTIABLE) and **001/FR-033** are replaced. The negative test guarding
+  them (`SC-006`, `feed-does-not-read-place-follows.spec.ts`) would be deleted,
+  not adjusted. The constitution needs amending first - that is
+  `/speckit-constitution`, not a code change.
+- **Machinery that does not exist**: dwell-time telemetry from the client, a
+  per-viewer signal store, and a ranking service between the datastore and the
+  feed.
+- **D1 still binds.** Read-time assembly was forced by FR-017 + SC-009: a
+  visibility flip must land everywhere immediately. So ranking chooses
+  CANDIDATES and `VisibilityFilter` still decides at read time - Principle II
+  is untouched by this change and must stay that way.
+- **Dwell tracking is behavioural data collection.** Hence the sheet naming the
+  signals rather than hiding them, and a way to clear them.
 
-## Known departures from the current tokens
+## Four rejected passes, and why
 
-- **These abandon the shipped palette deliberately.** A is warm ink-and-bone,
-  B is near-black with an acid accent, C keeps green but far more saturated.
-  Whichever is chosen, `tokens.ts` changes - and `contrast.test.ts` enumerates
-  the whole generated space, so it will say whether the new values hold.
+1. **006, as shipped** - "too general design, no design sense." It built a token
+   system and painted the existing wireframe with it; layout, hierarchy and
+   control vocabulary never changed.
+2. **Instagram-alike** - "too similar to Instagram." It also collapsed the
+   product model into one blended stream with an interest rail bolted on top -
+   decoration standing in for structure.
+3. **Almanac / Index / Rooms** - "should show posts, not like news." Chasing
+   "not Instagram" produced type-led magazine layouts with postage-stamp
+   thumbnails. The posts are the content.
+4. **Mosaic / Shelves / Immersive** - media-forward, but still sectioned by
+   interest, which this change removes.
+
+## Known gaps
+
 - **Media is a gradient placeholder.** There is no photography in the repo, and
   the ffmpeg test patterns the capture harness produces would misrepresent the
-  design rather than illustrate it.
+  design rather than illustrate it. A handful of real images would make this
+  much easier to judge.
+- **Cold start is undesigned.** A learned feed has nothing to learn from on day
+  one; what a new account sees is an open question, and picking interests at
+  signup is the obvious answer that this design currently has no screen for.
 
 ## Regenerating the canvas
 
