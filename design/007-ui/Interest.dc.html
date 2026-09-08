@@ -1,0 +1,122 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #6ad987; } a:hover { color: #8fe6a5; }
+    .ui { font-family: 'Schibsted Grotesk', system-ui, sans-serif; }
+    .serif { font-family: 'Instrument Serif', Georgia, serif; }
+  </style>
+</helmet>
+
+<div class="ui" style="width: 390px; height: 844px; background: #0a170d; color: #f0f7f2; overflow: hidden; position: relative; display: flex; flex-direction: column;">
+
+  <!-- THE INTEREST OWNS THE SCREEN. Its hue washes the header, so two spaces
+       are told apart before a word is read. -->
+  <div style="position: relative; flex-shrink: 0; padding: 44px 20px 0;
+       background:
+         radial-gradient(120% 100% at 0% 0%, {{tint}} 0%, rgba(0,0,0,0) 62%),
+         linear-gradient(180deg, #12241a 0%, #0a170d 100%);">
+
+    <div style="height: 44px; display: flex; align-items: center; justify-content: space-between;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f0f7f2" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19l-7-7 7-7"></path></svg>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="#c6d1c9"><circle cx="5" cy="12" r="1.7"></circle><circle cx="12" cy="12" r="1.7"></circle><circle cx="19" cy="12" r="1.7"></circle></svg>
+    </div>
+
+    <div style="padding: 18px 0 0; display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="width: 22px; height: 3px; border-radius: 2px; background: {{hue}};"></div>
+        <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: {{hue}};">Interest</span>
+      </div>
+      <div class="serif" style="font-size: 46px; line-height: 1.02; letter-spacing: -0.015em;">Bouldering</div>
+      <div style="font-size: 14px; line-height: 20px; color: #c6d1c9; max-width: 320px; text-wrap: pretty;">Short, hard climbing without a rope. Problems, projects, and the mats underneath.</div>
+      <div style="display: flex; gap: 18px; padding-top: 2px;">
+        <span style="font-size: 13px; color: #9ca89e;"><span style="color: #f0f7f2; font-weight: 600;">12.4k</span> posts</span>
+        <span style="font-size: 13px; color: #9ca89e;"><span style="color: #f0f7f2; font-weight: 600;">3,180</span> following</span>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; padding: 18px 0 20px;">
+      <div style="flex-grow: 1; height: 46px; border-radius: 13px; background: {{hue}}; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; color: #07150b;">Follow</div>
+      <div style="width: 46px; height: 46px; border-radius: 13px; border: 1px solid #2c392f; display: flex; align-items: center; justify-content: center;">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#c6d1c9" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v16l-6-4.5L6 20V4z"></path></svg>
+      </div>
+    </div>
+
+    <!-- sub-interests: the same hue family, one step lighter -->
+    <div style="display: flex; gap: 8px; padding-bottom: 16px; overflow: hidden;">
+      <sc-for list="{{subs}}" as="s" hint-placeholder-count="4">
+        <div style="height: 32px; padding: 0 13px; border-radius: 9px; background: {{s.bg}}; border: 1px solid {{s.line}}; display: flex; align-items: center; flex-shrink: 0;">
+          <span style="font-size: 13px; font-weight: 500; color: {{s.fg}};">{{s.name}}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- media grid: the content, not a list of captions -->
+  <div style="flex-grow: 1; overflow: hidden; padding: 0 0 0;">
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 12px;">
+      <span style="font-size: 13px; font-weight: 600; letter-spacing: 0.02em; color: #f0f7f2;">New</span>
+      <span style="font-size: 13px; font-weight: 500; color: #9ca89e;">Top</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; padding: 0 3px;">
+      <sc-for list="{{tiles}}" as="t" hint-placeholder-count="4">
+        <div style="height: 150px; border-radius: 4px; background: {{t.bg}};"></div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="height: 78px; flex-shrink: 0; background: #0d1c11; border-top: 1px solid #2c392f; display: flex; align-items: flex-start; padding-top: 12px;">
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 5px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca89e" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3.9L20 10v10a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1V10l8-6.1z"></path></svg>
+      <span style="font-size: 10px; font-weight: 500; color: #9ca89e;">Feed</span>
+    </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 5px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="#6ad987" stroke="none"><path d="M12 2.6A9.4 9.4 0 1 0 21.4 12 9.4 9.4 0 0 0 12 2.6zm3.6 6.1l-2.1 5-5 2.1 2.1-5 5-2.1z"></path></svg>
+      <span style="font-size: 10px; font-weight: 600; color: #6ad987;">Discover</span>
+    </div>
+    <div style="flex-grow: 1; display: flex; justify-content: center;">
+      <div style="width: 46px; height: 46px; border-radius: 15px; background: #6ad987; display: flex; align-items: center; justify-content: center; margin-top: -5px; box-shadow: 0 6px 18px rgba(106,217,135,0.28);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#07150b" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+      </div>
+    </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 5px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca89e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a7.5 7.5 0 0 1-11 6.7L4.5 19.5l1.3-4.3A7.5 7.5 0 1 1 20 11.5z"></path></svg>
+      <span style="font-size: 10px; font-weight: 500; color: #9ca89e;">Chats</span>
+    </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 5px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca89e" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="8.5" r="3.6"></circle><path d="M5 20c0-3.4 3.1-5.5 7-5.5s7 2.1 7 5.5"></path></svg>
+      <span style="font-size: 10px; font-weight: 500; color: #9ca89e;">You</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"hue":{"editor":"color","default":"#4fbf7a","options":["#4fbf7a","#e0705f","#46b8bd","#8a7ce0"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const hue = this.props.hue ?? '#4fbf7a';
+    const sub = (name) => ({ name, bg: 'rgba(79,191,122,0.10)', line: 'rgba(79,191,122,0.28)', fg: '#bfe8cd' });
+    return {
+      hue,
+      tint: 'rgba(79,191,122,0.22)',
+      subs: [sub('Highball'), sub('Slab'), sub('Comp'), sub('Outdoor')],
+      tiles: [
+        { bg: 'linear-gradient(155deg, #3d6b4a, #16301f)' },
+        { bg: 'linear-gradient(155deg, #6d8f5c, #22331d)' },
+        { bg: 'linear-gradient(155deg, #2f5f56, #12271f)' },
+        { bg: 'linear-gradient(155deg, #55764a, #1a2c1d)' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

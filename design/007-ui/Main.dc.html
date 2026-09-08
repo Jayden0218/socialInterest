@@ -1,0 +1,130 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #6ad987; } a:hover { color: #8fe6a5; }
+    .ui { font-family: 'Schibsted Grotesk', system-ui, sans-serif; }
+    .serif { font-family: 'Instrument Serif', Georgia, serif; }
+  </style>
+</helmet>
+
+<div class="ui" style="width: 390px; height: 844px; background: #0a170d; color: #f0f7f2; overflow: hidden; position: relative; display: flex; flex-direction: column;">
+
+  <!-- space the real status bar occupies -->
+  <div style="height: 44px; flex-shrink: 0;"></div>
+
+  <!-- header -->
+  <div style="height: 52px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 20px;">
+    <div class="serif" style="font-size: 27px; letter-spacing: -0.01em; line-height: 1;">Interest</div>
+    <div style="display: flex; gap: 18px; align-items: center;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c6d1c9" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c6d1c9" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0-6 6c0 4-1.5 5.5-2 6h16c-.5-.5-2-2-2-6a6 6 0 0 0-6-6z"></path><path d="M10.5 20a1.8 1.8 0 0 0 3 0"></path></svg>
+    </div>
+  </div>
+
+  <!-- the interests you follow: the spine of the product, not a chip row -->
+  <div style="height: 100px; flex-shrink: 0; display: flex; gap: 18px; padding: 6px 20px 0; overflow: hidden;">
+    <sc-for list="{{rail}}" as="i" hint-placeholder-count="5">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 7px; width: 58px; flex-shrink: 0;">
+        <div style="width: 54px; height: 54px; border-radius: 50%; padding: 2px; background: {{i.ring}}; display: flex; align-items: center; justify-content: center;">
+          <div style="width: 100%; height: 100%; border-radius: 50%; background: {{i.fill}}; display: flex; align-items: center; justify-content: center;">
+            <span class="serif" style="font-size: 22px; color: {{i.hue}}; line-height: 1;">{{i.initial}}</span>
+          </div>
+        </div>
+        <span style="font-size: 11px; font-weight: 500; color: #9ca89e; letter-spacing: 0.01em;">{{i.name}}</span>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- the post -->
+  <div style="flex-grow: 1; overflow: hidden;">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 8px 20px 12px;">
+      <div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(140deg, #2f5a3d, #16301f); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #cfe6d6;">M</div>
+      <div style="display: flex; flex-direction: column; gap: 1px; flex-grow: 1;">
+        <span style="font-size: 14px; font-weight: 600; letter-spacing: -0.005em;">maren</span>
+        <span style="font-size: 12px; color: #9ca89e;">in <span style="color: #4fbf7a; font-weight: 600;">Bouldering</span></span>
+      </div>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="#9ca89e"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg>
+    </div>
+
+    <!-- media, edge to edge -->
+    <div style="width: 390px; height: 372px; position: relative; background:
+        radial-gradient(120% 90% at 18% 12%, #4a7f58 0%, rgba(74,127,88,0) 55%),
+        radial-gradient(100% 80% at 88% 30%, #7fa86a 0%, rgba(127,168,106,0) 60%),
+        radial-gradient(90% 70% at 55% 100%, #16301f 0%, rgba(22,48,31,0) 70%),
+        linear-gradient(160deg, #24402c 0%, #101f16 100%);">
+      <!-- the interest's hue, carried onto the media as a thin spine -->
+      <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: linear-gradient(180deg, #4fbf7a, rgba(79,191,122,0));"></div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 20px; padding: 14px 20px 0;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f0f7f2" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-9.2A4 4 0 0 1 12 8a4 4 0 0 1 7-1.2c0 4.8-7 13.2-7 13.2z"></path></svg>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f0f7f2" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a7.5 7.5 0 0 1-11 6.6L4.5 20l1.4-4.2A7.5 7.5 0 1 1 20 12z"></path></svg>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f0f7f2" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l16-7-6 16-2.5-6.5L4 12z"></path></svg>
+      <div style="flex-grow: 1;"></div>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f0f7f2" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v16l-6-4.5L6 20V4z"></path></svg>
+    </div>
+
+    <div style="padding: 10px 20px 0; display: flex; flex-direction: column; gap: 5px;">
+      <span style="font-size: 13px; font-weight: 600; color: #c6d1c9;">148 likes</span>
+      <span style="font-size: 14px; line-height: 20px; color: #f0f7f2; text-wrap: pretty;">First clean send of the season. Three months on this one problem.</span>
+    </div>
+  </div>
+
+  <!-- tab bar: icons, and the primary action lives here -->
+  <div style="height: 78px; flex-shrink: 0; background: #0d1c11; border-top: 1px solid #2c392f; display: flex; align-items: flex-start; padding-top: 12px;">
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 5px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="#6ad987" stroke="none"><path d="M12 3.2L21 10v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V10l9-6.8z"></path></svg>
+      <span style="font-size: 10px; font-weight: 600; color: #6ad987;">Feed</span>
+    </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 5px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca89e" stroke-width="1.6" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M15.2 8.8l-1.9 4.5-4.5 1.9 1.9-4.5 4.5-1.9z"></path></svg>
+      <span style="font-size: 10px; font-weight: 500; color: #9ca89e;">Discover</span>
+    </div>
+    <div style="flex-grow: 1; display: flex; justify-content: center;">
+      <div style="width: 46px; height: 46px; border-radius: 15px; background: #6ad987; display: flex; align-items: center; justify-content: center; margin-top: -5px; box-shadow: 0 6px 18px rgba(106,217,135,0.28);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#07150b" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+      </div>
+    </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 5px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca89e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a7.5 7.5 0 0 1-11 6.7L4.5 19.5l1.3-4.3A7.5 7.5 0 1 1 20 11.5z"></path></svg>
+      <span style="font-size: 10px; font-weight: 500; color: #9ca89e;">Chats</span>
+    </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 5px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca89e" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="8.5" r="3.6"></circle><path d="M5 20c0-3.4 3.1-5.5 7-5.5s7 2.1 7 5.5"></path></svg>
+      <span style="font-size: 10px; font-weight: 500; color: #9ca89e;">You</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mk = (name, hue) => ({
+      name, hue, initial: name[0],
+      ring: 'linear-gradient(150deg, ' + hue + ', rgba(0,0,0,0.25))',
+      fill: '#0a170d',
+    });
+    return {
+      rail: [
+        mk('Bouldering', '#4fbf7a'),
+        mk('Birding', '#e0705f'),
+        mk('Ceramics', '#46b8bd'),
+        mk('Film', '#4aa3d8'),
+        mk('Ramen', '#d06bb4'),
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

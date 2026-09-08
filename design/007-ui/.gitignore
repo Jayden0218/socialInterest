@@ -1,0 +1,5 @@
+# The seeded canvas is a ~2.5 MB generated bundle: the design source below plus
+# the editor payload, produced by the design tooling. The .dc.html artboards and
+# canvas.json ARE the source - regenerate the bundle from them rather than
+# committing it.
+interest-app-redesign.html

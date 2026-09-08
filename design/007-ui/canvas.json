@@ -1,0 +1,14 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html",       "x": 0,    "y": 0, "w": 390, "h": 844, "title": "Feed" },
+    { "file": "Interest.dc.html",   "x": 490,  "y": 0, "w": 390, "h": 844, "title": "Interest space" },
+    { "file": "PostDetail.dc.html", "x": 980,  "y": 0, "w": 390, "h": 844, "title": "Post" },
+    { "file": "Profile.dc.html",    "x": 1470, "y": 0, "w": 390, "h": 844, "title": "Profile" },
+    { "file": "Chats.dc.html",      "x": 1960, "y": 0, "w": 390, "h": 844, "title": "Chats" }
+  ],
+  "annotations": [
+    { "id": "premise", "x": 0, "y": -150, "w": 500, "text": "The interest is the container.\n\nEvery screen carries the interest's own hue — as an orb in the feed rail, a wash behind the interest header, a spine on the media, a dot on a chip. That is the product's premise made visual: you follow subjects, not people." },
+    { "id": "changes", "x": 980, "y": -150, "w": 560, "text": "What changed from the current build:\n· a real icon tab bar (there were no icons anywhere)\n· media edge-to-edge, no card frame\n· compose is the centre tab action, not a pill in the content flow\n· Instrument Serif + Schibsted Grotesk, not one weight of system sans\n· underline tabs instead of a second row of identical pills" }
+  ],
+  "launch": { "view": "canvas" }
+}
