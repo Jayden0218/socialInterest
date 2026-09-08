@@ -73,3 +73,47 @@ describe('no Text renders with the platform default colour', () => {
     expect(offenders).toEqual([]);
   });
 });
+
+/**
+ * FR-021: text respects the platform's font-scaling setting.
+ *
+ * `allowFontScaling={false}` opts one `<Text>` out of that, and it is the
+ * easiest possible fix for any text that overflows its box - which is exactly
+ * why it needs a guard rather than a code review. Turning it off makes the
+ * symptom disappear and makes the app unusable for somebody who set a large
+ * font because they need one.
+ *
+ * ONE exception is allowed and named here: the initial inside `Avatar`, a
+ * decorative glyph sized from a fixed-diameter circle, hidden from assistive
+ * tech, standing beside the name it abbreviates. Anything else is a bug.
+ *
+ * This is a guard for a DEVICE-ONLY symptom. react-native-web ignores the
+ * platform setting, so no browser journey and no screenshot in `docs/screens`
+ * could ever show the overflow that prompted it.
+ */
+describe('font scaling is not switched off (FR-021)', () => {
+  const ALLOWED = new Set(['Avatar.tsx']);
+
+  it('only Avatar opts out of platform font scaling', () => {
+    const offenders: string[] = [];
+    for (const file of tsxFiles(SRC)) {
+      const name = file.split('/').pop() ?? '';
+      if (ALLOWED.has(name)) continue;
+      const src = readFileSync(file, 'utf8');
+      if (/allowFontScaling=\{false\}|allowFontScaling={\s*false\s*}/.test(src)) {
+        offenders.push(file.slice(file.indexOf('src/')));
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  /**
+   * And the exception must stay real. If somebody deletes the opt-out from
+   * `Avatar` this passes for the wrong reason, so assert it is still there -
+   * a guard that permits a thing should check the thing still exists.
+   */
+  it('Avatar still carries the opt-out the exception is granted for', () => {
+    const src = readFileSync(join(SRC, 'components/Avatar.tsx'), 'utf8');
+    expect(src).toMatch(/allowFontScaling=\{false\}/);
+  });
+});

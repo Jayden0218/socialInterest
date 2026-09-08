@@ -69,6 +69,21 @@ export function Avatar({
       <Text
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
+        /**
+         * The ONE place in the app where font scaling is turned off (FR-021).
+         *
+         * The circle is a fixed `size`, and this glyph is sized from it - so at
+         * a large accessibility font setting the letter grows and the circle
+         * does not, and the initial spills out of its own disc. That is a
+         * device-only symptom: react-native-web ignores the platform setting,
+         * so no screenshot here would ever show it.
+         *
+         * Switching it off is right rather than expedient because this letter
+         * is NOT content. It is a decorative stand-in for a face, hidden from
+         * assistive tech two lines above; the name it stands for sits beside it
+         * as real text and scales normally. Nobody reads an avatar.
+         */
+        allowFontScaling={false}
         style={{
           color: palette.text.onInterest,
           fontSize: Math.round(size * 0.42),
