@@ -144,39 +144,62 @@ describe('004/US2 - a post can be about a place', () => {
    * This is 001/FR-033's shape, carried across to places, and it is what keeps
    * Constitution I from being violated by construction.
    */
-  it('SC-006 following a place does NOT widen the feed beyond followed interests (FR-019)', async () => {
+  /**
+   * 004/SC-006 AND FR-019, RESTATED FOR THE RANKED FEED (007).
+   *
+   * The original claim was that a post at a followed place, in an interest the
+   * viewer had not followed, must be ABSENT from the feed. Under the composed
+   * feed that was a statement about membership. It cannot be now: the ranked
+   * feed draws candidates across the catalogue, so that post appearing says
+   * nothing about the place-follow.
+   *
+   * The requirement's INTENT is untouched and is still Principle I: FOLLOWING A
+   * PLACE MUST NOT FEED YOU ITS POSTS. Modelling a restaurant as a sub-interest
+   * would put every restaurant post into "Food" worldwide, and a place-follow
+   * that ranked its posts up would be the same mistake with an extra step.
+   *
+   * So the claim moved to where it is now unambiguous: a place-follow must
+   * leave the RANKING untouched. `feed-does-not-read-place-follows.spec.ts`
+   * asserts the same thing structurally — the selection path cannot even import
+   * the place-follow repository — and the two together are what SC-006 needs,
+   * because a structural guard says the dependency is absent and never that the
+   * behaviour is right.
+   */
+  it('SC-006 following a place does not feed you its posts (FR-019)', async () => {
     const author = await actor('widenPlaceAuthor');
     const viewer = await actor('widenPlaceViewer');
     const [followed, notFollowed] = (await author.data.interests.listTop({ limit: 2 })).items;
     const locality = uniqueLocality('widen');
     const place = await author.data.places.create({ name: 'The Widener', category: 'bar', locality });
 
-    // First half: with the interest followed, the post IS in the feed.
+    // First half: with the interest declared, the post IS in the feed.
     await viewer.data.interests.follow(followed!.interestId);
     const inFollowed = await publishReadyImage(author, [followed!.interestId], {
       placeId: place.placeId,
       caption: 'in a followed interest',
     });
-    await viewer.data.places.follow(place.placeId);
 
     const withInterest = await viewer.data.feed.home({ limit: 50 });
     expect(withInterest.items.map((p) => p.postId)).toContain(inFollowed);
 
-    // Second half: a post at the SAME place, in an interest the viewer does not
-    // follow, must never appear - however much they follow the place.
+    // Second half: a post at the SAME place, in an interest the viewer has not
+    // declared. Following the place must not change what the ranker knows.
+    const beforeFollow = await viewer.data.signals.disclosure();
+    await viewer.data.places.follow(place.placeId);
+
     const inUnfollowed = await publishReadyImage(author, [notFollowed!.interestId], {
       placeId: place.placeId,
       caption: 'in an UNfollowed interest',
     });
 
     await consistently(
-      () => viewer.data.feed.home({ limit: 50 }),
-      (page) => !page.items.some((p) => p.postId === inUnfollowed),
-      { forMs: 1500, describe: 'a followed place widening the feed' },
+      () => viewer.data.signals.disclosure(),
+      (after) => JSON.stringify(after.interests) === JSON.stringify(beforeFollow.interests),
+      { forMs: 1500, describe: 'a followed place changing the ranking' },
     );
 
     // And it IS on the place page, so the post exists and is visible - the
-    // absence above is about the FEED, not about the post being broken.
+    // place-follow does its own job, which is the place page, and only that.
     const onPlace = await viewer.data.places.posts(place.placeId, { limit: 20 });
     expect(onPlace.items.map((p) => p.postId)).toContain(inUnfollowed);
   }, 180_000);

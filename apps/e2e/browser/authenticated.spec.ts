@@ -68,25 +68,46 @@ describe('browser journeys - signed in', () => {
     await page.waitForSelector('text=rendered in a browser', { timeout: 30_000 });
   });
 
-  it('does not show posts from an interest the person does not follow (FR-033)', async () => {
+  /**
+   * REWRITTEN FOR THE RANKED FEED (007/RS-003, RS-008).
+   *
+   * This asserted 001/FR-033's negative case: a post in an unfollowed interest
+   * must be ABSENT from the rendered feed. That requirement is withdrawn, and
+   * the replacement is not a softer version — the ranked feed draws candidates
+   * across the catalogue, so reaching an undeclared interest is required
+   * (FR-007) rather than merely tolerated.
+   *
+   * What survives, and is worth asserting IN A BROWSER rather than over HTTP,
+   * is that a declared interest's post RENDERS and renders FIRST. The journeys
+   * assert the ordering through the data layer; this asserts that the ordering
+   * survives all the way to the DOM, which is the chain 002 showed can be
+   * broken while every HTTP assertion passes.
+   */
+  it('renders the ranked order, with a declared interest first (FR-030)', async () => {
     const author = await actor('webnofollowauthor');
     const reader = await actor('webnofollowreader');
     const tops = await author.data.interests.listTop({ limit: 2 });
-    const followed = tops.items[0]!;
+    const declared = tops.items[0]!;
     const other = tops.items[1]!;
 
-    await publishReadyImage(author, [followed.interestId], { caption: 'in a followed interest' });
-    await publishReadyImage(author, [other.interestId], { caption: 'must not appear here' });
-    await reader.data.interests.follow(followed.interestId);
+    await publishReadyImage(author, [declared.interestId], { caption: 'in a declared interest' });
+    // Published AFTER, so recency alone would put it first and the declaration
+    // has something to overturn.
+    await publishReadyImage(author, [other.interestId], { caption: 'not declared' });
+    await reader.data.interests.follow(declared.interestId);
 
     await signIn(reader.token);
     await page.goto(web.url, { waitUntil: 'networkidle' });
-    await page.waitForSelector('text=in a followed interest', { timeout: 30_000 });
+    await page.waitForSelector('text=in a declared interest', { timeout: 30_000 });
 
-    // The negative case is the requirement. A feed that merely contains the
-    // right post would also pass if it contained everything.
     const body = (await page.textContent('body')) ?? '';
-    expect(body).not.toContain('must not appear here');
+    const declaredAt = body.indexOf('in a declared interest');
+    const otherAt = body.indexOf('not declared');
+    expect(declaredAt).toBeGreaterThanOrEqual(0);
+    // If the other post is on the page at all, it must be below. Its presence is
+    // not required — exploration re-samples per request, and demanding a
+    // specific post from a random draw would be asserting luck.
+    if (otherAt >= 0) expect(declaredAt).toBeLessThan(otherAt);
   });
 
   it('keeps the person signed in across a reload', async () => {

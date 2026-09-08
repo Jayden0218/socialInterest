@@ -287,24 +287,44 @@ describe('004/US1 - two people can talk', () => {
     expect(after.items.map((p) => p.postId)).toEqual(before.items.map((p) => p.postId));
   });
 
-  it('FR-012 messaging a stranger does not admit their posts to your feed', async () => {
+  /**
+   * 004/FR-012, RESTATED FOR THE RANKED FEED (007).
+   *
+   * This asserted that messaging somebody does not admit their posts to your
+   * feed — which, under the composed feed, meant a post in an interest you had
+   * not followed must be ABSENT. There is no such boundary now: the ranked feed
+   * draws candidates across the catalogue, so that post can legitimately appear
+   * and its appearance says nothing about the conversation.
+   *
+   * The requirement's INTENT survives exactly: a conversation must not be a
+   * ranking signal. Messaging somebody is not a statement that you want more of
+   * their posts — it is often the opposite — and a feed that learned from it
+   * would make every argument, every complaint and every safety conversation
+   * into a preference.
+   *
+   * So the assertion moved from the feed's CONTENTS to the SIGNAL PROFILE,
+   * which is where the claim now lives and where it is unambiguous.
+   */
+  it('FR-012 a conversation is not a ranking signal', async () => {
     const stranger = await actor('widenStranger');
     const viewer = await actor('widenViewer2');
 
     const [mine, theirs] = (await viewer.data.interests.listTop({ limit: 2 })).items;
     await viewer.data.interests.follow(mine!.interestId);
-    // Published to an interest the viewer does NOT follow.
-    const hidden = await publishReadyImage(stranger, [theirs!.interestId]);
+    // Published to an interest the viewer has not declared.
+    await publishReadyImage(stranger, [theirs!.interestId]);
+
+    const before = await viewer.data.signals.disclosure();
 
     const conv = await viewer.data.conversations.open(stranger.handle);
     await viewer.data.conversations.send(conv.conversationId, { body: 'hello' });
 
-    // `consistently`, because "it is not there" checked once against an
+    // `consistently`, because "it did not happen" checked once against an
     // asynchronous pipeline passes before anything could have arrived.
     await consistently(
-      () => viewer.data.feed.home({ limit: 50 }),
-      (page) => !page.items.some((p) => p.postId === hidden),
-      { forMs: 1000, describe: "a messaged stranger's post staying out of the feed" },
+      () => viewer.data.signals.disclosure(),
+      (after) => JSON.stringify(after.interests) === JSON.stringify(before.interests),
+      { forMs: 1000, describe: 'a conversation leaving the ranking untouched' },
     );
   });
 

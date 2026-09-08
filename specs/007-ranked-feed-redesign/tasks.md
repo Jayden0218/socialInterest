@@ -89,19 +89,19 @@ the weighted interest appear earlier than posts from a skipped one.
 - [X] T023 [US1] Implement session-scoped de-duplication and continuous paging in `apps/api/src/modules/feed/feed.service.ts` — FR-008, no repeat within a session, no visible interruption at a page boundary
 - [X] T024 [US1] Write `apps/api/tests/integration/ranked-feed.spec.ts` asserting SC-001 by COMPARING POSITIONS before and after a scripted session, not by inspecting output
 - [X] T025 [US1] Write `apps/api/tests/unit/explore.spec.ts` asserting SC-004: across 100 consecutive responses for a viewer whose signals all point at one interest, no response is entirely that interest
-- [ ] T026 [US1] Write `apps/e2e/journeys/feed.spec.ts` (FR-006) — REWRITTEN against the ranked feed (RS-003), asserting SC-005: a post flipped to private is absent on the FIRST request after the flip
+- [X] T026 [US1] Write `apps/e2e/journeys/feed.spec.ts` (FR-006) — REWRITTEN against the ranked feed (RS-003), asserting SC-005: a post flipped to private is absent on the FIRST request after the flip
 
 ### Cold start — what a new account sees
 
 - [X] T027 [US1] Implement seed-interest storage (FR-014) in `apps/api/src/modules/signals/seed.service.ts` writing `SEEDINTERESTS` as its OWN item type — **not interest follows**. Storing them as follows would recreate the subscription feed through the back door, because every later reader treats a follow as a follow (research R4)
 - [X] T028 [US1] Implement the fallback for a skipped cold start in `apps/api/src/modules/ranking/candidate-source.ts` — FR-015, a populated feed with no picks at all
-- [ ] T029 [P] [US1] Build the cold-start screen in `apps/mobile/src/features/onboarding/PickInterestsScreen.tsx` per `design/007-ui/ColdStart.dc.html`, worded as a starting point rather than a subscription
+- [X] T029 [P] [US1] Build the cold-start screen in `apps/mobile/src/features/onboarding/PickInterestsScreen.tsx` per `design/007-ui/ColdStart.dc.html`, worded as a starting point rather than a subscription
 
 ### The client's side of the signals
 
-- [ ] T030 [US1] Implement dwell measurement in `apps/mobile/src/features/feed/useDwell.ts` — viewability at 60% / 300ms, clock stopped by `AppState`, per-post cap, batched flush every 30s and on background (research R7, FR-004)
-- [ ] T031 [US1] Add `signals.record` to `apps/mobile/src/data/signals.ts` and wire it through `apps/e2e/support/client.ts`. **Single-owner file**
-- [ ] T032 [US1] Write `apps/e2e/journeys/signals.spec.ts` driving a session through the app's own data layer and asserting the profile moved
+- [X] T030 [US1] Implement dwell measurement in `apps/mobile/src/features/feed/useDwell.ts` — viewability at 60% / 300ms, clock stopped by `AppState`, per-post cap, batched flush every 30s and on background (research R7, FR-004)
+- [X] T031 [US1] Add `signals.record` to `apps/mobile/src/data/signals.ts` and wire it through `apps/e2e/support/client.ts`. **Single-owner file**
+- [X] T032 [US1] Write `apps/e2e/journeys/signals.spec.ts` driving a session through the app's own data layer and asserting the profile moved
 
 **Checkpoint**: the feed ranks, cannot collapse, cannot over-admit, and a visibility flip
 still lands immediately.
@@ -118,9 +118,9 @@ the feed returns to seed state.
 - [X] T033 [US2] Implement `GET /v1/me/feed-signals` (FR-011) in `apps/api/src/modules/signals/signal.controller.ts`, rendering the explanation from THE SAME WEIGHTS the ranker reads so it cannot drift from the behaviour it describes
 - [X] T034 [US2] Implement `DELETE /v1/me/feed-signals` deleting the profile AND the raw events (B5), so clearing is verifiable rather than cosmetic — FR-012
 - [X] T035 [US2] Write `apps/api/tests/integration/signal-reset.spec.ts` asserting the STORE is empty after a reset and that the next feed ranks as it would for a new account with the same seeds — **G3**
-- [ ] T036 [P] [US2] Add the "Your feed" group to `apps/mobile/src/features/profile/SettingsScreen.tsx` per `design/007-ui/Settings.dc.html` — what it is built from, and a clear control
+- [X] T036 [P] [US2] Add the "Your feed" group to `apps/mobile/src/features/profile/SettingsScreen.tsx` per `design/007-ui/Settings.dc.html` — what it is built from, and a clear control
 - [X] T037 [US2] Extend `apps/api/tests/visibility/matrix.spec.ts` (FR-013) with a row asserting one person's signals are absent from every enumerated surface — **G5**, SC-007. **Single-owner file**
-- [ ] T038 [P] [US2] Write `apps/e2e/browser/settings-reset.spec.ts` asserting a person can find the disclosure and clear it from the app's main screen — SC-003
+- [X] T038 [P] [US2] Write `apps/e2e/browser/settings-reset.spec.ts` asserting a person can find the disclosure and clear it from the app's main screen — SC-003
 
 **Checkpoint**: G3 and G5 discharged. The ranking is inspectable and resettable, which is what
 makes the amendment a replacement rather than a deletion.

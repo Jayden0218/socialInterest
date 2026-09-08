@@ -20,7 +20,14 @@ import { Shell } from '../App';
 
 /** A data layer that answers, so containers reach a rendered state. */
 function fakeData(over: Partial<Record<string, unknown>> = {}): AppData {
-  const page = { items: [], nextCursor: null };
+  /**
+   * THE SERVER'S SHAPE, not the one the data layer used to declare.
+   *
+   * These stubs said `{ items, nextCursor }` — matching a type that was wrong —
+   * so the app's paging bug (007) was invisible here: the stubs and the code
+   * agreed with each other and neither agreed with the API.
+   */
+  const page = { items: [], page: { nextCursor: null, emptyStateHint: null } };
   const me = {
     handle: 'me',
     displayName: 'Me',
@@ -245,7 +252,7 @@ describe('the shell reaches every screen', () => {
         notificationPrefs: { reaction: true, comment: true, follow: true },
       }) },
       posts: {
-        byHandle: async () => ({ items: [], nextCursor: null }),
+        byHandle: async () => ({ items: [], page: { nextCursor: null, emptyStateHint: null } }),
         get: async () => ({
           postId: 'p1', caption: 'hello', interests: [], media: [],
           reactionCount: 0, commentCount: 0, viewerHasReacted: false,
@@ -259,7 +266,7 @@ describe('the shell reaches every screen', () => {
           items: [{ postId: 'p1', caption: 'hello', interests: [], media: [],
             reactionCount: 0, commentCount: 0, processingState: 'ready', visibility: 'public',
             author: { userId: 'u2', handle: 'someone', displayName: 'Someone' } }],
-          nextCursor: null,
+          page: { nextCursor: null, emptyStateHint: null },
         }),
       },
       people: {
@@ -267,7 +274,7 @@ describe('the shell reaches every screen', () => {
           userId: 'u2', handle: 'someone', displayName: 'Someone', bio: null,
           followerCount: 3, followingCount: 1, topInterests: [], viewerIsFollowing,
         }),
-        posts: async () => ({ items: [], nextCursor: null }),
+        posts: async () => ({ items: [], page: { nextCursor: null, emptyStateHint: null } }),
         search: async () => ({ items: [] }),
         follow: async (h: string) => {
           followed = h;
@@ -321,12 +328,12 @@ describe('the shell reaches every screen', () => {
     };
     const data = fakeData({
       interests: {
-        search: async () => ({ items: [found], nextCursor: null }),
-        suggested: async () => ({ items: [], nextCursor: null }),
-        listTop: async () => ({ items: [found], nextCursor: null }),
-        listChildren: async () => ({ items: [], nextCursor: null }),
+        search: async () => ({ items: [found], page: { nextCursor: null } }),
+        suggested: async () => ({ items: [], page: { nextCursor: null, emptyStateHint: null } }),
+        listTop: async () => ({ items: [found], page: { nextCursor: null } }),
+        listChildren: async () => ({ items: [], page: { nextCursor: null, emptyStateHint: null } }),
         get: async () => found,
-        posts: async () => ({ items: [], nextCursor: null }),
+        posts: async () => ({ items: [], page: { nextCursor: null, emptyStateHint: null } }),
         follow: async () => undefined,
         unfollow: async () => undefined,
       },
@@ -378,7 +385,7 @@ describe('the shell reaches every screen', () => {
             items: [{ postId: 'p9', caption: 'mine', interests: [], media: [],
               reactionCount: 0, commentCount: 0, processingState: 'ready', visibility: 'public',
               author: { userId: 'u1', handle: 'realhandle', displayName: 'Me' } }],
-            nextCursor: null,
+            page: { nextCursor: null, emptyStateHint: null },
           };
         },
         get: async () => null,

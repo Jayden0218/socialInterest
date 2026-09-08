@@ -1,3 +1,4 @@
+import { useCallback, useRef } from 'react';
 import { FlatList, Text, View } from 'react-native';
 import { activePalette as palette, space, type } from '../ui/theme';
 import { EmptyState } from '../ui/primitives';
@@ -67,6 +68,27 @@ export interface PagedPostListProps<T> {
 }
 
 export function PagedPostList<T>({ state, keyOf, renderItem, onLoadMore, empty, onViewableChanged }: PagedPostListProps<T>) {
+  /**
+   * A STABLE CALLBACK, held through a ref, and it is not a micro-optimisation.
+   *
+   * `FlatList` THROWS on a changed `onViewableItemsChanged`: "Changing
+   * onViewableItemsChanged on the fly is not supported". An inline arrow is a
+   * new identity every render, so the feed crashed on its second render — the
+   * whole screen, not just the callback.
+   *
+   * That is exactly the trap `viewabilityConfig` carries and I only guarded the
+   * config. Found by a browser journey printing the page error, in seconds;
+   * nothing in the unit tests renders a real FlatList, so all 162 stayed green
+   * while the app was broken on every surface that shows the feed.
+   */
+  const latest = useRef(onViewableChanged);
+  latest.current = onViewableChanged;
+  const handleViewable = useCallback(
+    ({ viewableItems }: { viewableItems: { key: string }[] }) =>
+      latest.current?.(viewableItems.map((v) => v.key)),
+    [],
+  );
+
   if (state.items.length === 0 && !state.loading) {
     return (
       <EmptyState
@@ -98,13 +120,14 @@ export function PagedPostList<T>({ state, keyOf, renderItem, onLoadMore, empty, 
              * alone counts a post the reader flicked past, and time alone
              * counts one barely on screen.
              *
-             * The config object must be STABLE across renders; React Native
-             * throws "Changing viewabilityConfig on the fly is not supported"
-             * otherwise, which is why it is a module constant.
+             * BOTH the config and the CALLBACK must be stable across renders;
+             * React Native throws "Changing ... on the fly is not supported"
+             * for either. The config is a module constant and the handler is
+             * held through a ref above — guarding only the config, which is
+             * what I did first, crashes the feed on its second render.
              */
             viewabilityConfig: VIEWABILITY_CONFIG,
-            onViewableItemsChanged: ({ viewableItems }: { viewableItems: { key: string }[] }) =>
-              onViewableChanged(viewableItems.map((v) => v.key)),
+            onViewableItemsChanged: handleViewable,
           }
         : {})}
       ListFooterComponent={

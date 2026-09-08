@@ -2,9 +2,23 @@ import { useCallback, useEffect, useState } from 'react';
 import { appendPage, initialPagedState, type PagedState } from '../components/PagedPostList';
 import { DataError } from '../data';
 
-/** What the data layer returns for a list call. */
+/**
+ * What the data layer returns for a list call — THE SERVER'S ACTUAL SHAPE.
+ *
+ * This said `nextCursor?: string` at the top level until 007. Every list
+ * endpoint nests it under `page`, so this read `undefined` on every call,
+ * `appendPage` recorded the list as exhausted, and THE APP COULD NEVER LOAD A
+ * SECOND PAGE of anything. Page one always arrived, so every screen looked
+ * right; infinite scroll simply stopped after twenty items.
+ *
+ * `nextCursor` is kept as an optional fallback for the one endpoint that is
+ * genuinely flat (conversation messages, which long-poll rather than page), so
+ * this generic can serve both without either lying about the other.
+ */
 export interface ApiPage<T> {
   items: T[];
+  page?: { nextCursor: string | null; emptyStateHint?: string | null };
+  /** The flat form. Only conversation messages answer this way. */
   nextCursor?: string;
 }
 
@@ -36,7 +50,13 @@ export function usePaged<T>(
       setError(null);
       try {
         const page = await fetchPage(cursor);
-        const asPage = { items: page.items, page: { nextCursor: page.nextCursor ?? null } };
+        const asPage = {
+          items: page.items,
+          page: {
+            nextCursor: page.page?.nextCursor ?? page.nextCursor ?? null,
+            emptyStateHint: page.page?.emptyStateHint ?? null,
+          },
+        };
         setState((s) => appendPage(cursor ? s : initialPagedState<T>(), asPage));
       } catch (err) {
         setState((s) => ({ ...s, loading: false }));

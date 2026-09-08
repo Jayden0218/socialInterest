@@ -60,6 +60,37 @@ describe('browser journeys - the screens the shell could not reach', () => {
     // The sign-in screen closing is the assertion: signIn calls GET /v1/me with
     // the token before storing it, so this only happens if the API accepted it.
     await page.waitForSelector(id('sign-in-screen'), { state: 'detached', timeout: 20_000 });
+
+    /**
+     * 007/FR-014. SIGNING IN NOW LANDS ON THE COLD START, which is a PUSHED
+     * screen — so the tab bar is not on it, exactly as 005/J-21 recorded for a
+     * pushed conversation. A journey that expected the tabs immediately after
+     * sign-in is waiting for something the app deliberately does not render
+     * yet, and that is what broke the whole browser suite in one commit.
+     *
+     * Dismissed rather than picked from: what the cold start does with picks is
+     * covered by `cold-start-container.test.tsx` and `signals.spec.ts`, and
+     * these journeys are about reaching the screens after it.
+     */
+    /**
+     * WAIT for one of the two possible next screens before deciding.
+     *
+     * The first version of this queried for the skip button IMMEDIATELY and
+     * found nothing, because the container renders `pick-interests-loading`
+     * while it reads the catalogue — so every journey sailed past the cold
+     * start and then waited thirty seconds for a tab bar that is not on a
+     * pushed screen. Racing the two outcomes is the fix; polling for one of
+     * them and assuming the other is how the same bug comes back.
+     */
+    await Promise.race([
+      page.waitForSelector(id('pick-skip'), { timeout: 20_000 }).catch(() => null),
+      page.waitForSelector(id('tab-feed'), { timeout: 20_000 }).catch(() => null),
+    ]);
+    const skip = await page.$(id('pick-skip'));
+    if (skip) {
+      await skip.click();
+      await page.waitForSelector(id('pick-interests-screen'), { state: 'detached', timeout: 20_000 });
+    }
   }
 
   it('J-01 a person signs in by typing a token, and the API accepts it', async () => {
