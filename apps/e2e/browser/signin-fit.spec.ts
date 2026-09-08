@@ -33,10 +33,9 @@ describe('sign-in fits with the keyboard up', () => {
   let web: WebServer;
   let page: Page;
 
-  /** The shortest supported screen, and what is left of it under a keyboard. */
+  /** The shortest supported screen. */
   const WIDTH = 320;
   const FULL = 640;
-  const KEYBOARD_UP = 390;
 
   beforeAll(async () => {
     web = await startWebServer(`${baseUrl()}/v1`);
@@ -75,16 +74,56 @@ describe('sign-in fits with the keyboard up', () => {
     await page.close();
   }, 180_000);
 
-  it('and STILL on screen with the bottom 250 points gone, as a keyboard takes', async () => {
-    await open(KEYBOARD_UP);
+  /**
+   * THE SUBMIT IS ABOVE THE FIELD — and this replaced an assertion that passed
+   * while the device failed three times running.
+   *
+   * The old version measured at a 320x390 viewport and checked the button's
+   * bottom against 390: "what is left of a 640pt screen once a keyboard takes
+   * 250". It passed at 363. Runs 39, 40 and 41 all spent twenty minutes signed
+   * out anyway, and run 41's flow log said exactly why — Maestro TAPPED
+   * `sign-in-token` and then could not find `sign-in-submit` for 54 seconds, so
+   * the button was under the keyboard.
+   *
+   * The guard was not measuring badly. It was measuring against a GUESS at the
+   * keyboard's height, and react-native-web has no soft keyboard, so no browser
+   * measurement can ever supply that number. **250 was invented, and everything
+   * built on it was too.**
+   *
+   * So this asserts the thing that does not need the number. A control ABOVE
+   * the field cannot be covered by a keyboard that opens BELOW the field: if
+   * the field can be reached and typed into — which the device demonstrated
+   * three times — the button can be reached too. True under `adjustResize` and
+   * `adjustPan`, at any keyboard height.
+   */
+  it('the submit button is ABOVE the field, so no keyboard height can hide it', async () => {
+    await open(FULL);
     const submit = await box('sign-in-submit');
-
-    // The assertion run 39 would have failed: 409 against 390.
-    expect(submit.y + submit.height).toBeLessThanOrEqual(KEYBOARD_UP);
-
-    // And the field, or there is nothing to type into.
     const field = await box('sign-in-token');
-    expect(field.y + field.height).toBeLessThanOrEqual(KEYBOARD_UP);
+
+    // Boxes in the message: a failure should say where they actually are
+    // rather than only that one was below the other.
+    expect({
+      submitBottom: Math.round(submit.y + submit.height),
+      fieldTop: Math.round(field.y),
+      ok: submit.y + submit.height <= field.y,
+    }).toMatchObject({ ok: true });
+
+    await page.close();
+  }, 180_000);
+
+  /**
+   * Kept, and deliberately NOT the load-bearing assertion any more: at the full
+   * height both controls are on screen. It catches a layout that overflows a
+   * short phone with no keyboard at all, which is a different failure from the
+   * one above and still worth failing on.
+   */
+  it('and both controls are on screen at the shortest supported height', async () => {
+    await open(FULL);
+    for (const id of ['sign-in-token', 'sign-in-submit']) {
+      const b = await box(id);
+      expect({ id, ok: b.y + b.height <= FULL }).toEqual({ id, ok: true });
+    }
     await page.close();
   }, 180_000);
 
@@ -97,7 +136,7 @@ describe('sign-in fits with the keyboard up', () => {
    * reproducible in a browser. The screen has to FIT instead.
    */
   it('does not solve the fit by scrolling', async () => {
-    await open(KEYBOARD_UP);
+    await open(FULL);
     const scrolls = await page.locator('[data-testid="sign-in-screen"]').evaluate((el: unknown) => {
       const g = globalThis as unknown as { getComputedStyle(n: unknown): { overflowY: string } };
       return ['auto', 'scroll'].includes(g.getComputedStyle(el).overflowY);

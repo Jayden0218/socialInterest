@@ -52,6 +52,51 @@ export function SignInScreen({ token, submitting, error, onTokenChange, onSubmit
         
         `signin-fit.spec.ts` measures this at the keyboard-up viewport now.
       */}
+      {/*
+        THE SUBMIT IS ABOVE THE FIELD, and that is an INVARIANT rather than a
+        measurement — runs 39, 40 and 41 are why.
+
+        Every one of those runs spent twenty minutes signed out, and run 41's
+        flow log finally named the step: Maestro TAPPED `sign-in-token` and then
+        could not find `sign-in-submit` for 54 seconds. `uiautomator` only
+        reports nodes inside the visible window, so the button was under the
+        soft keyboard — which opens beneath the field being typed into.
+
+        My first fix top-aligned the form and shrank the field, and
+        `signin-fit.spec.ts` said it fit: the browser reflows at 320x390 and the
+        button landed at 363. The device disagreed twice. The guard was not
+        simulating badly — it was measuring against a GUESS at the keyboard's
+        height, and the guess was wrong. react-native-web has no soft keyboard,
+        so no browser measurement can supply that number.
+
+        So the layout stops depending on it. A control ABOVE the field cannot be
+        covered by a keyboard that opens below the field: if the field is
+        reachable at all — and it demonstrably was, three runs running — then so
+        is the button. That holds under `adjustResize` and `adjustPan` alike and
+        at any keyboard height, which is what makes it an invariant and not
+        another number to be wrong about.
+
+        It also matches what the rest of 007 does: Save, Share, Next and Create
+        are all header controls on their screens.
+      */}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: space.md,
+          paddingBottom: space.md,
+        }}
+      >
+        <Text style={{ ...textStyle.title, color: palette.text.primary }}>Sign in</Text>
+        <Button
+          testID="sign-in-submit"
+          label={submitting ? 'Signing in…' : 'Get started'}
+          disabled={submitting || token.trim().length === 0}
+          onPress={onSubmit}
+        />
+      </View>
+
       <View style={{ gap: space.md }}>
         {/*
           The promise first, per `design/007-ui/SignIn.dc.html`. A sign-in
@@ -93,13 +138,6 @@ export function SignInScreen({ token, submitting, error, onTokenChange, onSubmit
             {error}
           </Banner>
         ) : null}
-
-        <Button
-          testID="sign-in-submit"
-          label={submitting ? 'Signing in…' : 'Get started'}
-          disabled={submitting || token.trim().length === 0}
-          onPress={onSubmit}
-        />
 
         <Text style={{ ...textStyle.small, color: palette.text.muted, textAlign: 'center' }}>
           By continuing you agree to the Terms and the Privacy Notice.
