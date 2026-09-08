@@ -175,6 +175,29 @@ async function main(): Promise<void> {
   await page.fill(id('sign-in-token'), me.token);
   await click('sign-in-submit');
   await page.waitForSelector(id('sign-in-screen'), { state: 'detached', timeout: 20_000 });
+
+  /**
+   * 007/FR-014. SIGNING IN LANDS ON THE COLD START, a pushed screen with no tab
+   * bar — so this captures it and then dismisses it. Without the dismissal the
+   * next line waits thirty seconds for a tab bar the app deliberately does not
+   * render yet, which is exactly how fifteen browser journeys broke in one
+   * commit.
+   *
+   * Raced rather than polled: the container renders a loading placeholder
+   * first, so querying for the skip button immediately finds nothing and sails
+   * past.
+   */
+  await Promise.race([
+    page.waitForSelector(id('pick-skip'), { timeout: 20_000 }).catch(() => null),
+    page.waitForSelector(id('tab-feed'), { timeout: 20_000 }).catch(() => null),
+  ]);
+  if (await page.$(id('pick-skip'))) {
+    await page.waitForTimeout(400);
+    await shot('cold-start');
+    await click('pick-skip');
+    await page.waitForSelector(id('pick-interests-screen'), { state: 'detached', timeout: 20_000 });
+  }
+
   await page.waitForTimeout(800);
   await shot('home-feed');
 

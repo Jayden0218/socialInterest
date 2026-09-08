@@ -194,13 +194,13 @@ failure Principle I names.
 
 ## Phase 8: Evidence and cross-cutting
 
-- [ ] T070a Extend `apps/api/bench/feed.bench.ts` to the ranked path and record **p95 first-screen latency and the ranking's own added time** — **SC-012**, and the constitution's "a stated numeric criterion MUST have a task that measures it". The harness already exists; nothing new is needed but the run
+- [X] T070a Extend `apps/api/bench/feed.bench.ts` to the ranked path and record **p95 first-screen latency and the ranking's own added time** — **SC-012**, and the constitution's "a stated numeric criterion MUST have a task that measures it". The harness already exists; nothing new is needed but the run
 - [X] T070b [P] Extend `apps/e2e/browser/safety-fit.spec.ts` to assert **four or more posts are visible on the feed at a 640pt viewport without scrolling** — SC-008, measured at a fixed viewport rather than counted by eye
-- [ ] T070c [P] Assert in `apps/e2e/journeys/onboarding.spec.ts` that a new account reaches a **populated** feed, with no empty state on the path — SC-002
-- [ ] T071 Run the FULL CI step list from `.github/workflows/ci.yml`, in order, not a proxy for it. Run `@sih/e2e` **alone** — two concurrent jest invocations kill each other's API and produce a page of `fetch failed` that reads like a product failure
+- [X] T070c [P] Assert in `apps/e2e/journeys/onboarding.spec.ts` that a new account reaches a **populated** feed, with no empty state on the path — SC-002
+- [X] T071 Run the FULL CI step list from `.github/workflows/ci.yml`, in order, not a proxy for it. Run `@sih/e2e` **alone** — two concurrent jest invocations kill each other's API and produce a page of `fetch failed` that reads like a product failure
 - [X] T072 [P] Run `node scripts/verify-maestro-ids.mjs` and fix any selector the redesign broke, in the app rather than in the flow
 - [X] T073 Update the Maestro flows in `.maestro/` for the ranked feed — `06-home-feed.yaml` can no longer assert an interest section
-- [ ] T074 Recapture the screens with `apps/e2e/scripts/capture-screens.ts` (run from `apps/e2e`) and keep the before/after pair in `docs/screens/README.md`
+- [X] T074 Recapture the screens with `apps/e2e/scripts/capture-screens.ts` (run from `apps/e2e`) and keep the before/after pair in `docs/screens/README.md`
 - [ ] T075 Dispatch `.github/workflows/android-emulator.yml` and record the result. **The feature is not complete without it** — Constitution V, and this project has three defects on record that only a device run found
 - [ ] T076 [P] Write the run record in `docs/verification/runs/`, naming each criterion, the command that measured it, and **each criterion NOT met**
 - [ ] T077 [P] Update `CLAUDE.md` with what 007 established and what it did not
