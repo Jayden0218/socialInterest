@@ -85,16 +85,39 @@ export function NewGroupScreen({
         than at the bottom of the screen. `create-group` keeps its testID and
         its disabled rule exactly - only where it sits changes.
       */}
+      {/*
+        THE NAME FIELD AND CREATE SHARE ONE ROW, and that is a measurement
+        rather than a layout preference.
+
+        `21-group-chat` types into the search field and then taps a RESULT, with
+        the soft keyboard up. At 320x640 the layout that passed device runs 34
+        and 37 put the second result at 245-289. My first rebuild put it at
+        358-402 — a hundred and thirteen points lower — because a separate title
+        header and a "SUGGESTED" row went in above the list. That is a
+        regression I introduced, and it would have cost a run to discover.
+
+        Merging the title row into the name row recovers the header's height
+        while keeping `create-group` above the fold, which is the reason the
+        header existed at all: at the BOTTOM of the screen it is the sign-in
+        defect again, under the keyboard where nothing can reach it.
+      */}
       <View
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          gap: space.sm,
           paddingHorizontal: space.lg,
-          minHeight: 50,
+          paddingTop: space.xs,
         }}
       >
-        <Text style={{ ...textStyle.title, color: palette.text.primary }}>New group</Text>
+        <Field
+          testID="group-name-input"
+          accessibilityLabel="Group name (optional)"
+          placeholder="Group name (optional)"
+          value={name}
+          onChangeText={onNameChange}
+          style={{ flexGrow: 1, flexShrink: 1, borderRadius: radius.card, backgroundColor: palette.bg.raised, minHeight: 42 }}
+        />
         <Pressable
           testID="create-group"
           accessibilityRole="button"
@@ -116,15 +139,7 @@ export function NewGroupScreen({
         </Pressable>
       </View>
 
-      <View style={{ paddingHorizontal: space.lg, gap: 14, paddingTop: space.sm }}>
-        <Field
-          testID="group-name-input"
-          accessibilityLabel="Group name (optional)"
-          placeholder="Group name (optional)"
-          value={name}
-          onChangeText={onNameChange}
-          style={{ borderRadius: radius.card, backgroundColor: palette.bg.raised, minHeight: 46 }}
-        />
+      <View style={{ paddingHorizontal: space.lg, gap: space.sm, paddingTop: space.sm }}>
 
         {/*
           The artboard's removal chips. `group-selected-<handle>` is unchanged
@@ -170,26 +185,41 @@ export function NewGroupScreen({
           style={{ minHeight: 42 }}
         />
 
-        <Row style={{ justifyContent: 'space-between' }}>
-          <Text
-            style={{
-              ...textStyle.caption,
-              fontWeight: '700',
-              letterSpacing: 0.7,
-              color: palette.text.muted,
-            }}
-          >
-            SUGGESTED
-          </Text>
-          {/*
-            The cap, shown as a count rather than only as a refusal. It is the
-            SERVER's rule (see MAX_PARTICIPANTS above) and this only says where
-            you are against it.
-          */}
-          <Text style={{ ...textStyle.caption, fontWeight: '600', color: palette.text.muted }}>
-            {`${selected.length} of ${MAX_PARTICIPANTS}`}
-          </Text>
-        </Row>
+        {/*
+          HIDDEN WHILE SEARCHING, for two reasons and the second one is measured.
+          
+          "Suggested" is simply wrong over a result set somebody just typed a
+          query for. And the row costs about thirty points directly above the
+          list — which matters because `21-group-chat` types into the search
+          field and then taps a RESULT, with the soft keyboard up.
+          
+          Measured at 320x640: the layout that passed device runs 34 and 37 put
+          the second result at 245-289. My rebuild put it at 358-402, a hundred
+          and thirteen points lower, because a header and this row went in above
+          it. That is a regression I introduced and would have cost a run.
+        */}
+        {query.trim() ? null : (
+          <Row style={{ justifyContent: 'space-between' }}>
+            <Text
+              style={{
+                ...textStyle.caption,
+                fontWeight: '700',
+                letterSpacing: 0.7,
+                color: palette.text.muted,
+              }}
+            >
+              SUGGESTED
+            </Text>
+            {/*
+              The cap, shown as a count rather than only as a refusal. It is the
+              SERVER's rule (see MAX_PARTICIPANTS above) and this only says where
+              you are against it.
+            */}
+            <Text style={{ ...textStyle.caption, fontWeight: '600', color: palette.text.muted }}>
+              {`${selected.length} of ${MAX_PARTICIPANTS}`}
+            </Text>
+          </Row>
+        )}
       </View>
 
       {results.length === 0 ? (
