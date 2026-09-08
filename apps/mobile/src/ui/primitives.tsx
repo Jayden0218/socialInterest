@@ -1,5 +1,5 @@
 import { Pressable, Text, View, type ViewStyle } from 'react-native';
-import { MIN_TOUCH_TARGET, theme } from './theme';
+import { activePalette, MIN_TOUCH_TARGET, radius, space, theme, type } from './theme';
 
 export function Button({
   label,
@@ -43,7 +43,16 @@ export function Button({
         justifyContent: 'center',
       }}
     >
-      <Text style={{ color: fg, fontSize: theme.font.md, fontWeight: '600' }}>{label}</Text>
+      <Text
+        style={{
+          color: fg,
+          fontSize: type.label.size,
+          lineHeight: type.label.lineHeight,
+          fontWeight: type.label.weight,
+        }}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -57,8 +66,19 @@ export function Banner({
   children: string;
   testID?: string;
 }) {
+  /**
+   * 006/FR-016. `#d97706` used to be written here, in the file that exists to
+   * stop exactly that. It survived because the hard-coded-style guard is scoped
+   * to `features/` - which is right, since `ui/` is where values are DEFINED -
+   * and a literal hiding in the definition layer is the one place the guard
+   * cannot look. Found by reading, not by a test.
+   */
   const border =
-    tone === 'danger' ? theme.color.danger : tone === 'warning' ? '#d97706' : theme.color.border;
+    tone === 'danger'
+      ? activePalette.intent.danger
+      : tone === 'warning'
+        ? activePalette.intent.warning
+        : activePalette.line.strong;
   return (
     <View
       testID={testID}
@@ -66,12 +86,20 @@ export function Banner({
       style={{
         borderLeftWidth: 3,
         borderLeftColor: border,
-        backgroundColor: theme.color.surface,
-        padding: theme.space.md,
-        borderRadius: theme.radius.sm,
+        backgroundColor: activePalette.bg.raised,
+        padding: space.md,
+        borderRadius: radius.md,
       }}
     >
-      <Text style={{ color: theme.color.text, fontSize: theme.font.sm }}>{children}</Text>
+      <Text
+        style={{
+          color: activePalette.text.primary,
+          fontSize: type.body.size,
+          lineHeight: type.body.lineHeight,
+        }}
+      >
+        {children}
+      </Text>
     </View>
   );
 }
@@ -90,9 +118,33 @@ export function EmptyState({
   testID?: string;
 }) {
   return (
-    <View testID={testID} style={{ padding: theme.space.xl, alignItems: 'center', gap: theme.space.md }}>
-      <Text style={{ fontSize: theme.font.lg, fontWeight: '600', color: theme.color.text }}>{title}</Text>
-      <Text style={{ fontSize: theme.font.md, color: theme.color.muted, textAlign: 'center' }}>{body}</Text>
+    <View testID={testID} style={{ padding: space.xl, alignItems: 'center', gap: space.md }}>
+      <Text
+        style={{
+          fontSize: type.title.size,
+          lineHeight: type.title.lineHeight,
+          fontWeight: type.title.weight,
+          color: activePalette.text.primary,
+        }}
+      >
+        {title}
+      </Text>
+      {/*
+        `text.secondary`, not `muted`. An empty state's body is the sentence that
+        tells a person what to do next - 001/FR-036 gives each surface its own
+        wording for that reason - and setting it in the dimmest role available
+        makes the most useful line on the screen the hardest one to read.
+      */}
+      <Text
+        style={{
+          fontSize: type.body.size,
+          lineHeight: type.body.lineHeight,
+          color: activePalette.text.secondary,
+          textAlign: 'center',
+        }}
+      >
+        {body}
+      </Text>
       {actionLabel ? <Button label={actionLabel} onPress={onAction} testID="empty-state-action" /> : null}
     </View>
   );

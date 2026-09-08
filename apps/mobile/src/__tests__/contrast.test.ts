@@ -19,6 +19,40 @@ const palettes: [string, Palette][] = [
   ['light', light],
 ];
 
+/**
+ * 006/T035, FR-017. EVERY TOKEN EXISTS IN BOTH PALETTES.
+ *
+ * A token defined in only one is a build failure, not a fallback. The failure it
+ * prevents is specific and silent: a colour missing from the dark palette
+ * resolves to `undefined`, react-native drops the style, and the element
+ * inherits - which for text is the platform's black, on a near-black surface.
+ * That is exactly the defect the post caption shipped with, arriving by a
+ * different route.
+ */
+describe('both palettes are complete', () => {
+  const shape = (p: Palette): string[] =>
+    Object.entries(p)
+      .flatMap(([group, values]) =>
+        typeof values === 'object' && values !== null
+          ? Object.keys(values as Record<string, unknown>).map((k) => `${group}.${k}`)
+          : [group],
+      )
+      .sort();
+
+  it('light and dark define exactly the same token names', () => {
+    expect(shape(light)).toEqual(shape(dark));
+  });
+
+  it.each(palettes)('%s defines a value for every token, never undefined', (_name, p) => {
+    const missing = Object.entries(p).flatMap(([group, values]) =>
+      Object.entries(values as Record<string, unknown>)
+        .filter(([, v]) => v === undefined || v === null || v === '')
+        .map(([k]) => `${group}.${k}`),
+    );
+    expect(missing).toEqual([]);
+  });
+});
+
 describe.each(palettes)('%s palette meets WCAG AA', (name, p) => {
   const backgrounds = [
     ['bg.base', p.bg.base],

@@ -1,7 +1,8 @@
 import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
 import type { InterestRef, PlaceSummary, PublicProfile } from '@sih/shared';
-import { theme } from '../../ui/theme';
-import { EmptyState, Screen } from '../../ui/primitives';
+import { activePalette, theme } from '../../ui/theme';
+import { interestColour } from '../../ui/interest-colour';
+import { EmptyState, Row, Screen } from '../../ui/primitives';
 import { labelWithParent } from './InterestScreen';
 
 /**
@@ -147,8 +148,32 @@ export function InterestSearchScreen({
               onPress={() => onSelect(item.interestId)}
               style={{ paddingVertical: theme.space.md, borderBottomWidth: 1, borderBottomColor: theme.color.border }}
             >
-              {/* Always parent-qualified, so two same-named interests are distinguishable. */}
-              <Text style={{ fontSize: theme.font.md, color: theme.color.text }}>{resultLabel(item)}</Text>
+              {/*
+                006/FR-013. The interest's own colour, beside its name.
+
+                A dot rather than a filled row: a list of saturated bars is
+                harder to read than the plain list it replaced, and the colour is
+                here to help someone recognise an interest they already know -
+                not to decorate. `resultLabel` stays exactly as it was, because
+                FR-014 means the NAME is what identifies the row and the colour
+                only narrows the search.
+              */}
+              <Row style={{ alignItems: 'center', gap: theme.space.sm }}>
+                <View
+                  testID={`search-result-colour-${index}`}
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: theme.radius.pill,
+                    backgroundColor: interestColour(
+                      { interestId: item.interestId, parentId: item.parent?.interestId ?? null },
+                      activePalette,
+                    ),
+                  }}
+                />
+                {/* Always parent-qualified, so two same-named interests are distinguishable. */}
+                <Text style={{ fontSize: theme.font.md, color: theme.color.text }}>{resultLabel(item)}</Text>
+              </Row>
             </Pressable>
           )}
         />

@@ -115,7 +115,8 @@ export const light: Palette = {
  */
 export const type = {
   display: { size: 30, lineHeight: 36, weight: '700' as const },
-  title: { size: 20, lineHeight: 26, weight: '650' as const },
+  // '600', not '650': react-native accepts weights in hundreds only.
+  title: { size: 20, lineHeight: 26, weight: '600' as const },
   body: { size: 15, lineHeight: 22, weight: '400' as const },
   label: { size: 13, lineHeight: 18, weight: '600' as const },
   caption: { size: 12, lineHeight: 16, weight: '400' as const },

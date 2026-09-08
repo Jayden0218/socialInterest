@@ -2,6 +2,8 @@ import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
 import type { Interest, InterestRef, Post } from '@sih/shared';
 import { theme } from '../../ui/theme';
 import { Screen } from '../../ui/primitives';
+import { interestColour } from '../../ui/interest-colour';
+import { activePalette } from '../../ui/theme';
 import { PagedPostList, type PagedState } from '../../components/PagedPostList';
 import { FollowInterestControl } from './FollowInterestControl';
 
@@ -78,6 +80,35 @@ export function InterestScreen({
   return (
     <Screen testID="interest-screen">
       <View style={{ gap: theme.space.sm }}>
+        {/*
+          006/FR-013. THE INTEREST'S OWN COLOUR, in the screen's own chrome.
+
+          This is the product's premise made visible: every interest space looked
+          identical, so the thing the whole app is organised around had no
+          presence at all. A rule in the interest's derived colour is enough to
+          tell two spaces apart at a glance (SC-003) without competing with the
+          content below it.
+
+          G1: this treatment belongs to INTERESTS ONLY. A place and a person must
+          never carry it - following a place deliberately does not put its posts
+          in your feed (004/FR-019), and a shared visual language would say it
+          does. `interest-treatment.test.ts` fails if it spreads.
+        */}
+        <View
+          testID="interest-identity"
+          style={{
+            height: 4,
+            width: 56,
+            borderRadius: theme.radius.pill,
+            backgroundColor: interestColour(
+              {
+                interestId: data.interest.interestId,
+                parentId: data.interest.parentId ?? null,
+              },
+              activePalette,
+            ),
+          }}
+        />
         <Text style={{ fontSize: theme.font.xl, fontWeight: '700', color: theme.color.text }}>
           {data.interest.name}
         </Text>

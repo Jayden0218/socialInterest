@@ -141,17 +141,17 @@ interest-space chrome are independent of it.
 
 ### Tests for US2
 
-- [ ] T026 [P] [US2] Test in `apps/mobile/src/__tests__/interest-colour.test.ts` that the same interest id always yields the same colour, and that two different ids usually differ — FR-011
-- [ ] T027 [P] [US2] Test in `apps/mobile/src/__tests__/interest-colour.test.ts` that a sub-interest takes its PARENT's hue at a different lightness, so a family is visible — FR-012, and 001/FR-024's roll-up made legible
-- [ ] T028 [P] [US2] Test in `apps/mobile/src/__tests__/interest-chip.test.tsx` that an interest is never identified by colour alone: wherever a chip renders, its NAME renders too — FR-014
+- [X] T026 [P] [US2] Test in `apps/mobile/src/__tests__/interest-colour.test.ts` that the same interest id always yields the same colour, and that two different ids usually differ — FR-011
+- [X] T027 [P] [US2] Test in `apps/mobile/src/__tests__/interest-colour.test.ts` that a sub-interest takes its PARENT's hue at a different lightness, so a family is visible — FR-012, and 001/FR-024's roll-up made legible
+- [X] T028 [P] [US2] Test in `apps/mobile/src/__tests__/interest-chip.test.tsx` that an interest is never identified by colour alone: wherever a chip renders, its NAME renders too — FR-014
 
 ### Implementation for US2
 
 - [X] T029 [P] [US2] Create `apps/mobile/src/components/InterestChip.tsx` — the derived colour with the name always present, meeting the touch target when it is pressable
-- [ ] T030 [US2] Render interest chips on `PostCard` in `apps/mobile/src/components/PostCard.tsx` — FR-003, FR-013
-- [ ] T031 [US2] Carry the interest's identity into the interest space chrome in `apps/mobile/src/features/discover/InterestScreen.tsx`, and **do not** give a place or a person the same treatment — **G1**. `place-follow-hint` stays visible and stays words, not an icon
-- [ ] T032 [US2] Show interest colours in discovery results in `apps/mobile/src/features/discover/InterestSearchScreen.tsx` — FR-013
-- [ ] T033 [US2] Verify SC-003 by re-running `apps/e2e/scripts/capture-screens.ts` and confirming `docs/screens/06-interest-space.png` and a second interest space are distinguishable with the titles removed
+- [X] T030 [US2] Render interest chips on `PostCard` in `apps/mobile/src/components/PostCard.tsx` — FR-003, FR-013
+- [X] T031 [US2] Carry the interest's identity into the interest space chrome in `apps/mobile/src/features/discover/InterestScreen.tsx`, and **do not** give a place or a person the same treatment — **G1**. `place-follow-hint` stays visible and stays words, not an icon
+- [X] T032 [US2] Show interest colours in discovery results in `apps/mobile/src/features/discover/InterestSearchScreen.tsx` — FR-013
+- [X] T033 [US2] Verify SC-003 by re-running `apps/e2e/scripts/capture-screens.ts` and confirming `docs/screens/06-interest-space.png` and a second interest space are distinguishable with the titles removed
 
 **Checkpoint**: the product's premise is visible, and has not leaked onto things that are not interests.
 
@@ -169,18 +169,18 @@ testID snapshot a rename is found by an emulator run.
 
 ### Tests for US3
 
-- [ ] T034 [P] [US3] Guard in `apps/mobile/src/__tests__/no-hardcoded-style.test.ts` failing on a literal colour (`#rrggbb`, `rgb(`) or a raw font size in `src/features/**` — FR-016. Structural values (`flex: 1`, `borderWidth: 1`) are explicitly allowed, per `contracts/design-tokens.md`
-- [ ] T035 [P] [US3] Extend `apps/mobile/src/__tests__/contrast.test.ts` to assert every token exists in BOTH palettes, so a missing dark value is a failure and not a silent fallback — FR-017
+- [X] T034 [P] [US3] Guard in `apps/mobile/src/__tests__/no-hardcoded-style.test.ts` failing on a literal colour (`#rrggbb`, `rgb(`) or a raw font size in `src/features/**` — FR-016. Structural values (`flex: 1`, `borderWidth: 1`) are explicitly allowed, per `contracts/design-tokens.md`
+- [X] T035 [P] [US3] Extend `apps/mobile/src/__tests__/contrast.test.ts` to assert every token exists in BOTH palettes, so a missing dark value is a failure and not a silent fallback — FR-017
 
 ### Implementation for US3
 
-- [ ] T036 [US3] Move `Button`, `Banner`, `EmptyState`, `Row`, `Screen` in `apps/mobile/src/ui/primitives.tsx` onto semantic tokens and the type roles — **single-owner file**
-- [ ] T037 [P] [US3] Adopt tokens in `apps/mobile/src/features/conversations/` — Inbox, Conversation, NewGroup
-- [ ] T038 [P] [US3] Adopt tokens in `apps/mobile/src/features/places/` — PlaceScreen, RatingControl, ReviewList
-- [ ] T039 [P] [US3] Adopt tokens in `apps/mobile/src/features/profile/`, `notifications/`, `engagement/`, `posts/`, `publish/`, `safety/`
-- [ ] T040 [US3] Adopt tokens in `apps/mobile/src/screens/index.tsx` and `App.tsx` — **single-owner files**, sequential after T037–T039
-- [ ] T041 [US3] Confirm report and block are reachable in the same number of taps on every surface, by running `.maestro/09-report-and-block.yaml` and `node scripts/verify-maestro-ids.mjs` against `apps/mobile/src/features/safety/` — **G4**; `09-report-and-block` must pass unchanged
-- [ ] T042 [US3] Keep every distinct empty-state message in `apps/mobile/src/features/feed/HomeFeedScreen.tsx` and `apps/mobile/src/features/conversations/InboxScreen.tsx`; the redesign must not collapse them into one generic line — FR-024
+- [X] T036 [US3] Move `Button`, `Banner`, `EmptyState`, `Row`, `Screen` in `apps/mobile/src/ui/primitives.tsx` onto semantic tokens and the type roles — **single-owner file**
+- [ ] T037 [P] [US3] Adopt SEMANTIC tokens in `apps/mobile/src/features/conversations/` — Inbox, Conversation, NewGroup. **Not done, and the reason matters**: these already read `theme.*`, which the alias layer resolves to the dark palette, so they are already correctly coloured and `no-hardcoded-style` passes on them. What remains is naming (`text.secondary` vs `muted`) and the type ROLES, which carry line height and weight. Real but cosmetic-of-the-cosmetics; it becomes load-bearing the day light mode is wired, because the alias layer is static
+- [ ] T038 [P] [US3] Adopt semantic tokens in `apps/mobile/src/features/places/` — PlaceScreen, RatingControl, ReviewList. Same status and reason as T037
+- [ ] T039 [P] [US3] Adopt semantic tokens in `apps/mobile/src/features/profile/`, `notifications/`, `engagement/`, `posts/`, `publish/`, `safety/`. Same status and reason as T037
+- [ ] T040 [US3] Adopt semantic tokens in `apps/mobile/src/screens/index.tsx` and `App.tsx` — **single-owner files**, sequential after T037–T039. Same status and reason as T037
+- [X] T041 [US3] Confirm report and block are reachable in the same number of taps on every surface, by running `.maestro/09-report-and-block.yaml` and `node scripts/verify-maestro-ids.mjs` against `apps/mobile/src/features/safety/` — **G4**; `09-report-and-block` must pass unchanged
+- [X] T042 [US3] Keep every distinct empty-state message in `apps/mobile/src/features/feed/HomeFeedScreen.tsx` and `apps/mobile/src/features/conversations/InboxScreen.tsx`; the redesign must not collapse them into one generic line — FR-024
 
 **Checkpoint**: one system, in two palettes, with safety controls where they were.
 
