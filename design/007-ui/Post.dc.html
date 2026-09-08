@@ -1,0 +1,96 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #FF4A2E; } a:hover { color: #e03a20; }
+    .sy { font-family: 'Syne', system-ui, sans-serif; }
+    .mo { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+    .stamp { font-size: 9px; font-weight: 600; letter-spacing: 0.13em; text-transform: uppercase; }
+  </style>
+</helmet>
+
+<div class="mo" style="width: 390px; height: 844px; background: #EFE7D8; color: #17291C; overflow: hidden; position: relative; display: flex; flex-direction: column;">
+
+  <svg style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0.28; mix-blend-mode: multiply; z-index: 40;">
+    <filter id="gp"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" stitchTiles="stitch"></feTurbulence></filter>
+    <rect width="100%" height="100%" filter="url(#gp)"></rect>
+  </svg>
+
+  <div style="height: 44px; flex-shrink: 0;"></div>
+
+  <div style="flex-shrink: 0; height: 42px; display: flex; align-items: center; justify-content: space-between; padding: 0 14px;">
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#17291C" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19l-7-7 7-7"></path></svg>
+    <span class="mo stamp" style="color: #4A5B4E;">Plate 04 / 12</span>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="#17291C"><circle cx="5" cy="12" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="19" cy="12" r="1.8"></circle></svg>
+  </div>
+
+  <div style="flex-grow: 1; overflow: hidden; padding: 6px 14px 0;">
+
+    <!-- the plate, mis-registered like the cards -->
+    <div style="position: relative;">
+      <div style="position: absolute; left: 6px; top: 7px; width: 362px; height: 300px; background: #2F6B3F; border-radius: 3px;"></div>
+      <div style="position: relative; width: 362px; height: 300px; border-radius: 3px; overflow: hidden; background: linear-gradient(155deg, #2F6B3F 0%, #2F6B3F99 42%, #EFE7D8 130%);">
+        <div style="position: absolute; left: 9px; top: 9px; display: flex; align-items: center; gap: 6px; height: 21px; padding: 0 8px; background: #EFE7D8;">
+          <div style="width: 6px; height: 6px; background: #2F6B3F;"></div>
+          <span class="mo stamp">Bouldering</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding: 16px 1px 0;">
+      <span class="sy" style="font-size: 23px; font-weight: 800; line-height: 26px; letter-spacing: -0.028em; text-wrap: pretty;">Three months on one problem, and it went first go this morning</span>
+    </div>
+
+    <div style="padding: 11px 1px 0;">
+      <span class="mo" style="font-size: 12px; line-height: 19px; color: #35462F; text-wrap: pretty;">Cold hands, dry rock, nobody else at the boulder. The last move still surprised me.</span>
+    </div>
+
+    <div style="height: 1px; background: #C9BFAB; margin: 16px 0;"></div>
+
+    <div style="display: flex; align-items: center; gap: 9px;">
+      <div style="width: 32px; height: 32px; border-radius: 50%; background: #2F6B3F;"></div>
+      <div style="display: flex; flex-direction: column; gap: 2px;">
+        <span class="sy" style="font-size: 14px; font-weight: 700; letter-spacing: -0.01em;">maren</span>
+        <span class="mo stamp" style="color: #4A5B4E;">2 hours ago</span>
+      </div>
+      <div style="flex-grow: 1;"></div>
+      <div style="height: 30px; padding: 0 14px; background: #17291C; display: flex; align-items: center;">
+        <span class="mo stamp" style="color: #EFE7D8;">Follow</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- actions as a printed strip, not floating pills -->
+  <div style="flex-shrink: 0; border-top: 2px solid #17291C; background: #EFE7D8; display: flex; align-items: stretch; height: 74px; z-index: 30;">
+    <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; gap: 8px; border-right: 1px solid #C9BFAB; padding-bottom: 14px; padding-top: 12px;">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="#FF4A2E"><path d="M12 20.6S4.2 15.8 4.2 10.6A4.4 4.4 0 0 1 12 7.6a4.4 4.4 0 0 1 7.8 3c0 5.2-7.8 10-7.8 10z"></path></svg>
+      <span class="mo" style="font-size: 12px; font-weight: 500;">1,204</span>
+    </div>
+    <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; gap: 8px; border-right: 1px solid #C9BFAB; padding-bottom: 14px; padding-top: 12px;">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#17291C" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a7.5 7.5 0 0 1-11 6.6L4.5 20l1.4-4.2A7.5 7.5 0 1 1 20 12z"></path></svg>
+      <span class="mo" style="font-size: 12px; font-weight: 500;">86</span>
+    </div>
+    <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; gap: 8px; border-right: 1px solid #C9BFAB; padding-bottom: 14px; padding-top: 12px;">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#17291C" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v16l-6-4.5L6 20V4z"></path></svg>
+      <span class="mo stamp">Save</span>
+    </div>
+    <div style="width: 74px; background: #FF4A2E; display: flex; align-items: center; justify-content: center; padding-bottom: 14px; padding-top: 12px;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EFE7D8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l16-7-6 16-2.5-6.5L4 12z"></path></svg>
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

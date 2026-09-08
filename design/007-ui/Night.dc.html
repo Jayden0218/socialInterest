@@ -17,11 +17,12 @@
   </style>
 </helmet>
 
-<div class="mo" style="width: 390px; height: 844px; background: #EFE7D8; color: #17291C; overflow: hidden; position: relative; display: flex; flex-direction: column;">
+<div class="mo" style="width: 390px; height: 844px; background: #141A15; color: #F0EADC; overflow: hidden; position: relative; display: flex; flex-direction: column;">
 
-  <!-- PAPER GRAIN over everything. The whole surface is printed, so the grain
-       belongs to the sheet rather than to each photograph. -->
-  <svg style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0.28; mix-blend-mode: multiply; z-index: 40;">
+  <!-- THE SAME PRESS, ON BLACK STOCK. Grain screens instead of multiplying,
+       and the inks stay exactly as they are — that is what makes it one
+       language rather than two themes. -->
+  <svg style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0.22; mix-blend-mode: screen; z-index: 40;">
     <filter id="g"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" stitchTiles="stitch"></feTurbulence></filter>
     <rect width="100%" height="100%" filter="url(#g)"></rect>
   </svg>
@@ -36,14 +37,14 @@
         <span class="sy" style="position: relative; font-size: 29px; font-weight: 800; letter-spacing: -0.035em; line-height: 1;">INTEREST</span>
       </div>
       <div style="display: flex; gap: 14px; padding-bottom: 3px;">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17291C" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.6-3.6"></path></svg>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#17291C" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6a5.4 5.4 0 0 0-5.4 5.4c0 4-1.5 5.4-2 5.9h14.8c-.5-.5-2-1.9-2-5.9A5.4 5.4 0 0 0 12 3.6z"></path><path d="M10.5 19.4a1.7 1.7 0 0 0 3 0"></path></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0EADC" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.6-3.6"></path></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0EADC" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.6a5.4 5.4 0 0 0-5.4 5.4c0 4-1.5 5.4-2 5.9h14.8c-.5-.5-2-1.9-2-5.9A5.4 5.4 0 0 0 12 3.6z"></path><path d="M10.5 19.4a1.7 1.7 0 0 0 3 0"></path></svg>
       </div>
     </div>
-    <div style="height: 2px; background: #17291C; margin: 9px 0 0;"></div>
+    <div style="height: 2px; background: #F0EADC; margin: 9px 0 0;"></div>
     <div style="display: flex; justify-content: space-between; padding: 5px 0 0;">
-      <span class="mo stamp" style="color: #4A5B4E;">Ed. 0908 — for you</span>
-      <span class="mo stamp" style="color: #4A5B4E;">No. 214</span>
+      <span class="mo stamp" style="color: #8E9A8B;">Ed. 0908 — for you</span>
+      <span class="mo stamp" style="color: #8E9A8B;">No. 214</span>
     </div>
   </div>
 
@@ -59,19 +60,19 @@
                  looks like it. -->
             <div style="position: absolute; left: 4px; top: 5px; width: 178px; height: {{c.h}}; background: {{c.ink}}; border-radius: 3px;"></div>
             <div style="position: relative; width: 178px; height: {{c.h}}; border-radius: 3px; overflow: hidden; background: {{c.art}};">
-              <div style="position: absolute; left: 7px; top: 7px; display: flex; align-items: center; gap: 5px; height: 19px; padding: 0 7px; background: #EFE7D8;">
+              <div style="position: absolute; left: 7px; top: 7px; display: flex; align-items: center; gap: 5px; height: 19px; padding: 0 7px; background: #141A15;">
                 <div style="width: 5px; height: 5px; background: {{c.ink}};"></div>
-                <span class="mo stamp" style="color: #17291C;">{{c.tag}}</span>
+                <span class="mo stamp" style="color: #F0EADC;">{{c.tag}}</span>
               </div>
             </div>
             <div style="padding: 9px 1px 0; display: flex; flex-direction: column; gap: 7px;">
-              <span class="sy" style="font-size: 14px; font-weight: 700; line-height: 17px; letter-spacing: -0.015em; color: #17291C; text-wrap: pretty;">{{c.title}}</span>
+              <span class="sy" style="font-size: 14px; font-weight: 700; line-height: 17px; letter-spacing: -0.015em; color: #F0EADC; text-wrap: pretty;">{{c.title}}</span>
               <div style="display: flex; align-items: center; gap: 6px;">
                 <div style="width: 16px; height: 16px; border-radius: 50%; background: {{c.ink}};"></div>
-                <span class="mo" style="font-size: 10px; color: #4A5B4E;">{{c.who}}</span>
+                <span class="mo" style="font-size: 10px; color: #8E9A8B;">{{c.who}}</span>
                 <div style="flex-grow: 1;"></div>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="#4A5B4E"><path d="M12 20.6S4.2 15.8 4.2 10.6A4.4 4.4 0 0 1 12 7.6a4.4 4.4 0 0 1 7.8 3c0 5.2-7.8 10-7.8 10z"></path></svg>
-                <span class="mo" style="font-size: 10px; color: #4A5B4E;">{{c.likes}}</span>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="#8E9A8B"><path d="M12 20.6S4.2 15.8 4.2 10.6A4.4 4.4 0 0 1 12 7.6a4.4 4.4 0 0 1 7.8 3c0 5.2-7.8 10-7.8 10z"></path></svg>
+                <span class="mo" style="font-size: 10px; color: #8E9A8B;">{{c.likes}}</span>
               </div>
             </div>
           </div>
@@ -80,12 +81,12 @@
     </sc-for>
   </div>
 
-  <div style="height: 74px; flex-shrink: 0; background: #EFE7D8; border-top: 2px solid #17291C; display: flex; align-items: center; z-index: 30;">
+  <div style="height: 74px; flex-shrink: 0; background: #141A15; border-top: 2px solid #F0EADC; display: flex; align-items: center; z-index: 30;">
     <sc-for list="{{tabs}}" as="t" hint-placeholder-count="5">
       <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; padding-bottom: 12px;">
         <sc-if value="{{t.plus}}" hint-placeholder-val="{{ false }}">
           <div style="width: 46px; height: 30px; background: #FF4A2E; display: flex; align-items: center; justify-content: center; margin-top: 12px;">
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#EFE7D8" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#141A15" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
           </div>
         </sc-if>
         <sc-if value="{{t.normal}}" hint-placeholder-val="{{ true }}">
@@ -106,7 +107,7 @@ class Component extends DCLogic {
     // Duotone plates: one ink over the paper, the way a riso lays down colour.
     const card = (title, who, likes, tag, ink, h) => ({
       title, who, likes, tag, ink, h: h + 'px',
-      art: 'linear-gradient(155deg, ' + ink + ' 0%, ' + ink + '99 42%, #EFE7D8 130%)',
+      art: 'linear-gradient(155deg, ' + ink + ' 0%, ' + ink + '99 42%, #141A15 130%)',
     });
     return {
       columns: [
@@ -120,11 +121,11 @@ class Component extends DCLogic {
         ] },
       ],
       tabs: [
-        { label: 'Feed', normal: true, plus: false, fg: '#17291C', bar: '#FF4A2E' },
-        { label: 'Look', normal: true, plus: false, fg: '#4A5B4E', bar: 'transparent' },
+        { label: 'Feed', normal: true, plus: false, fg: '#F0EADC', bar: '#FF4A2E' },
+        { label: 'Look', normal: true, plus: false, fg: '#8E9A8B', bar: 'transparent' },
         { label: '', normal: false, plus: true, fg: '', bar: '' },
-        { label: 'Talk', normal: true, plus: false, fg: '#4A5B4E', bar: 'transparent' },
-        { label: 'You', normal: true, plus: false, fg: '#4A5B4E', bar: 'transparent' },
+        { label: 'Talk', normal: true, plus: false, fg: '#8E9A8B', bar: 'transparent' },
+        { label: 'You', normal: true, plus: false, fg: '#8E9A8B', bar: 'transparent' },
       ],
     };
   }

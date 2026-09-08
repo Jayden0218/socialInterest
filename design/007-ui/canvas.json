@@ -1,12 +1,14 @@
 {
   "artboards": [
-    { "file": "Main.dc.html", "x": 0,   "y": 0, "w": 390, "h": 844, "title": "Feed — one blended stream" },
-    { "file": "Tune.dc.html", "x": 500, "y": 0, "w": 390, "h": 844, "title": "Why you're seeing this" }
+    { "file": "Main.dc.html",  "x": 0,    "y": 0, "w": 390, "h": 844, "title": "Feed — newsprint" },
+    { "file": "Night.dc.html", "x": 500,  "y": 0, "w": 390, "h": 844, "title": "Feed — black stock" },
+    { "file": "Post.dc.html",  "x": 1000, "y": 0, "w": 390, "h": 844, "title": "Post" }
   ],
   "annotations": [
-    { "id": "model", "x": 0, "y": -230, "w": 500, "text": "A LEARNED FEED, NOT A SUBSCRIPTION.\n\nNo sections, no shelves, no interest axis: the next post is whatever the ranking picked. The interest survives as a TAG on the post — it is what the model learns over, not the shape of the screen.\n\nThe chrome gets out of the way so the post is the screen, and the signals (like, comment, save, share) sit where a thumb already rests." },
-    { "id": "tune", "x": 500, "y": -230, "w": 480, "text": "THE SECOND SCREEN IS NOT OPTIONAL.\n\nA feed learned from behaviour needs a way to see why and to say no — otherwise the only way to correct it is to stop using it. It also names the signals being collected in plain words, which is where Principle III lands once dwell time is being measured." },
-    { "id": "cost", "x": 0, "y": 900, "w": 990, "text": "WHAT THIS COSTS, so the decision is deliberate:\n\n· Constitution Principle I (\"Interest Is the Organising Principle\", NON-NEGOTIABLE) and 001/FR-033 are replaced. The negative test that guards them would be deleted, not adjusted.\n· New machinery none of which exists: dwell-time telemetry from the client, a per-viewer signal store, and a ranking service between the datastore and the feed.\n· D1 (read-time assembly) was forced by FR-017 + SC-009 — a visibility flip must land everywhere immediately. A ranked feed still has to pass VisibilityFilter at read time, so ranking chooses CANDIDATES and the filter still decides.\n· Dwell tracking is behavioural data collection. That is why the tuning sheet names the signals rather than hiding them." }
+    { "id": "structure", "x": 0, "y": -215, "w": 490, "text": "STRUCTURE: Xiaohongshu's two-column waterfall.\n\nFixed column width, image height drives card height, so the rows never line up — the misalignment IS the layout. Four to five posts on screen, no sections, no \"why you're seeing this\": the ranking is the backend's business and the UI says nothing about it." },
+    { "id": "style", "x": 500, "y": -215, "w": 490, "text": "STYLE: a printed zine, not another glossy app.\n\nEvery competitor here — Instagram, RED, Pinterest — is glossy, neutral and shadowless-clean. This is newsprint with forest-green ink and a risograph accent: paper grain over the whole sheet, and a 4px MIS-REGISTERED ink block behind every card, as if the colour plate did not quite line up. Syne for headlines, IBM Plex Mono for everything small." },
+    { "id": "night", "x": 500, "y": 880, "w": 390, "text": "Black stock is the same press, not a second theme: the inks are identical and only the paper changes. The grain screens instead of multiplying, which is what ink does on dark stock." },
+    { "id": "open", "x": 1000, "y": 880, "w": 390, "text": "STILL OPEN\n\n· Media is a duotone plate, not a photograph. Real images will fight the grain and the ink blocks — that is the thing to test first.\n· Cold start: a learned feed has nothing to learn from on day one, and there is no screen for it yet." }
   ],
   "launch": { "view": "canvas" }
 }
