@@ -7,100 +7,97 @@
 <body>
 <x-dc>
 <helmet>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300;1,6..72,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
   <style>
     body { margin: 0; }
-    a { color: #6ad987; } a:hover { color: #8fe6a5; }
-    .ui { font-family: 'Schibsted Grotesk', system-ui, sans-serif; }
-    .serif { font-family: 'Instrument Serif', Georgia, serif; }
+    a { color: #c9a227; } a:hover { color: #e0bb43; }
+    .s { font-family: 'Newsreader', Georgia, serif; }
+    .m { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+    .kicker { font-size: 10px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; }
   </style>
 </helmet>
 
-<div class="ui" style="width: 390px; height: 844px; background: #0a170d; color: #f0f7f2; overflow: hidden; position: relative; display: flex; flex-direction: column;">
+<div class="s" style="width: 390px; height: 844px; background: #101710; color: #ece5d8; overflow: hidden; display: flex; flex-direction: column;">
 
-  <!-- space the real status bar occupies -->
   <div style="height: 44px; flex-shrink: 0;"></div>
 
-  <!-- header -->
-  <div style="height: 52px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 0 20px;">
-    <div class="serif" style="font-size: 27px; letter-spacing: -0.01em; line-height: 1;">Interest</div>
-    <div style="display: flex; gap: 18px; align-items: center;">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c6d1c9" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c6d1c9" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0-6 6c0 4-1.5 5.5-2 6h16c-.5-.5-2-2-2-6a6 6 0 0 0-6-6z"></path><path d="M10.5 20a1.8 1.8 0 0 0 3 0"></path></svg>
-    </div>
+  <!-- masthead -->
+  <div style="flex-shrink: 0; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a3327;">
+    <span class="m kicker" style="color: #8f9a86;">Tue 8 Sep</span>
+    <span class="s" style="font-size: 21px; font-style: italic; letter-spacing: 0.01em;">Interest</span>
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8f9a86" stroke-width="1.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.6-3.6"></path></svg>
   </div>
 
-  <!-- the interests you follow: the spine of the product, not a chip row -->
-  <div style="height: 100px; flex-shrink: 0; display: flex; gap: 18px; padding: 6px 20px 0; overflow: hidden;">
-    <sc-for list="{{rail}}" as="i" hint-placeholder-count="5">
-      <div style="display: flex; flex-direction: column; align-items: center; gap: 7px; width: 58px; flex-shrink: 0;">
-        <div style="width: 54px; height: 54px; border-radius: 50%; padding: 2px; background: {{i.ring}}; display: flex; align-items: center; justify-content: center;">
-          <div style="width: 100%; height: 100%; border-radius: 50%; background: {{i.fill}}; display: flex; align-items: center; justify-content: center;">
-            <span class="serif" style="font-size: 22px; color: {{i.hue}}; line-height: 1;">{{i.initial}}</span>
-          </div>
+  <div style="flex-grow: 1; overflow: hidden;">
+
+    <!-- YOUR FEED IS YOUR INTERESTS, LISTED. Not one blended stream. -->
+    <div style="padding: 20px 24px 0; display: flex; align-items: baseline; gap: 10px;">
+      <div style="width: 8px; height: 8px; border-radius: 50%; background: #6f9e5f; align-self: center;"></div>
+      <span class="s" style="font-size: 27px; font-style: italic; line-height: 1;">Bouldering</span>
+      <div style="flex-grow: 1; height: 1px; background: #2a3327; align-self: center;"></div>
+      <span class="m" style="font-size: 11px; color: #8f9a86;">4 new</span>
+    </div>
+
+    <!-- lead entry -->
+    <div style="padding: 14px 24px 0;">
+      <div style="width: 342px; height: 186px; background:
+          radial-gradient(110% 90% at 20% 15%, #5c7f4c 0%, rgba(92,127,76,0) 60%),
+          linear-gradient(160deg, #38492f 0%, #151d13 100%);"></div>
+      <div style="padding: 12px 0 0; display: flex; flex-direction: column; gap: 6px;">
+        <span class="s" style="font-size: 19px; line-height: 25px; letter-spacing: -0.005em; text-wrap: pretty;">First clean send of the season, after three months on one problem</span>
+        <span class="m kicker" style="color: #8f9a86;">Maren Kohl · 2h</span>
+      </div>
+    </div>
+
+    <div style="height: 1px; background: #2a3327; margin: 18px 24px 0;"></div>
+
+    <!-- secondary entries: type-led, media as a small plate -->
+    <sc-for list="{{entries}}" as="e" hint-placeholder-count="2">
+      <div style="display: flex; gap: 14px; padding: 14px 24px 0; align-items: flex-start;">
+        <div style="width: 62px; height: 74px; flex-shrink: 0; background: {{e.plate}};"></div>
+        <div style="display: flex; flex-direction: column; gap: 5px; padding-top: 1px;">
+          <span class="s" style="font-size: 16px; line-height: 21px; text-wrap: pretty;">{{e.title}}</span>
+          <span class="m kicker" style="color: #8f9a86;">{{e.meta}}</span>
         </div>
-        <span style="font-size: 11px; font-weight: 500; color: #9ca89e; letter-spacing: 0.01em;">{{i.name}}</span>
       </div>
     </sc-for>
-  </div>
 
-  <!-- the post -->
-  <div style="flex-grow: 1; overflow: hidden;">
-    <div style="display: flex; align-items: center; gap: 10px; padding: 8px 20px 12px;">
-      <div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(140deg, #2f5a3d, #16301f); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #cfe6d6;">M</div>
-      <div style="display: flex; flex-direction: column; gap: 1px; flex-grow: 1;">
-        <span style="font-size: 14px; font-weight: 600; letter-spacing: -0.005em;">maren</span>
-        <span style="font-size: 12px; color: #9ca89e;">in <span style="color: #4fbf7a; font-weight: 600;">Bouldering</span></span>
+    <div style="padding: 22px 24px 0; display: flex; align-items: baseline; gap: 10px;">
+      <div style="width: 8px; height: 8px; border-radius: 50%; background: #c07a5e; align-self: center;"></div>
+      <span class="s" style="font-size: 27px; font-style: italic; line-height: 1;">Birding</span>
+      <div style="flex-grow: 1; height: 1px; background: #2a3327; align-self: center;"></div>
+      <span class="m" style="font-size: 11px; color: #8f9a86;">2 new</span>
+    </div>
+
+    <div style="display: flex; gap: 14px; padding: 14px 24px 0; align-items: flex-start;">
+      <div style="width: 62px; height: 74px; flex-shrink: 0; background: linear-gradient(155deg, #7a6a4a, #221d14);"></div>
+      <div style="display: flex; flex-direction: column; gap: 5px; padding-top: 1px;">
+        <span class="s" style="font-size: 16px; line-height: 21px; text-wrap: pretty;">Redstart on the reservoir wall, first of the autumn</span>
+        <span class="m kicker" style="color: #8f9a86;">Nadia Reyes · 5h</span>
       </div>
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="#9ca89e"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg>
-    </div>
-
-    <!-- media, edge to edge -->
-    <div style="width: 390px; height: 372px; position: relative; background:
-        radial-gradient(120% 90% at 18% 12%, #4a7f58 0%, rgba(74,127,88,0) 55%),
-        radial-gradient(100% 80% at 88% 30%, #7fa86a 0%, rgba(127,168,106,0) 60%),
-        radial-gradient(90% 70% at 55% 100%, #16301f 0%, rgba(22,48,31,0) 70%),
-        linear-gradient(160deg, #24402c 0%, #101f16 100%);">
-      <!-- the interest's hue, carried onto the media as a thin spine -->
-      <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: linear-gradient(180deg, #4fbf7a, rgba(79,191,122,0));"></div>
-    </div>
-
-    <div style="display: flex; align-items: center; gap: 20px; padding: 14px 20px 0;">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f0f7f2" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-9.2A4 4 0 0 1 12 8a4 4 0 0 1 7-1.2c0 4.8-7 13.2-7 13.2z"></path></svg>
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f0f7f2" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a7.5 7.5 0 0 1-11 6.6L4.5 20l1.4-4.2A7.5 7.5 0 1 1 20 12z"></path></svg>
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f0f7f2" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l16-7-6 16-2.5-6.5L4 12z"></path></svg>
-      <div style="flex-grow: 1;"></div>
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f0f7f2" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v16l-6-4.5L6 20V4z"></path></svg>
-    </div>
-
-    <div style="padding: 10px 20px 0; display: flex; flex-direction: column; gap: 5px;">
-      <span style="font-size: 13px; font-weight: 600; color: #c6d1c9;">148 likes</span>
-      <span style="font-size: 14px; line-height: 20px; color: #f0f7f2; text-wrap: pretty;">First clean send of the season. Three months on this one problem.</span>
     </div>
   </div>
 
-  <!-- tab bar: icons, and the primary action lives here -->
-  <div style="height: 78px; flex-shrink: 0; background: #0d1c11; border-top: 1px solid #2c392f; display: flex; align-items: flex-start; padding-top: 12px;">
-    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 5px;">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="#6ad987" stroke="none"><path d="M12 3.2L21 10v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V10l9-6.8z"></path></svg>
-      <span style="font-size: 10px; font-weight: 600; color: #6ad987;">Feed</span>
+  <div style="height: 74px; flex-shrink: 0; border-top: 1px solid #2a3327; background: #0d130c; display: flex; align-items: center; padding: 0 8px;">
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#ece5d8" stroke-width="1.5"><path d="M4 5h16M4 12h16M4 19h10"></path></svg>
+      <span class="m kicker" style="color: #ece5d8;">Feed</span>
     </div>
-    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 5px;">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca89e" stroke-width="1.6" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M15.2 8.8l-1.9 4.5-4.5 1.9 1.9-4.5 4.5-1.9z"></path></svg>
-      <span style="font-size: 10px; font-weight: 500; color: #9ca89e;">Discover</span>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#8f9a86" stroke-width="1.5" stroke-linejoin="round"><path d="M12 3l7.5 5v8L12 21l-7.5-5V8L12 3z"></path></svg>
+      <span class="m kicker" style="color: #8f9a86;">Index</span>
     </div>
-    <div style="flex-grow: 1; display: flex; justify-content: center;">
-      <div style="width: 46px; height: 46px; border-radius: 15px; background: #6ad987; display: flex; align-items: center; justify-content: center; margin-top: -5px; box-shadow: 0 6px 18px rgba(106,217,135,0.28);">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#07150b" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
-      </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#c9a227" stroke-width="1.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+      <span class="m kicker" style="color: #c9a227;">Entry</span>
     </div>
-    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 5px;">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca89e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a7.5 7.5 0 0 1-11 6.7L4.5 19.5l1.3-4.3A7.5 7.5 0 1 1 20 11.5z"></path></svg>
-      <span style="font-size: 10px; font-weight: 500; color: #9ca89e;">Chats</span>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#8f9a86" stroke-width="1.5" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4V5z"></path></svg>
+      <span class="m kicker" style="color: #8f9a86;">Talk</span>
     </div>
-    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 5px;">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca89e" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="8.5" r="3.6"></circle><path d="M5 20c0-3.4 3.1-5.5 7-5.5s7 2.1 7 5.5"></path></svg>
-      <span style="font-size: 10px; font-weight: 500; color: #9ca89e;">You</span>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#8f9a86" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="8.4" r="3.4"></circle><path d="M5.5 19.5c0-3.2 2.9-5.2 6.5-5.2s6.5 2 6.5 5.2"></path></svg>
+      <span class="m kicker" style="color: #8f9a86;">You</span>
     </div>
   </div>
 </div>
@@ -109,18 +106,10 @@
 <script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   renderVals() {
-    const mk = (name, hue) => ({
-      name, hue, initial: name[0],
-      ring: 'linear-gradient(150deg, ' + hue + ', rgba(0,0,0,0.25))',
-      fill: '#0a170d',
-    });
     return {
-      rail: [
-        mk('Bouldering', '#4fbf7a'),
-        mk('Birding', '#e0705f'),
-        mk('Ceramics', '#46b8bd'),
-        mk('Film', '#4aa3d8'),
-        mk('Ramen', '#d06bb4'),
+      entries: [
+        { title: 'Beta for the slab traverse at the quarry', meta: 'Jonas Vik · 4h', plate: 'linear-gradient(155deg, #4e6b42, #182015)' },
+        { title: 'Chalk, humidity and why September is the month', meta: 'Perla Adeyemi · 6h', plate: 'linear-gradient(155deg, #6b7a52, #1d2416)' },
       ],
     };
   }
