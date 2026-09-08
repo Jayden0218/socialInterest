@@ -205,9 +205,6 @@ jobs:
           # whole run and what it got back - which is how run 13's two real
           # findings surfaced (no POST /v1/posts at all, and no
           # GET /v1/interests/:interestId at all).
-          echo "=============== API requests: whole run, by path and status ==============="
-          grep -oE '"method":"[A-Z]+","path":"[^"]+","status":[0-9]+' /tmp/api.log 2>/dev/null \
-            | sort | uniq -c | sort -rn || echo "(no api log)"
           echo "=============== API request log (tail) ==============="
           tail -40 /tmp/api.log || echo "(no api log)"
           echo "=============== activity launch result ==============="
@@ -217,8 +214,27 @@ jobs:
           # suspects, and the file that would have answered it went into the
           # artifact - which is served from a host this environment's egress
           # denies. A number nobody can fetch settles nothing.
-          echo "=============== host resources sampled during the run ==============="
-          cat artifacts/android-device-pass/resource-samples.txt || echo "(no samples)"
+          # SUMMARISED, not dumped. Eighty-five rows of numbers that do not move
+          # is not evidence, it is what pushes evidence out of a log tail - and
+          # run 40's aggregate ended up above them, unreachable, which is run
+          # 26's mistake wearing different clothes. The samples are still in the
+          # artifact in full; what is PRINTED is the first row, the last row,
+          # the extremes, and any sample where adb did not say `device`.
+          echo "=============== host resources during the run (first, last, extremes) ==============="
+          if [ -s artifacts/android-device-pass/resource-samples.txt ]; then
+            head -1 artifacts/android-device-pass/resource-samples.txt
+            sed -n '2p' artifacts/android-device-pass/resource-samples.txt
+            tail -1 artifacts/android-device-pass/resource-samples.txt
+            echo "-- lowest free disk / lowest free memory --"
+            tail -n +2 artifacts/android-device-pass/resource-samples.txt | sort -k2 -n | head -1
+            tail -n +2 artifacts/android-device-pass/resource-samples.txt | sort -k3 -n | head -1
+            echo "-- samples where adb did NOT report \`device\` --"
+            tail -n +2 artifacts/android-device-pass/resource-samples.txt \
+              | awk -F'\t' '$NF != "device"' | head -20 || true
+            echo "(none above means the device was attached in every sample)"
+          else
+            echo "(no samples)"
+          fi
           echo "-- at collection --"; df -h / | tail -1; free -m | head -3
           echo "=============== logcat: fatal entries ==============="
           # logcat.txt is captured BEFORE the journeys; logcat-after.txt after
@@ -232,6 +248,27 @@ jobs:
           echo "=============== emulator's own output (tail) ==============="
           tail -40 artifacts/android-device-pass/runtime-output.log || echo "(no emulator log)"
           echo "====================================================="
+
+          # LAST, AND ON PURPOSE. CLAUDE.md records the whole-run API aggregate
+          # as "the single most useful artifact in these runs; read it before
+          # forming a theory" - and in run 40 it was printed FIRST, above a
+          # logcat dump and eighty-five resource rows, so a log tail could not
+          # reach it and the artifact that also holds it is served from a blob
+          # host this environment's egress denies. Evidence you cannot get to is
+          # the failure runs 1-6 were spent on. It goes at the end, where a tail
+          # always lands, and into the step summary, which the API returns
+          # without the log around it.
+          aggregate() {
+            echo "=============== API requests: whole run, by path and status ==============="
+            grep -oE '"method":"[A-Z]+","path":"[^"]+","status":[0-9]+' /tmp/api.log 2>/dev/null \
+              | sort | uniq -c | sort -rn || echo "(no api log)"
+            echo "=============== flow results ==============="
+            grep -aE "Flow|\[Passed\]|\[Failed\]|FAIL:|PASS:|Passed in|assertion" \
+              artifacts/android-device-pass/device-pass.log 2>/dev/null | tail -60 \
+              || echo "(no device-pass log)"
+          }
+          aggregate
+          { echo '```'; aggregate; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
       # if: always() - the emulator's output is the deliverable when it fails,
       # so it must survive the failure.
       - uses: actions/upload-artifact@v4

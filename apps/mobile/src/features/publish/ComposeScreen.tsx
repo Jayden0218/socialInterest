@@ -1,7 +1,7 @@
-import { ScrollView, Text, TextInput, View } from 'react-native';
+import { Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import type { InterestRef, Visibility } from '@sih/shared';
-import { activePalette as palette, radius, space, textStyle } from '../../ui/theme';
-import { Banner, Button, Row, Screen, ScreenHeader } from '../../ui/primitives';
+import { activePalette as palette, radius, space, textStyle, MIN_TOUCH_TARGET } from '../../ui/theme';
+import { Banner, Button, Row, Screen } from '../../ui/primitives';
 import { InterestSelector, canPublish } from './InterestSelector';
 import { VisibilityControl, DEFAULT_VISIBILITY } from './VisibilityControl';
 import { allUploaded, canRetry, type UploadSlot } from './uploadFlow';
@@ -51,14 +51,82 @@ export function ComposeScreen(props: ComposeScreenProps) {
   const blocked = publishDisabledReason(props.slots, props.selectedInterests);
 
   return (
-    <Screen testID="compose-screen">
-      <ScrollView contentContainerStyle={{ gap: space.lg }}>
-        <ScreenHeader title="New post" />
+    <Screen testID="compose-screen" padded={false}>
+      {/*
+        `Compose.dc.html` puts Share in the header as a filled accent pill.
+        `publish-button` keeps its testID and its exact disabled rule; the label
+        is the artboard's word. It is OUTSIDE the ScrollView so it cannot leave
+        the screen when the keyboard opens over a long caption — the mechanism
+        that cost run 36, applied before it costs anything.
+      */}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: space.lg,
+          minHeight: 50,
+        }}
+      >
+        <Text style={{ ...textStyle.title, color: palette.text.primary }}>New post</Text>
+        <Pressable
+          testID="publish-button"
+          accessibilityRole="button"
+          accessibilityLabel={props.publishing ? 'Publishing' : 'Share post'}
+          accessibilityState={{ disabled: blocked !== null || props.publishing }}
+          disabled={blocked !== null || props.publishing}
+          onPress={props.onPublish}
+          style={{
+            minHeight: MIN_TOUCH_TARGET,
+            paddingHorizontal: space.lg,
+            borderRadius: 17,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor:
+              blocked !== null || props.publishing ? palette.bg.sunken : palette.intent.accent,
+          }}
+        >
+          <Text
+            style={{
+              ...textStyle.label,
+              color:
+                blocked !== null || props.publishing ? palette.text.muted : palette.text.onAccent,
+            }}
+          >
+            {props.publishing ? 'Publishing…' : 'Share'}
+          </Text>
+        </Pressable>
+      </View>
 
-        <View testID="upload-slots" style={{ gap: space.sm }}>
+      <ScrollView
+        contentContainerStyle={{ gap: space.lg, padding: space.lg, paddingTop: space.sm }}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/*
+          THE MEDIA, not a line of text about it. The artboard shows the tiles
+          and the app showed "Uploaded" — which is the status of something the
+          person cannot see, on the one screen where what they picked is the
+          whole point. `upload-status-<i>` is unchanged and still carries the
+          words: a journey asserts on them, and so does a screen reader.
+        */}
+        <View testID="upload-slots" style={{ flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' }}>
           {props.slots.map((slot, i) => (
-            <Row key={slot.media.uri} style={{ justifyContent: 'space-between' }}>
-              <Text testID={`upload-status-${i}`} style={{ ...textStyle.caption, color: palette.text.muted }}>
+            <View key={slot.media.uri} style={{ width: 104, gap: space.xs }}>
+              <Image
+                source={{ uri: slot.media.uri }}
+                accessibilityIgnoresInvertColors
+                style={{
+                  width: 104,
+                  height: 130,
+                  borderRadius: radius.card,
+                  backgroundColor: palette.bg.sunken,
+                  opacity: slot.stage === 'uploaded' ? 1 : 0.55,
+                }}
+              />
+              <Text
+                testID={`upload-status-${i}`}
+                style={{ ...textStyle.small, color: slot.stage === 'failed' ? palette.intent.danger : palette.text.muted }}
+              >
                 {slot.stage === 'uploaded'
                   ? 'Uploaded'
                   : slot.stage === 'failed'
@@ -75,28 +143,33 @@ export function ComposeScreen(props: ComposeScreenProps) {
                   onPress={() => props.onRetry(slot)}
                 />
               ) : null}
-            </Row>
+            </View>
           ))}
         </View>
 
+        {/*
+          The caption is TEXT ON THE PAGE in the artboard, not a boxed input —
+          a post is what you wrote, and a border around it makes it look like a
+          form field on a screen whose whole subject is the writing.
+        */}
         <TextInput
           testID="caption-input"
           accessibilityLabel="Caption"
           placeholder="Say something about this"
+          placeholderTextColor={palette.text.muted}
           value={props.caption}
           onChangeText={props.onCaptionChange}
           multiline
           maxLength={2000}
           style={{
-            borderWidth: 1,
-            borderColor: palette.line.hairline,
-            borderRadius: radius.md,
-            padding: space.md,
             minHeight: 88,
             color: palette.text.primary,
+            textAlignVertical: 'top',
             ...textStyle.body,
           }}
         />
+
+        <View style={{ height: 1, backgroundColor: palette.line.hairline }} />
 
         <InterestSelector
           selected={props.selectedInterests}
@@ -114,14 +187,13 @@ export function ComposeScreen(props: ComposeScreenProps) {
         {props.placePicker ?? null}
 
         {props.error ? <Banner tone="danger" testID="compose-error">{props.error}</Banner> : null}
+        {/*
+          A disabled control with no explanation is the defect 004 shipped here:
+          the upload silently never completed, the button stayed disabled, and
+          tapping it was a no-op that looked like a frozen app. Share is now in
+          the header and the reason is still on the page.
+        */}
         {blocked ? <Banner tone="info" testID="publish-blocked-reason">{blocked}</Banner> : null}
-
-        <Button
-          testID="publish-button"
-          label={props.publishing ? 'Publishing…' : 'Publish'}
-          disabled={blocked !== null || props.publishing}
-          onPress={props.onPublish}
-        />
       </ScrollView>
     </Screen>
   );

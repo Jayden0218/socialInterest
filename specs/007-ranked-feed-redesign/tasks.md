@@ -152,10 +152,10 @@ implements it and does not reopen it.
 - [X] T048 [US3] Rebuild the feed in `apps/mobile/src/features/feed/HomeFeedScreen.tsx` per `design/007-ui/Main.dc.html` — no sections, no ranking explanation (FR-001, FR-010)
 - [X] T049 [P] [US3] Rebuild `apps/mobile/src/features/posts/PostDetailScreen.tsx` and `apps/mobile/src/features/engagement/CommentsScreen.tsx` per `Post.dc.html` and `Comments.dc.html`
 - [X] T050 [P] [US3] Rebuild `apps/mobile/src/features/auth/SignInScreen.tsx` per `SignIn.dc.html`
-- [ ] T051 [P] [US3] Rebuild `apps/mobile/src/features/profile/ProfileScreen.tsx`, `EditProfileScreen.tsx` and `apps/mobile/src/features/posts/SavedScreen.tsx` per `Profile.dc.html`, `PersonProfile.dc.html`, `EditProfile.dc.html`, `Saved.dc.html`
+- [X] T051 [P] [US3] Rebuild `apps/mobile/src/features/profile/ProfileScreen.tsx`, `EditProfileScreen.tsx` and `apps/mobile/src/features/posts/SavedScreen.tsx` per `Profile.dc.html`, `PersonProfile.dc.html`, `EditProfile.dc.html`, `Saved.dc.html`
 - [X] T052 [P] [US3] Rebuild `apps/mobile/src/features/conversations/` — `InboxScreen.tsx`, `ConversationScreen.tsx`, `NewGroupScreen.tsx` per `Chats.dc.html`, `Conversation.dc.html`, `NewGroup.dc.html`
 - [X] T053 [P] [US3] Rebuild `apps/mobile/src/features/notifications/NotificationsScreen.tsx` per `Activity.dc.html`
-- [ ] T054 [P] [US3] Rebuild `apps/mobile/src/features/publish/ComposeScreen.tsx` and `MediaPickerScreen.tsx` per `Compose.dc.html` and `MediaPicker.dc.html`
+- [X] T054 [P] [US3] Rebuild `apps/mobile/src/features/publish/ComposeScreen.tsx` and `MediaPickerScreen.tsx` per `Compose.dc.html` and `MediaPicker.dc.html`
 - [X] T055 [US3] Update `apps/mobile/src/screens/index.tsx` and `App.tsx` for the new tab bar and navigation. **Single-owner file**
 - [X] T056 [US3] Run `pnpm --filter @sih/mobile test -- testid-snapshot` and resolve any difference by fixing the SCREEN, never the snapshot — FR-027, SC-011
 - [X] T057 [P] [US3] Extend `apps/mobile/src/__tests__/touch-target.test.tsx` (FR-025) to all twenty screens — SC-009
