@@ -687,14 +687,45 @@ mkdir -p "$CAPTURE_DIR"
 # the flow and the log cannot be named relatively from there.
 CAPTURE_FLOW="$(pwd)/.maestro/capture/screens.yaml"
 CAPTURE_LOG="$(cd "$OUT" && pwd)/capture.log"
+# A marker to find the images by, because RUN 44 PROVED THE CWD ASSUMPTION
+# WRONG. The flow ran - the API log shows the entire second walk through the app,
+# sign-in through profile, and `seed-interests` and `/v1/notifications` each went
+# from one request to two - but no PNG appeared in the directory Maestro was
+# invoked from. `takeScreenshot` does not resolve against the working directory.
+#
+# So this stops guessing the convention and looks for them instead: anything
+# matching the flow's own `NN-name.png` shape, anywhere in the workspace or
+# Maestro's home, newer than the moment the capture started.
+CAPTURE_MARKER="$(mktemp)"
 if (cd "$CAPTURE_DIR" && maestro test "$CAPTURE_FLOW" \
       "${MAESTRO_ENV[@]}" > "$CAPTURE_LOG" 2>&1); then
+  found=0
+  while IFS= read -r img; do
+    [ -e "$img" ] || continue
+    # -n: never overwrite one already collected, so the first match wins and a
+    # duplicate elsewhere cannot quietly replace it.
+    mv -n "$img" "$CAPTURE_DIR/" 2>/dev/null && found=$((found + 1))
+  done < <(find "$PWD" "${HOME}/.maestro" -type f -name '[0-9][0-9]-*.png' \
+             -newer "$CAPTURE_MARKER" -not -path "$CAPTURE_DIR/*" 2>/dev/null)
+  echo "[screens] swept $found image(s) into $CAPTURE_DIR"
+  if [ "$found" -eq 0 ]; then
+    # MAKE THE FAILURE VISIBLE RATHER THAN GUESSING AGAIN. Run 44 spent a whole
+    # run establishing only that the images were not where I assumed. If the
+    # sweep also misses, this says what WAS written and where, so the next
+    # attempt is a reading rather than a third guess.
+    echo "[screens] no images matched. Every file written during the capture:"
+    find "$PWD" "${HOME}/.maestro" -type f -newer "$CAPTURE_MARKER" 2>/dev/null \
+      | grep -vE '/(node_modules|\.git)/' | head -40 || true
+    echo "[screens] tail of the capture log:"
+    tail -30 "$CAPTURE_LOG" 2>/dev/null || true
+  fi
   echo "[screens] captured: $(ls "$CAPTURE_DIR"/*.png 2>/dev/null | wc -l) image(s)"
 else
   echo "[screens] capture did not complete - the journeys already passed, so this is"
   echo "[screens] recorded and not fatal. Tail of the capture log:"
   tail -20 "$CAPTURE_LOG" 2>/dev/null || true
 fi
+rm -f "$CAPTURE_MARKER"
 # Blank images are worse than none: this project once filed an all-black capture
 # as evidence. Anything that fails the check is deleted rather than committed.
 for img in "$CAPTURE_DIR"/*.png; do
