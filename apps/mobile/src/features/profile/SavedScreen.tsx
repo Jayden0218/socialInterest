@@ -1,5 +1,7 @@
+import { Text, View } from 'react-native';
 import type { Post } from '@sih/shared';
-import { Screen } from '../../ui/primitives';
+import { activePalette as palette, space, textStyle } from '../../ui/theme';
+import { Screen, ScreenHeader } from '../../ui/primitives';
 import { PagedPostList, type PagedState } from '../../components/PagedPostList';
 
 /**
@@ -19,7 +21,24 @@ export function SavedScreen({
   renderPost: (post: Post) => React.ReactElement;
 }) {
   return (
-    <Screen testID="saved-screen">
+    <Screen testID="saved-screen" padded={false}>
+      {/*
+        `Saved.dc.html` puts "only you" beside the title. That is not decoration:
+        FR-039 is that a saved list is yours and nobody else's, and a person
+        deciding whether to save something they would not post is deciding on
+        exactly that. A guarantee the product makes and never states is one
+        nobody can rely on.
+      */}
+      <View style={{ paddingHorizontal: space.lg, paddingTop: space.sm }}>
+        <ScreenHeader
+          title="Saved"
+          right={
+            <Text style={{ ...textStyle.label, fontWeight: '400', color: palette.text.muted }}>
+              only you
+            </Text>
+          }
+        />
+      </View>
       <PagedPostList
         state={posts}
         keyOf={(p: Post) => p.postId}

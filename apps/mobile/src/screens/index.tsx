@@ -575,12 +575,18 @@ export function ProfileContainer({
   isSelf,
   onOpenPost,
   onMessage,
+  onEditProfile,
+  onOpenSaved,
 }: {
   handle: string;
   isSelf: boolean;
   onOpenPost: (postId: string) => void;
   /** 004/FR-001. Not passed for your own profile - you cannot message yourself. */
   onMessage?: (personHandle: string) => void;
+  /** 007/T051. Only meaningful on your own profile, where the artboard puts
+   *  Edit profile and the Saved tab. */
+  onEditProfile?: () => void;
+  onOpenSaved?: () => void;
 }) {
   const data = useData();
   const [profile, setProfile] = useState<ProfileData | null>(null);
@@ -608,6 +614,11 @@ export function ProfileContainer({
           followerCount: me.followerCount ?? 0,
           followingCount: me.followingCount ?? 0,
           topInterests: me.topInterests ?? [],
+          // `Profile.dc.html`'s third stat. Only `/v1/me` carries it, which is
+          // why it is optional on `ProfileData` rather than defaulted to zero -
+          // "0 interests" on somebody else's profile would be a claim, not an
+          // absence.
+          interestFollowCount: me.interestFollowCount,
           // You do not follow yourself, and ProfileScreen hides the control
           // when isSelf anyway.
           viewerIsFollowing: false,
@@ -681,9 +692,6 @@ export function ProfileContainer({
     <ProfileScreen
       profile={profile}
       posts={state}
-      viewerFollowsAnyOfTheirInterests={profile.topInterests.some((i) =>
-        myInterests.includes(i.interestId),
-      )}
       isSelf={isSelf}
       followPending={pending}
       onToggleFollow={(next) => void toggleFollow(next)}
@@ -694,6 +702,8 @@ export function ProfileContainer({
       renderPost={(post) => (
         <PostCard post={post} onOpen={onOpenPost} />
       )}
+      {...(isSelf && onEditProfile ? { onEditProfile } : {})}
+      {...(isSelf && onOpenSaved ? { onOpenSaved } : {})}
     />
   );
 }

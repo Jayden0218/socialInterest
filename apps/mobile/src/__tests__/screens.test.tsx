@@ -159,16 +159,28 @@ describe('ProfileScreen — FR-038 and the narrow meaning of following', () => {
           viewerIsFollowing: false,
         }}
         posts={initialPagedState<Post>()}
-        viewerFollowsAnyOfTheirInterests={false}
         isSelf={false}
         onToggleFollow={() => undefined}
         onLoadMore={() => undefined}
         renderPost={() => <View />}
       />,
     );
-    expect(screen.getByTestId('follower-count')).toHaveTextContent(/12 followers/);
-    // Not a generic "Follow" - it says following does NOT widen the feed.
-    expect(screen.getByTestId('follow-hint')).toHaveTextContent(/interests you already follow/);
+    expect(screen.getByTestId('follower-count')).toHaveTextContent(/12/);
+    /**
+     * 007/FR-029, and this assertion USED TO PIN THE WRONG SENTENCE.
+     *
+     * It required "interests you already follow", which is 001/FR-033 - the
+     * requirement 007 WITHDREW. A ranked feed has no followed-interest set for
+     * a boost to happen inside, so the screen was explaining the composed feed
+     * to somebody using the ranked one, and the test was holding it there.
+     *
+     * What a follow does now is reorder without admitting, so that is what is
+     * asserted: it ranks, and it explicitly does not widen. Both halves,
+     * because "ranks higher" alone would pass on copy that still implied the
+     * feed grows.
+     */
+    expect(screen.getByTestId('follow-hint')).toHaveTextContent(/rank/i);
+    expect(screen.getByTestId('follow-hint')).toHaveTextContent(/does not widen/i);
   });
 });
 

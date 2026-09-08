@@ -470,30 +470,23 @@ export function Shell() {
           case 'notifications':
             return <NotificationsContainer onOpen={(id) => push({ name: 'post', postId: id })} />;
           case 'profile':
+            /**
+             * 007/T051. Edit profile and Saved were two loose Buttons in a Row
+             * BELOW the profile - a strip of chrome the artboard does not have,
+             * bolted on here because the screen had nowhere to put them.
+             * `Profile.dc.html` puts Edit profile under the bio and Saved in a
+             * tab strip, so they are passed INTO the screen now. Both testIDs
+             * are unchanged; 004/FR-038 still holds - Saved is reachable as
+             * "mine" and nowhere else, and this is still the only route to it.
+             */
             return signedIn ? (
-              <View style={{ flex: 1 }}>
-                <ProfileContainer
-                  handle="me"
-                  isSelf
-                  onOpenPost={(postId) => push({ name: 'post', postId })}
-                />
-                <Row style={{ padding: space.sm }}>
-                  <Button
-                    testID="open-edit-profile"
-                    label="Edit profile"
-                    variant="secondary"
-                    onPress={() => push({ name: 'edit-profile' })}
-                  />
-                  {/* 004/FR-038. The only route to a saved list - it is reachable
-                      as "mine" and nowhere else. */}
-                  <Button
-                    testID="open-saved"
-                    label="Saved"
-                    variant="secondary"
-                    onPress={() => push({ name: 'saved' })}
-                  />
-                </Row>
-              </View>
+              <ProfileContainer
+                handle="me"
+                isSelf
+                onOpenPost={(postId) => push({ name: 'post', postId })}
+                onEditProfile={() => push({ name: 'edit-profile' })}
+                onOpenSaved={() => push({ name: 'saved' })}
+              />
             ) : (
               <SignedOutNotice onSignIn={() => push({ name: 'sign-in' })} />
             );

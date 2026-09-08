@@ -184,6 +184,68 @@ describe('006/J-09 - the safety sheet on a short screen', () => {
   }, 180_000);
 
   /**
+   * 007/T051 — EDIT PROFILE IS LONGER THAN THE SCREEN, MEASURED BEFORE DECIDING.
+   *
+   * The rebuild moved Save into the header, which puts the screen's primary
+   * action above the fold by construction. Everything BELOW it — four
+   * notification switches, the feed-signals disclosure, and the delete-account
+   * control — is a different question, and run 36 is the reason it gets
+   * measured rather than reasoned about: I turned `scroll` on for seven
+   * unmeasured screens on a "same class of defect" argument and took the device
+   * suite from 18/19 to 1/19.
+   *
+   * So this records WHERE THE FOLD FALLS on the shortest supported screen. It
+   * does not assert everything fits — the screen is genuinely taller than 640
+   * points and always was, before this rebuild too. What it asserts is the part
+   * that matters and is fixable without a `ScrollView`: Save is reachable, and
+   * the two destructive controls are not silently the ones off the bottom
+   * without anybody having looked.
+   */
+  it('007/T051 edit profile keeps Save above the fold, and delete-account reachable', async () => {
+    const person = await actor(`ep${Math.random().toString(36).slice(2, 8)}`);
+    page = await browser.newPage({ viewport: { width: 360, height: 640 } });
+    await page.addInitScript((t) => {
+      (globalThis as unknown as { localStorage: { setItem(k: string, v: string): void } })
+        .localStorage.setItem('sih.auth.token', t as string);
+    }, person.token);
+    await page.goto(web.url, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('[data-testid="tab-profile"]', { timeout: 30_000 });
+    await page.click('[data-testid="tab-profile"]');
+    await page.click('[data-testid="open-edit-profile"]');
+    await page.waitForSelector('[data-testid="edit-profile-screen"]', { timeout: 30_000 });
+
+    const save = (await page.locator('[data-testid="save-profile"]').boundingBox())!;
+    expect(save.y).toBeGreaterThanOrEqual(0);
+    expect(save.y + save.height).toBeLessThanOrEqual(640);
+
+    // And the bottom of the screen is BELOW the fold — measured at 788 against
+    // 640 — so this is the failing case, not a screen that happens to fit. A
+    // future layout that made it fit must not leave the next assertion passing
+    // vacuously.
+    const del = (await page.locator('[data-testid="delete-account"]').boundingBox())!;
+    expect(del.y + del.height).toBeGreaterThan(640);
+
+    // So an ANCESTOR OF THE ELEMENT SCROLLS. Not `scrollIntoViewIfNeeded`,
+    // which is the trap the block-control test above records: Playwright
+    // scrolls the DOCUMENT, and a browser page scrolls where a React Native
+    // screen does not.
+    const scrollable = await page.locator('[data-testid="delete-account"]').evaluate((el: unknown) => {
+      type Node = { parentElement: Node | null; scrollHeight: number; clientHeight: number };
+      const g = globalThis as unknown as { getComputedStyle(n: unknown): { overflowY: string } };
+      for (let n = el as Node | null; n; n = n.parentElement) {
+        const overflowY = g.getComputedStyle(n).overflowY;
+        if ((overflowY === 'auto' || overflowY === 'scroll') && n.scrollHeight > n.clientHeight + 1) {
+          return true;
+        }
+      }
+      return false;
+    });
+    expect(scrollable).toBe(true);
+
+    await page.close();
+  }, 180_000);
+
+  /**
    * 007/SC-008, T070b — FOUR OR MORE POSTS VISIBLE WITHOUT SCROLLING.
    *
    * The owner's instruction was "a few posts in a screen, like xiaohongshu", and
