@@ -93,7 +93,65 @@ a page of `fetch failed` that reads like a product failure.
 
 ## What the local suites could not have found, and the device did
 
-PLACEHOLDER_DEVICE_SECTION
+**Five device runs are recorded, not one.** Four of the five failed, three of
+those four were mine, and the fourth was a defect only a device could show. The
+failures are the useful part of this record.
+
+| Run | Result | What it established |
+|---|---|---|
+| 38 | failed at 29s | **Not the app.** The runner's smoke check asserted the literal text `Discover`; T055 renamed that tab's label to `Explore`. The screenshot showed the redesign working. The check asserts testIDs now — a label is copy, a testID is an interface. |
+| 39 | 0/19 | The app was signed out for all twenty minutes. The API aggregate said so: `GET /v1/feed/home` **401 ×21**, and the only three `GET /v1/me` 200s were host-side fixtures. The sign-in submit button sat 19 points below the fold. |
+| 40 | failed | Same defect. **And I could not say so**, because the evidence was unreachable — see below. |
+| 41 | 0/19 | Same defect, and this time the log **named the step**: Maestro tapped `sign-in-token`, typed the token, and could not find `sign-in-submit` for 54 seconds. The button was under the soft keyboard. |
+| 42 | PLACEHOLDER_42 | PLACEHOLDER_42_NOTE |
+
+### The three things those four runs actually taught
+
+**1. A guard containing an invented constant tests the constant.**
+`signin-fit.spec.ts` was written after run 39, verified red against run 39's
+exact numbers, and passed through runs 40 and 41 while the device failed
+identically each time. It opened the page at 320x390 — "what is left of a 640pt
+screen once a keyboard takes 250" — and checked the button against 390. **250
+was invented.** react-native-web has no soft keyboard, so no browser measurement
+can ever supply that number.
+
+The fix stops needing it. The submit button is now ABOVE the field: a control
+above the field cannot be covered by a keyboard that opens below it, at any
+keyboard height, under `adjustResize` and `adjustPan` alike. That is an
+invariant rather than another number to be wrong about.
+
+**2. The rule is not "never put a submit below a field."** The comment and
+message composers do exactly that and passed runs 34 and 37 — because each sits
+under a `flex: 1` list that absorbs the keyboard resize, so the composer rides
+up with the fold. Sign-in had no absorber: top-aligned content, fixed offsets,
+so the keyboard simply covered whatever fell below it. **A screen with nothing
+to absorb the resize cannot put a control where a keyboard can reach it.**
+
+**3. Evidence you cannot get to is the failure runs 1-6 were spent on.**
+CLAUDE.md calls the whole-run API aggregate "the single most useful artifact in
+these runs; read it before forming a theory" — and it was printed FIRST in the
+evidence step, above a logcat filter, a logcat tail, an emulator dump and
+eighty-five resource rows that never move. Job logs come back only as a tail;
+the artifact holding the same data is on a blob host this environment's egress
+denies with a 403. Two tails, 380 lines, never reached it. That is why run 40 is
+recorded as "failed, cause unknown" rather than given a story.
+
+The aggregate and the flow results print LAST now, and go to
+`$GITHUB_STEP_SUMMARY`; the resource samples are summarised to first, last,
+extremes, and any sample where adb did not report `device`. **Run 41 named its
+failing step in the first tail I took.**
+
+### And one regression caught before a run found it
+
+The T052 rebuild put a title header and a "SUGGESTED" row above the group search
+results — on the one interaction that taps a result with the keyboard up.
+Measured at 320x640: the layout that passed runs 34 and 37 had the second result
+at 245-289; the rebuild had it at **358-402**. Recovered to 266-310 by merging
+the title row into the name row and hiding an inaccurate label during a search.
+
+The bound in the guard is **what a device demonstrably reached (289)**, not
+"640 minus a keyboard". That distinction is the whole of lesson 1, applied
+before it cost anything.
 
 ## Four defects, and not one was visible to a green suite
 
