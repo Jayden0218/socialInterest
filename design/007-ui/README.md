@@ -6,11 +6,11 @@ the look before a requirement is written.
 
 | File | Direction |
 |---|---|
-| `Main.dc.html` | **A · Field Almanac** — leading candidate |
-| `Index.dc.html` | **B · The Index** |
-| `Rooms.dc.html` | **C · Rooms** |
+| `Main.dc.html` | **A · Mosaic** — leading candidate |
+| `Shelves.dc.html` | **B · Shelves** |
+| `Immersive.dc.html` | **C · Immersive** |
 
-## Two rejected attempts, and why
+## Three rejected attempts, and why
 
 **006, as shipped: "too general design, no design sense."** It built a token
 system and then painted the existing wireframe with it. Layout, hierarchy and
@@ -24,23 +24,30 @@ bolted on top. Constitution I and 001/FR-033 say a person-follow must never
 widen a feed beyond followed interests. A design that renders one undifferentiated
 stream cannot express that, whatever colour it is painted.
 
+**The second pass: a news reader.** "The design should show posts to let the
+user see, not like news." Also correct. Chasing "not Instagram" I went
+type-led - serif headlines, hairline rules, postage-stamp thumbnails - which is
+a magazine, not a media app. THE POSTS ARE THE CONTENT. A design where you read
+about the photographs instead of seeing them has failed whatever else it gets
+right.
+
 ## What each direction is for
 
-Every one of them tries to make the organising principle STRUCTURAL rather than
-decorative.
+All three lead with the media AND group by interest. Those are not in tension;
+the previous two passes each sacrificed one for the other.
 
-- **A · Field Almanac.** The feed is sectioned by interest and never mixed -
-  the structure itself enforces FR-033, because you cannot render the screen
-  without grouping. Editorial: Newsreader serif, hairline rules, media as inset
-  plates, IBM Plex Mono for bylines. Says the subject matters more than the
-  poster. Trade: type-led, so less media per screen.
-- **B · The Index.** Makes the machinery visible - the header states that the
-  feed is composed from five interests and carries live counts. Numbered rows,
-  strict grid, Space Grotesk with mono meta. Feels like an instrument. Trade:
-  cold, and the least media-forward.
-- **C · Rooms.** An interest is a place with its own light; home is a threshold
-  rather than a stream, each room sized by how alive it is and quiet ones
-  visibly resting. Trade: most colour-dependent, and content is one tap away.
+- **A · Mosaic.** One section per interest, posts in a varied mosaic - a large
+  tile with two small, alternating side each section so it never reads as a
+  plain grid. Four posts per interest, roughly eight per screen. Trade: mixed
+  tile sizes mean crops you do not control.
+- **B · Shelves.** One shelf per interest: scroll DOWN through your interests,
+  sideways through the posts inside one. About a dozen posts reachable without
+  a tap, and a quiet interest is obvious because its shelf is short. Trade:
+  portrait tiles suit some media badly, and sideways scrolling hides posts.
+- **C · Immersive.** The post fills the screen; sideways moves between
+  interests, down moves through the posts inside one, so the axis you swipe IS
+  the organising principle. Trade: one post at a time, so browsing is slower
+  and the structure is felt rather than seen.
 
 ## Known departures from the current tokens
 
