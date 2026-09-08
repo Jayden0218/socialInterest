@@ -4,16 +4,22 @@ import { activePalette as palette, textStyle } from '../../ui/theme';
 import { Screen } from '../../ui/primitives';
 import { PagedPostList, type PagedState } from '../../components/PagedPostList';
 
-export type FeedEmptyState = 'no_followed_interests' | 'no_posts_yet' | null;
+export type FeedEmptyState = 'no_posts_yet' | null;
 
 /**
- * FR-036: the two empty states are NOT the same and must not share a screen.
+ * 001/FR-036 SURVIVES; ONE OF ITS TWO STATES DOES NOT.
  *
- * "You follow nothing" is an onboarding problem — the answer is a list of
- * interests to pick from, and SC-006 measures whether someone can choose three
- * within two minutes. "Your interests have no posts yet" is a content problem —
- * the answer is an invitation to post. Showing the wrong one sends people to a
- * dead end.
+ * There used to be two, and keeping them apart was the point: "you follow
+ * nothing" was an onboarding problem and "your interests have no posts" was a
+ * content problem, and showing the wrong one sent people to a dead end.
+ *
+ * `no_followed_interests` is GONE with the composed feed (007/RS-008). A ranked
+ * feed is never in that state: it draws candidates across the catalogue and
+ * explores outside whatever the person has declared, so "you follow nothing" is
+ * no longer a reason for an empty screen — and a new account that skips the
+ * cold-start picks must still see posts (007/FR-015).
+ *
+ * The remaining state is the honest one: the catalogue itself is empty.
  */
 export interface EmptyStateCopy {
   title: string;
@@ -24,17 +30,10 @@ export interface EmptyStateCopy {
 
 export function emptyStateCopy(hint: FeedEmptyState): EmptyStateCopy | null {
   switch (hint) {
-    case 'no_followed_interests':
-      return {
-        title: 'Pick a few interests',
-        body: 'Your feed is built from the interests you follow.',
-        action: 'choose_interests',
-        actionLabel: 'Browse interests',
-      };
     case 'no_posts_yet':
       return {
         title: 'Nothing here yet',
-        body: 'The interests you follow have no posts. Be the first.',
+        body: 'There is nothing to show yet. Be the first.',
         action: 'create_post',
         actionLabel: 'Create a post',
       };
@@ -47,11 +46,14 @@ export function HomeFeedScreen({
   state,
   onLoadMore,
   onEmptyAction,
+  onViewableChanged,
   renderPost,
 }: {
   state: PagedState<Post>;
   onLoadMore: () => void;
   onEmptyAction: (action: EmptyStateCopy['action']) => void;
+  /** 007/FR-004. Absent in tests that render this screen directly. */
+  onViewableChanged?: (postIds: string[]) => void;
   renderPost: (post: Post, index: number) => React.ReactElement;
 }) {
   const copy = emptyStateCopy(state.emptyStateHint as FeedEmptyState);
@@ -64,6 +66,7 @@ export function HomeFeedScreen({
         keyOf={(p) => p.postId}
         renderItem={renderPost}
         onLoadMore={onLoadMore}
+        {...(onViewableChanged ? { onViewableChanged } : {})}
         {...(copy
           ? {
               empty: {

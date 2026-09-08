@@ -10,6 +10,7 @@ import {
   PostDetailContainer,
   CommentsContainer,
   SafetyContainer,
+  PickInterestsContainer,
   SignInContainer,
   SignedOutNotice,
   InterestContainer,
@@ -76,6 +77,8 @@ export type Route =
   | { name: 'create-place'; initialName?: string; initialLocality?: string }
   | { name: 'saved' }
   | { name: 'people-search' }
+  // ---- feature 007
+  | { name: 'pick-interests' }
   | { name: 'safety'; subject: ReportSubject; subjectId: string; authorHandle?: string };
 
 /**
@@ -159,10 +162,23 @@ export function Shell() {
             <SignInContainer
               onSignedIn={() => {
                 setSignedIn(true);
-                pop();
+                /**
+                 * 007/FR-014, SC-002. Straight into the cold start, REPLACING
+                 * the sign-in screen rather than stacking on it: a back gesture
+                 * from the picks must not land on a sign-in form the person has
+                 * already completed.
+                 *
+                 * The screen decides for itself whether it has anything to ask
+                 * — an account that has already seeded skips through — so this
+                 * is unconditional here and conditional there. Deciding it in
+                 * two places is how one of them goes stale.
+                 */
+                setStack([{ name: 'pick-interests' }]);
               }}
             />
           );
+        case 'pick-interests':
+          return <PickInterestsContainer onDone={() => setStack([])} />;
         case 'post':
           return (
             <PostDetailContainer

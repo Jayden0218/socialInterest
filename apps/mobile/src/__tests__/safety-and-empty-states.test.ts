@@ -69,18 +69,24 @@ describe('T041 safety controls survive the redesign (G4)', () => {
 });
 
 describe('T042 empty states stay distinct (FR-024)', () => {
-  it('the feed says something different for each reason it is empty', () => {
-    // The real hints. The first version of this test invented `'no-follows'` and
-    // `null`, which is a test asserting about a state the product does not have
-    // - it failed for its own reason rather than the product's.
-    const noInterests = emptyStateCopy('no_followed_interests');
+  /**
+   * DOWN TO ONE STATE, and the test says so rather than quietly covering less.
+   *
+   * The real hints. The first version of this test invented `'no-follows'` and
+   * `null`, which is a test asserting about a state the product does not have -
+   * it failed for its own reason rather than the product's. 007 retires
+   * `no_followed_interests` for a different reason: the product no longer HAS
+   * that state, because a ranked feed is never empty for want of follows.
+   */
+  it('the one reason a feed can be empty says what to do about it', () => {
     const noPosts = emptyStateCopy('no_posts_yet');
-    expect(noInterests).not.toBeNull();
     expect(noPosts).not.toBeNull();
-    expect(noInterests!.title).not.toBe(noPosts!.title);
-    expect(noInterests!.body).not.toBe(noPosts!.body);
-    // And each offers the action that fits ITS reason, not one generic button.
-    expect(noInterests!.action).not.toBe(noPosts!.action);
+    expect(noPosts!.action).toBe('create_post');
+
+    // And the withdrawn one produces nothing, so a stale hint from an old
+    // response cannot resurrect copy that tells a person to go and follow
+    // things in order to have a feed.
+    expect(emptyStateCopy('no_followed_interests' as never)).toBeNull();
   });
 
   it('an unexplained empty feed gets no invented copy', () => {
@@ -98,7 +104,6 @@ describe('T042 empty states stay distinct (FR-024)', () => {
 
   it('no empty state has been reduced to a bare placeholder', () => {
     for (const copy of [
-      emptyStateCopy('no_followed_interests')!,
       emptyStateCopy('no_posts_yet')!,
       emptyInboxCopy('requested'),
       emptyInboxCopy('accepted'),

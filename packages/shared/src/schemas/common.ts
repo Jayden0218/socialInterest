@@ -57,8 +57,18 @@ export const pageQuerySchema = z.object({
 });
 export type PageQuery = z.infer<typeof pageQuerySchema>;
 
-/** FR-036: every empty feed or interest space names which empty state to show. */
+/**
+ * FR-036: every empty feed or interest space names which empty state to show.
+ *
+ * `no_followed_interests` is RETIRED by 007 and kept in the enum on purpose.
+ * The home feed can no longer produce it - a ranked feed is never in that state
+ * - but a stored or in-flight response from before the change still parses,
+ * and a client that still branches on it simply never takes that branch.
+ * Removing the member would turn an old value into a parse error, which is a
+ * louder failure than the one it prevents.
+ */
 export const emptyStateHintSchema = z.enum([
+  /** @deprecated 007 - the composed feed's state. Never emitted any more. */
   'no_followed_interests',
   'interest_has_no_posts',
   'no_posts_yet',

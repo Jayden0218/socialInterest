@@ -23,6 +23,7 @@ import type {
   Review,
 } from '@sih/shared';
 import { useHomeFeed, useInterestSearch, useNotifications, usePaged } from '../containers';
+import { useDwell } from '../features/feed/useDwell';
 import { activePalette as palette, space } from '../ui/theme';
 import { Button, Row } from '../ui/primitives';
 import { conversationTitle } from '../features/conversations/conversation-title';
@@ -52,6 +53,14 @@ export function HomeFeedContainer({
   onEmptyAction: () => void;
   onOpenPost: (postId: string) => void;
 }) {
+  const data = useData();
+  /**
+   * 007/FR-004. Declared BEFORE the early return below, because a hook after
+   * any return is the "Rendered more hooks than during the previous render"
+   * crash - guarded by `hooks-before-return.test.ts`, which exists because this
+   * exact mistake has been made here before.
+   */
+  const dwell = useDwell(data.signals);
   const { state, error, loadMore } = useHomeFeed();
   if (error) return <Failed message={error} />;
   return (
@@ -59,8 +68,20 @@ export function HomeFeedContainer({
       state={state}
       onLoadMore={loadMore}
       onEmptyAction={onEmptyAction}
+      onViewableChanged={dwell.onViewableChanged}
       renderPost={(post) => (
-        <PostCard post={post} onOpen={onOpenPost} />
+        <PostCard
+          post={post}
+          onOpen={(postId) => {
+            /**
+             * FR-010: this records that the post was opened. It does NOT show
+             * the person why it was ranked where it was - no browse or post
+             * surface may. The disclosure lives in Settings and nowhere else.
+             */
+            dwell.record({ kind: 'open', postId });
+            onOpenPost(postId);
+          }}
+        />
       )}
     />
   );
@@ -156,11 +177,12 @@ export function NotificationsContainer({ onOpen }: { onOpen: (postId: string) =>
 
 /* --- post detail, comments, safety: the remaining screens, wired --- */
 
-import type { Post } from '@sih/shared';
+import type { Interest, Post } from '@sih/shared';
 import { PostDetailScreen } from '../features/posts/PostDetailScreen';
 import { EditPostScreen, type EditPostDraft } from '../features/posts/EditPostScreen';
 import { SharedPostScreen } from '../features/posts/SharedPostScreen';
-import { EditProfileScreen, type ProfileDraft } from '../features/profile/EditProfileScreen';
+import { type FeedSignalSummary, EditProfileScreen, type ProfileDraft } from '../features/profile/EditProfileScreen';
+import { PickInterestsScreen, MAX_PICKS } from '../features/onboarding/PickInterestsScreen';
 import { CommentsScreen } from '../features/engagement/CommentsScreen';
 import { EngagementBar, type EngagementState } from '../features/engagement/EngagementBar';
 import { SafetyActions, type ReportSubject } from '../features/safety/SafetyActions';
@@ -1094,9 +1116,23 @@ export function EditProfileContainer({ onDone }: { onDone: () => void }) {
   const [draft, setDraft] = useState<ProfileDraft | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // 007/FR-011, FR-012.
+  const [feedSignals, setFeedSignals] = useState<FeedSignalSummary | null>(null);
+  const [clearingSignals, setClearingSignals] = useState(false);
 
   useEffect(() => {
     let live = true;
+    /**
+     * Read alongside the profile rather than behind a tap. FR-011 says a person
+     * must be able to SEE what their feed is built from; a disclosure hidden
+     * behind another navigation step is one SC-003 gives them thirty seconds to
+     * find, from the app's main screen, without guidance.
+     */
+    data.signals
+      .disclosure()
+      .then((d) => live && setFeedSignals({ interests: d.interests, collected: d.collected }))
+      // A failed disclosure hides the group; it must never block editing a name.
+      .catch(() => undefined);
     data.session
       .me()
       .then((me) => {
@@ -1142,14 +1178,36 @@ export function EditProfileContainer({ onDone }: { onDone: () => void }) {
     }
   }, [data, onDone]);
 
+  const clearFeedSignals = useCallback(async () => {
+    setClearingSignals(true);
+    try {
+      await data.signals.clear();
+      /**
+       * RE-READ rather than assuming an empty result. What survives a clear is
+       * the person's own declarations - their seed picks and followed interests
+       * - so "cleared" does not mean "empty", and a screen that assumed it did
+       * would tell them the reset failed.
+       */
+      const after = await data.signals.disclosure();
+      setFeedSignals({ interests: after.interests, collected: after.collected });
+    } catch (e: unknown) {
+      setError(e instanceof DataError ? e.message : String(e));
+    } finally {
+      setClearingSignals(false);
+    }
+  }, [data]);
+
   if (error) return <Failed message={error} />;
   if (!draft) return <View testID="edit-profile-loading" />;
   return (
     <EditProfileScreen
       draft={draft}
       saving={saving}
+      feedSignals={feedSignals}
+      clearingSignals={clearingSignals}
       onChange={setDraft}
       onSave={() => void save()}
+      onClearFeedSignals={() => void clearFeedSignals()}
       onDeleteAccount={() => void deleteAccount()}
     />
   );
@@ -1802,6 +1860,85 @@ export function SavedContainer({ onOpenPost }: { onOpenPost: (postId: string) =>
       renderPost={(post) => (
         <PostCard post={post} onOpen={onOpenPost} />
       )}
+    />
+  );
+}
+
+
+/**
+ * 007/FR-014, FR-015, SC-002 — THE COLD START.
+ *
+ * It decides for itself whether there is anything to ask: an account that has
+ * already seeded, or a catalogue that has not loaded, goes straight through.
+ * `App` therefore navigates here unconditionally after sign-in, and the
+ * condition lives in exactly one place — two copies of it is how one goes stale.
+ *
+ * SKIPPING IS A REAL PATH, not a lesser one. FR-015 requires a populated feed
+ * for somebody who picks nothing, so skipping does not need repairing later and
+ * the screen does not need to argue with them about it.
+ */
+export function PickInterestsContainer({ onDone }: { onDone: () => void }) {
+  const data = useData();
+  const [interests, setInterests] = useState<Interest[] | null>(null);
+  const [picked, setPicked] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    void Promise.all([data.interests.listTop({ limit: 30 }), data.signals.disclosure()])
+      .then(([top, disclosure]) => {
+        if (!live) return;
+        // Already seeded: this question has been answered and must not be asked
+        // again. A first-run screen that reappears is the app forgetting you.
+        if (disclosure.seedInterests.length > 0) {
+          onDone();
+          return;
+        }
+        setInterests(top.items);
+      })
+      .catch(() => live && onDone());
+    return () => {
+      live = false;
+    };
+  }, [data, onDone]);
+
+  const toggle = useCallback((interestId: string) => {
+    setPicked((current) =>
+      current.includes(interestId)
+        ? current.filter((id) => id !== interestId)
+        : current.length >= MAX_PICKS
+          ? current
+          : [...current, interestId],
+    );
+  }, []);
+
+  const commit = useCallback(
+    async (ids: string[]) => {
+      setSaving(true);
+      try {
+        if (ids.length > 0) await data.signals.chooseSeedInterests(ids);
+      } catch {
+        // A failed seed is not a failed sign-up. The feed still works - it just
+        // starts from exploration instead of from a hint, which FR-015 already
+        // requires it to survive. Blocking somebody's first screen on this
+        // would be strictly worse than the thing it is protecting.
+      } finally {
+        setSaving(false);
+        onDone();
+      }
+    },
+    [data, onDone],
+  );
+
+  if (!interests) return <View testID="pick-interests-loading" />;
+  return (
+    <PickInterestsScreen
+      interests={interests}
+      picked={picked}
+      saving={saving}
+      onToggle={toggle}
+      onContinue={() => void commit(picked)}
+      onSkip={() => void commit([])}
     />
   );
 }

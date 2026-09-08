@@ -43,17 +43,43 @@ export const DELETE_ACCOUNT_CONFIRMATION =
  */
 const CATEGORIES = NOTIFICATION_CATEGORIES;
 
+/**
+ * 007/FR-011 AND FR-012 — "YOUR FEED", and it is a release gate, not a setting.
+ *
+ * The composed feed was legible because you BUILT it: your subscriptions were
+ * visible and you could change them. A ranked feed is built from behaviour, so
+ * the equivalent legibility has to be given back deliberately — see what it
+ * learned, and be able to throw it away. Constitution 2.0.0 makes this ship
+ * with US1 or US1 does not ship.
+ *
+ * This is also the ONLY place the product explains its ranking. FR-010 forbids
+ * a per-post "why am I seeing this" on any browse or post surface: an
+ * explanation attached to each post is an invitation to argue with the feed
+ * post by post, and it is the pattern the owner rejected by name.
+ */
+export interface FeedSignalSummary {
+  interests: { interestId: string; name: string; weight: number }[];
+  collected: string[];
+}
+
 export function EditProfileScreen({
   draft,
   saving,
+  feedSignals,
+  clearingSignals,
   onChange,
   onSave,
+  onClearFeedSignals,
   onDeleteAccount,
 }: {
   draft: ProfileDraft;
   saving?: boolean;
+  /** FR-011. Absent while it loads, and absent in tests that do not need it. */
+  feedSignals?: FeedSignalSummary | null;
+  clearingSignals?: boolean;
   onChange: (next: ProfileDraft) => void;
   onSave: () => void;
+  onClearFeedSignals?: () => void;
   onDeleteAccount: () => void;
 }) {
   return (
@@ -108,6 +134,30 @@ export function EditProfileScreen({
           </Row>
         ))}
       </View>
+
+      {feedSignals ? (
+        <View testID="feed-signals" style={{ gap: space.sm }}>
+          <Text style={{ ...textStyle.caption, color: palette.text.muted }}>Your feed</Text>
+          <Text testID="feed-signals-summary" style={{ ...textStyle.body, color: palette.text.primary }}>
+            {feedSignals.interests.length > 0
+              ? `Built from ${feedSignals.interests.map((i) => i.name).join(', ')}.`
+              : 'Your feed has not learned anything yet.'}
+          </Text>
+          <Text testID="feed-signals-collected" style={{ ...textStyle.caption, color: palette.text.muted }}>
+            {/* In the person's own terms, not in the ranker's. */}
+            {`From ${feedSignals.collected.join(', ')}.`}
+          </Text>
+          {onClearFeedSignals ? (
+            <Button
+              testID="clear-feed-signals"
+              label={clearingSignals ? 'Clearing…' : 'Clear what my feed has learned'}
+              variant="secondary"
+              disabled={clearingSignals === true}
+              onPress={onClearFeedSignals}
+            />
+          ) : null}
+        </View>
+      ) : null}
 
       <Button
         testID="save-profile"

@@ -60,6 +60,18 @@ function fakeData(over: Partial<Record<string, unknown>> = {}): AppData {
       unfollow: async () => undefined,
     },
     posts: { get: async () => null, publish: async () => ({ postId: 'p1' }), byHandle: async () => page },
+    /**
+     * 007. `seedInterests` non-empty by default, so signing in does NOT land on
+     * the cold-start screen in tests about something else. The cold start is
+     * exercised deliberately, where it is the subject.
+     */
+    signals: {
+      record: async () => ({ accepted: 0, rejected: 0 }),
+      disclosure: async () => ({ interests: [], seedInterests: ['i1'], collected: [] }),
+      clear: async () => ({ cleared: true }),
+      chooseSeedInterests: async () => ({ seedInterests: [] }),
+      ...(over.signals as object),
+    },
     people: {
       get: async () => ({ userId: 'u2', handle: 'someone', displayName: 'Someone', bio: null,
         followerCount: 3, followingCount: 1, topInterests: [], viewerIsFollowing: false }),

@@ -20,6 +20,7 @@ import { PeopleData } from './people';
 import { ConversationsData } from './conversations';
 import { PlacesData } from './places';
 import { SavedData } from './saved';
+import { SignalsData } from './signals';
 
 export interface AppData {
   client: DataClient;
@@ -34,6 +35,7 @@ export interface AppData {
   conversations: ConversationsData;
   places: PlacesData;
   saved: SavedData;
+  signals: SignalsData;
 }
 
 export function createAppData(opts: DataClientOptions): AppData {
@@ -51,9 +53,12 @@ export function createAppData(opts: DataClientOptions): AppData {
     conversations: new ConversationsData(client),
     places: new PlacesData(client),
     saved: new SavedData(client),
+    signals: new SignalsData(client),
   };
 }
 
+export { SignalsData } from './signals';
+export type { Signal, SignalKind, SignalReceipt, FeedSignalDisclosure } from './signals';
 export { DataClient, MemoryTokenStore, SessionData, PeopleData, InterestsData, PostsData, FeedData, EngagementData, SafetyData, NotificationsData };
 export type { DataClientOptions, TokenStore };
 export * from './errors';

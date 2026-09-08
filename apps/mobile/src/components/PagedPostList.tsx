@@ -42,6 +42,12 @@ export function appendPage<T>(state: PagedState<T>, page: Page<T>): PagedState<T
   };
 }
 
+/** Stable, because RN refuses a viewabilityConfig that changes identity. */
+const VIEWABILITY_CONFIG = {
+  itemVisiblePercentThreshold: 60,
+  minimumViewTime: 300,
+} as const;
+
 export function shouldLoadMore<T>(state: PagedState<T>): boolean {
   return !state.loading && !state.exhausted;
 }
@@ -52,9 +58,15 @@ export interface PagedPostListProps<T> {
   renderItem: (item: T, index: number) => React.ReactElement;
   onLoadMore: () => void;
   empty?: { title: string; body: string; actionLabel?: string; onAction?: () => void };
+  /**
+   * 007/FR-004. The ids currently meeting the viewability rule, as the list
+   * sees it. Optional, because most lists are not the feed and must not report
+   * dwell: a saved-posts list scrolling past a post is not attention to it.
+   */
+  onViewableChanged?: (keys: string[]) => void;
 }
 
-export function PagedPostList<T>({ state, keyOf, renderItem, onLoadMore, empty }: PagedPostListProps<T>) {
+export function PagedPostList<T>({ state, keyOf, renderItem, onLoadMore, empty, onViewableChanged }: PagedPostListProps<T>) {
   if (state.items.length === 0 && !state.loading) {
     return (
       <EmptyState
@@ -79,6 +91,22 @@ export function PagedPostList<T>({ state, keyOf, renderItem, onLoadMore, empty }
         if (shouldLoadMore(state)) onLoadMore();
       }}
       contentContainerStyle={{ gap: space.md }}
+      {...(onViewableChanged
+        ? {
+            /**
+             * Research R7: 60% visible for 300ms. Both halves matter - area
+             * alone counts a post the reader flicked past, and time alone
+             * counts one barely on screen.
+             *
+             * The config object must be STABLE across renders; React Native
+             * throws "Changing viewabilityConfig on the fly is not supported"
+             * otherwise, which is why it is a module constant.
+             */
+            viewabilityConfig: VIEWABILITY_CONFIG,
+            onViewableItemsChanged: ({ viewableItems }: { viewableItems: { key: string }[] }) =>
+              onViewableChanged(viewableItems.map((v) => v.key)),
+          }
+        : {})}
       ListFooterComponent={
         state.loading ? (
           /**

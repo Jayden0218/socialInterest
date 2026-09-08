@@ -57,22 +57,26 @@ describe('HomeFeedScreen — FR-036 empty states are distinct', () => {
       />,
     );
 
-  it('"you follow nothing" offers interests to browse', () => {
-    renderFeed('no_followed_interests');
-    expect(screen.getByTestId('paged-empty')).toHaveTextContent(/Pick a few interests/);
-    expect(screen.getByTestId('empty-state-action')).toHaveTextContent(/Browse interests/);
-  });
-
-  it('"your interests have no posts" offers posting instead', () => {
+  it('an empty catalogue offers posting', () => {
     renderFeed('no_posts_yet');
     expect(screen.getByTestId('empty-state-action')).toHaveTextContent(/Create a post/);
   });
 
-  it('the two states never share copy', () => {
-    const a = emptyStateCopy('no_followed_interests')!;
-    const b = emptyStateCopy('no_posts_yet')!;
-    expect(a.action).not.toBe(b.action);
-    expect(a.title).not.toBe(b.title);
+  /**
+   * 007/RS-008. `no_followed_interests` is retired: a RANKED feed is never in
+   * that state, so the screen must not offer "pick a few interests" as the cure
+   * for an empty page. Asserted as an absence, because the copy is still in the
+   * repository's history and re-adding the branch is a one-line change.
+   */
+  it('does not offer the withdrawn "you follow nothing" state', () => {
+    expect(emptyStateCopy('no_followed_interests' as never)).toBeNull();
+    renderFeed('no_followed_interests');
+    // The list still renders ITS OWN empty container - that is the generic
+    // "nothing here" and is not the claim. What must be gone is the COPY that
+    // tells a person their feed depends on following things.
+    expect(screen.queryByTestId('empty-state-action')).toBeNull();
+    expect(screen.queryByText(/Pick a few interests/)).toBeNull();
+    expect(screen.queryByText(/Browse interests/)).toBeNull();
   });
 });
 
