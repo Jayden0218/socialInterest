@@ -195,8 +195,10 @@ safety sheet on a 640pt-tall screen and reach the block control.
   boundary, and MUST NOT repeat a post already shown in the same session.
 - **FR-009**: If a ranking cannot be produced, the system MUST serve a defensible fallback
   ordering rather than failing the request.
-- **FR-010**: The user interface MUST NOT display any explanation of why a post was ranked
-  where it was.
+- **FR-010**: No browse or post surface may display an explanation of why a post was ranked
+  where it was — not on the feed, a post, a profile or an interest space. This is scoped to
+  those surfaces deliberately: FR-011 requires the account-level disclosure in Settings, and
+  an unscoped "no explanation anywhere" would contradict it.
 
 **Control and disclosure**
 
@@ -223,6 +225,17 @@ safety sheet on a 640pt-tall screen and reach the block control.
 - **FR-019**: Search MUST return interests, places and people as distinguishable kinds.
 - **FR-020**: A place MUST NOT carry the interest visual treatment, because following a
   place does not place its posts in a feed.
+
+**A follow still means something**
+
+- **FR-029**: A post by a person the viewer follows MUST receive a bounded boost in the
+  ranking. The boost MUST NOT admit a post the ranking would not otherwise have considered,
+  and MUST NOT override the exploration share of FR-007.
+
+  This carries forward the intent of 001/FR-034, which said the same thing in terms of an
+  interest boundary that no longer exists (RS-007). A follow is an explicit declaration
+  rather than observed behaviour, which is why it is a requirement here and not one of the
+  four behavioural signals in FR-003.
 
 **The redesign**
 
@@ -254,6 +267,12 @@ safety sheet on a 640pt-tall screen and reach the block control.
   against version 1.0.0 and MUST be re-evaluated against 2.0.0.
 - **RS-006**: The project guide's description of the feed as *composed* from followed
   interests MUST be corrected.
+- **RS-007**: **001/FR-034 is WITHDRAWN as written.** "Posts by followed people rank above
+  unfollowed authors **within the same interest**" names a grouping the ranked feed does not
+  have. Its intent is carried forward by FR-029 above. Its implementation
+  (`apps/api/src/modules/feed/ranking.ts`) and its unit test are deleted with the composed
+  feed, so both the requirement and its replacement must be stated — a requirement whose
+  implementation quietly disappears is the failure this section exists to prevent.
 
 ### Key Entities
 
@@ -286,7 +305,7 @@ safety sheet on a 640pt-tall screen and reach the block control.
 - **SC-007**: One person's signals are not observable by another person on any of the
   surfaces enumerated in the visibility contract — checked mechanically over all of them.
 - **SC-008**: Four or more posts are visible on the feed without scrolling, on the shortest
-  supported screen.
+  supported screen — measured at a fixed viewport, not counted by eye.
 - **SC-009**: Every interactive control across all twenty screens meets 44x44, checked
   mechanically rather than by eye.
 - **SC-010**: At the largest platform font setting on the shortest supported screen, every
@@ -295,7 +314,8 @@ safety sheet on a 640pt-tall screen and reach the block control.
 - **SC-011**: Every existing test identifier still resolves, and the full journey suite
   passes with no change to its assertions about behaviour.
 - **SC-012**: The feed's first screen is ready in under 2 seconds on the reference device
-  at the 95th percentile.
+  at the 95th percentile, and ranking adds no more than 150ms to a feed request — both
+  measured by a benchmark run, not inferred from a passing test.
 
 ## Assumptions
 

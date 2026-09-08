@@ -75,6 +75,12 @@ the mobile change touches every screen.
 2. **`001/plan.md`'s Constitution Check was written against 1.0.0** and is stale (RS-005).
    The governance section requires a plan written before an amendment to be re-evaluated
    before further implementation. That is a task in this feature, not a footnote.
+3. **001/FR-034 is withdrawn as written and carried forward as 007/FR-029** (RS-007). It
+   said posts by followed people outrank unfollowed authors *within the same interest* — a
+   grouping the ranked feed does not have. Its implementation is deleted with the composed
+   feed, so leaving it unstated would have removed a live requirement by side effect. A
+   follow is an explicit declaration rather than observed behaviour, which is why it is a
+   requirement and not a fifth entry in the behavioural signal set.
 
 ## Project Structure
 
@@ -102,14 +108,17 @@ apps/api/src/
 │   ├── signals/                 # NEW — ingest, batch, fold into a profile, clear
 │   │   ├── signal.controller.ts
 │   │   ├── signal.service.ts
-│   │   └── signal-profile.ts
+│   │   └── seed.service.ts      # cold-start picks, NOT interest follows
 │   ├── ranking/                 # NEW — candidate selection and ordering
 │   │   ├── ranking.service.ts
 │   │   ├── candidate-source.ts  # where candidates come from
+│   │   ├── decay.ts             # applied on read, never by rewriting rows
+│   │   ├── constants.ts         # the values research chose, named
 │   │   └── explore.ts           # FR-007, the anti-collapse share
 │   ├── feed/                    # CHANGED — composition replaced by ranking
 │   │   ├── feed.service.ts
-│   │   └── ranking.ts           # DELETED; superseded by modules/ranking/
+│   │   ├── ranking.ts           # DELETED; superseded by modules/ranking/
+│   │   └── follow-expansion.ts  # DELETED; the composed feed's follow-graph expansion
 │   └── posts/                   # UNCHANGED — one responder, one shape
 ├── persistence/
 │   └── signal.repository.ts     # NEW
@@ -117,6 +126,8 @@ apps/api/src/
 
 apps/api/tests/
 ├── integration/us4-fr033-boundary.spec.ts   # DELETED (RS-002)
+├── unit/feed-ranking.spec.ts                # DELETED — imports the module T011 removes
+├── unit/feed-does-not-read-place-follows.spec.ts  # KEPT, re-pointed. 004/SC-006 stands
 ├── integration/ranked-feed.spec.ts          # NEW
 ├── unit/ranking-cannot-admit.spec.ts        # NEW — the G4 structural guard
 └── visibility/matrix.spec.ts                # EXTENDED — the feed row is now ranked
@@ -156,7 +167,7 @@ layer and the component vocabulary underneath them.
 | **4. Ranked feed** | candidate source, ranking, exploration, paging (US1) | G4 provable; SC-005 and SC-006 measured |
 | **5. Cold start** | first-run selection as a seed (FR-014, FR-015) | A new account reaches a populated feed |
 | **6. Redesign** | tokens, waterfall, twenty screens (US3–US5) | G1, G2, G6; testID snapshot unchanged |
-| **7. Evidence** | full CI list, emulator run, run record | An emulator run, or the feature is not complete |
+| **7. Evidence** | benchmark (SC-012), full CI list, emulator run, run record | The numeric criteria are MEASURED, not asserted — then an emulator run, or the feature is not complete |
 
 **Withdrawals come before the new feed, not after.** If the ranked feed lands first, the
 FR-033 test fails and the pressure is to weaken it — which is exactly what RS-002 forbids.
