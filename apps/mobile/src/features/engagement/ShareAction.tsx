@@ -10,7 +10,26 @@ import { Banner, Button, Field } from '../../ui/primitives';
  * than letting them find out from a confused recipient that the link did not
  * open.
  */
-export function shareWarning(visibility: Visibility): string | null {
+/**
+ * 008/FR-044 — AND THIS COPY WAS WRONG THE MOMENT PRIVATE ACCOUNTS SHIPPED.
+ *
+ * A `public` post by a PRIVATE account is evaluated by the `followers` rule, so
+ * "anyone can open this" — which is what `null` here renders as, silently —
+ * became a promise the boundary does not keep. Nobody would have found it from
+ * the code: the post's visibility really is `public` and this function really
+ * does handle every case of it.
+ *
+ * 007 shipped a follow hint describing a WITHDRAWN requirement for exactly this
+ * reason, and the lesson it recorded is the one that found this: when a rule
+ * changes, grep the COPY, not only the code.
+ */
+export function shareWarning(
+  visibility: Visibility,
+  authorIsPrivate = false,
+): string | null {
+  if (visibility === 'public' && authorIsPrivate) {
+    return 'Your account is private, so only people you have approved can open this link.';
+  }
   switch (visibility) {
     case 'public':
       return null;
@@ -27,6 +46,7 @@ export function isShareable(visibility: Visibility): boolean {
 
 export function ShareAction({
   visibility,
+  authorIsPrivate,
   url,
   conversations,
   onCopy,
@@ -38,6 +58,8 @@ export function ShareAction({
   sendError,
 }: {
   visibility: Visibility;
+  /** 008/FR-043. The sharer's own account setting — see `shareWarning`. */
+  authorIsPrivate?: boolean;
   url: string;
   /** 004/FR-009. Empty when there is nobody to send to yet. */
   conversations?: { conversationId: string; displayName: string }[];
@@ -57,7 +79,7 @@ export function ShareAction({
    */
   sendError?: string | null;
 }) {
-  const warning = shareWarning(visibility);
+  const warning = shareWarning(visibility, authorIsPrivate === true);
   const [query, setQuery] = useState('');
 
   return (

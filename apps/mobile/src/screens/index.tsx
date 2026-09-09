@@ -1233,6 +1233,27 @@ export function ShareContainer({ postId, onDone }: { postId: string; onDone: () 
   const [personQuery, setPersonQuery] = useState('');
   const [people, setPeople] = useState<PublicProfile[]>([]);
   const [sendError, setSendError] = useState<string | null>(null);
+  /**
+   * 008/FR-043, FR-044. The sharer's OWN account setting.
+   *
+   * A `public` post by a private account is evaluated by the `followers` rule,
+   * so the sheet's "anyone can open this" — rendered as no warning at all —
+   * became a promise the boundary does not keep the moment US13 shipped. Read
+   * here rather than inferred from the post, because it is a property of the
+   * ACCOUNT and the post says `public` either way.
+   */
+  const [authorIsPrivate, setAuthorIsPrivate] = useState(false);
+  useEffect(() => {
+    let live = true;
+    void data.session
+      .me()
+      .then((me) => live && setAuthorIsPrivate(me.accountPrivacy === 'private'))
+      // A failed read leaves the sheet as it was; it must never block sharing.
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [data]);
 
   /**
    * 008/FR-011. People matching the query, for the recipient picker.
@@ -1345,6 +1366,7 @@ export function ShareContainer({ postId, onDone }: { postId: string; onDone: () 
   return (
     <ShareAction
       visibility={post.visibility}
+      authorIsPrivate={authorIsPrivate}
       url={url}
       conversations={conversations}
       onCopy={onDone}

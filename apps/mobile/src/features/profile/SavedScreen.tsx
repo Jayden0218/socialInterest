@@ -163,10 +163,24 @@ export function SavedScreen({
         keyOf={(p: Post) => p.postId}
         renderItem={renderPost}
         onLoadMore={onLoadMore}
-        empty={{
-          title: 'Nothing saved yet',
-          body: 'Tap the star on a post to keep it here.',
-        }}
+        /**
+         * 008/T224 — THE EMPTY STATE HAS TO KNOW WHICH LIST IS EMPTY.
+         *
+         * "Nothing saved yet. Tap the star." is true of the whole list and
+         * WRONG of an empty shelf: those posts are saved, they are just not
+         * filed here, and telling somebody to save them again describes a
+         * product where a collection is a box. FR-051 says it is a shelf, and
+         * the copy has to say the same thing or the screen argues with the
+         * server.
+         */
+        empty={
+          (selected ?? ALL_SAVED) === ALL_SAVED
+            ? { title: 'Nothing saved yet', body: 'Tap the star on a post to keep it here.' }
+            : {
+                title: 'Nothing filed here yet',
+                body: 'Open a saved post and add it to this collection. It stays in All either way.',
+              }
+        }
       />
     </Screen>
   );

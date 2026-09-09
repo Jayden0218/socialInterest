@@ -217,3 +217,44 @@ flagged both, and reading it properly changed the code AND the guard:
 Widening an allow-list is the move this guard's own comment warns about, so it is recorded
 here rather than made quietly: the list is pinned by a second assertion, so every addition is
 a reviewable diff, and **no read path is on it**.
+
+---
+
+## Phase E additions, and one guard that asserts an ABSENCE
+
+### `apps/api/tests/unit/collections-are-not-reportable.spec.ts` (T210)
+
+Not a forbidden-import guard like the five above: it pins a **decision not to build
+something**, which is a different and easier thing to lose. A collection name is
+user-generated text with an audience of one, so Constitution IV's reporting rule does not
+reach it — and `CollectionRepository` therefore has no `removeName`, because a remover
+nothing can call is the sixth "declared half with no other half" this feature exists to end.
+
+Its third assertion is the one that makes it a ratchet rather than a comment: **every
+collection route must be on `/me`**. The moment one takes a handle or an owner id, somebody
+other than the owner can see a collection, the audience-of-one argument collapses, and this
+file fails in the commit that does it rather than at the next safety review.
+
+| | |
+|---|---|
+| **Observed red** | not applicable to assertions 1 and 2 — they assert an absence and are red by construction if the absent thing appears |
+| **Assertion 3 verified** | by construction: it reads the controller's own route decorators, so a route added off `/me` fails it |
+
+### Behavioural guards verified red during Phases D and E
+
+These are not structural, and are recorded because each was watched fail before it was
+believed — the rule this file exists for.
+
+| Guard | Made red by | What it said |
+|---|---|---|
+| `browser/safety-and-privacy-surfaces.spec.ts` (US13 half) | replacing `onApproveFollowRequest` with a no-op | approving never reached the server |
+| `browser/safety-and-privacy-surfaces.spec.ts` (US14 half) | unwiring the `moderation-notices` route | the notices screen was unreachable from the main screen |
+| `browser/compose-fit.spec.ts` | reverting the media strip to a wrapping grid | `upload-slots` 404 against a 280 bound |
+| `browser/safety-fit.spec.ts` (Phase D cases) | taking `scroll` off Edit profile | both new controls unreachable |
+| `journeys/collections.spec.ts` (FR-051) | dropping the save half of the collection-add transaction | a filed post vanished from the saved list |
+
+## T220 — the check itself
+
+Every structural guard 008 introduced has an entry above: **T010, T011, T037, T071, T087**,
+plus T011's second verification under T187. A guard with no red observation is not yet a
+guard, and this list is what says which ones are.

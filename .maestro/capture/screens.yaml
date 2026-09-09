@@ -139,3 +139,65 @@ appId: app.socialinterest
       - tapOn:
           id: "open-compose"
       - takeScreenshot: 13-compose-or-picker
+
+# ---------------------------------------------------------------------------
+# 008 Phases D and E — T222.
+#
+# Guarded by `when: visible` like every capture above, for the reason the file
+# already records: this runs at the END of a 25-minute run, and a screenshot
+# step that can FAIL turns a documentation nicety into a lost run. A screen that
+# is not reachable in this session is simply not captured.
+#
+# Back out of compose first — 13 left the app on the picker, and a pushed screen
+# has no tab bar (005/J-21).
+- back
+
+# The privacy toggle and the follow-request queue (US13), and the way to
+# "what was removed of mine" (US14) — all in Edit profile.
+- runFlow:
+    when:
+      visible:
+        id: "tab-profile"
+    commands:
+      - tapOn:
+          id: "tab-profile"
+      - runFlow:
+          when:
+            visible:
+              id: "open-edit-profile"
+          commands:
+            - tapOn:
+                id: "open-edit-profile"
+            - runFlow:
+                when:
+                  visible:
+                    id: "account-privacy"
+                commands:
+                  - takeScreenshot: 14-account-privacy
+            - runFlow:
+                when:
+                  visible:
+                    id: "open-moderation-notices"
+                commands:
+                  - tapOn:
+                      id: "open-moderation-notices"
+                  - takeScreenshot: 15-moderation-notices
+                  - back
+            - back
+
+# The shelves (US15). Saved is where they live, and "All" is not a collection —
+# the screenshot is the product saying so.
+- runFlow:
+    when:
+      visible:
+        id: "open-saved"
+    commands:
+      - tapOn:
+          id: "open-saved"
+      - runFlow:
+          when:
+            visible:
+              id: "collection-filter"
+          commands:
+            - takeScreenshot: 16-saved-collections
+      - back
