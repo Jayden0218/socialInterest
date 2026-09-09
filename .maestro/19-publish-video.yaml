@@ -19,7 +19,7 @@ appId: app.socialinterest
 # here as a missing element - which is the honest outcome, because there is then
 # nothing on the device to publish.
 - tapOn:
-    id: "media-item-video-1"
+    id: "media-item-video-0"
 - tapOn:
     id: "media-continue"
 - assertVisible:

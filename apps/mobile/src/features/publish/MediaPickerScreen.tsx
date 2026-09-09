@@ -141,12 +141,26 @@ export function MediaPickerScreen({
         contentContainerStyle={{ gap: 3 }}
         renderItem={({ item, index }) => (
           <Pressable
-            // Kind in the id, not only the index. A flow that wants the video
-            // otherwise has to hard-code a position, and verify-maestro-ids
-            // cannot tell a wrong index from a right one - both match the same
-            // dynamic prefix, which is how a selector for a non-existent item
-            // passed that check.
-            testID={`media-item-${item.kind}-${index}`}
+            /**
+             * Kind in the id, AND THE INDEX IS WITHIN THAT KIND.
+             *
+             * The kind was already here for the right reason: a flow that wants
+             * the video should not have to hard-code a position, because
+             * `verify-maestro-ids` cannot tell a wrong index from a right one -
+             * both match the same dynamic prefix, which is how a selector for a
+             * non-existent item passes that check.
+             *
+             * The index was still GLOBAL, so the fix was half a fix. 008/US1
+             * added two sample images and the video moved from
+             * `media-item-video-1` to `media-item-video-3`, breaking
+             * `19-publish-video` twenty minutes into run 48 - the exact failure
+             * the comment above was written to prevent, arriving through the
+             * half that was left undone.
+             *
+             * Per-kind, the video is `media-item-video-0` however many images
+             * precede it, and adding sample media can never renumber it again.
+             */
+            testID={`media-item-${item.kind}-${available.filter((m, i) => m.kind === item.kind && i < index).length}`}
             accessibilityRole="checkbox"
             accessibilityState={{ checked: isSelected(item) }}
             onPress={() => toggle(item)}

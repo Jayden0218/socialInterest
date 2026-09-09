@@ -62,23 +62,49 @@ export function MediaPager({ post }: { post: Post }) {
   };
 
   return (
-    <View>
+    /**
+     * `flex: 1`, AND THE MEASUREMENT IS ON THIS VIEW, not on the ScrollView.
+     *
+     * Both halves were wrong in run 48 and the failure was invisible to nine
+     * green component tests: React Native Testing Library renders the tree and
+     * performs NO LAYOUT, so a component that mounts correctly and collapses to
+     * zero height passes every assertion in `media-pager.test.tsx`.
+     *
+     * The device said `Assertion is false: id: media-pager is visible`, and
+     * `browser/media-pager-fit.spec.ts` reproduced it in one run with the reason
+     * attached: `locator resolved to HIDDEN <div data-testid="media-pager">`.
+     * The element mounted and had no size, because this wrapper had no `flex`
+     * inside `post-media`'s `aspectRatio: 1` frame.
+     *
+     * Measuring HERE rather than on the ScrollView also means the page width is
+     * the frame's width rather than the scroller's own, which is the number a
+     * paging scroll actually needs.
+     */
+    <View
+      testID="media-pager-frame"
+      style={{ flex: 1 }}
+      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+    >
       <ScrollView
         testID="media-pager"
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
         onMomentumScrollEnd={onScrollEnd}
-        style={{ borderRadius: radius.md, overflow: 'hidden' }}
+        style={{ flex: 1, borderRadius: radius.md, overflow: 'hidden' }}
       >
-        {items.map((item, i) => (
+        {/*
+          Rendered only once the frame has been measured. A page with no width
+          inside a horizontal scroller is zero points wide, which is the same
+          invisible-but-present failure one level down.
+        */}
+        {(width > 0 ? items : []).map((item, i) => (
           <View
             key={i}
             testID={`media-page-${i}`}
             style={{
-              width: width > 0 ? width : undefined,
-              aspectRatio: width > 0 ? undefined : 1,
+              width,
+              height: '100%',
               backgroundColor: palette.bg.raised,
             }}
           >
