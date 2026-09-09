@@ -377,6 +377,118 @@ const DECLARED_FIELDS: readonly DeclaredField[] = [
       return page.items.find((c) => c.commentId !== parent.commentId)?.parentCommentId ?? null;
     },
   },
+  {
+    path: 'MediaItem.altText',
+    writer: '008/US10 (T142) - a description per image, at publish time',
+    hasWriter: true,
+    /**
+     * Published by hand rather than through `publishReadyImage`, because alt
+     * text is keyed BY UPLOAD ID — the helper does not surface one, and a
+     * description attached to the wrong upload is precisely the bug this field
+     * would hide.
+     */
+    observe: async () => {
+      const author = await actor('altTextField');
+      const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+      const bytes = jpegPlain();
+      const target = await author.data.posts.createUploadTarget({
+        kind: 'image',
+        contentType: 'image/jpeg',
+        sizeBytes: bytes.byteLength,
+      });
+      await author.data.posts.uploadBytes(target, bytes, 'image/jpeg');
+      const created = await author.data.posts.publish({
+        uploadIds: [target.uploadId],
+        interestIds: [interest.interestId],
+        caption: 'a described picture',
+        altTexts: { [target.uploadId]: 'a cat asleep on a windowsill' },
+      });
+      // Read back from the POST surface, not from the publish response.
+      const post = await eventually(
+        () => author.data.posts.get(created.postId),
+        (p) => (p?.media?.length ?? 0) > 0,
+        { timeoutMs: 30_000, describe: 'the published media' },
+      );
+      return post?.media?.[0]?.altText ?? null;
+    },
+  },
+  {
+    path: 'PublicProfile.viewerFollowState',
+    writer: '008/US13 (T186) - a follow of a private account starts `pending`',
+    hasWriter: true,
+    /**
+     * THE THIRD STATE, observed from the SIDE THAT HAS IT.
+     *
+     * `viewerIsFollowing` is false both for somebody who has not asked and for
+     * somebody waiting, so observing `false` proves nothing. This asks for the
+     * value that can only exist if the request was really recorded.
+     */
+    observe: async () => {
+      const owner = await actor('followStateOwner');
+      const asker = await actor('followStateAsker');
+      await owner.data.session.updateProfile({ accountPrivacy: 'private' });
+      await asker.data.people.follow(owner.handle);
+      return (await asker.data.people.get(owner.handle)).viewerFollowState ?? null;
+    },
+  },
+  {
+    path: 'SelfProfile.accountPrivacy',
+    writer: '008/US13 (T185) - PATCH /me accepts it',
+    hasWriter: true,
+    observe: async () => {
+      const me = await actor('privacyField');
+      await me.data.session.updateProfile({ accountPrivacy: 'private' });
+      // Read back from GET, not from the PATCH response, so a PATCH echoing its
+      // own input would not satisfy this.
+      return (await me.data.session.me()).accountPrivacy ?? null;
+    },
+  },
+  {
+    path: 'ModerationNotice.reason',
+    writer: '008/US14 (T196) - the removal decision writes the notice',
+    hasWriter: true,
+    observe: async () => {
+      const author = await actor('noticeField');
+      const reporter = await actor('noticeFieldReporter');
+      const operator = await actor('noticeFieldOperator', { isOperator: true });
+      const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+      const postId = await publishReadyImage(author, [interest.interestId], { caption: 'to remove' });
+      const filed = await reporter.data.safety.report({
+        subjectType: 'post',
+        subjectId: postId,
+        reason: 'spam',
+      });
+      await operator.data.safety.decide(filed.reportId, {
+        state: 'actioned',
+        action: 'remove_content',
+      });
+      const notices = await author.data.safety.moderationNotices({ limit: 20 });
+      return notices.items.find((n) => n.subjectId === postId)?.reason ?? null;
+    },
+  },
+  {
+    path: 'Collection.itemCount',
+    writer: '008/US15 (T208) - filing a post adjusts the count',
+    hasWriter: true,
+    /**
+     * A COUNT THAT NEVER MOVES IS THE SAME DEFECT AS A FIELD WITH NO WRITER,
+     * and `0` would satisfy a naive "is it present" check. So this observes it
+     * AFTER a post is filed, where the only value that can appear is one
+     * something wrote.
+     */
+    observe: async () => {
+      const me = await actor('collectionCountField');
+      const author = await actor('collectionCountAuthor');
+      const interest = (await me.data.interests.listTop({ limit: 1 })).items[0]!;
+      const postId = await publishReadyImage(author, [interest.interestId], { caption: 'to file' });
+      const shelf = await me.data.saved.createCollection('Counted');
+      await me.data.saved.addToCollection(shelf.collectionId, postId);
+      const after = (await me.data.saved.collections({ limit: 50 })).items.find(
+        (c) => c.collectionId === shelf.collectionId,
+      );
+      return after && after.itemCount > 0 ? after.itemCount : null;
+    },
+  },
 ];
 
 describe('008/FR-054 every declared field has a writer', () => {
