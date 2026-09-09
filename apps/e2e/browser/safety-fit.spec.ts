@@ -60,6 +60,41 @@ describe('006/J-09 - the safety sheet on a short screen', () => {
   }
 
   /**
+   * Brings a control into view the way the APP would, never the way the browser
+   * would.
+   *
+   * `scrollIntoViewIfNeeded` scrolls the DOCUMENT, and a browser page scrolls
+   * where a React Native screen does not — that was the first version of the
+   * block-control test below and it passed with the defect still in place. So
+   * this walks for a container the app itself scrolls, and moves that.
+   *
+   * Returns false when no such container exists, which is the run-35 case: the
+   * control was not below the fold, it was UNREACHABLE.
+   */
+  async function scrollControlIntoView(p: Page, control: string): Promise<boolean> {
+    return p.locator(control).first().evaluate((el: unknown) => {
+      type Node = {
+        parentElement: Node | null;
+        scrollHeight: number;
+        clientHeight: number;
+        scrollTop: number;
+        getBoundingClientRect(): { top: number; bottom: number };
+      };
+      const g = globalThis as unknown as { getComputedStyle(n: unknown): { overflowY: string } };
+      const target = el as Node;
+      for (let n = target.parentElement; n; n = n.parentElement) {
+        const overflowY = g.getComputedStyle(n).overflowY;
+        if ((overflowY === 'auto' || overflowY === 'scroll') && n.scrollHeight > n.clientHeight + 1) {
+          const delta = target.getBoundingClientRect().top - n.getBoundingClientRect().top;
+          n.scrollTop = Math.max(0, delta - 16);
+          return true;
+        }
+      }
+      return false;
+    });
+  }
+
+  /**
    * 320x640 is SHORTER than the sheet is tall. That is the whole test: the
    * control must still be reachable, and before this fix it was not.
    */
@@ -138,6 +173,13 @@ describe('006/J-09 - the safety sheet on a short screen', () => {
     prepare?: (reader: Awaited<ReturnType<typeof actor>>) => Promise<FitContext>;
     open: (page: Page, ctx: FitContext) => Promise<void>;
     control: string;
+    /**
+     * The screen SCROLLS ON A MEASUREMENT (007/T051), so its controls have to be
+     * reachable rather than above the fold. Set only where that measurement
+     * exists — 006's run 36 cost a 27-minute run and took the suite from 18/19
+     * to 1/19 by applying one screen's finding to seven unmeasured ones.
+     */
+    allowScroll?: boolean;
   }[] = [
     {
       name: 'feed',
@@ -302,9 +344,50 @@ describe('006/J-09 - the safety sheet on a short screen', () => {
       },
       control: '[data-testid="save-draft"]',
     },
+    /**
+     * 008/US13, Phase D. THE PRIVACY SWITCH, in Edit profile.
+     *
+     * Edit profile is the screen 007/T051 measured and turned `scroll` on for,
+     * with a number behind it — so this case asks the question that measurement
+     * left open for a control added afterwards: privacy sits between the
+     * notification switches and the account-deletion block, and a screen that
+     * scrolls can still put a control off the RIGHT edge, which is as
+     * unreachable and is the half nobody looks for.
+     */
+    {
+      name: 'account privacy switch',
+      open: async (page) => {
+        await page.click('[data-testid="tab-profile"]');
+        await page.click('[data-testid="open-edit-profile"]');
+        await page.waitForSelector('[data-testid="account-privacy"]', { timeout: 30_000 });
+      },
+      control: '[data-testid="account-privacy-switch"]',
+      // Scrolled to, not required above the fold: this screen scrolls on a
+      // measurement (007/T051) and its primary action is Save, in the header.
+      allowScroll: true,
+    },
+    /**
+     * 008/US14, Phase D. THE WAY TO "WHAT WAS REMOVED OF MINE".
+     *
+     * Constitution IV: a route to a human is only real if somebody can find it.
+     * It is above the delete-account block deliberately — a person who cannot
+     * contest a removal and meets "Delete account" first has been offered the
+     * wrong door — and this is where that ordering is measured rather than
+     * asserted in a comment.
+     */
+    {
+      name: 'moderation notices entry',
+      open: async (page) => {
+        await page.click('[data-testid="tab-profile"]');
+        await page.click('[data-testid="open-edit-profile"]');
+        await page.waitForSelector('[data-testid="open-moderation-notices"]', { timeout: 30_000 });
+      },
+      control: '[data-testid="open-moderation-notices"]',
+      allowScroll: true,
+    },
   ];
 
-  it.each(SCREENS)('$name keeps its primary control reachable at 130% text on a 640pt screen', async ({ prepare, open, control }) => {
+  it.each(SCREENS)('$name keeps its primary control reachable at 130% text on a 640pt screen', async ({ prepare, open, control, allowScroll }) => {
     const reader = await actor(`fit${Math.random().toString(36).slice(2, 8)}`);
     const ctx: FitContext = prepare ? await prepare(reader) : {};
     page = await browser.newPage({ viewport: { width: 360, height: 640 } });
@@ -320,6 +403,20 @@ describe('006/J-09 - the safety sheet on a short screen', () => {
     // already asks.
     await page.addStyleTag({ content: 'body { font-size: 130% }' });
     await open(page, ctx);
+
+    /**
+     * A control on a screen that SCROLLS ON A MEASUREMENT is reachable if the
+     * app's own scroll container can bring it into view — which is a different
+     * claim from "above the fold", and one run 35 proved matters: its defect was
+     * a `Screen` that was a plain View, so the control was not below the fold,
+     * it was UNREACHABLE. `scrollControlIntoView` walks for a container the APP
+     * scrolls, never the document (see the note on that helper).
+     */
+    if (allowScroll) {
+      // FALSE means no container the app scrolls — the run-35 defect exactly,
+      // and a much worse failure than a control below a fold.
+      expect(await scrollControlIntoView(page, control)).toBe(true);
+    }
 
     const box = await page.locator(control).first().boundingBox();
     expect(box).not.toBeNull();

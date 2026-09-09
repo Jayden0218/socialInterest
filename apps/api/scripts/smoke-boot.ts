@@ -81,6 +81,33 @@ async function main(): Promise<void> {
       method: 'DELETE',
       expect: [401],
     },
+    /**
+     * Phase D. Same argument as the Phase C routes above: this boots under
+     * `tsx`, which does not emit decorator metadata the way ts-jest does, so a
+     * controller that resolves in the integration harness and not in production
+     * fails HERE rather than on a device twenty minutes into a run.
+     *
+     * `AppealService` is provided by `ModerationModule` while its repository
+     * comes from the global persistence module — exactly the arrangement that
+     * left `DraftController` unable to boot in Phase C.
+     */
+    { name: 'follow requests (unauth)', path: '/v1/me/follow-requests', expect: [401] },
+    {
+      name: 'approve follow request (unauth)',
+      path: '/v1/me/follow-requests/nobody',
+      method: 'PUT',
+      expect: [401],
+    },
+    { name: 'moderation notices (unauth)', path: '/v1/me/moderation-notices', expect: [401] },
+    { name: 'my appeals (unauth)', path: '/v1/me/appeals', expect: [401] },
+    { name: 'file appeal (unauth)', path: '/v1/appeals', method: 'POST', expect: [401] },
+    /**
+     * 403, not 401 — and this route is here because the two were confused until
+     * 008/T199. It is reached WITHOUT a token, so the auth guard answers first
+     * and the answer is 401; the operator guard's own 403 is asserted in
+     * `auth-surface.spec.ts`, which has a token to send.
+     */
+    { name: 'appeal queue (unauth)', path: '/v1/moderation/appeals', expect: [401] },
   ];
 
   let failed = 0;
