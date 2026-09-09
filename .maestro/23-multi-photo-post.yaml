@@ -118,9 +118,23 @@ appId: app.socialinterest
 
 # THE ASSERTION THIS FLOW EXISTS FOR. Swipe, and the SECOND photograph is there.
 # Before 008 there was no second page to reach at any gesture.
+#
+# SWIPED ACROSS THE SCREEN, not from the element, and the difference is the
+# snap threshold. `MediaPager` is a `pagingEnabled` horizontal ScrollView, so a
+# release advances a page only past HALF a page. Measured at the emulator's own
+# 320x616: the pager occupies x 16-304, y 77-365, and page 1 begins at x=304 —
+# a pitch of 288, so the threshold is 144. An element-relative swipe travels
+# from the pager's centre to about its edge, which is 144: exactly the
+# threshold, where whether it lands is decided by fling velocity. This flow
+# failed here in run 53, passed in 54 with no change, and failed again in 55.
+#
+# THAT IS NOT A CAUSE I OBSERVED — no swipe of this flow has ever been watched
+# — and the record says so. It is a margin: 90% to 10% of the screen is a 256
+# point drag, comfortably past 144 and equally comfortably short of the 432 that
+# would carry it to page 2. The y is 35% (216), inside the pager's band.
 - swipe:
-    from:
-      id: "media-pager"
-    direction: LEFT
+    start: "90%, 35%"
+    end: "10%, 35%"
+    duration: 500
 - assertVisible:
     id: "media-page-1"

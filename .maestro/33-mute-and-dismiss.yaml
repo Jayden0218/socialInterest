@@ -14,16 +14,18 @@ appId: app.socialinterest
 ---
 - runFlow: 01-sign-in.yaml
 
-# A post by somebody else, so there is a person to mute. The seeded feed fixture
-# publishes one; `12-interest-from-feed` reaches it the same way.
+# THE SEEDED POST, BY ITS CAPTION — the way `09` reaches it, not "whichever
+# card ranks first". Two reasons, and the second is a defect this flow carried
+# through three runs: `mute-person` is rendered only when the sheet is given an
+# author to mute, so an arbitrary first card that happens to be THIS account's
+# own post offers no such control. The fixture's post is somebody else's by
+# construction.
 - tapOn:
     id: "tab-feed"
 - extendedWaitUntil:
-    visible:
-      id: "post-[0-9A-Z]{26}"
+    visible: "${PRESENT}"
     timeout: 60000
-- tapOn:
-    id: "post-[0-9A-Z]{26}"
+- tapOn: "${PRESENT}"
 
 # WAITED FOR, not asserted. `PostDetailContainer` renders `post-loading` until
 # `GET /v1/posts/:postId` returns (screens/index.tsx), so a bare `assertVisible`
@@ -46,14 +48,23 @@ appId: app.socialinterest
 - tapOn:
     id: "dismiss-post"
 
-# Back for the person-level one. The sheet closes on success, so this is a fresh
-# journey to it rather than a second tap.
+# WHERE THAT TAP LEAVES YOU, and the whole of run 55's failure.
+#
+# The sheet is a PUSHED screen whose `onDone` is `pop` (App.tsx), so dismissing
+# returns to POST DETAIL. This flow then waited sixty seconds for a feed card —
+# and `post-<ULID>` is a testID on `PostCard` and `PostTile`, neither of which
+# the detail screen renders, so there was never anything to find. Measured in
+# 3.1 seconds by `apps/e2e/browser/mute-and-dismiss-journey.spec.ts`, which
+# counts zero of them on the screen the dismissal returns to.
+#
+# So the person-level choice starts from the screen that is actually in front of
+# you. The sheet closed on success, so this is a fresh journey to it — just not
+# one that goes back out to a feed that has this moment been told to stop
+# choosing this post.
 - extendedWaitUntil:
     visible:
-      id: "post-[0-9A-Z]{26}"
-    timeout: 60000
-- tapOn:
-    id: "post-[0-9A-Z]{26}"
+      id: "post-detail-screen"
+    timeout: 30000
 - tapOn:
     id: "open-safety"
 - assertVisible:

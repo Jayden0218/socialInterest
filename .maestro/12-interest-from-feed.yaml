@@ -53,4 +53,20 @@ appId: app.socialinterest
 # And it is THAT interest's space, holding that post - not merely a screen that
 # opened. A route to the wrong interest looks identical without this.
 - assertVisible: "${INTEREST}"
-- assertVisible: "${PRESENT}"
+
+# SCROLLED TO, and this is run 55's failure. The interest space is ordered by
+# RECENCY, and this account publishes into the same interest in `04` and `10`
+# before this flow runs — so the fixture's post is third by the time anybody
+# looks at it. Measured at the emulator's own 320x616: the two newer cards put
+# it at y=1082 with its caption at y=1382, four hundred and sixty-six points
+# below a 616-point fold, and `assertVisible` does not scroll.
+#
+# The bound is not asserted, because it is not a property: one more post before
+# this flow moves it again. What is a property is that the post is REACHABLE in
+# its interest's space, which is what a person would do about it and what
+# Principle I actually promises.
+- scrollUntilVisible:
+    element:
+      text: "${PRESENT}"
+    direction: DOWN
+    timeout: 30000
