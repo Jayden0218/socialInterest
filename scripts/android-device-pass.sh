@@ -515,6 +515,35 @@ if [ ${#FAILED[@]} -ne 0 ]; then
       find "$OUT/debug-$name" -name 'maestro.log' -exec \
         grep -hE 'FAILED|Assertion is false|Element not found|No visible element' {} \; 2>/dev/null \
         | head -20 || true
+
+      # WHAT WAS ON SCREEN INSTEAD — and until run 55 this was never printed.
+      #
+      # The comment above has said since run 12 that the debug output "carries
+      # the VIEW HIERARCHY at the point of failure, which is what actually
+      # answers 'the assertion says this id was not visible; what was on screen
+      # instead'". It was never printed: the grep just re-prints the same
+      # one-line summary the flow results already carry, and the hierarchy went
+      # only to the artifact — which is on a blob host this sandbox's egress
+      # denies with a 403.
+      #
+      # So runs 53, 54 and 55 were spent DISPROVING theories about three flows
+      # (a load race, a flow-ordering block, a mis-aimed tap) rather than
+      # reading what happened. That is the six-emulator-run mistake in a fourth
+      # place, and the fix is the same: make the failure visible before changing
+      # anything.
+      #
+      # The file names are not assumed — they are listed first, so a run whose
+      # layout differs still teaches us where to look next time.
+      echo "  -- debug files --"
+      find "$OUT/debug-$name" -type f 2>/dev/null | sed 's|^|     |' | head -25 || true
+      echo "  -- testIDs present at failure --"
+      # Every id the hierarchy carries, de-duplicated. An assertion that a
+      # SPECIFIC id was missing is answered by the list of ids that were there:
+      # a screen that never navigated shows the id set of the screen it stayed
+      # on, which no amount of reasoning about timeouts can tell you.
+      find "$OUT/debug-$name" -type f \( -name '*.json' -o -name '*.log' \) \
+        -exec grep -ohE '"(resource-id|resourceId|accessibilityText|testID)"[[:space:]]*:[[:space:]]*"[^"]+"' {} \; 2>/dev/null \
+        | sed -E 's/.*"([^"]+)"$/\1/' | sort -u | head -60 || true
     done
     # WAS THE DEVICE STILL THERE? Answered first, because if it was not then
     # every "assertion failed" above is collateral and reading them as findings
