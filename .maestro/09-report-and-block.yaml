@@ -49,6 +49,18 @@ appId: app.socialinterest
 # `block-person` sat at 665px on a 640px screen and was not merely off-screen -
 # it was UNREACHABLE, a safety control (Constitution IV) with no way to get to
 # it. `Screen scroll` fixes that; this scrolls the way a person does.
+# THE REASON IS CHOSEN FIRST, and the order is the fix for run 53.
+#
+# Measured at the emulator's own 320x616: `report-reason-0` ends at y=164 and
+# `block-person` starts at y=852 — 688 points apart on a 616-point screen, so
+# they CANNOT both be on screen. Scrolling down to the block control therefore
+# takes the reason off the top, and the tap that followed found nothing.
+#
+# Choosing the reason first costs nothing and needs no scroll; the block
+# assertion then happens where a person would meet it.
+- tapOn:
+    id: "report-reason-0"
+
 - scrollUntilVisible:
     element:
       id: "block-person"
@@ -57,8 +69,6 @@ appId: app.socialinterest
 - assertVisible:
     id: "block-person"
 
-- tapOn:
-    id: "report-reason-0"
 - tapOn:
     id: "submit-report"
 

@@ -27,6 +27,19 @@ appId: app.socialinterest
 # The fixture's post, by its caption. Seeded server-side because one device
 # cannot be two people, and in an interest this person has declared so it is on
 # the page for a reason rather than by an exploration draw.
+#
+# SCROLLED TO, not asserted where it happens to land — run 53's failure.
+# THE FEED IS RANKED AND EXPLORATION RE-SAMPLES PER CALL, so "this post is in
+# the first screenful of one draw" is not a property the product offers and a
+# bare `assertVisible` was asking for it. What the flow actually needs is that
+# the post is REACHABLE on the feed, which is what a person would do about it.
+# 09-report-and-block reaches the same post with a re-polling wait and passed
+# where this failed, in the same run.
+- scrollUntilVisible:
+    element:
+      text: "${PRESENT}"
+    direction: DOWN
+    timeout: 30000
 - assertVisible: "${PRESENT}"
 
 # THE ASSERTION THIS FLOW EXISTS FOR. The interest, as a word, on the card.

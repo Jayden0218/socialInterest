@@ -26,8 +26,19 @@ appId: app.socialinterest
 - assertVisible:
     id: "edit-profile-screen"
 
-# FR-043. The setting, and the sentence that says what it does to what is
-# already published — which is the question anybody flipping it is asking.
+# SCROLLED TO, because it is BELOW THE FOLD and `assertVisible` does not scroll.
+#
+# Measured at the emulator's own 320x616: `account-privacy` sits at y=667, and
+# `open-moderation-notices` (flow 35) at y=967. Edit profile scrolls on a
+# measurement (007/T051) and its primary action, Save, is in the header at
+# y=80 — so a control down here is correct product behaviour and the FLOW is
+# what has to move. 18-notification-settings gets away with a bare assert only
+# because `notification-prefs` starts at y=481.
+- scrollUntilVisible:
+    element:
+      id: "account-privacy"
+    direction: DOWN
+    timeout: 20000
 - assertVisible:
     id: "account-privacy"
 - assertVisible:
@@ -43,9 +54,10 @@ appId: app.socialinterest
     id: "open-edit-profile"
 - tapOn:
     id: "open-edit-profile"
-- extendedWaitUntil:
-    visible:
+- scrollUntilVisible:
+    element:
       id: "follow-requests"
+    direction: DOWN
     timeout: 30000
 - assertVisible:
     id: "follow-request-${FOLLOW_REQUESTER}"

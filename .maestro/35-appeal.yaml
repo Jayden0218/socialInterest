@@ -27,6 +27,15 @@ appId: app.socialinterest
 
 # Constitution IV: the route to a human has to be findable, so it is here beside
 # the account's other settings and above the delete-account block.
+#
+# SCROLLED TO — measured at 320x616 it sits at y=967, and `assertVisible` does
+# not scroll. Findable is not the same as on the first screenful, and the
+# ordering that matters is that it comes BEFORE delete-account (y=1130).
+- scrollUntilVisible:
+    element:
+      id: "open-moderation-notices"
+    direction: DOWN
+    timeout: 20000
 - assertVisible:
     id: "open-moderation-notices"
 - tapOn:
