@@ -196,19 +196,19 @@ forbids is refused without revealing the block, via the path a modified client w
 
 ### Tests for User Story 4
 
-- [ ] T060 [P] [US4] Measure SC-006 in `apps/e2e/journeys/send-post-to-stranger.spec.ts`: assert the path is **no more than four interactions** and that every step is populated. Record an elapsed time on the device run as an **observation only** — never a pass condition. The criterion's original "under 30 seconds" is withdrawn in `spec.md` because a stopwatch on this stack times the emulator, not the product; the constitution still requires a numeric criterion to have a measuring task, and this is it.
-- [ ] T061 [P] [US4] Write `apps/e2e/journeys/send-post-to-stranger.spec.ts`: send to somebody never messaged, assert a conversation **request** is created and the recipient can open the post (SC-006, FR-011, FR-012).
-- [ ] T062 [P] [US4] Write `apps/api/tests/integration/send-post-recipient-cannot-see.spec.ts` driving the request **directly**, not through the app, over **both** cases SC-007 covers: a block (FR-014) **and** a followers-only post sent to a non-follower (FR-013). `MessagePresenter` already returns `not-for-you` with no content; nothing asserted the second case, and "may not see it" is broader than a block. Principle III — a test that drives only the first-party client does not verify a server-side guarantee.
-- [ ] T063 [P] [US4] Write `apps/api/tests/integration/share-link-confers-nothing.spec.ts` re-asserting 001/FR-042 under the new send path (FR-016).
+- [X] T060 [P] [US4] Measure SC-006 in `apps/e2e/journeys/send-post-to-stranger.spec.ts`: assert the path is **no more than four interactions** and that every step is populated. Record an elapsed time on the device run as an **observation only** — never a pass condition. The criterion's original "under 30 seconds" is withdrawn in `spec.md` because a stopwatch on this stack times the emulator, not the product; the constitution still requires a numeric criterion to have a measuring task, and this is it.
+- [X] T061 [P] [US4] Write `apps/e2e/journeys/send-post-to-stranger.spec.ts`: send to somebody never messaged, assert a conversation **request** is created and the recipient can open the post (SC-006, FR-011, FR-012).
+- [X] T062 [P] [US4] Write `apps/api/tests/integration/send-post-recipient-cannot-see.spec.ts` driving the request **directly**, not through the app, over **both** cases SC-007 covers: a block (FR-014) **and** a followers-only post sent to a non-follower (FR-013). `MessagePresenter` already returns `not-for-you` with no content; nothing asserted the second case, and "may not see it" is broader than a block. Principle III — a test that drives only the first-party client does not verify a server-side guarantee.
+- [X] T063 [P] [US4] Write `apps/api/tests/integration/share-link-confers-nothing.spec.ts` re-asserting 001/FR-042 under the new send path (FR-016).
 
 ### Implementation for User Story 4
 
-- [ ] T064 [US4] Create `apps/mobile/src/features/posts/SharePostSheet.tsx` — recipient picker over people search (A34) plus a "Share outside" row. Every `Text` chooses a colour; no `elevation` (the token is deleted, and a name that does not exist is a typecheck failure).
-- [ ] T065 [US4] Wire the picker to `PUT /v1/conversations/with/{handle}` then `POST /v1/conversations/{id}/messages` with `sharedPostId`, in `apps/mobile/src/data/`. **Add no endpoint** — a second way to write a message would need its own access check, which is the two-predicates failure in a new place.
-- [ ] T066 [US4] Add the system share exit (FR-015) in `apps/mobile/src/features/posts/SharePostSheet.tsx`, handing the post's existing share link to the platform share mechanism.
-- [ ] T067 [US4] Surface the refusal from `ConversationAccess` as a neutral message that does not disclose a block (FR-013, FR-014).
-- [ ] T068 [US4] Add `testID`s and run `verify-maestro-ids.mjs`; add `.maestro/26-send-post.yaml` asserting `PUT /v1/conversations/with/...` and `POST .../messages` **201** in the aggregate.
-- [ ] T069 [US4] Confirm no new row is needed in the visibility matrix and record **why** in `contracts/visibility-matrix-delta.md`: the shared-post read path already exists and is already a matrix surface. A "no change needed" that is not written down reads later as an omission.
+- [X] T064 [US4] Create `apps/mobile/src/features/posts/SharePostSheet.tsx` — recipient picker over people search (A34) plus a "Share outside" row. Every `Text` chooses a colour; no `elevation` (the token is deleted, and a name that does not exist is a typecheck failure).
+- [X] T065 [US4] Wire the picker to `PUT /v1/conversations/with/{handle}` then `POST /v1/conversations/{id}/messages` with `sharedPostId`, in `apps/mobile/src/data/`. **Add no endpoint** — a second way to write a message would need its own access check, which is the two-predicates failure in a new place.
+- [X] T066 [US4] Add the system share exit (FR-015) in `apps/mobile/src/features/posts/SharePostSheet.tsx`, handing the post's existing share link to the platform share mechanism.
+- [X] T067 [US4] Surface the refusal from `ConversationAccess` as a neutral message that does not disclose a block (FR-013, FR-014).
+- [X] T068 [US4] Add `testID`s and run `verify-maestro-ids.mjs`; add `.maestro/26-send-post.yaml` asserting `PUT /v1/conversations/with/...` and `POST .../messages` **201** in the aggregate.
+- [X] T069 [US4] Confirm no new row is needed in the visibility matrix and record **why** in `contracts/visibility-matrix-delta.md`: the shared-post read path already exists and is already a matrix surface. A "no change needed" that is not written down reads later as an omission.
 
 **Checkpoint**: US4 shippable, with no server change and that fact recorded.
 

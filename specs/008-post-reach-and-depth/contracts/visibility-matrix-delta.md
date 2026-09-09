@@ -51,6 +51,29 @@ new but its rows change, because a post saved before its author went private mus
 readable — a case that only exists once US13 lands, and one a matrix organised by surface
 alone would miss.
 
+## 3a. US4 adds NO surface, and that is a finding rather than an omission
+
+**008/T069.** Sending a post to somebody never messaged adds no read path. The shared post in
+a message is **already surface 11**, added by 004/US1, and `MessagePresenter` already resolves
+it per reader through the boundary — returning `sharedPostUnavailableReason` rather than the
+content.
+
+What US4 adds is a RECIPIENT who is not yet a correspondent, reached through
+`PUT /v1/conversations/with/:handle`, which existed. So the matrix is unchanged, and the
+verification that matters is behavioural: `tests/integration/send-post-recipient-cannot-see.spec.ts`
+drives the request DIRECTLY, over both cases SC-007 covers —
+
+| Case | Result |
+|---|---|
+| followers-only post, non-follower recipient | `sharedPost: null`, reason `not-for-you`, caption absent from the whole response |
+| blocked | caption absent, and the word `not-for-you` absent too — a distinguishable reason IS the disclosure |
+| deleted post | reason `gone` |
+
+**Recorded because a "no change needed" that is not written down reads later as an
+omission.** The first version of that suite covered only the block, which is narrower than
+SC-007's "may not see it"; the 008 analysis pass found the gap and this row is where it is
+closed.
+
 ## 4. Surfaces that must NOT change, and are asserted so
 
 These are the mute/dismissal cases (see `selection-vs-boundary.md`). They are listed **in

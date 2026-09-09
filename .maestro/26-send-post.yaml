@@ -1,0 +1,105 @@
+# 008/US4, T068 — A POST TRAVELS TO SOMEBODY NEVER MESSAGED.
+#
+# The share sheet has always listed ACCEPTED CONVERSATIONS ONLY, so a post could
+# reach only people you were already talking to; and its Share button called the
+# sheet's own "done" handler, so the app has never shared anything anywhere.
+# Both are the 008 pattern: a control that is present and does less than it says.
+#
+# THE SERVER NEEDED NO CHANGE (008/R4). `PUT /v1/conversations/with/:handle` has
+# always opened a pair conversation idempotently over a derived id, including
+# with a stranger, and messages have always accepted `sharedPostId`.
+#
+# WHAT TO READ IN THE RUN AGGREGATE:
+#   GET /v1/people                              200   the recipient search
+#   PUT /v1/conversations/with/:handle          200   the conversation opened
+#   POST /v1/conversations/:id/messages         201   the post sent
+#
+# The last line is the one that matters. Everything this flow asserts on screen
+# is satisfied by a picker that renders and sends nothing.
+#
+# NOT chained to a flow that follows or blocks anybody: flows share ONE SERVER
+# and a toggle is not idempotent (005 lost a run to exactly that).
+appId: app.socialinterest
+---
+- runFlow: 01-sign-in.yaml
+
+# A post of this account's own, published here rather than borrowed, so the
+# flow does not depend on another flow's ordering.
+- tapOn:
+    id: "open-compose"
+- assertVisible:
+    id: "media-picker-screen"
+- tapOn:
+    id: "media-item-image-0"
+- tapOn:
+    id: "media-continue"
+- assertVisible:
+    id: "compose-screen"
+- tapOn:
+    id: "interest-option-0"
+- tapOn:
+    id: "caption-input"
+- inputText: "a post that travels"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "publish-button"
+    direction: DOWN
+- extendedWaitUntil:
+    visible: "Uploaded"
+    timeout: 120000
+- tapOn:
+    id: "publish-button"
+- extendedWaitUntil:
+    notVisible:
+      id: "compose-screen"
+    timeout: 60000
+
+# Open it from the author's own profile, where a person's posts always are.
+- tapOn:
+    id: "tab-profile"
+- extendedWaitUntil:
+    visible:
+      id: "post-.*"
+    timeout: 60000
+- tapOn:
+    id: "post-.*"
+- assertVisible:
+    id: "post-detail-screen"
+
+- tapOn:
+    id: "share-button"
+- assertVisible:
+    id: "share-action"
+
+# 008/FR-011 — the picker exists at all, which it did not before.
+- assertVisible:
+    id: "share-to-person"
+- tapOn:
+    id: "share-person-search"
+# The device fixture's own handle prefix. A two-character query is the shortest
+# the container will send, and matching THIS account is deliberate: the flow has
+# one account, and sending to yourself exercises open + send end to end without
+# needing a second signed-in device.
+- inputText: "de"
+- hideKeyboard
+
+# A result, then the send. If the search returns nothing this fails here as a
+# missing element, which is the honest outcome - there is then nobody to send to
+# and the aggregate will show GET /v1/people with no messages after it.
+- extendedWaitUntil:
+    visible:
+      id: "share-person-.*"
+    timeout: 30000
+- tapOn:
+    id: "share-person-.*"
+
+# The sheet closes on a successful send, and the neutral refusal banner must NOT
+# be showing - it is the one thing that distinguishes "sent" from "refused" here,
+# and FR-014 deliberately makes every refusal read the same.
+- assertNotVisible:
+    id: "share-send-error"
+- extendedWaitUntil:
+    notVisible:
+      id: "share-action"
+    timeout: 30000
