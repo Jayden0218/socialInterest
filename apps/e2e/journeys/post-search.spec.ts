@@ -64,18 +64,34 @@ describe('008/SC-009 finding a post by its words', () => {
   }, 180_000);
 
   it('FR-022 a miss carries interests and people in the SAME response', async () => {
-    const me = await actor('psFallback');
     /**
-     * The query is a REAL catalogue interest's name, read from the API.
+     * THE QUERY IS A NONCE, and both halves of the fallback are built to carry
+     * it. That is the only shape of this test that holds on a shared table.
      *
-     * The first version searched for 'bouldering' because it is the word this
-     * codebase's fixtures use everywhere — and the seeded catalogue does not
-     * contain it, so the fallback was correctly empty and the test failed for
-     * its own reason rather than the product's. 005 recorded the same shape: a
-     * fixture must assert the search the product actually runs.
+     * Version one searched 'bouldering' — the word this codebase's fixtures use
+     * everywhere, and absent from the seeded catalogue, so the fallback was
+     * correctly empty and the test failed for its own reason. Version two read a
+     * REAL interest's name from the API, passed alone, and failed in the full
+     * suite with `items: 3`: other journeys publish captions containing the
+     * catalogue's own words, so "an interest with no posts" is not a fact this
+     * table can be relied on to hold. CLAUDE.md records two earlier
+     * "regressions" that were a grown table, and this is the third.
+     *
+     * A nonce nothing has ever published cannot be found by any post, however
+     * many runs the table has accumulated — and naming a person and a
+     * sub-interest with it makes the two fallback halves non-empty BY
+     * CONSTRUCTION rather than by luck.
      */
-    const interest = (await me.data.interests.listTop({ limit: 1 })).items[0]!;
-    const page = await me.data.search.posts(interest.name);
+    const nonce = word('psfallback');
+    const me = await actor('psFallbackViewer');
+    // A SECOND person, because `PersonSearchService` excludes the viewer from
+    // their own results — searching as the person carrying the nonce would have
+    // reported the fallback empty for a reason that is the product working.
+    const named = await actor(nonce);
+    const top = (await me.data.interests.listTop({ limit: 1 })).items[0]!;
+    const child = await me.data.interests.create({ name: nonce, parentId: top.interestId });
+
+    const page = await me.data.search.posts(nonce);
 
     /**
      * Read from a REAL response. This is a brand-new shape in a page object, and
@@ -85,12 +101,11 @@ describe('008/SC-009 finding a post by its words', () => {
      */
     expect({
       items: page.items.length,
-      interests: Array.isArray(page.fallback?.interests),
-      people: Array.isArray(page.fallback?.people),
-      // The interest whose NAME was searched for must be among them, which is
-      // what makes this a test of the fallback rather than of its shape.
-      foundItself: (page.fallback?.interests ?? []).some((i) => i.interestId === interest.interestId),
-    }).toEqual({ items: 0, interests: true, people: true, foundItself: true });
+      // The interest and the person named with the nonce must BOTH be there,
+      // which is what makes this a test of the fallback rather than of its shape.
+      foundInterest: (page.fallback?.interests ?? []).some((i) => i.interestId === child.interestId),
+      foundPerson: (page.fallback?.people ?? []).some((p) => p.handle === named.handle),
+    }).toEqual({ items: 0, foundInterest: true, foundPerson: true });
   }, 120_000);
 
   it('reports which words it actually used, so a stop-word query is not a mystery', async () => {

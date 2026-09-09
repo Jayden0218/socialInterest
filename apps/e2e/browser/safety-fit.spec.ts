@@ -128,7 +128,17 @@ describe('006/J-09 - the safety sheet on a short screen', () => {
    * caught here — so this measures LAYOUT under larger text and claims nothing
    * about native font scaling. The device run is what answers that.
    */
-  const SCREENS: { name: string; open: (page: Page) => Promise<void>; control: string }[] = [
+  interface FitContext {
+    postId?: string;
+  }
+
+  const SCREENS: {
+    name: string;
+    /** Content the screen needs before it can be opened. Most need none. */
+    prepare?: (reader: Awaited<ReturnType<typeof actor>>) => Promise<FitContext>;
+    open: (page: Page, ctx: FitContext) => Promise<void>;
+    control: string;
+  }[] = [
     {
       name: 'feed',
       open: async (page) => {
@@ -185,10 +195,74 @@ describe('006/J-09 - the safety sheet on a short screen', () => {
       },
       control: '[data-testid="notifications-screen"]',
     },
+    /**
+     * 008/US5, SC-017. THE AVATAR EDITOR.
+     *
+     * `avatarKey` had no writer at all before Phase B, so this control is the
+     * feature: if it falls off a 640pt screen at 130% text there is no other way
+     * to set a picture. It sits inside a scrolling screen, which is why the
+     * assertion below still means something — `EditProfileScreen` is one of the
+     * few that genuinely scrolls, and a control that scrolls into view is not
+     * the same claim as one that fits.
+     */
+    {
+      name: 'edit profile avatar',
+      open: async (page) => {
+        await page.click('[data-testid="tab-profile"]');
+        await page.waitForSelector('[data-testid="open-edit-profile"]', { timeout: 30_000 });
+        await page.click('[data-testid="open-edit-profile"]');
+        await page.waitForSelector('[data-testid="edit-profile-screen"]', { timeout: 30_000 });
+      },
+      control: '[data-testid="change-avatar"]',
+    },
+    /**
+     * 008/US6. The Posts tab in Discover.
+     *
+     * A second control in a two-item row, so the risk is horizontal — the same
+     * shape as the Following tab above, on a screen that also carries a text
+     * field. Both edges are checked, which is what the fold alone would miss.
+     */
+    {
+      name: 'discover posts tab',
+      open: async (page) => {
+        await page.click('[data-testid="tab-discover"]');
+        await page.waitForSelector('[data-testid="interest-search-screen"]', { timeout: 30_000 });
+      },
+      control: '[data-testid="search-tab-posts"]',
+    },
+    /**
+     * 008/US4. Sending a post to a person.
+     *
+     * Reached through the viewer's OWN post rather than the feed's: the ranked
+     * feed decides what a fresh account sees, and a fit measurement that depends
+     * on the ranker is a measurement that fails for a reason unrelated to fit.
+     * The profile grid is deterministic.
+     */
+    {
+      name: 'post detail share',
+      prepare: async (reader) => {
+        const interest = (await reader.data.interests.listTop({ limit: 1 })).items[0]!;
+        return { postId: await publishReadyImage(reader, [interest.interestId], { caption: 'fit share' }) };
+      },
+      open: async (page, ctx) => {
+        await page.click('[data-testid="tab-profile"]');
+        await page.waitForSelector(`[data-testid="post-${ctx.postId}"]`, { timeout: 30_000 });
+        await page.click(`[data-testid="post-${ctx.postId}"]`);
+        await page.waitForSelector('[data-testid="post-detail-screen"]', { timeout: 30_000 });
+        await page.click('[data-testid="share-button"]');
+        await page.waitForSelector('[data-testid="share-action"]', { timeout: 30_000 });
+      },
+      // The RECIPIENT PICKER inside the opened sheet, not the button that opens
+      // it. Run 35's defect was a control at 665px on a 640px screen INSIDE a
+      // sheet whose entry point was perfectly reachable, so measuring the entry
+      // point is measuring the half that was never in doubt.
+      control: '[data-testid="share-to-person"]',
+    },
   ];
 
-  it.each(SCREENS)('$name keeps its primary control reachable at 130% text on a 640pt screen', async ({ open, control }) => {
+  it.each(SCREENS)('$name keeps its primary control reachable at 130% text on a 640pt screen', async ({ prepare, open, control }) => {
     const reader = await actor(`fit${Math.random().toString(36).slice(2, 8)}`);
+    const ctx: FitContext = prepare ? await prepare(reader) : {};
     page = await browser.newPage({ viewport: { width: 360, height: 640 } });
     await page.addInitScript((t) => {
       (globalThis as unknown as { localStorage: { setItem(k: string, v: string): void } })
@@ -201,7 +275,7 @@ describe('006/J-09 - the safety sheet on a short screen', () => {
     // smaller phone, which is a different question and one the width above
     // already asks.
     await page.addStyleTag({ content: 'body { font-size: 130% }' });
-    await open(page);
+    await open(page, ctx);
 
     const box = await page.locator(control).first().boundingBox();
     expect(box).not.toBeNull();
