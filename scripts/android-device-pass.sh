@@ -431,6 +431,55 @@ MAESTRO_ENV=(
   -e REMOVED_ACTION_ID="$REMOVED_ACTION_ID"
 )
 
+# WHAT WAS ON SCREEN WHEN A FLOW FAILED — PRINTED THE MOMENT IT FAILS.
+#
+# This lived after the loop until run 56, and run 56 is why it does not any
+# more: Maestro wedged inside `30-edit-delete-comment`, the job's own
+# `timeout-minutes: 90` cancelled the step 47 minutes later, and NOTHING after
+# the loop ran. So the evidence added in the previous commit — added precisely
+# because three runs had been spent theorising instead of reading — printed
+# nothing at all, for the failure it was written for.
+#
+# Evidence that only prints when the run finishes is evidence you may not get.
+# That is the same lesson as the six emulator runs and as run 40's aggregate,
+# in a third place, and the fix is the same shape: print it where it happens.
+flow_evidence() {
+  local name="$1"
+  echo "=============== what was on screen when $name failed ==============="
+  find "$OUT/debug-$name" -name 'maestro.log' -exec \
+    grep -hE 'FAILED|Assertion is false|Element not found|No visible element' {} \; 2>/dev/null \
+    | head -20 || true
+
+  # WHAT WAS ON SCREEN INSTEAD — and until run 55 this was never printed.
+  #
+  # The comment above has said since run 12 that the debug output "carries
+  # the VIEW HIERARCHY at the point of failure, which is what actually
+  # answers 'the assertion says this id was not visible; what was on screen
+  # instead'". It was never printed: the grep just re-prints the same
+  # one-line summary the flow results already carry, and the hierarchy went
+  # only to the artifact — which is on a blob host this sandbox's egress
+  # denies with a 403.
+  #
+  # So runs 53, 54 and 55 were spent DISPROVING theories about three flows
+  # (a load race, a flow-ordering block, a mis-aimed tap) rather than
+  # reading what happened. That is the six-emulator-run mistake in a fourth
+  # place, and the fix is the same: make the failure visible before changing
+  # anything.
+  #
+  # The file names are not assumed — they are listed first, so a run whose
+  # layout differs still teaches us where to look next time.
+  echo "  -- debug files --"
+  find "$OUT/debug-$name" -type f 2>/dev/null | sed 's|^|     |' | head -25 || true
+  echo "  -- testIDs present at failure --"
+  # Every id the hierarchy carries, de-duplicated. An assertion that a
+  # SPECIFIC id was missing is answered by the list of ids that were there:
+  # a screen that never navigated shows the id set of the screen it stayed
+  # on, which no amount of reasoning about timeouts can tell you.
+  find "$OUT/debug-$name" -type f \( -name '*.json' -o -name '*.log' \) \
+    -exec grep -ohE '"(resource-id|resourceId|accessibilityText|testID)"[[:space:]]*:[[:space:]]*"[^"]+"' {} \; 2>/dev/null \
+    | sed -E 's/.*"([^"]+)"$/\1/' | sort -u | head -60 || true
+}
+
 # Sorted, so the order is the same on every run and a failure is comparable
 # across runs. Safe to reorder: 09-report-and-block asserts the block affordance
 # but never blocks, so no flow hides content from a later one.
@@ -444,11 +493,22 @@ for flow in "${FLOWS[@]}"; do
   attempt=1
   while :; do
     flog="$OUT/flow-$name-attempt$attempt.log"
-    if maestro test "$flow" "${MAESTRO_ENV[@]}" \
+    # BOUNDED, because run 56 was not. Maestro wedged inside
+    # `30-edit-delete-comment` at 17:09 and the step was still sitting there
+    # when the job's own `timeout-minutes: 90` cancelled it at 17:56: six flows
+    # never ran, and the run produced no evidence for the one that had failed.
+    # The longest legitimate flow here is about two minutes (23-multi-photo-post
+    # waits on three uploads), so eight is generous and a wedge costs one flow
+    # rather than the run.
+    if timeout --kill-after=30s 480 maestro test "$flow" "${MAESTRO_ENV[@]}" \
          --format junit --output "$OUT/junit-$name.xml" \
          --debug-output "$OUT/debug-$name" > "$flog" 2>&1; then
       echo "[journeys] PASS $name (attempt $attempt)"
       break
+    fi
+    status=$?
+    if [ "$status" -eq 124 ] || [ "$status" -eq 137 ]; then
+      echo "[journeys] $name WEDGED - no result in 480s, killed. Not an assertion."
     fi
 
     # A transport error is not a failed assertion. Only the former is retried.
@@ -475,6 +535,9 @@ for flow in "${FLOWS[@]}"; do
 
     echo "[journeys] FAIL $name"
     tail -30 "$flog" || true
+    # HERE, not after the loop. See `flow_evidence` above: run 56 never reached
+    # the end of this loop, so everything printed after it printed nothing.
+    flow_evidence "$name"
     FAILED+=("$name")
     break
   done
@@ -506,45 +569,10 @@ if [ ${#FAILED[@]} -ne 0 ]; then
     # buried the flow summary under a quarter of a megabyte of INFO chatter -
     # the fix for an unreadable failure is not more output, it is less of the
     # right output.
-    echo "=============== maestro: failed commands ==============="
-    # Only the flows that actually failed: per-flow debug output means the
-    # directory now holds seventeen of these, and sixteen passing ones is the
-    # "quarter of a megabyte of INFO chatter" problem again.
-    for name in "${FAILED[@]}"; do
-      echo "-- $name --"
-      find "$OUT/debug-$name" -name 'maestro.log' -exec \
-        grep -hE 'FAILED|Assertion is false|Element not found|No visible element' {} \; 2>/dev/null \
-        | head -20 || true
-
-      # WHAT WAS ON SCREEN INSTEAD — and until run 55 this was never printed.
-      #
-      # The comment above has said since run 12 that the debug output "carries
-      # the VIEW HIERARCHY at the point of failure, which is what actually
-      # answers 'the assertion says this id was not visible; what was on screen
-      # instead'". It was never printed: the grep just re-prints the same
-      # one-line summary the flow results already carry, and the hierarchy went
-      # only to the artifact — which is on a blob host this sandbox's egress
-      # denies with a 403.
-      #
-      # So runs 53, 54 and 55 were spent DISPROVING theories about three flows
-      # (a load race, a flow-ordering block, a mis-aimed tap) rather than
-      # reading what happened. That is the six-emulator-run mistake in a fourth
-      # place, and the fix is the same: make the failure visible before changing
-      # anything.
-      #
-      # The file names are not assumed — they are listed first, so a run whose
-      # layout differs still teaches us where to look next time.
-      echo "  -- debug files --"
-      find "$OUT/debug-$name" -type f 2>/dev/null | sed 's|^|     |' | head -25 || true
-      echo "  -- testIDs present at failure --"
-      # Every id the hierarchy carries, de-duplicated. An assertion that a
-      # SPECIFIC id was missing is answered by the list of ids that were there:
-      # a screen that never navigated shows the id set of the screen it stayed
-      # on, which no amount of reasoning about timeouts can tell you.
-      find "$OUT/debug-$name" -type f \( -name '*.json' -o -name '*.log' \) \
-        -exec grep -ohE '"(resource-id|resourceId|accessibilityText|testID)"[[:space:]]*:[[:space:]]*"[^"]+"' {} \; 2>/dev/null \
-        | sed -E 's/.*"([^"]+)"$/\1/' | sort -u | head -60 || true
-    done
+    # The failed commands and the ids on screen are NOT repeated here:
+    # `flow_evidence` printed each one where it happened, which is the whole
+    # point of moving it. A run cancelled before this block — run 56, at the
+    # job's 90-minute limit — still shows what was on screen.
     # WAS THE DEVICE STILL THERE? Answered first, because if it was not then
     # every "assertion failed" above is collateral and reading them as findings
     # is how a run gets diagnosed backwards. Run 26 lost the device at flow 12
