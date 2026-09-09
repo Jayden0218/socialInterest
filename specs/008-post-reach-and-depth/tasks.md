@@ -329,17 +329,17 @@ with another person's `commentId` is refused.
 
 ### Tests for User Story 8
 
-- [ ] T120 [P] [US8] Write `apps/api/tests/integration/comment-edit-delete.spec.ts`: edit sets `editedAt`; delete decrements `commentCount` and the count matches the rows (FR-027, FR-028).
-- [ ] T121 [P] [US8] Write `apps/api/tests/integration/comment-authorisation.spec.ts` driving the request **directly** with another person's comment id (FR-029, Principle III).
+- [X] T120 [P] [US8] Write `apps/api/tests/integration/comment-edit-delete.spec.ts`: edit sets `editedAt`; delete decrements `commentCount` and the count matches the rows (FR-027, FR-028).
+- [X] T121 [P] [US8] Write `apps/api/tests/integration/comment-authorisation.spec.ts` driving the request **directly** with another person's comment id (FR-029, Principle III).
 
 ### Implementation for User Story 8
 
-- [ ] T122 [US8] Add `editedAt` and `deletedAt` to the comment item. FR-027's "marked as edited" **is** the presence of `editedAt` — not a separate flag that could disagree with it.
-- [ ] T123 [US8] Create `apps/api/src/modules/engagement/comment-update.transaction.ts` writing the soft delete and the `commentCount` decrement in one `TransactWriteItems`. The existing "atomic add" on counts is a read-modify-write and says so in its own repository comment; 005/R5 made the rating aggregate transactional for exactly this reason.
-- [ ] T124 [US8] Add `PATCH` and `DELETE` for a comment to `apps/api/src/modules/engagement/engagement.controller.ts` — the comment endpoints live there; there is no `comment.controller.ts` — refusing anyone but the author.
-- [ ] T125 [P] [US8] Add both to `specs/001-interest-media-sharing/contracts/openapi.yaml` and update the snapshot in `apps/api/tests/integration/auth-surface.spec.ts`.
-- [ ] T126 [US8] Add edit and delete affordances to `apps/mobile/src/features/engagement/`, shown only on your own comment.
-- [ ] T127 [US8] Add `testID`s, run `verify-maestro-ids.mjs`, and add `.maestro/30-edit-delete-comment.yaml` asserting `PATCH` **200** and `DELETE` **204**.
+- [X] T122 [US8] Add `editedAt` and `deletedAt` to the comment item. FR-027's "marked as edited" **is** the presence of `editedAt` — not a separate flag that could disagree with it.
+- [X] T123 [US8] Create `apps/api/src/modules/engagement/comment-update.transaction.ts` writing the soft delete and the `commentCount` decrement in one `TransactWriteItems`. The existing "atomic add" on counts is a read-modify-write and says so in its own repository comment; 005/R5 made the rating aggregate transactional for exactly this reason.
+- [X] T124 [US8] Add `PATCH` and `DELETE` for a comment to `apps/api/src/modules/engagement/engagement.controller.ts` — the comment endpoints live there; there is no `comment.controller.ts` — refusing anyone but the author.
+- [X] T125 [P] [US8] Add both to `specs/001-interest-media-sharing/contracts/openapi.yaml` and update the snapshot in `apps/api/tests/integration/auth-surface.spec.ts`.
+- [X] T126 [US8] Add edit and delete affordances to `apps/mobile/src/features/engagement/`, shown only on your own comment.
+- [X] T127 [US8] Add `testID`s, run `verify-maestro-ids.mjs`, and add `.maestro/30-edit-delete-comment.yaml` asserting `PATCH` **200** and `DELETE` **204**.
 
 ---
 

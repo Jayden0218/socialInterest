@@ -195,6 +195,10 @@ const PROBES: Probe[] = [
         { findById: async () => null } as never,
         { publish: async () => undefined } as never,
         new ProfileProjection({ presignedGetUrl: async (k: string) => `http://store/signed/${k}` } as never),
+        // 008/US8. The edit/delete transaction. A stub agreeing with an older
+        // constructor is the `ApiPage<T>` failure in miniature, and this file
+        // has already gone red once for exactly that.
+        {} as never,
       );
       return comments.list(VIEWER, 'p1');
     },
@@ -227,6 +231,10 @@ const PROBES: Probe[] = [
         { findById: async () => null } as never,
         { publish: async () => undefined } as never,
         new ProfileProjection({ presignedGetUrl: async (k: string) => `http://store/signed/${k}` } as never),
+        // 008/US8. The edit/delete transaction. A stub agreeing with an older
+        // constructor is the `ApiPage<T>` failure in miniature, and this file
+        // has already gone red once for exactly that.
+        {} as never,
       );
       return comments.list(VIEWER, 'p1');
     },

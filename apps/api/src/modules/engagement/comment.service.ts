@@ -9,6 +9,7 @@ import { ProfileProjection } from '../people/profile.projection';
 import type { Viewer } from '../../visibility/visibility.filter';
 import { EVENT_BUS, type EventBus } from '../../ports';
 import { groupWithParents, validReplyParent } from './reply-parent';
+import { CommentUpdateTransaction } from './comment-update.transaction';
 
 /**
  * The response shape, named rather than `Record<string, unknown>`.
@@ -24,6 +25,8 @@ export interface CommentResponse {
   body: string | null;
   moderationState: 'removed' | null;
   parentCommentId: string | null;
+  /** 008/FR-027. Present exactly when the comment has been edited. */
+  editedAt: string | null;
   createdAt: string;
 }
 
@@ -41,6 +44,7 @@ export class CommentService {
     @Inject(PersonRepository) private readonly people: PersonRepository,
     @Inject(EVENT_BUS) private readonly events: EventBus,
     @Inject(ProfileProjection) private readonly profiles: ProfileProjection,
+    @Inject(CommentUpdateTransaction) private readonly updates: CommentUpdateTransaction,
   ) {}
 
   /**
@@ -78,6 +82,7 @@ export class CommentService {
         body: c.moderationState === 'removed' ? null : c.body,
         moderationState: c.moderationState ?? null,
         parentCommentId: c.parentCommentId ?? null,
+        editedAt: c.editedAt ?? null,
         createdAt: c.createdAt,
       })),
     );
@@ -156,5 +161,57 @@ export class CommentService {
       payload: { postId, commentId: comment.commentId, authorId: viewer.userId },
     });
     return (await this.withAuthors([comment]))[0]!;
+  }
+
+  /**
+   * 008/FR-029, Principle III — THE AUTHOR, CHECKED ON THE SERVER.
+   *
+   * The app shows these controls only on your own comment, which says something
+   * about the app and nothing at all about the server. Both paths below resolve
+   * the row and compare its author to the caller, because the request a modified
+   * client sends is the one that matters.
+   *
+   * 403 rather than 404 on somebody else's comment: it is publicly readable on
+   * a public post, so pretending it does not exist is a lie the caller can
+   * disprove in one request. `gone` is reserved here for content whose very
+   * existence must not be confirmed.
+   */
+  private async requireOwnComment(viewer: { userId: string }, postId: string, commentId: string) {
+    const comment = await this.comments.findById(postId, commentId);
+    if (!comment || comment.deletedAt) {
+      throw new DomainError(HttpStatus.NOT_FOUND, 'No longer available');
+    }
+    if (comment.authorId !== viewer.userId) {
+      throw new DomainError(HttpStatus.FORBIDDEN, 'Not yours to change');
+    }
+    return comment;
+  }
+
+  /** FR-027. The body changes and the comment says it was edited. */
+  async edit(
+    viewer: { userId: string },
+    postId: string,
+    commentId: string,
+    body: string,
+  ): Promise<CommentResponse> {
+    await this.requireReadablePost(viewer, postId);
+    const existing = await this.requireOwnComment(viewer, postId, commentId);
+    if (existing.moderationState === 'removed') {
+      // Editing a removed comment would restore text a moderator withheld.
+      throw new DomainError(HttpStatus.FORBIDDEN, 'Not yours to change');
+    }
+    await this.comments.edit(
+      { postId, commentId, createdAt: existing.createdAt },
+      body,
+    );
+    const updated = await this.comments.findById(postId, commentId);
+    return (await this.withAuthors([updated ?? existing]))[0]!;
+  }
+
+  /** FR-028. The row and the count move together — see the transaction. */
+  async remove(viewer: { userId: string }, postId: string, commentId: string): Promise<void> {
+    await this.requireReadablePost(viewer, postId);
+    const existing = await this.requireOwnComment(viewer, postId, commentId);
+    await this.updates.softDelete({ postId, commentId, createdAt: existing.createdAt });
   }
 }

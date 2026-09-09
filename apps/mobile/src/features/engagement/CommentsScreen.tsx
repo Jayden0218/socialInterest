@@ -35,9 +35,13 @@ export function CommentsScreen({
   status,
   submitting,
   replyingTo,
+  editing,
+  viewerId,
   onDraftChange,
   onSubmit,
   onReplyTo,
+  onEdit,
+  onDelete,
 }: {
   comments: Comment[];
   draft: string;
@@ -45,9 +49,22 @@ export function CommentsScreen({
   submitting?: boolean;
   /** 008/FR-023. The comment being answered, or null for a top-level one. */
   replyingTo?: Comment | null;
+  /** 008/FR-027. The comment being corrected, or null. */
+  editing?: Comment | null;
+  /**
+   * 008/FR-029. Whose comments carry the edit and delete controls.
+   *
+   * Absent means show none — a signed-out reader owns nothing. This decides
+   * what is DRAWN and nothing else: the server checks the author on every
+   * request, because the app's rendering says nothing about what a modified
+   * client can send.
+   */
+  viewerId?: string;
   onDraftChange: (next: string) => void;
   onSubmit: () => void;
   onReplyTo?: (comment: Comment | null) => void;
+  onEdit?: (comment: Comment | null) => void;
+  onDelete?: (comment: Comment) => void;
 }) {
   const blocked = status ? messageForStatus(status) : null;
 
@@ -72,6 +89,7 @@ export function CommentsScreen({
           renderItem={({ item, index }) => {
             const isReply = Boolean(item.parentCommentId);
             const removed = item.body === null;
+            const mine = Boolean(viewerId) && item.author.userId === viewerId;
             return (
               <View
                 testID={`comment-${index}`}
@@ -101,17 +119,54 @@ export function CommentsScreen({
                   re-parented would explain the bound as a surprise instead of a
                   rule. Answering a reply is done from its parent.
                 */}
-                {onReplyTo && !isReply && !removed ? (
-                  <Pressable
-                    testID={`comment-reply-${index}`}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Reply to ${item.author.displayName}`}
-                    onPress={() => onReplyTo(item)}
-                    style={{ ...touchTarget, minWidth: undefined, alignItems: 'flex-start' }}
+                {item.editedAt ? (
+                  <Text
+                    testID={`comment-edited-${index}`}
+                    style={{ ...textStyle.caption, color: palette.text.muted }}
                   >
-                    <Text style={{ ...textStyle.caption, color: palette.intent.accent }}>Reply</Text>
-                  </Pressable>
+                    Edited
+                  </Text>
                 ) : null}
+                <View style={{ flexDirection: 'row', gap: space.md }}>
+                  {onReplyTo && !isReply && !removed ? (
+                    <Pressable
+                      testID={`comment-reply-${index}`}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Reply to ${item.author.displayName}`}
+                      onPress={() => onReplyTo(item)}
+                      style={{ ...touchTarget, minWidth: undefined, alignItems: 'flex-start' }}
+                    >
+                      <Text style={{ ...textStyle.caption, color: palette.intent.accent }}>Reply</Text>
+                    </Pressable>
+                  ) : null}
+                  {/*
+                    008/FR-029. Only on your OWN comment, and only while there is
+                    still text to correct — a moderator's removal is not yours to
+                    undo, and the server refuses it either way.
+                  */}
+                  {mine && !removed && onEdit ? (
+                    <Pressable
+                      testID={`comment-edit-${index}`}
+                      accessibilityRole="button"
+                      accessibilityLabel="Edit your comment"
+                      onPress={() => onEdit(item)}
+                      style={{ ...touchTarget, minWidth: undefined, alignItems: 'flex-start' }}
+                    >
+                      <Text style={{ ...textStyle.caption, color: palette.intent.accent }}>Edit</Text>
+                    </Pressable>
+                  ) : null}
+                  {mine && !removed && onDelete ? (
+                    <Pressable
+                      testID={`comment-delete-${index}`}
+                      accessibilityRole="button"
+                      accessibilityLabel="Delete your comment"
+                      onPress={() => onDelete(item)}
+                      style={{ ...touchTarget, minWidth: undefined, alignItems: 'flex-start' }}
+                    >
+                      <Text style={{ ...textStyle.caption, color: palette.intent.accent }}>Delete</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
               </View>
             );
           }}
@@ -124,6 +179,25 @@ export function CommentsScreen({
           mode a person can be in without knowing — the reply would land under
           somebody they had stopped thinking about.
         */}
+        {editing && onEdit ? (
+          <View
+            testID="edit-banner"
+            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+          >
+            <Text style={{ ...textStyle.caption, color: palette.text.muted }}>
+              Correcting your comment
+            </Text>
+            <Pressable
+              testID="edit-cancel"
+              accessibilityRole="button"
+              accessibilityLabel="Stop editing"
+              onPress={() => onEdit(null)}
+              style={{ ...touchTarget, minWidth: undefined, alignItems: 'flex-end' }}
+            >
+              <Text style={{ ...textStyle.caption, color: palette.intent.accent }}>Cancel</Text>
+            </Pressable>
+          </View>
+        ) : null}
         {replyingTo && onReplyTo ? (
           <View
             testID="reply-banner"
@@ -162,7 +236,7 @@ export function CommentsScreen({
         />
         <Button
           testID="comment-submit"
-          label={submitting ? 'Posting…' : 'Post'}
+          label={submitting ? 'Posting…' : editing ? 'Save' : 'Post'}
           disabled={!canSubmitComment(draft) || submitting === true}
           onPress={onSubmit}
         />

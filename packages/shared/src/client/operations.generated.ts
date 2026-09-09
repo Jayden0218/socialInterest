@@ -1,7 +1,7 @@
 // GENERATED from specs/001-interest-media-sharing/contracts/openapi.yaml
 // Do not edit by hand. Run: pnpm --filter @sih/shared generate:client
 //
-// 66 operations across 49 paths.
+// 68 operations across 50 paths.
 
 export const operations = {
   getMe: { method: 'GET', path: '/me', auth: true }, // Current person's profile and preferences
@@ -34,6 +34,8 @@ export const operations = {
   deletePostsByPostIdReaction: { method: 'DELETE', path: '/posts/{postId}/reaction', auth: true }, // Remove a reaction
   getPostsByPostIdComments: { method: 'GET', path: '/posts/{postId}/comments', auth: false }, // Comments on a post
   postPostsByPostIdComments: { method: 'POST', path: '/posts/{postId}/comments', auth: true }, // Comment on a post
+  patchPostsByPostIdCommentsByCommentId: { method: 'PATCH', path: '/posts/{postId}/comments/{commentId}', auth: true }, // Correct your own comment
+  deletePostsByPostIdCommentsByCommentId: { method: 'DELETE', path: '/posts/{postId}/comments/{commentId}', auth: true }, // Withdraw your own comment
   postPostsByPostIdShareLink: { method: 'POST', path: '/posts/{postId}/share-link', auth: true }, // Generate a shareable link
   postReports: { method: 'POST', path: '/reports', auth: true }, // Report a post, comment, or interest name
   putBlocksByHandle: { method: 'PUT', path: '/blocks/{handle}', auth: true }, // Block a person

@@ -9,6 +9,14 @@ export interface CommentItem {
   body: string;
   createdAt: string;
   deletedAt?: string | null;
+  /**
+   * 008/FR-027. WHEN it was edited, which IS "marked as edited".
+   *
+   * Not a boolean beside a timestamp: two fields for one fact is how they come
+   * to disagree, and this codebase has the pattern already — `anonymisedAt`
+   * below, and 005's `editedAt` on a message.
+   */
+  editedAt?: string | null;
   anonymisedAt?: string | null;
   /**
    * 008/FR-023. The comment this one answers, or null for a top-level one.
@@ -51,6 +59,17 @@ export class CommentRepository extends BaseRepository {
       ...existing,
       authorId: 'ANONYMISED',
       anonymisedAt: new Date().toISOString(),
+    });
+  }
+
+  /** 008/FR-027. The body changes; `editedAt` records that it did. */
+  async edit(
+    ref: { postId: string; commentId: string; createdAt: string },
+    body: string,
+  ): Promise<void> {
+    await this.updateItem(keys.comment(ref.postId, ref.createdAt, ref.commentId), {
+      body,
+      editedAt: new Date().toISOString(),
     });
   }
 

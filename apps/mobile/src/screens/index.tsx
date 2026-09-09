@@ -431,13 +431,54 @@ export function CommentsContainer({ postId }: { postId: string }) {
   const [status, setStatus] = useState<number | undefined>(undefined);
   // 008/FR-023. Which comment the composer is answering, if any.
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
+  // 008/FR-027. Which of your own comments the composer is correcting, if any.
+  const [editing, setEditing] = useState<Comment | null>(null);
+  const [viewerId, setViewerId] = useState('');
+
+  /**
+   * 008/FR-029. Who is signed in, so the app can draw the controls that are
+   * yours. Every hook is declared BEFORE any return —
+   * `hooks-before-return.test.ts` fails the build otherwise, and 004 shipped a
+   * save button whose handler was dead code for exactly that reason.
+   */
+  useEffect(() => {
+    let live = true;
+    void data.session
+      .me()
+      .then((me) => live && setViewerId(me.userId))
+      // A failed identity read must not take the thread down: the controls are
+      // simply not drawn, and the server refuses anything they would have sent.
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [data]);
+
+  const beginEdit = useCallback((comment: Comment | null) => {
+    setEditing(comment);
+    setReplyingTo(null);
+    // The existing text, so a correction starts from what was said rather than
+    // from an empty box the person has to retype.
+    setDraft(comment?.body ?? '');
+  }, []);
+
+  const beginReply = useCallback((comment: Comment | null) => {
+    setReplyingTo(comment);
+    setEditing(null);
+    setDraft('');
+  }, []);
 
   const submit = useCallback(async () => {
     setSubmitting(true);
     try {
-      await data.engagement.comment(postId, draft, replyingTo?.commentId ?? null);
+      if (editing) {
+        await data.engagement.editComment(postId, editing.commentId, draft);
+      } else {
+        await data.engagement.comment(postId, draft, replyingTo?.commentId ?? null);
+      }
       setDraft('');
       setReplyingTo(null);
+      setEditing(null);
       setStatus(undefined);
       reload();
     } catch (err) {
@@ -448,7 +489,23 @@ export function CommentsContainer({ postId }: { postId: string }) {
     } finally {
       setSubmitting(false);
     }
-  }, [data, postId, draft, replyingTo, reload]);
+  }, [data, postId, draft, replyingTo, editing, reload]);
+
+  const remove = useCallback(
+    async (comment: Comment) => {
+      try {
+        await data.engagement.deleteComment(postId, comment.commentId);
+        if (editing?.commentId === comment.commentId) {
+          setEditing(null);
+          setDraft('');
+        }
+        reload();
+      } catch (err) {
+        setStatus(err instanceof DataError ? err.status : 0);
+      }
+    },
+    [data, postId, editing, reload],
+  );
 
   if (error) return <Failed message={error} />;
   return (
@@ -457,10 +514,14 @@ export function CommentsContainer({ postId }: { postId: string }) {
       draft={draft}
       submitting={submitting}
       replyingTo={replyingTo}
+      editing={editing}
+      viewerId={viewerId}
       {...(status !== undefined ? { status } : {})}
       onDraftChange={setDraft}
       onSubmit={() => void submit()}
-      onReplyTo={setReplyingTo}
+      onReplyTo={beginReply}
+      onEdit={beginEdit}
+      onDelete={(comment) => void remove(comment)}
     />
   );
 }

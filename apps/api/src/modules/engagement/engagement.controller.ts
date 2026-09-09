@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Inject, Param, Post, Put, Query, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Inject, Param, Patch, Post, Put, Query, Req } from '@nestjs/common';
 import { z } from 'zod';
 import type { AppRequest } from '../../common/http/request';
 import { Public } from '../../common/auth/auth.guard';
@@ -6,6 +6,8 @@ import { RateLimit } from '../../common/rate-limit/rate-limit.guard';
 import { zodBody } from '../../common/http/validation';
 import { ReactionService } from './reaction.service';
 import { CommentService } from './comment.service';
+
+const commentEditSchema = z.object({ body: z.string().min(1).max(1000) });
 
 const commentSchema = z.object({
   body: z.string().min(1).max(1000),
@@ -52,5 +54,32 @@ export class EngagementController {
   async comment(@Req() req: AppRequest, @Param('postId') postId: string, @Body() body: unknown) {
     const input = zodBody(commentSchema, body);
     return this.comments.create(req.viewer!, postId, input.body, input.parentCommentId ?? null);
+  }
+
+  /**
+   * 008/FR-027, FR-029. The comment endpoints live on this controller — there
+   * is no `comment.controller.ts`, and adding one would put two files in charge
+   * of the same resource.
+   */
+  @Patch(':postId/comments/:commentId')
+  async editComment(
+    @Req() req: AppRequest,
+    @Param('postId') postId: string,
+    @Param('commentId') commentId: string,
+    @Body() body: unknown,
+  ) {
+    const input = zodBody(commentEditSchema, body);
+    return this.comments.edit(req.viewer!, postId, commentId, input.body);
+  }
+
+  /** FR-028. 204: there is nothing left to return. */
+  @Delete(':postId/comments/:commentId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteComment(
+    @Req() req: AppRequest,
+    @Param('postId') postId: string,
+    @Param('commentId') commentId: string,
+  ) {
+    await this.comments.remove(req.viewer!, postId, commentId);
   }
 }

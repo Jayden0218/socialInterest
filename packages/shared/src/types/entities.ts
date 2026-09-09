@@ -180,6 +180,14 @@ export const commentSchema = z.object({
   moderationState: z.enum(['removed']).nullable().optional(),
   /** 008/FR-023. The comment this one answers; null for a top-level one. */
   parentCommentId: z.string().nullable().optional(),
+  /**
+   * 008/FR-027. WHEN it was edited, and its presence IS "marked as edited".
+   *
+   * A boolean beside a timestamp is two fields for one fact, which is how they
+   * come to disagree — the same argument `anonymisedAt` and 005's message
+   * `editedAt` already make.
+   */
+  editedAt: z.string().nullable().optional(),
   createdAt: z.string(),
 });
 export type Comment = z.infer<typeof commentSchema>;

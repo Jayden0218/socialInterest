@@ -685,6 +685,56 @@ paths:
         '403': { description: Post not visible to the caller }
         '429': { $ref: '#/components/responses/RateLimited' }
 
+  /posts/{postId}/comments/{commentId}:
+    patch:
+      tags: [Engagement]
+      summary: Correct your own comment
+      description: >
+        008/FR-027, FR-029. The author only, checked on the SERVER: the app shows this
+        control on your own comment, which says nothing about what a modified client can
+        send. The edit sets `editedAt`, and that presence IS "marked as edited" - a
+        separate flag could one day disagree with it.
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+        - name: commentId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body: { type: string, minLength: 1, maxLength: 1000 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Comment' }
+        '403': { description: Somebody else's comment, or one a moderator removed }
+        '404': { description: No such comment on this post, or already withdrawn }
+    delete:
+      tags: [Engagement]
+      summary: Withdraw your own comment
+      description: >
+        008/FR-028, FR-029. The row and the post's comment count move in ONE transaction,
+        so the number and the rows it counts cannot part company. Deleting twice is a 404
+        rather than a second decrement.
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+        - name: commentId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '204': { description: Withdrawn }
+        '403': { description: Somebody else's comment }
+        '404': { description: No such comment on this post, or already withdrawn }
+
   /posts/{postId}/share-link:
     post:
       tags: [Engagement]
@@ -1843,6 +1893,13 @@ components:
           enum: [removed]
           nullable: true
           description: 008/FR-026. Present and `removed` exactly when `body` is null for that reason.
+        editedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: >
+            008/FR-027. When the author last corrected it. Its PRESENCE is "marked as
+            edited" - a separate boolean would be a second field for one fact.
         parentCommentId:
           type: string
           nullable: true

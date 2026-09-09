@@ -48,4 +48,19 @@ export class EngagementData {
       body: { body, ...(parentCommentId ? { parentCommentId } : {}) },
     });
   }
+
+  /** 008/FR-027. The server refuses anyone but the author. */
+  editComment(postId: string, commentId: string, body: string): Promise<Comment> {
+    return this.client.call<Comment>('patchPostsByPostIdCommentsByCommentId', {
+      params: { postId, commentId },
+      body: { body },
+    });
+  }
+
+  /** 008/FR-028. 204; the count moves with the row, in one transaction. */
+  deleteComment(postId: string, commentId: string): Promise<void> {
+    return this.client.call<void>('deletePostsByPostIdCommentsByCommentId', {
+      params: { postId, commentId },
+    });
+  }
 }

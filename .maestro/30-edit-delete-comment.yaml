@@ -1,0 +1,107 @@
+# 008/US8, T127 — CORRECT AND THEN WITHDRAW WHAT YOU SAID.
+#
+# WHAT TO READ IN THE RUN AGGREGATE:
+#   PATCH  /v1/posts/:postId/comments/:commentId  200
+#   DELETE /v1/posts/:postId/comments/:commentId  204
+# Both lines are new in Phase C. Their absence means the controls rendered and
+# the requests never went out, which every on-screen assertion below would pass
+# straight through.
+#
+# The comment count is asserted through the SERVICE rather than on screen: the
+# row and the count move in one transaction (FR-028), and the whole point is
+# that they cannot disagree — something a screen cannot show.
+appId: app.socialinterest
+---
+- runFlow: 01-sign-in.yaml
+
+- tapOn:
+    id: "open-compose"
+- assertVisible:
+    id: "media-picker-screen"
+- tapOn:
+    id: "media-item-image-0"
+- tapOn:
+    id: "media-continue"
+- assertVisible:
+    id: "compose-screen"
+- tapOn:
+    id: "interest-option-0"
+- tapOn:
+    id: "caption-input"
+- inputText: "a post whose comment changes"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "publish-button"
+    direction: DOWN
+- extendedWaitUntil:
+    visible: "Uploaded"
+    timeout: 120000
+- tapOn:
+    id: "publish-button"
+- extendedWaitUntil:
+    notVisible:
+      id: "compose-screen"
+    timeout: 60000
+
+- tapOn:
+    id: "tab-profile"
+- extendedWaitUntil:
+    visible:
+      id: "post-[0-9A-Z]{26}"
+    timeout: 60000
+- tapOn:
+    id: "post-[0-9A-Z]{26}"
+- tapOn:
+    id: "comments-button"
+- assertVisible:
+    id: "comments-screen"
+
+- tapOn:
+    id: "comment-input"
+- inputText: "the first wording"
+- hideKeyboard
+- tapOn:
+    id: "comment-submit"
+- extendedWaitUntil:
+    visible:
+      id: "comment-0"
+    timeout: 30000
+
+# EDIT. The controls appear on your own comment only (FR-029) — which is a
+# statement about this screen and not about the server, where the author is
+# checked on every request.
+- assertVisible:
+    id: "comment-edit-0"
+- tapOn:
+    id: "comment-edit-0"
+- assertVisible:
+    id: "edit-banner"
+# The composer opens holding the existing text, so a correction starts from what
+# was said. Clearing it is what a person correcting a word actually does.
+- tapOn:
+    id: "comment-input"
+- eraseText: 50
+- inputText: "the better wording"
+- hideKeyboard
+- tapOn:
+    id: "comment-submit"
+- extendedWaitUntil:
+    notVisible:
+      id: "edit-banner"
+    timeout: 30000
+
+# `Edited` is the app rendering `editedAt`, which is the field FR-027's "marked
+# as edited" IS. A separate flag could disagree with it; there isn't one.
+- assertVisible:
+    id: "comment-edited-0"
+
+# DELETE.
+- tapOn:
+    id: "comment-delete-0"
+- extendedWaitUntil:
+    visible:
+      id: "comments-empty"
+    timeout: 30000
+- assertNotVisible:
+    id: "load-error"
