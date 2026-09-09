@@ -374,11 +374,12 @@ on this repository does not spend - so dispatching the emulator job is not the o
 call any more. Check the facts before repeating either claim; both halves of this one
 expired within a day.
 
-## What spec 008 Phase A built (2026-09-09)
+## What spec 008 Phases A and B built (2026-09-09)
 
 `specs/008-post-reach-and-depth/` is **a complete-app scope**: 15 stories, 54 FRs, 17 SCs,
-in five release phases. **Phase A (US1-US3) is implemented and its local gate is green**;
-B-E are specified and planned and NOT built. Do not read the spec's size as progress.
+in five release phases. **Phase A (US1-US3) and Phase B (US4-US6) are implemented and both
+local gates are green**; C-E are specified and planned and NOT built. Do not read the spec's
+size as progress.
 
 ### THE PATTERN PHASE A EXISTS TO END: a declared half with no other half
 
@@ -431,9 +432,11 @@ ten the whole time. Only a request finds the first; only a rendering test finds 
   Following fan-out is one query per followed author; without a cap the surface has no stated
   worst case. Named in the spec's Assumptions, because a limit a reader cannot find in the
   spec is a limit they meet as a bug.
-- **The visibility matrix is 522 assertions, zero skipped** (was 480). Raising the pinned
-  totals in `matrix.spec.ts` is a deliberate edit and is meant to be; `surface-routing.spec.ts`
-  refused to pass until the Following feed had a probe proving it **consults** the boundary.
+- **The visibility matrix is 564 assertions, zero skipped** (was 480 before 008; 522 after
+  Phase A). 546 post assertions across **13 post surfaces** — the Following feed and post
+  search are the twelfth and thirteenth — plus 18 review assertions. Raising the pinned totals
+  in `matrix.spec.ts` is a deliberate edit and is meant to be; `surface-routing.spec.ts`
+  refused to pass until each new feed had a probe proving it **consults** the boundary.
 
 ### Two corrections I made to my own work, both worth keeping
 
@@ -463,6 +466,51 @@ ten the whole time. Only a request finds the first; only a rendering test finds 
   by hand, every follow 404'd, and the feed was correctly empty. The helper asserts its own
   204 now: an unchecked setup call is how a test fails somewhere other than where it broke.
 
+### What Phase B added, and the same pattern in two more places (US4-US6)
+
+Record: `docs/verification/runs/2026-09-09-008-phase-b.md`. US4 send-a-post, US5 avatars,
+US6 post search.
+
+- **`avatarKey` had no writer, and `avatarUrl` was emitted on ONE of seven profile
+  projections — as the RAW STORAGE KEY**, which a private bucket answers 403 to. That is
+  006/R4b's defect in a second place, and the fix is the same shape as the one that ended it
+  the first time: **`profile.projection.ts` is now the ONE place a `PublicProfile` is built**,
+  and it presigns. `one-profile-projection.spec.ts` was red against the shipped product in
+  nine places across seven files, needing nothing broken on purpose.
+  **Its first version matched a single line and found only seven of the nine** — silently
+  passing over the multi-line ones, **including the file that emitted the raw key**. A guard
+  that finds most of a defect is how the rest of it survives.
+- **US4 adds NO visibility surface, and that is recorded rather than assumed.** A sent post is
+  delivered as a message carrying a postId, so the recipient reads it through the post
+  surfaces that already exist. A send that widened what a recipient may see would be a second
+  visibility decision, which Principle II forbids —
+  `contracts/visibility-matrix-delta.md` §3a says so in writing.
+- **Post search needed a THIRD fan-out to the term index.** Publish and caption-edit were
+  obvious; `updateProcessingState` writes index rows when a post becomes ready, and a term row
+  is an index row. Reading the file did not find it. `post-search.spec.ts` did, by publishing
+  a post and then failing to find it.
+- **FR-021 is FR-009 on a second surface**, so the guard is literally the same code:
+  `tests/unit/support/forbidden-imports.ts`, shared by the Following feed and search. Four
+  copies of a comment-stripping import scanner is four places to get it wrong. The server half
+  cannot see the client half either — dwell is measured on the DEVICE — which is why
+  `PostSearchResults` passes no `onViewableChanged` to the waterfall.
+- **`meta.terms` and `fallback` are declared response fields, and Phase B gave them a
+  READER.** `response-shape.spec.ts` asserts the SERVER populates every declared field and
+  structurally cannot see the other direction: a field the server populates and a client
+  ignores. That is 007's `ApiPage<T>` and 008's `media[0]` — the API returned all ten
+  photographs the whole time. Only a client finds it.
+
+**Two test failures that were the tests, not the product**, both in the FR-022 fallback
+journey and both worth keeping:
+
+- It passed alone and failed in the full suite with `items: 3`. It searched a real catalogue
+  interest's NAME, and other journeys publish captions containing the catalogue's own words.
+  **The local table is shared across runs and this is the third "regression" here that was a
+  grown table.** Rewritten to search a per-run **nonce** naming both a created sub-interest and
+  a second actor, so both fallback halves are non-empty BY CONSTRUCTION.
+- The first version of that fix searched as the person carrying the nonce and found nobody,
+  because `PersonSearchService` excludes the viewer from their own results.
+
 ### PHASE A RUNS ON ANDROID: 23/23, run 49, 2026-09-09
 
 Record: `docs/verification/runs/2026-09-09-008-phase-a-device-record.md`. Booted in 63s, no
@@ -489,10 +537,16 @@ both feed tabs live and a **`1/3` badge** on the multi-photo card.
   component tests fire `layout` explicitly now rather than hiding the dependency.
 
 ### Still not verified for 008, and must be reported that way
+- **Phase B on a device.** Run 50 is dispatched at the time of writing and its result is NOT
+  recorded here. Until it is, US4's send, US5's avatar and US6's search have never rendered a
+  frame on Android — Constitution V, and this file has twice carried a device claim that a
+  later run retracted.
 - **Native font scaling.** `safety-fit.spec.ts` measures layout at 130% text in a browser and
   says so; react-native-web ignores the platform font setting entirely, which is why 006's
-  `Avatar` overflow was invisible there. A browser result does not close SC-017.
-- **Phases B-E are not built.** iOS, 002/SC-002, real usage, and the datastore and hosting
+  `Avatar` overflow was invisible there. **A browser result does not close SC-017**, and Phase
+  B's three new cases (the avatar editor, the Discover Posts tab, the share sheet's recipient
+  picker) close the SCREEN-SIZE half only.
+- **Phases C-E are not built.** iOS, 002/SC-002, real usage, and the datastore and hosting
   decisions are all unchanged by 008.
 
 ## What spec 007 built (2026-09-08) — all eight phases
