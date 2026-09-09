@@ -68,6 +68,31 @@ const MP4_1S =
   '2xeDMpetlc7DrgEfwMNmxugN3Whw5tBGaHIMF7YlctzVpInlBPJbL8rLrsWivdNoQQAAABdBnoVFESx3Y+X/vo30yJB3Vnmr9ZbY' +
   'gQAAAAsBnqZEIf9qtnt/QQ==';
 
+/**
+ * 008/US1. TWO MORE IMAGES, AND WHY THE SAMPLE SET NEEDED THEM.
+ *
+ * The picker has always been multi-select - it counts "Next with N chosen" and
+ * numbers each selection - and the sample set offered exactly ONE image. So no
+ * device flow could ever choose two, which is part of why nobody noticed on a
+ * device that a post with several photographs showed one.
+ *
+ * Distinct COLOURS, not copies: three identical images would let a renderer that
+ * draws `media[0]` three times pass a flow that meant to check three different
+ * photographs appear.
+ *
+ * `sizeBytes` is MEASURED, not counted by hand. The first entry below was
+ * declared 68 for 70 bytes, so the app announced one size to the presign
+ * endpoint and uploaded another; `readMediaBytes.test.ts` asserts the two agree,
+ * which is the only reason that was ever found.
+ */
+const PNG_1X1_RED =
+  'data:image/png;base64,' +
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR42mM4YGAAAALUASEEleSlAAAAAElFTkSuQmCC';
+
+const PNG_1X1_BLUE =
+  'data:image/png;base64,' +
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR42mMwSDgAAAIUAVFETn/yAAAAAElFTkSuQmCC';
+
 export const SAMPLE_MEDIA: PickedMedia[] = [
   // 70, not 68. The declared length is what the app tells the server when it
   // asks for an upload target, and it was two bytes short of what the base64
@@ -78,5 +103,7 @@ export const SAMPLE_MEDIA: PickedMedia[] = [
   // sizeBytes is what the app TELLS the server when it asks for an upload
   // target, and the PNG's was two bytes short of what its base64 decodes to.
   // This one is measured from the file, not counted by hand.
+  { uri: PNG_1X1_RED, kind: 'image', contentType: 'image/png', sizeBytes: 69 },
+  { uri: PNG_1X1_BLUE, kind: 'image', contentType: 'image/png', sizeBytes: 69 },
   { uri: MP4_1S, kind: 'video', contentType: 'video/mp4', sizeBytes: 2716, durationMs: 1000 },
 ];

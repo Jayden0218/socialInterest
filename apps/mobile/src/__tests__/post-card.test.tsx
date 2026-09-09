@@ -1,7 +1,8 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 import type { Post } from '@sih/shared';
-import { PostCard } from '../components/PostCard';
+import { PostCard, PostTile, visibleMediaCount } from '../components/PostCard';
+import { multiImagePost, partiallyFailedPost, singleImagePost } from './fixtures/post';
 
 /**
  * 006/US1. THE FEED MUST SHOW WHAT WAS POSTED.
@@ -159,5 +160,43 @@ describe('PostCard shows the post (006/US1)', () => {
     const t = render(<PostCard post={base} onOpen={onOpen} />);
     fireEvent.press(t.getByTestId('post-p1'));
     expect(onOpen).toHaveBeenCalledWith('p1');
+  });
+});
+
+/**
+ * 008/FR-003 — a browse surface says there is more than one, and stays a single
+ * tap target.
+ */
+describe('008/US1 the multi-item indicator', () => {
+  it('a card with three images shows the count', () => {
+    const t = render(<PostCard post={multiImagePost} onOpen={() => undefined} />);
+    expect(t.getByTestId(`post-media-count-${multiImagePost.postId}`)).toBeTruthy();
+  });
+
+  it('a card with one image shows no count', () => {
+    const t = render(<PostCard post={singleImagePost} onOpen={() => undefined} />);
+    expect(t.queryByTestId(`post-media-count-${singleImagePost.postId}`)).toBeNull();
+  });
+
+  it('a tile with three images shows the count', () => {
+    const t = render(<PostTile post={multiImagePost} onOpen={() => undefined} />);
+    expect(t.getByTestId(`post-media-count-${multiImagePost.postId}`)).toBeTruthy();
+  });
+
+  it('counts EVERY item, so the card and the pager always agree', () => {
+    // Three items, one failed, and the count is three - because the pager shows
+    // three, and the only viewer who can reach a post with a failed item is its
+    // author. Two numbers for one post is how a card and a detail screen come to
+    // disagree.
+    expect(visibleMediaCount(partiallyFailedPost)).toBe(3);
+  });
+
+  it('stays ONE tap target - the card does not become navigable per item (FR-003)', () => {
+    const opened: string[] = [];
+    const t = render(<PostCard post={multiImagePost} onOpen={(id) => opened.push(id)} />);
+    // No per-item pressable exists on a browse card. The only press is the card.
+    expect(t.queryByTestId('media-pager')).toBeNull();
+    fireEvent.press(t.getByTestId(`post-${multiImagePost.postId}`));
+    expect(opened).toEqual([multiImagePost.postId]);
   });
 });

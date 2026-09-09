@@ -29,17 +29,32 @@ describe('readMediaBytes', () => {
     expect(Array.from(bytes.slice(0, 8))).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
   });
 
-  it('round-trips the sample media the compose flow actually publishes', async () => {
-    const media = SAMPLE_MEDIA[0]!;
-    const bytes = (await readMediaBytes(media.uri, neverCalled)) as Uint8Array;
+  /**
+   * EVERY entry, not `SAMPLE_MEDIA[0]`.
+   *
+   * This test checked index 0 alone, which was sound while the sample set held
+   * one image and became unsound the moment 008/US1 added two more - a declared
+   * size wrong on entry 1 or 2 would have gone to the server unchecked. It is
+   * also, exactly, the shape of the defect this feature exists to end: an array
+   * with several members and a reader that looks at the first.
+   */
+  it.each(SAMPLE_MEDIA.map((m, i) => [i, m] as const))(
+    'round-trips SAMPLE_MEDIA[%i], and its declared size is the size it uploads',
+    async (index, media) => {
+      const bytes = (await readMediaBytes(media.uri, neverCalled)) as Uint8Array;
 
-    expect(bytes[0]).toBe(0x89);
-    expect(String.fromCharCode(...bytes.slice(1, 4))).toBe('PNG');
-    // sizeBytes is what the app declares to the server when asking for an
-    // upload target; if the decode disagreed with it the server would be told
-    // one length and sent another.
-    expect(bytes.byteLength).toBe(media.sizeBytes);
-  });
+      // sizeBytes is what the app declares to the server when asking for an
+      // upload target; if the decode disagreed with it the server would be told
+      // one length and sent another. The PNG's was 68 for 70 bytes, and this
+      // assertion is the only reason anyone found out.
+      expect({ index, declared: media.sizeBytes, actual: bytes.byteLength })
+        .toEqual({ index, declared: media.sizeBytes, actual: media.sizeBytes });
+
+      if (media.kind === 'image') {
+        expect(Array.from(bytes.slice(0, 4))).toEqual([0x89, 0x50, 0x4e, 0x47]);
+      }
+    },
+  );
 
   it('decodes a non-base64 data: URI', async () => {
     const bytes = (await readMediaBytes('data:text/plain,hello%20there', neverCalled)) as Uint8Array;

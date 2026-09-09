@@ -3,6 +3,7 @@ import type { MediaItem, Post } from '@sih/shared';
 import { activePalette as palette, radius, space, textStyle } from '../../ui/theme';
 import { InterestWord } from '../../components/InterestWord';
 import { Banner, Screen } from '../../ui/primitives';
+import { MediaPager } from '../../components/MediaPager';
 
 /**
  * FR-009: a poster frame is shown before playback begins, so a video never
@@ -40,21 +41,29 @@ export function PostDetailScreen({
   onOpenInterest?: (interestId: string) => void;
 }) {
   const notice = processingMessage(post);
-  const first = post.media?.[0];
+  const hasMedia = (post.media?.length ?? 0) > 0;
 
   return (
     <Screen testID="post-detail-screen">
       {notice ? <Banner tone="info" testID="processing-notice">{notice}</Banner> : null}
 
-      {first ? (
+      {/*
+        008/FR-001 — EVERY item, not `media[0]`.
+
+        This line read `post.media?.[0]` for seven features while the publish
+        screen promised "Up to 10 photos" and the server returned all ten. The
+        loss was total and silent: nine of ten photographs unreachable to
+        everyone including the author.
+
+        FR-004's "only to the author" needs no prop here and deliberately has
+        none: a post with a failed media item is `failed` at post level
+        (ProcessingService.reconcile), and a non-ready post is visible only to
+        its author (VisibilityFilter). The boundary has already decided; the
+        pager renders what arrived.
+      */}
+      {hasMedia ? (
         <View testID="post-media" style={{ aspectRatio: 1, borderRadius: radius.md, overflow: 'hidden' }}>
-          <Image
-            testID={isPlayable(post) ? 'video-poster' : 'post-image'}
-            // Poster frame first for video (FR-009), never an empty box.
-            source={{ uri: posterFor(first) ?? Object.values(first.renditions ?? {})[0] ?? '' }}
-            style={{ flex: 1, backgroundColor: palette.bg.raised }}
-            accessibilityIgnoresInvertColors
-          />
+          <MediaPager post={post} />
         </View>
       ) : null}
 

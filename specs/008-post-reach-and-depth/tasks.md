@@ -88,20 +88,20 @@ per item.
 
 ### Tests for User Story 1
 
-- [ ] T013 [P] [US1] Write `apps/e2e/journeys/media-set.spec.ts`: publish ten images over HTTP, assert the response carries ten ready items in publication order (SC-001). Verify it RED against the current mobile render, not against the API.
-- [ ] T014 [P] [US1] Write `apps/e2e/journeys/media-set-fixture.spec.ts` covering single-image, multi-image, video and partially-failed posts, asserting **zero unreachable published items** (SC-002).
-- [ ] T015 [P] [US1] Write `apps/mobile/src/__tests__/media-pager.test.tsx` asserting the pager renders every item and the position indicator, and renders **no indicator** for a single item (FR-002).
+- [X] T013 [P] [US1] Write `apps/e2e/journeys/media-set.spec.ts`: publish ten images over HTTP, assert the response carries ten ready items in publication order (SC-001). Verify it RED against the current mobile render, not against the API.
+- [X] T014 [P] [US1] Write `apps/e2e/journeys/media-set-fixture.spec.ts` covering single-image, multi-image, video and partially-failed posts, asserting **zero unreachable published items** (SC-002).
+- [X] T015 [P] [US1] Write `apps/mobile/src/__tests__/media-pager.test.tsx` asserting the pager renders every item and the position indicator, and renders **no indicator** for a single item (FR-002).
 
 ### Implementation for User Story 1
 
-- [ ] T016 [US1] Create `apps/mobile/src/components/MediaPager.tsx` — a horizontal pager over `post.media`, with `testID="media-pager"` and `testID="media-page-<index>"` per item. Every `Text` it renders must choose a colour explicitly; RN's `Text` inherits black and the redesign's ground is near-white.
-- [ ] T017 [US1] Add the position indicator to `MediaPager.tsx` (FR-002): shown only when `media.length > 1`. Give it a `hitSlop` if it is interactive rather than a `touchTarget` — 007 measured the interest word costing 43 points of layout for the same mistake.
-- [ ] T018 [US1] Replace the `media?.[0]` read in `apps/mobile/src/features/posts/PostDetailScreen.tsx:43` with `MediaPager` (FR-001).
-- [ ] T019 [P] [US1] Add a multi-item **count indicator** to `apps/mobile/src/components/PostCard.tsx` (both call sites, lines 67 and 264) — static, not a pager (FR-003). A swipeable card inside the waterfall fights the parent scroll, and 007/R6 recorded that nesting scrollables disables windowing.
-- [ ] T020 [P] [US1] Add the same count indicator to `apps/mobile/src/components/Waterfall.tsx:38`, reading `media.length` while still rendering `media[0]` as the tile image.
-- [ ] T021 [US1] Render failed media on the detail surface as an accounted-for slot, visible **only to the author** (FR-004), in `MediaPager.tsx`. The author already sees their own non-ready post; this is the per-item case of the same rule.
-- [ ] T022 [US1] Add `testID`s for every new control and run `node scripts/verify-maestro-ids.mjs` (FR-053). No spaces — a Maestro selector is a regex — and keep the literal prefix in the JSX, because the verifier reads the leading literal of a template in `testID=` position and cannot see through a helper call.
-- [ ] T023 [US1] Add `.maestro/23-multi-photo-post.yaml`: publish two images, open the post, swipe, assert the second item. Assert the effect **through the service** in the run aggregate (`POST /v1/posts` 201), not through the view hierarchy.
+- [X] T016 [US1] Create `apps/mobile/src/components/MediaPager.tsx` — a horizontal pager over `post.media`, with `testID="media-pager"` and `testID="media-page-<index>"` per item. Every `Text` it renders must choose a colour explicitly; RN's `Text` inherits black and the redesign's ground is near-white.
+- [X] T017 [US1] Add the position indicator to `MediaPager.tsx` (FR-002): shown only when `media.length > 1`. Give it a `hitSlop` if it is interactive rather than a `touchTarget` — 007 measured the interest word costing 43 points of layout for the same mistake.
+- [X] T018 [US1] Replace the `media?.[0]` read in `apps/mobile/src/features/posts/PostDetailScreen.tsx:43` with `MediaPager` (FR-001).
+- [X] T019 [P] [US1] Add a multi-item **count indicator** to `apps/mobile/src/components/PostCard.tsx` (both call sites, lines 67 and 264) — static, not a pager (FR-003). A swipeable card inside the waterfall fights the parent scroll, and 007/R6 recorded that nesting scrollables disables windowing.
+- [X] T020 [P] [US1] Add the same count indicator to `PostTile` in `apps/mobile/src/components/PostCard.tsx`. **The task's premise was wrong**: `Waterfall.tsx:38` reads `media[0]` for the card's LAYOUT HEIGHT (its aspect ratio) and renders nothing — it delegates to `renderPost`. That read is correct and was left alone; the indicator belongs in the two components that draw a tile.
+- [X] T021 [US1] Render failed media on the detail surface as an accounted-for slot, visible **only to the author** (FR-004), in `MediaPager.tsx`. The author already sees their own non-ready post; this is the per-item case of the same rule.
+- [X] T022 [US1] Add `testID`s for every new control and run `node scripts/verify-maestro-ids.mjs` (FR-053). No spaces — a Maestro selector is a regex — and keep the literal prefix in the JSX, because the verifier reads the leading literal of a template in `testID=` position and cannot see through a helper call.
+- [X] T023 [US1] Add `.maestro/23-multi-photo-post.yaml`: publish two images, open the post, swipe, assert the second item. Assert the effect **through the service** in the run aggregate (`POST /v1/posts` 201), not through the view hierarchy.
 
 **Checkpoint**: US1 is independently shippable. `pnpm --filter @sih/e2e test -t "media set"` green, T013 and T014 previously observed red.
 

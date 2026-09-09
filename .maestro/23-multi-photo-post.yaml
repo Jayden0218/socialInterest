@@ -1,0 +1,118 @@
+# 008/US1, T023 — A POST WITH SEVERAL PHOTOGRAPHS SHOWS SEVERAL PHOTOGRAPHS.
+#
+# The publish screen has always promised "Up to 10 photos". The server has always
+# returned all of them. Every render path in the app read `media[0]`, so nine of
+# ten were invisible to everyone including the author, permanently — and 190
+# green mobile tests said nothing, because every post fixture in the suite
+# carried exactly one media item.
+#
+# This flow is the device half. It is the FIRST flow in this repository to select
+# more than one image, which is itself part of the finding: the picker has always
+# been multi-select and the bundled sample set offered one image, so no device
+# journey could ever have exercised it.
+#
+# WHAT TO READ IN THE RUN AGGREGATE, not on screen: one `POST /v1/posts` 201 with
+# three uploads behind it. The screen assertions below say the pager rendered;
+# the aggregate says the product did the thing.
+appId: app.socialinterest
+---
+- runFlow: 01-sign-in.yaml
+- tapOn:
+    id: "open-compose"
+- assertVisible:
+    id: "media-picker-screen"
+
+# THREE distinct images. Three rather than two on purpose: two cannot tell
+# "renders the first and the last" from "renders all of them", and they are
+# different colours so a renderer drawing media[0] three times cannot pass.
+- tapOn:
+    id: "media-item-image-0"
+- tapOn:
+    id: "media-item-image-1"
+- tapOn:
+    id: "media-item-image-2"
+- tapOn:
+    id: "media-continue"
+
+- assertVisible:
+    id: "compose-screen"
+- tapOn:
+    id: "interest-option-0"
+- tapOn:
+    id: "caption-input"
+- inputText: "three photographs from one post"
+
+# The keyboard is up and `publish-button` is below the fold on a 320x640
+# emulator, inside ComposeScreen's ScrollView. Scrolled to, not assumed on
+# screen — run 12 failed exactly here.
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "publish-button"
+    direction: DOWN
+
+# WAIT FOR EVERY UPLOAD. The button is disabled until every slot reaches
+# `uploaded`, and tapping a disabled button is a SILENT no-op — no request, no
+# error, the app just sits there, which is what runs 18 and 19 showed.
+#
+# THREE uploads now, not one. This is the assertion most likely to catch a real
+# regression in this flow: a publish path that only uploaded the first item would
+# leave the other two unfinished here rather than failing later as a mystery.
+- extendedWaitUntil:
+    visible: "Uploaded"
+    timeout: 120000
+- assertNotVisible:
+    id: "publish-blocked-reason"
+
+- tapOn:
+    id: "publish-button"
+- assertNotVisible:
+    id: "compose-error"
+
+# Leaving compose is the app's own signal that publish RETURNED — the container
+# pops only in onPublished. "No error is visible" was true for a whole run in
+# which nothing was published at all.
+- extendedWaitUntil:
+    notVisible:
+      id: "compose-screen"
+    timeout: 60000
+- assertNotVisible:
+    id: "load-error"
+
+# On the author's own profile, not the home feed. The feed is ranked and a
+# freshly published post in an interest the author does not engage with need not
+# appear there; a person's own posts are on their profile whatever they follow.
+- tapOn:
+    id: "tab-profile"
+- extendedWaitUntil:
+    visible:
+      id: "post-.*"
+    timeout: 60000
+
+# 008/FR-003 — the tile says there is more than one, without becoming navigable
+# per item. If this is absent the count is not rendering; if the flow can tap
+# through to item 2 from here, FR-003 has been violated in the other direction.
+- assertVisible:
+    id: "post-media-count-.*"
+
+- tapOn:
+    id: "post-media-count-.*"
+- assertVisible:
+    id: "post-detail-screen"
+
+# 008/FR-001, FR-002 — the pager, and the position within a set of more than one.
+- assertVisible:
+    id: "media-pager"
+- assertVisible:
+    id: "media-page-0"
+- assertVisible:
+    id: "media-position"
+
+# THE ASSERTION THIS FLOW EXISTS FOR. Swipe, and the SECOND photograph is there.
+# Before 008 there was no second page to reach at any gesture.
+- swipe:
+    from:
+      id: "media-pager"
+    direction: LEFT
+- assertVisible:
+    id: "media-page-1"

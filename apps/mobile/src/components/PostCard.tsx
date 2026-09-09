@@ -54,6 +54,24 @@ export function mediaUrl(item: MediaItem): string | null {
   return r['thumb'] ?? r['original'] ?? null;
 }
 
+
+/**
+ * 008/FR-003 — HOW MANY ITEMS A BROWSE SURFACE SHOULD SAY THERE ARE.
+ *
+ * EVERY item, which is the same number `MediaPager` shows - so a card saying
+ * "1/3" and a pager showing three pages are the same claim.
+ *
+ * It counts failed items too, and that is not an oversight. A post with a failed
+ * item is `failed` at post level (`ProcessingService.reconcile`) and a non-ready
+ * post reaches only its author (`VisibilityFilter`), so the only person who can
+ * ever see this card counting a failed item is the person who needs to know it
+ * failed. Filtering here would be a client-side visibility decision agreeing
+ * with the boundary today and one refactor from disagreeing.
+ */
+export function visibleMediaCount(post: Post): number {
+  return (post.media ?? []).length;
+}
+
 export function PostCard({
   post,
   onOpen,
@@ -132,6 +150,41 @@ export function PostCard({
           ) : (
             <Skeleton style={{ width: '100%', height: '100%' }} />
           )}
+
+          {/*
+            008/FR-003 — MORE THAN ONE, WITHOUT BECOMING NAVIGABLE PER ITEM.
+
+            A count, not a pager. A swipeable card inside a vertically scrolling
+            waterfall fights the parent for the same gesture, and 007/R6 recorded
+            that nesting scrollables in this feed disables windowing. The
+            requirement says "without becoming navigable per item" for that
+            reason, not as a simplification.
+          */}
+          {visibleMediaCount(post) > 1 ? (
+            <View
+              testID={`post-media-count-${post.postId}`}
+              accessibilityLabel={`${visibleMediaCount(post)} images`}
+              style={{
+                position: 'absolute',
+                right: space.sm,
+                top: space.sm,
+                paddingVertical: space.xs,
+                paddingHorizontal: space.sm,
+                borderRadius: radius.pill,
+                backgroundColor: palette.bg.raised,
+              }}
+            >
+              <Text
+                style={{
+                  color: palette.text.primary,
+                  fontSize: typeScale.small.size,
+                  lineHeight: typeScale.small.lineHeight,
+                }}
+              >
+                1/{visibleMediaCount(post)}
+              </Text>
+            </View>
+          ) : null}
 
           {post.mediaKind === 'video' ? (
             <View
@@ -301,6 +354,30 @@ export function PostTile({ post, onOpen }: { post: Post; onOpen: (postId: string
       ) : (
         <Skeleton style={{ width: '100%', height: '100%' }} />
       )}
+
+      {/*
+        008/FR-003, on the tile. Same rule as the card and the same reason: a
+        grid that hides which tiles hold more than one image makes somebody tap
+        to find out - the argument the video badge above was already making.
+      */}
+      {visibleMediaCount(post) > 1 ? (
+        <View
+          testID={`post-media-count-${post.postId}`}
+          accessibilityLabel={`${visibleMediaCount(post)} images`}
+          style={{
+            position: 'absolute',
+            right: space.xs,
+            top: space.xs,
+            paddingHorizontal: space.xs,
+            borderRadius: radius.pill,
+            backgroundColor: palette.bg.raised,
+          }}
+        >
+          <Text style={{ fontSize: typeScale.small.size, color: palette.text.primary }}>
+            1/{visibleMediaCount(post)}
+          </Text>
+        </View>
+      ) : null}
 
       {post.mediaKind === 'video' ? (
         <View
