@@ -342,6 +342,20 @@ export const keys = {
     pk: `USER#${ownerId}`,
     sk: `COLLITEM#${collectionId}#${savedAt}#${postId}`,
   }),
+  /**
+   * THE MARKER, and it exists for the same reason `savedPostBy` does.
+   *
+   * The membership row's sort key carries `savedAt`, which a caller asking "is
+   * this post already on this shelf" does not know — so without this, that
+   * question is a scan of the whole collection, on every add and every remove.
+   * That shape works with ten posts and stops working by getting slower, which
+   * is the failure mode this codebase already solved once for saves and then
+   * did not apply here until it was read back.
+   */
+  collectionItemBy: (ownerId: string, collectionId: string, postId: string) => ({
+    pk: `USER#${ownerId}`,
+    sk: `COLLBY#${collectionId}#${postId}`,
+  }),
 
   /**
    * A49 - 008/FR-037. AN UNFINISHED POST, PRIVATE BY KEY.

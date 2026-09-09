@@ -255,6 +255,13 @@ survives deletion of the subject).
 | `pk` | `USER#<ownerId>` | |
 | `sk` | `COLLITEM#<collectionId>#<savedAt>#<postId>` | A post MAY be in more than one collection (FR-049) |
 
+A second row, `COLLBY#<collectionId>#<postId>`, is the MARKER — the same shape `savedPostBy`
+uses, and for the same reason. The membership row's sort key carries `savedAt`, which a
+caller asking "is this post already on this shelf" does not know, so without a marker that
+question is a scan of the whole collection on every add and every remove. Written and deleted
+in the SAME transaction as the row it points at, so it can never claim a membership that is
+not there.
+
 | # | Access pattern | How |
 |---|---|---|
 | A55 | My collections | Query `pk = USER#<id>`, `sk` begins `COLLECTION#` |

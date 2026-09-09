@@ -92,9 +92,9 @@ export class CollectionRepository extends BaseRepository {
         cursor,
       });
       for (const item of page.items) {
-        await this.deleteItem(
-          keys.collectionItem(ownerId, collectionId, item.savedAt, item.postId),
-        );
+        // Both rows, or the marker outlives the membership and the shelf
+        // silently refuses to accept a post it no longer holds.
+        await this.removePost(ownerId, collectionId, item.savedAt, item.postId);
       }
       cursor = page.nextCursor;
     } while (cursor);
@@ -129,6 +129,21 @@ export class CollectionRepository extends BaseRepository {
             ...keys.collectionItem(item.ownerId, item.collectionId, savedAt, item.postId),
             type: 'CollectionItem',
             ...item,
+            savedAt,
+          },
+        },
+      },
+      {
+        // In the SAME transaction as the row it points at, so a marker can
+        // never claim a membership that is not there.
+        Put: {
+          TableName: this.tableName,
+          Item: {
+            ...keys.collectionItemBy(item.ownerId, item.collectionId, item.postId),
+            type: 'CollectionItemBy',
+            ownerId: item.ownerId,
+            collectionId: item.collectionId,
+            postId: item.postId,
             savedAt,
           },
         },
@@ -176,7 +191,10 @@ export class CollectionRepository extends BaseRepository {
    * it out of one cannot either — the person filed it, they did not unsave it.
    */
   async removePost(ownerId: string, collectionId: string, savedAt: string, postId: string): Promise<void> {
-    await this.deleteItem(keys.collectionItem(ownerId, collectionId, savedAt, postId));
+    await this.transact([
+      { Delete: { TableName: this.tableName, Key: keys.collectionItem(ownerId, collectionId, savedAt, postId) } },
+      { Delete: { TableName: this.tableName, Key: keys.collectionItemBy(ownerId, collectionId, postId) } },
+    ]);
   }
 
   /** A56 — newest first within the collection. */
@@ -192,24 +210,22 @@ export class CollectionRepository extends BaseRepository {
     });
   }
 
+  /**
+   * A POINT READ, via the marker row — the same shape `savedPostBy` uses.
+   *
+   * The membership row's sort key carries `savedAt`, which a caller asking "is
+   * this post already on this shelf" does not know, so the first version of
+   * this walked the whole collection on every add and every remove. Correct,
+   * and the kind of correct that stops working by getting slower.
+   */
   async findMembership(
     ownerId: string,
     collectionId: string,
     postId: string,
-  ): Promise<CollectionMembership | null> {
-    // The sort key carries `savedAt`, which the caller does not know, so this is
-    // a bounded prefix scan rather than a point read. Bounded by the collection.
-    let cursor: string | null = null;
-    do {
-      const page: Page<CollectionMembership> = await this.listPosts(ownerId, collectionId, {
-        limit: 100,
-        cursor,
-      });
-      const found = page.items.find((i) => i.postId === postId);
-      if (found) return found;
-      cursor = page.nextCursor;
-    } while (cursor);
-    return null;
+  ): Promise<{ savedAt: string } | null> {
+    return this.getItem<{ savedAt: string }>(
+      keys.collectionItemBy(ownerId, collectionId, postId),
+    );
   }
 
   async adjustCount(ownerId: string, collectionId: string, delta: number): Promise<void> {
