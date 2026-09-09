@@ -454,6 +454,9 @@ export function Shell() {
                 onSelect={(interestId) => push({ name: 'interest', interestId })}
                 onSelectPlace={(placeId) => push({ name: 'place', placeId })}
                 onSelectPerson={(handle) => push({ name: 'person', handle })}
+                // 008/US6. The Posts tab in Discover — an ADDITIONAL search
+                // surface beside the interest one, never a replacement for it.
+                onOpenPost={(postId) => push({ name: 'post', postId })}
               />
             );
           case 'chats':

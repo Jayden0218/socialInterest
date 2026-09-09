@@ -60,6 +60,7 @@ async function main(): Promise<void> {
      */
     { name: 'mark notifications read (unauth)', path: '/v1/notifications/read', method: 'PUT', expect: [401] },
     { name: 'following feed (unauth)', path: '/v1/feed/following', expect: [401] },
+    { name: 'post search (unauth)', path: '/v1/search/posts?q=x', expect: [401] },
   ];
 
   let failed = 0;

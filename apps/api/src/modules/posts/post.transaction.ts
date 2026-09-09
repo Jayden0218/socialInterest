@@ -4,6 +4,7 @@ import { TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
 import { CONFIG, type AppConfig } from '../../config/configuration';
 import { DOC_CLIENT } from '../../persistence/dynamo-client';
 import { keys } from '../../persistence/keys';
+import { tokenise } from '../search/tokeniser';
 import type { MediaItemRecord, PostItem } from '../../persistence/post.repository';
 
 /**
@@ -70,6 +71,29 @@ export class PostTransaction {
             interestId,
             // Denormalised so the visibility filter runs on Query results
             // directly. Kept in step by updateVisibility below.
+            visibility: post.visibility,
+            processingState: post.processingState,
+            createdAt: post.createdAt,
+          },
+        },
+      })),
+      /**
+       * 008/A46. One row per distinct caption term, capped at 40.
+       *
+       * Same shape as the interest and place index items above, deliberately -
+       * including the denormalised `visibility`, which is what lets the filter
+       * run on Query results. `MAX_TERMS_PER_POST` is part of what keeps this
+       * transaction inside DynamoDB's 100-item ceiling; see the tokeniser.
+       */
+      ...tokenise(post.caption).map((token) => ({
+        Put: {
+          TableName: table,
+          Item: {
+            ...keys.postTermIndex(token, post.createdAt, post.postId),
+            type: 'PostTermIndex',
+            postId: post.postId,
+            authorId: post.authorId,
+            token,
             visibility: post.visibility,
             processingState: post.processingState,
             createdAt: post.createdAt,
@@ -156,7 +180,20 @@ export class PostTransaction {
     );
   }
 
-  /** Keeps the denormalised processingState in step across index items. */
+  /**
+   * Keeps the denormalised processingState in step across index items.
+   *
+   * 008/US6 — TERM ROWS JOIN THIS, and missing them is how a public post stayed
+   * unfindable by everyone but its author. The rows are written at publish, when
+   * the post is still `pending`; a candidate that is not `ready` is visible only
+   * to its author, so a stale row makes search look like it is enforcing a
+   * privacy rule nobody wrote.
+   *
+   * That is the THIRD fan-out these rows have to join — visibility, deletion and
+   * now processing state. The 008 analysis pass caught the first two by reading;
+   * this one was caught by `post-search.spec.ts` failing, which is the argument
+   * for the behavioural test existing alongside the structural reasoning.
+   */
   async updateProcessingState(input: {
     post: PostItem;
     expandedInterestIds: string[];
@@ -197,6 +234,14 @@ export class PostTransaction {
             Update: {
               TableName: table,
               Key: keys.postInterestIndex(interestId, input.post.createdAt, input.post.postId),
+              UpdateExpression: 'SET processingState = :s',
+              ExpressionAttributeValues: { ':s': input.processingState },
+            },
+          })),
+          ...tokenise(input.post.caption).map((token) => ({
+            Update: {
+              TableName: table,
+              Key: keys.postTermIndex(token, input.post.createdAt, input.post.postId),
               UpdateExpression: 'SET processingState = :s',
               ExpressionAttributeValues: { ':s': input.processingState },
             },

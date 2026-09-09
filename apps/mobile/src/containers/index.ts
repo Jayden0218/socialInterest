@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import type { Post, Interest, Notification } from '@sih/shared';
 import { useData } from '../data-provider';
 import { usePaged, type PagedResult } from './usePaged';
+import type { PostSearchPage } from '../data/search';
 
 /** Home feed - RANKED from behaviour (007). 001/FR-033's composed feed is withdrawn. */
 export function useHomeFeed(): PagedResult<Post> {
@@ -52,6 +53,34 @@ export function useInterestPosts(
         ...(q.trim() ? { q } : {}),
       }),
     [interestId, order, q],
+  );
+}
+
+/**
+ * 008/US6 — post text search.
+ *
+ * `enabled` rather than a separate call site: `usePaged` fires on mount, and a
+ * search for the empty string is a request the server would have to refuse. The
+ * meta and fallback the response carries are handed back through `onPage`,
+ * because `usePaged` deliberately keeps only the items - and FR-022's fallback
+ * is not an item.
+ */
+export function usePostSearch(
+  query: string,
+  enabled: boolean,
+  onPage: (page: PostSearchPage) => void,
+): PagedResult<Post> {
+  const data = useData();
+  const latest = useRef(onPage);
+  latest.current = onPage;
+  return usePaged<Post>(
+    async (cursor) => {
+      if (!enabled || query.trim() === '') return { items: [], page: { nextCursor: null } };
+      const page = await data.search.posts(query, cursor ? { cursor } : {});
+      latest.current(page);
+      return page;
+    },
+    [query, enabled],
   );
 }
 

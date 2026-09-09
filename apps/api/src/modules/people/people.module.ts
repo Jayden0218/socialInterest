@@ -10,6 +10,9 @@ import { PostsModule } from '../posts/posts.module';
   imports: [PostsModule],
   controllers: [MeController, PersonController],
   providers: [PersonFollowService, AccountDeletionService, PersonSearchService],
-  exports: [PersonFollowService, AccountDeletionService],
+  // 008/US6. `SearchController` reuses people search for FR-022's fallback
+  // rather than reimplementing it - two people searches would be two chances
+  // for the block filter to be applied differently.
+  exports: [PersonFollowService, AccountDeletionService, PersonSearchService],
 })
 export class PeopleModule {}

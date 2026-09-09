@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from 'react';
+import { Fragment, useCallback, useMemo, useRef } from 'react';
 import { FlatList, Text, View } from 'react-native';
 import type { Post } from '@sih/shared';
 import { useTheme } from '../ui/useTheme';
@@ -142,9 +142,20 @@ export function Waterfall({
               // 390pt wide and the app runs on everything from 320 up.
               style={{ flex: 1, gap: space.md }}
             >
-              {column.map((post, i) =>
-                renderPost(post, blockIndex * BLOCK_SIZE + columnIndex * BLOCK_SIZE + i),
-              )}
+              {/*
+                A KEYED FRAGMENT, not a wrapper View: the column's `gap` counts
+                its children, so adding a layout node here would change the
+                spacing the design specifies. React reconciles a keyless list by
+                position, which for an append-only page is usually harmless and
+                is wrong the moment two posts swap - and the warning it prints
+                was reaching every render of this list, feed included. Found
+                when the post-search surface first rendered through it.
+              */}
+              {column.map((post, i) => (
+                <Fragment key={post.postId}>
+                  {renderPost(post, blockIndex * BLOCK_SIZE + columnIndex * BLOCK_SIZE + i)}
+                </Fragment>
+              ))}
             </View>
           ))}
         </View>

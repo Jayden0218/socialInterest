@@ -15,6 +15,7 @@ import { FeedData } from './feed';
 import { EngagementData } from './engagement';
 import { SafetyData } from './safety';
 import { NotificationsData } from './notifications';
+import { SearchData } from './search';
 import { SessionData } from './session';
 import { PeopleData } from './people';
 import { ConversationsData } from './conversations';
@@ -32,6 +33,7 @@ export interface AppData {
   engagement: EngagementData;
   safety: SafetyData;
   notifications: NotificationsData;
+  search: SearchData;
   conversations: ConversationsData;
   places: PlacesData;
   saved: SavedData;
@@ -50,6 +52,7 @@ export function createAppData(opts: DataClientOptions): AppData {
     engagement: new EngagementData(client),
     safety: new SafetyData(client),
     notifications: new NotificationsData(client),
+    search: new SearchData(client),
     conversations: new ConversationsData(client),
     places: new PlacesData(client),
     saved: new SavedData(client),

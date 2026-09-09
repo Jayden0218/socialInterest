@@ -81,6 +81,10 @@ export const SURFACES: readonly Surface[] = [
   // is precisely the shape Principle II's second clause governs: it selects, and
   // `VisibilityFilter` still decides at read time, per request.
   { name: 'following feed', built: true, story: '008/US3 (T043)' },
+  // Phase B. A term index selects candidates across the whole catalogue - the
+  // same shape as `postInterestIndex` - so the boundary is what makes SC-009's
+  // "unfindable by viewers who may not see it" true, not the index.
+  { name: 'post search', built: true, story: '008/US6 (T098)' },
 ] as const;
 
 /**
@@ -115,6 +119,7 @@ export const EVER_BUILT: readonly string[] = [
   'place reviews',
   // 008
   'following feed',
+  'post search',
 ];
 
 export const POST_STATE_COUNT = 7;

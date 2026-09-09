@@ -1,0 +1,57 @@
+# 008/US6, T105 — FINDING A POST BY ITS WORDS, ON A DEVICE.
+#
+# WHAT TO READ IN THE RUN AGGREGATE:
+#   GET /v1/search/posts  200
+# Its absence means the Posts tab flipped a local flag and never asked the
+# server — the same failure `25-following-feed.yaml` exists to rule out, and one
+# that every on-screen assertion below would pass straight through.
+#
+# THE WORD IS DELIBERATE, and so is accepting either outcome. "photographs"
+# comes from `23-multi-photo-post.yaml`'s caption and the flows run sorted, so
+# it has usually been published by the time this runs. It is NOT asserted as a
+# hit: a search that misses answers with interests and people in the SAME
+# response (FR-022) and renders them, which is the product working. Asserting a
+# hit would make this flow fail whenever an earlier flow did — 005 lost a run to
+# exactly that coupling.
+#
+# What must be true either way is that the surface asked the server, said which
+# words it used, and DID NOT REPLACE the interest search: the last two steps go
+# back to it, because Constitution I makes interest the unit of meaning and post
+# search is an addition to that surface, never a substitute for it.
+appId: app.socialinterest
+---
+- runFlow: 01-sign-in.yaml
+- tapOn:
+    id: "tab-discover"
+- assertVisible:
+    id: "interest-search-screen"
+
+# Both tabs present, and Posts REACHABLE.
+- assertVisible:
+    id: "search-tab-interests"
+- assertVisible:
+    id: "search-tab-posts"
+
+- tapOn:
+    id: "search-tab-posts"
+- tapOn:
+    id: "interest-search-input"
+- inputText: "photographs"
+
+# The request went out and came back. `post-search-terms` is the server's own
+# `meta.terms` rendered — FR-023 — so this asserts a field the API populates has
+# a reader, which is the half `response-shape.spec.ts` structurally cannot see.
+- assertVisible:
+    id: "post-search-results"
+- assertVisible:
+    id: "post-search-terms"
+- assertNotVisible:
+    id: "load-error"
+
+# T103: the interest surface is still there, and still first.
+- tapOn:
+    id: "search-tab-interests"
+- assertVisible:
+    id: "interest-list"
+- assertNotVisible:
+    id: "post-search-results"

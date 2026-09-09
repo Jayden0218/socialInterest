@@ -4,6 +4,7 @@ import type { BlockRepository } from '../../src/persistence/block.repository';
 import { PostQueryService } from '../../src/modules/posts/post-query.service';
 import { ProfileProjection } from '../../src/modules/people/profile.projection';
 import { FollowingFeedService } from '../../src/modules/feed/following-feed.service';
+import { PostSearchService } from '../../src/modules/search/post-search.service';
 import { CommentService } from '../../src/modules/engagement/comment.service';
 import { NotificationService } from '../../src/modules/notifications/notification.service';
 import { FeedService } from '../../src/modules/feed/feed.service';
@@ -149,6 +150,24 @@ const PROBES: Probe[] = [
         filter,
       );
       return following.page(VIEWER);
+    },
+  },
+  {
+    surface: 'post search',
+    /**
+     * 008/US6. A term index is a CANDIDATE index, like the interest one.
+     *
+     * The row it returns carries a denormalised `visibility` so the filter can
+     * run on Query results without a second read - which is a shortcut FOR the
+     * filter, never a substitute for it. This probe is what says so.
+     */
+    run: ({ filter, queries }) => {
+      const search = new PostSearchService(
+        { listByTerm: async () => ({ items: [post], nextCursor: null }) } as never,
+        queries,
+        filter,
+      );
+      return search.search(VIEWER, 'anything');
     },
   },
   {

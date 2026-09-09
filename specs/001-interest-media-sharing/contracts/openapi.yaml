@@ -47,7 +47,6 @@ paths:
 #   Phase A
 #     [ ] GET    /notifications                   + readAt populated, unreadCount
 #   Phase B
-#     [ ] GET    /search/posts                    008/FR-020..FR-022
 #   Phase C
 #     [ ] POST   /posts/{postId}/comments         + parentCommentId (FR-023)
 #     [ ] PATCH  /posts/{postId}/comments/{id}    008/FR-027
@@ -779,6 +778,62 @@ paths:
         read watermark this copies.
       responses:
         '204': { description: Read position updated }
+        '401': { $ref: '#/components/responses/Unauthorised' }
+
+  /search/posts:
+    get:
+      tags: [Posts]
+      summary: Find a post by words in its caption
+      description: >
+        008/FR-020, FR-021, FR-022.
+
+        Candidates come from a TERM INDEX and the visibility boundary decides, so
+        a post the caller may not see is not merely omitted from the ranking —
+        it is unfindable, and no part of its caption appears in the response.
+
+        Terms are INTERSECTED: two words mean both, not either. Ordering is
+        recency only; there is no relevance ranking and a term index carries
+        nothing that would support one.
+
+        Reading this records NO behavioural ranking signal. A person looking for
+        a specific post is answering their own question, not telling the product
+        what to show them next.
+
+        `fallback` is present ONLY when there are no matches (FR-022), carrying
+        interests and people for the same query so a client can render the
+        alternative without a second request. `meta.terms` says which words were
+        actually used, since stop words and very short tokens are dropped.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string }
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PostPage'
+                  - type: object
+                    properties:
+                      meta:
+                        type: object
+                        properties:
+                          terms: { type: array, items: { type: string } }
+                      fallback:
+                        type: object
+                        description: Present only when `items` is empty (FR-022).
+                        properties:
+                          interests:
+                            type: array
+                            items: { $ref: '#/components/schemas/InterestRef' }
+                          people:
+                            type: array
+                            items: { $ref: '#/components/schemas/PublicProfile' }
         '401': { $ref: '#/components/responses/Unauthorised' }
 
   /moderation/reports:

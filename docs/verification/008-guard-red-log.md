@@ -134,8 +134,35 @@ duplication before being excluded.
 
 ---
 
+## T087 — `apps/api/tests/unit/search-records-no-signals.spec.ts`
+
+**Guards**: FR-021. Nothing in `modules/search` may reach `SignalService`, `RankingService`,
+`CandidateSource` or the ranker's tuning constants. Searching is a person looking for
+something they already have in mind; if it moved ranking weight, every search would edit the
+feed on the way past.
+
+| | |
+|---|---|
+| **Observed red** | 2026-09-09, during 008/T104 |
+| **Change that broke it** | Added `import { SignalService } from '../signals/signal.service';` to `post-search.service.ts` |
+| **What it said** | `src/modules/search/post-search.service.ts:6 → SignalService` and `→ signal.service` |
+| **Reverted** | yes, immediately; both assertions green again |
+
+Shares `tests/unit/support/forbidden-imports.ts` with T037 — FR-009 and FR-021 are one
+requirement on two surfaces, and a second copy of a comment-stripping import scanner is a
+second place to get it wrong.
+
+**What this guard cannot see, and the client line that covers it.** A structural check says
+the dependency is absent on the SERVER. Dwell is measured on the device and posted to
+`/v1/signals` separately, so a client rendering search results through the feed's own
+components could train the ranker from a surface nobody chose to feed. That is why
+`PostSearchResults` passes no `onViewableChanged` to the waterfall, and why the same care was
+needed for the Following tab. Both halves, or neither counts.
+
+---
+
 ## Pending
 
 | Guard | Task | Verified red by |
 |---|---|---|
-| `search-records-no-signals.spec.ts` | T087 | T104 |
+| _none_ | — | — |

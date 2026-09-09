@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, Share, Text, View } from 'react-native';
 import { HomeFeedScreen } from '../features/feed/HomeFeedScreen';
-import { InterestSearchScreen } from '../features/discover/InterestSearchScreen';
+import { InterestSearchScreen, type SearchMode } from '../features/discover/InterestSearchScreen';
+import { PostSearchResults } from '../features/discover/PostSearchResults';
 import { NotificationsScreen } from '../features/notifications/NotificationsScreen';
 import { PostCard, PostTile } from '../components/PostCard';
 import { InboxScreen } from '../features/conversations/InboxScreen';
@@ -29,6 +30,7 @@ import {
   useMarkNotificationsRead,
   useNotifications,
   usePaged,
+  usePostSearch,
 } from '../containers';
 import { useDwell } from '../features/feed/useDwell';
 import { activePalette as palette, space } from '../ui/theme';
@@ -119,19 +121,30 @@ export function DiscoverContainer({
   onSelect,
   onSelectPlace,
   onSelectPerson,
+  onOpenPost,
 }: {
   onSelect: (interestId: string) => void;
   /** 004/US2. Places live inside Discover rather than taking a sixth tab. */
   onSelectPlace?: (placeId: string) => void;
   /** 004/FR-034. So do people. */
   onSelectPerson?: (handle: string) => void;
+  /** 008/US6. Absent means the Posts tab is not offered at all. */
+  onOpenPost?: (postId: string) => void;
 }) {
   const data = useData();
   const [query, setQuery] = useState('');
   const [locality, setLocality] = useState('');
   const [places, setPlaces] = useState<PlaceSummary[]>([]);
   const [people, setPeople] = useState<PublicProfile[]>([]);
+  const [mode, setMode] = useState<SearchMode>('interests');
+  const [postMeta, setPostMeta] = useState<{
+    terms: string[];
+    fallback: { interests: InterestRef[]; people: PublicProfile[] } | null;
+  }>({ terms: [], fallback: null });
   const { state, error } = useInterestSearch(query);
+  const postSearch = usePostSearch(query, mode === 'posts' && onOpenPost !== undefined, (page) =>
+    setPostMeta({ terms: page.meta?.terms ?? [], fallback: page.fallback ?? null }),
+  );
 
   useEffect(() => {
     if (!onSelectPerson || query.trim().length === 0) {
@@ -175,9 +188,27 @@ export function DiscoverContainer({
       places={places}
       people={people}
       locality={locality}
+      mode={mode}
       onQueryChange={setQuery}
       {...(onSelectPlace ? { onLocalityChange: setLocality, onSelectPlace } : {})}
       {...(onSelectPerson ? { onSelectPerson } : {})}
+      {...(onOpenPost
+        ? {
+            onSelectMode: setMode,
+            posts: (
+              <PostSearchResults
+                query={query}
+                state={postSearch.state}
+                terms={postMeta.terms}
+                fallback={postMeta.fallback}
+                onLoadMore={postSearch.loadMore}
+                onOpenPost={onOpenPost}
+                onOpenInterest={onSelect}
+                {...(onSelectPerson ? { onOpenPerson: onSelectPerson } : {})}
+              />
+            ),
+          }
+        : {})}
       onSelect={onSelect}
     />
   );

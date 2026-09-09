@@ -4,6 +4,7 @@ import type { Visibility } from '@sih/shared';
 import { CONFIG, type AppConfig } from '../../config/configuration';
 import { DOC_CLIENT } from '../../persistence/dynamo-client';
 import { keys } from '../../persistence/keys';
+import { tokenise } from '../search/tokeniser';
 import type { PostItem } from '../../persistence/post.repository';
 
 export interface PostUpdate {
@@ -70,6 +71,28 @@ export class PostUpdateTransaction {
 
     const removed = currentExpandedInterestIds.filter((id) => !nextInterestIds.includes(id));
 
+    /**
+     * 008/US6 — THE TERM ROWS FOLLOW THE CAPTION AND THE VISIBILITY.
+     *
+     * Both halves, and the first version of this feature's design had NEITHER:
+     *
+     *  - **A caption edit re-indexes.** Captions are editable, so without this a
+     *    post stays findable by a word its caption no longer contains and
+     *    unfindable by one it now does — an index that is wrong in a way nothing
+     *    else in the suite would notice.
+     *  - **A visibility change fans out to them**, like every other index item.
+     *    This file's own comment below says an index item whose visibility
+     *    drifts from the post's "is exactly the SC-009 failure this class exists
+     *    to make impossible", and a term row is one more index item.
+     *
+     * Rewritten wholesale rather than diffed: `MAX_TERMS_PER_POST` bounds it at
+     * 40, and a Put over an unchanged row is idempotent, so computing a minimal
+     * diff would add a way to be wrong in exchange for nothing.
+     */
+    const currentTerms = tokenise(post.caption);
+    const nextTerms = tokenise(caption);
+    const removedTerms = currentTerms.filter((t) => !nextTerms.includes(t));
+
     const items: NonNullable<TransactWriteCommandInput['TransactItems']> = [
       {
         Put: {
@@ -99,6 +122,29 @@ export class PostUpdateTransaction {
             postId: post.postId,
             authorId: post.authorId,
             interestId,
+            visibility,
+            processingState: post.processingState,
+            createdAt: post.createdAt,
+          },
+        },
+      })),
+      // 008/US6. Terms the caption no longer contains, removed in the same step.
+      ...removedTerms.map((token) => ({
+        Delete: {
+          TableName: table,
+          Key: keys.postTermIndex(token, post.createdAt, post.postId),
+        },
+      })),
+      // Every current term row rewritten with the new denormalised values.
+      ...nextTerms.map((token) => ({
+        Put: {
+          TableName: table,
+          Item: {
+            ...keys.postTermIndex(token, post.createdAt, post.postId),
+            type: 'PostTermIndex',
+            postId: post.postId,
+            authorId: post.authorId,
+            token,
             visibility,
             processingState: post.processingState,
             createdAt: post.createdAt,
@@ -169,6 +215,15 @@ export class PostUpdateTransaction {
             Delete: {
               TableName: table,
               Key: keys.postInterestIndex(interestId, post.createdAt, post.postId),
+            },
+          })),
+          // 008/US6. And from every term partition, for exactly the same
+          // reason: a deleted post lingering in a search index is a row the
+          // filter would have to remove on every query forever.
+          ...tokenise(post.caption).map((token) => ({
+            Delete: {
+              TableName: table,
+              Key: keys.postTermIndex(token, post.createdAt, post.postId),
             },
           })),
           // 004/FR-016. And from its place page, for exactly the same reason.

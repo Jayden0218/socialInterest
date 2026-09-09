@@ -1,7 +1,7 @@
 // GENERATED from specs/001-interest-media-sharing/contracts/openapi.yaml
 // Do not edit by hand. Run: pnpm --filter @sih/shared generate:client
 //
-// 65 operations across 48 paths.
+// 66 operations across 49 paths.
 
 export const operations = {
   getMe: { method: 'GET', path: '/me', auth: true }, // Current person's profile and preferences
@@ -40,6 +40,7 @@ export const operations = {
   deleteBlocksByHandle: { method: 'DELETE', path: '/blocks/{handle}', auth: true }, // Unblock a person
   getNotifications: { method: 'GET', path: '/notifications', auth: true }, // The caller's notifications
   putNotificationsRead: { method: 'PUT', path: '/notifications/read', auth: true }, // Mark every notification read
+  getSearchPosts: { method: 'GET', path: '/search/posts', auth: true }, // Find a post by words in its caption
   getModerationReports: { method: 'GET', path: '/moderation/reports', auth: true }, // The moderation queue, oldest first
   patchModerationReportsByReportId: { method: 'PATCH', path: '/moderation/reports/{reportId}', auth: true }, // Record a moderation decision
   patchModerationInterestsByInterestId: { method: 'PATCH', path: '/moderation/interests/{interestId}', auth: true }, // Re-parent, merge, or retire an interest

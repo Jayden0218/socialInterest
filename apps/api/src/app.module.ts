@@ -4,6 +4,7 @@ import { AdaptersModule } from './adapters/adapters.module';
 import { PersistenceModule } from './persistence/persistence.module';
 import { VisibilityModule } from './visibility/visibility.module';
 import { ProfileModule } from './modules/people/profile.module';
+import { SearchModule } from './modules/search/search.module';
 import { ConversationAccessModule } from './conversations/conversation-access.module';
 import { InterestsModule } from './modules/interests/interests.module';
 import { InterestsHttpModule } from './modules/interests/interests-http.module';
@@ -29,6 +30,7 @@ import { HealthController } from './modules/health/health.controller';
     PersistenceModule,
     VisibilityModule,
     ProfileModule,
+    SearchModule,
     ConversationAccessModule,
     InterestsModule,
     PostsModule,

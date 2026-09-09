@@ -368,20 +368,22 @@ describe('SC-005 review visibility (005 addendum)', () => {
       // Stated so the count is legible next to the total below: this is ONE
       // assertion standing for every surface, not thirteen skipped ones.
       //
-      // 12 -> 13 with 008/US3's Following feed. Raising this number is a
+      // 12 -> 13 (008/US3's Following feed) -> 14 (008/US6's post search).
+      // Raising this number is a
       // DELIBERATE, reviewable edit and is meant to be: a surface added without
       // touching it fails here, which is the only thing stopping the enumeration
       // silently falling behind the product.
-      expect(SURFACES.length).toBe(13);
-      expect(EVER_BUILT.length).toBe(13);
+      expect(SURFACES.length).toBe(14);
+      expect(EVER_BUILT.length).toBe(14);
     });
   });
 
   /**
    * The combined number SC-005 is about.
    *
-   * 462 + 18 = 480 through 005. 008/US3 adds the Following feed, a twelfth POST
-   * surface: 12 x 7 x 6 = 504, plus the same 18 review assertions = 522.
+   * 462 + 18 = 480 through 005. 008 adds two POST surfaces - the Following feed
+   * (US3) and post search (US6): 13 x 7 x 6 = 546, plus the same 18 review
+   * assertions = 564.
    *
    * Asserted only once the review surface is built, so an in-progress feature
    * reports a gap rather than turning the suite red for forty unrelated tasks.
@@ -397,6 +399,6 @@ describe('SC-005 review visibility (005 addendum)', () => {
       console.log('\n  SC-005 is NOT closed: the review surface is still in progress.\n');
       return;
     }
-    expect(assertionsRun + reviewAssertionsRun).toBe(522);
+    expect(assertionsRun + reviewAssertionsRun).toBe(564);
   });
 });

@@ -8,6 +8,7 @@ import { PersonFollowRepository } from './person-follow.repository';
 import { BlockRepository } from './block.repository';
 import { PostRepository } from './post.repository';
 import { PostInterestIndexRepository } from './post-interest-index.repository';
+import { PostTermIndexRepository } from './post-term-index.repository';
 import { InterestFollowRepository } from './interest-follow.repository';
 import { ReactionRepository } from './reaction.repository';
 import { CommentRepository } from './comment.repository';
@@ -44,6 +45,7 @@ const providers: Provider[] = [
   repo(BlockRepository),
   repo(PostRepository),
   repo(PostInterestIndexRepository),
+  repo(PostTermIndexRepository),
   repo(InterestFollowRepository),
   repo(ReactionRepository),
   repo(CommentRepository),
@@ -75,6 +77,7 @@ const providers: Provider[] = [
     BlockRepository,
     PostRepository,
     PostInterestIndexRepository,
+    PostTermIndexRepository,
     InterestFollowRepository,
     ReactionRepository,
     CommentRepository,

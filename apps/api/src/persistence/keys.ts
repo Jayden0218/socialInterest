@@ -94,6 +94,26 @@ export const keys = {
   }),
   postInterestIndexPrefix: (interestId: string) => ({ pk: `INTEREST#${interestId}`, skPrefix: 'POST#' }),
 
+  /**
+   * 008/A46 - posts containing a term. A CANDIDATE INDEX, never a decision.
+   *
+   * Structurally identical to `postInterestIndex` and `postPlaceIndex`, which is
+   * what makes post search one more row in the visibility matrix rather than a
+   * new class of thing. It selects; `VisibilityFilter` decides.
+   *
+   * It carries `visibility` and `processingState` for the same reason those two
+   * do - so the filter runs on Query results without a second read per
+   * candidate - and therefore it MUST join the fan-out in
+   * `post-update.transaction.ts`. That file's own comment says an index item
+   * whose visibility drifts from the post's "is exactly the SC-009 failure this
+   * class exists to make impossible", and a term row is one more index item.
+   */
+  postTermIndex: (token: string, createdAt: string, postId: string) => ({
+    pk: `TERM#${token}`,
+    sk: `POST#${createdAt}#${postId}`,
+  }),
+  postTermIndexPrefix: (token: string) => ({ pk: `TERM#${token}`, skPrefix: 'POST#' }),
+
   interest: (interestId: string) => ({ pk: `INTEREST#${interestId}`, sk: '#META' }),
   interestBySlug: (slug: string) => ({ gsi1pk: `ISLUG#${slug}`, gsi1sk: '#META' }),
   interestHierarchy: (parentId: string | null, nameNormalised: string) => ({
