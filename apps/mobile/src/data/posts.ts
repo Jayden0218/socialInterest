@@ -56,6 +56,8 @@ export class PostsData {
      * aligned by index is two lists for one thing.
      */
     altTexts?: Record<string, string>;
+    /** 008/FR-038. Publishing from a draft deletes it in the same transaction. */
+    draftId?: string;
     interestIds: string[];
     caption?: string;
     visibility?: Visibility;

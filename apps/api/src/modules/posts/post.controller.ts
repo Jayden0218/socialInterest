@@ -73,6 +73,8 @@ const createPostSchema = z.object({
    * fix — ids only, key and kind read from the server's own record — stands.
    */
   altTexts: z.record(z.string(), z.string().max(300)).optional(),
+  /** 008/FR-038. Publishing from a draft deletes it in the same transaction. */
+  draftId: z.string().min(1).optional(),
   caption: z.string().max(2000).optional(),
   visibility: visibilitySchema.default('public'),
   keepLocationMetadata: z.boolean().default(false),
@@ -109,6 +111,7 @@ export class PostController {
       authorId: req.viewer!.userId,
       uploadIds: input.uploadIds,
       ...(input.altTexts ? { altTexts: input.altTexts } : {}),
+      ...(input.draftId ? { draftId: input.draftId } : {}),
       interestIds: input.interestIds,
       ...(input.caption ? { caption: input.caption } : {}),
       visibility: input.visibility,

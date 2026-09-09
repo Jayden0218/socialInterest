@@ -7,11 +7,12 @@ import { PostUpdateTransaction } from './post-update.transaction';
 import { ProcessingService } from './processing.service';
 import { ShareResolutionService } from './share-resolution.service';
 import { MediaDispatchService } from './media-dispatch.service';
+import { DraftController } from './draft.controller';
 import { MediaController } from '../media/media.controller';
 import { UploadService } from '../media/upload.service';
 
 @Module({
-  controllers: [PostController, MediaController],
+  controllers: [PostController, MediaController, DraftController],
   providers: [PostService, PostQueryService, PostTransaction, PostUpdateTransaction, ProcessingService, UploadService, ShareResolutionService, MediaDispatchService],
   exports: [PostService, PostQueryService, ProcessingService, ShareResolutionService],
 })

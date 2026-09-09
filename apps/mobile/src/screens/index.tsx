@@ -947,6 +947,9 @@ export function ComposeContainer({
    * a global index, which cost run 48.
    */
   const [altTexts, setAltTexts] = useState<Record<string, string>>({});
+  // 008/FR-037. The draft this compose session is editing, once saved.
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [draftSaved, setDraftSaved] = useState(false);
 
   /**
    * 008/FR-030. Searched only while a handle is being typed at the END.
@@ -1046,12 +1049,44 @@ export function ComposeContainer({
     }
   }, [data, placeQuery, placeLocality]);
 
+  /**
+   * 008/FR-037. Saves whatever is here, including nothing much.
+   *
+   * The same `draftId` is reused on a second save, so a person pressing Save
+   * twice has ONE unfinished post rather than a list of near-identical ones —
+   * which is what a create-only endpoint would have produced.
+   */
+  const saveDraft = useCallback(async () => {
+    try {
+      const saved = await data.drafts.save({
+        ...(draftId ? { draftId } : {}),
+        ...(caption ? { caption } : {}),
+        interestIds: selected.map((i) => i.interestId),
+        ...(place ? { placeId: place.placeId } : {}),
+        uploadIds: slots.map((s) => s.uploadId).filter((id): id is string => Boolean(id)),
+        altTexts: Object.fromEntries(
+          slots
+            .filter((s) => s.uploadId && (altTexts[s.media.uri] ?? '').trim().length > 0)
+            .map((s) => [s.uploadId as string, (altTexts[s.media.uri] as string).trim()]),
+        ),
+      });
+      setDraftId(saved.draftId);
+      setDraftSaved(true);
+    } catch (e: unknown) {
+      setError(e instanceof DataError ? e.message : String(e));
+    }
+  }, [data, draftId, caption, selected, place, slots, altTexts]);
+
   const publish = useCallback(async () => {
     setPublishing(true);
     setError(null);
     try {
       const post = await data.posts.publish({
         uploadIds: slots.map((s) => s.uploadId).filter((id): id is string => Boolean(id)),
+        // 008/FR-038. Publishing FROM this draft removes it in the same
+        // transaction, so a person cannot be left with a duplicate to publish
+        // a second time.
+        ...(draftId ? { draftId } : {}),
         // Keyed by UPLOAD ID for the server, translated from uri here — the one
         // place that knows both.
         altTexts: Object.fromEntries(
@@ -1072,7 +1107,7 @@ export function ComposeContainer({
     } finally {
       setPublishing(false);
     }
-  }, [data, slots, selected, visibility, caption, onPublished]);
+  }, [data, slots, selected, visibility, caption, place, altTexts, draftId, onPublished]);
 
   return (
     <ComposeScreen
@@ -1089,6 +1124,8 @@ export function ComposeContainer({
       onChooseMention={(handle) => setCaption((c) => completeMention(c, handle))}
       altTexts={altTexts}
       onAltTextChange={(uri, text) => setAltTexts((prev) => ({ ...prev, [uri]: text }))}
+      draftSaved={draftSaved}
+      onSaveDraft={() => void saveDraft()}
       onInterestsChange={setSelected}
       onVisibilityChange={setVisibility}
       onRetry={upload}

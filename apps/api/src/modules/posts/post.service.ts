@@ -25,6 +25,8 @@ export interface CreatePostInput {
   caption?: string;
   /** 008/FR-034. Descriptions keyed by upload id. */
   altTexts?: Record<string, string>;
+  /** 008/FR-038. Publishing FROM a draft removes it in the same transaction. */
+  draftId?: string;
   visibility?: Visibility;
   keepLocationMetadata?: boolean;
   /** 004/FR-015. Validated against the catalogue before the post is written. */
@@ -210,7 +212,12 @@ export class PostService {
       processingState: 'pending',
     }));
 
-    await this.tx.createPost({ post, media, expandedInterestIds });
+    await this.tx.createPost({
+      post,
+      media,
+      expandedInterestIds,
+      ...(input.draftId ? { draftId: input.draftId } : {}),
+    });
 
     /**
      * FR-031, FR-032. NOTHING IS ANNOUNCED HERE, and that is deliberate.

@@ -37,8 +37,17 @@ export class PostTransaction {
     media: MediaItemRecord[];
     /** Already expanded: sub-interest AND its parent (FR-024). */
     expandedInterestIds: string[];
+    /**
+     * 008/FR-038. The draft this post came from, deleted IN THIS TRANSACTION.
+     *
+     * "Stops being a draft" cannot half-happen: a post published while its
+     * draft survives leaves a person with a duplicate they will publish again,
+     * and a draft deleted before the post is written loses everything. One
+     * transaction is the only version of this that has no window.
+     */
+    draftId?: string;
   }): Promise<void> {
-    const { post, media, expandedInterestIds } = input;
+    const { post, media, expandedInterestIds, draftId } = input;
     const table = this.config.dynamo.tableName;
 
     const items: NonNullable<TransactWriteCommandInput['TransactItems']> = [
@@ -123,6 +132,15 @@ export class PostTransaction {
           ]
         : []),
     ];
+
+    if (draftId) {
+      items.push({
+        Delete: {
+          TableName: table,
+          Key: keys.draft(post.authorId, draftId),
+        },
+      });
+    }
 
     await this.doc.send(new TransactWriteCommand({ TransactItems: items }));
   }

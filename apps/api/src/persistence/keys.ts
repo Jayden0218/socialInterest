@@ -272,6 +272,23 @@ export const keys = {
     pk: `USER#${userId}`,
     sk: `SAVE#${savedAt}#${postId}`,
   }),
+  /**
+   * A49 - 008/FR-037. AN UNFINISHED POST, PRIVATE BY KEY.
+   *
+   * The owner's own partition and no index, exactly like `savedPost` above: the
+   * privacy is a property of where it lives, not a filter somebody has to
+   * remember to apply. FR-038 says a draft is visible to nobody else, and the
+   * cheapest way to keep a promise like that is to make the query that would
+   * break it unwriteable.
+   *
+   * Newest first is the useful order for a list of things you meant to finish,
+   * which is why the id is a ULID and the sort key is the id alone.
+   */
+  draft: (userId: string, draftId: string) => ({
+    pk: `USER#${userId}`,
+    sk: `DRAFT#${draftId}`,
+  }),
+
   /** A33 - "is this saved?" without scanning the list. */
   savedPostBy: (userId: string, postId: string) => ({
     pk: `USER#${userId}`,
@@ -345,6 +362,8 @@ export const SK_PREFIX = {
   message: 'MSG#',
   placeFollow: 'PLFOLLOW#',
   savedPost: 'SAVE#',
+  // feature 008
+  draft: 'DRAFT#',
   // feature 005
   rating: 'RATING#',
   conversationMember: 'PARTICIPANT#',

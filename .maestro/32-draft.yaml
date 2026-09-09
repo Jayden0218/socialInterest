@@ -1,0 +1,48 @@
+# 008/US11, T156 — FINISH IT LATER.
+#
+# WHAT TO READ IN THE RUN AGGREGATE:
+#   POST /v1/me/drafts   201   the save
+#   GET  /v1/me/drafts   200   the list it lands in
+# A Save button that set a local flag and asked nothing would satisfy every
+# on-screen assertion below.
+#
+# The flow saves a HALF-FINISHED post — media and caption, no interest — because
+# that is the case the story exists for and the one a publish would refuse. The
+# interest is the field people fill in last.
+appId: app.socialinterest
+---
+- runFlow: 01-sign-in.yaml
+
+- tapOn:
+    id: "open-compose"
+- assertVisible:
+    id: "media-picker-screen"
+- tapOn:
+    id: "media-item-image-0"
+- tapOn:
+    id: "media-continue"
+- assertVisible:
+    id: "compose-screen"
+- tapOn:
+    id: "caption-input"
+- inputText: "something to come back to"
+- hideKeyboard
+
+# The upload has to have finished before the draft can hold its id — a draft
+# stores UPLOAD IDS (research R11), which is what makes publishing one the
+# ordinary publish path rather than a second way to create a post.
+- extendedWaitUntil:
+    visible: "Uploaded"
+    timeout: 120000
+
+- assertVisible:
+    id: "save-draft"
+- tapOn:
+    id: "save-draft"
+# The label becomes `Saved`, which is the app's own statement that the request
+# resolved. The aggregate is what says it reached the server.
+- extendedWaitUntil:
+    visible: "Saved"
+    timeout: 30000
+- assertNotVisible:
+    id: "compose-error"

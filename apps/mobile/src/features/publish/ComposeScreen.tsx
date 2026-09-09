@@ -34,6 +34,17 @@ export interface ComposeScreenProps {
   /** 008/FR-034. Descriptions being written, keyed by the media's own uri. */
   altTexts?: Record<string, string>;
   onAltTextChange?: (uri: string, text: string) => void;
+  /** 008/FR-037. Saving what is here so far, and what happened last time. */
+  onSaveDraft?: () => void;
+  draftSaved?: boolean;
+  /**
+   * 008/FR-039. Ids whose upload target has expired on a restored draft.
+   *
+   * Named rather than dropped: a caption that came back with no pictures and no
+   * explanation is indistinguishable from data loss, and the person cannot tell
+   * whether to retype or re-pick.
+   */
+  expiredUploads?: number;
 }
 
 /**
@@ -76,6 +87,31 @@ export function ComposeScreen(props: ComposeScreenProps) {
         }}
       >
         <Text style={{ ...textStyle.title, color: palette.text.primary }}>New post</Text>
+        {/*
+          008/FR-037. SAVE, beside Share and never instead of it.
+          
+          Enabled whatever state the post is in, including with no interest
+          chosen — that is the field people fill in last, and a Save that
+          refused an unfinished post would be a control for the case that never
+          happens. Publishing still refuses without one (001/FR-006).
+        */}
+        {props.onSaveDraft ? (
+          <Pressable
+            testID="save-draft"
+            accessibilityRole="button"
+            accessibilityLabel="Save as draft"
+            onPress={props.onSaveDraft}
+            style={{
+              minHeight: MIN_TOUCH_TARGET,
+              paddingHorizontal: space.md,
+              justifyContent: 'center',
+            }}
+          >
+            <Text style={{ ...textStyle.body, color: palette.intent.accent }}>
+              {props.draftSaved ? 'Saved' : 'Save'}
+            </Text>
+          </Pressable>
+        ) : null}
         <Pressable
           testID="publish-button"
           accessibilityRole="button"
@@ -211,6 +247,12 @@ export function ComposeScreen(props: ComposeScreenProps) {
             ...textStyle.body,
           }}
         />
+        {props.expiredUploads ? (
+          <Banner tone="warning" testID="draft-media-expired">
+            {`This draft is older than its ${props.expiredUploads === 1 ? 'picture' : 'pictures'}. The words are here; choose the media again.`}
+          </Banner>
+        ) : null}
+
         {/*
           008/FR-030. The people a partial `@handle` could mean.
           

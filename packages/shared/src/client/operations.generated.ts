@@ -1,7 +1,7 @@
 // GENERATED from specs/001-interest-media-sharing/contracts/openapi.yaml
 // Do not edit by hand. Run: pnpm --filter @sih/shared generate:client
 //
-// 68 operations across 50 paths.
+// 72 operations across 52 paths.
 
 export const operations = {
   getMe: { method: 'GET', path: '/me', auth: true }, // Current person's profile and preferences
@@ -32,6 +32,10 @@ export const operations = {
   postMeSeedInterests: { method: 'POST', path: '/me/seed-interests', auth: true }, // The one-time cold-start picks
   putPostsByPostIdReaction: { method: 'PUT', path: '/posts/{postId}/reaction', auth: true }, // React to a post
   deletePostsByPostIdReaction: { method: 'DELETE', path: '/posts/{postId}/reaction', auth: true }, // Remove a reaction
+  getMeDrafts: { method: 'GET', path: '/me/drafts', auth: true }, // Your unfinished posts
+  postMeDrafts: { method: 'POST', path: '/me/drafts', auth: true }, // Save an unfinished post
+  getMeDraftsByDraftId: { method: 'GET', path: '/me/drafts/{draftId}', auth: true }, // Restore an unfinished post
+  deleteMeDraftsByDraftId: { method: 'DELETE', path: '/me/drafts/{draftId}', auth: true }, // Discard an unfinished post
   getPostsByPostIdComments: { method: 'GET', path: '/posts/{postId}/comments', auth: false }, // Comments on a post
   postPostsByPostIdComments: { method: 'POST', path: '/posts/{postId}/comments', auth: true }, // Comment on a post
   patchPostsByPostIdCommentsByCommentId: { method: 'PATCH', path: '/posts/{postId}/comments/{commentId}', auth: true }, // Correct your own comment

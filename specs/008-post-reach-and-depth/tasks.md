@@ -402,19 +402,19 @@ source or the other (SC-011).
 
 ### Tests for User Story 11
 
-- [ ] T147 [P] [US11] Write `apps/e2e/journeys/draft-roundtrip.spec.ts`: save and restore with zero fields lost, within the upload lifetime (SC-012).
-- [ ] T148 [P] [US11] Write `apps/api/tests/integration/draft-is-private.spec.ts` driving the request **directly** with another person's draft id (FR-038, SC-015).
-- [ ] T149 [P] [US11] Write `apps/api/tests/integration/draft-expired-uploads.spec.ts`: a draft older than its uploads' expiry restores caption, interest and place and **says so** about the media, rather than appearing to have silently lost data.
+- [X] T147 [P] [US11] Write `apps/e2e/journeys/draft-roundtrip.spec.ts`: save and restore with zero fields lost, within the upload lifetime (SC-012).
+- [X] T148 [P] [US11] Write `apps/api/tests/integration/draft-is-private.spec.ts` driving the request **directly** with another person's draft id (FR-038, SC-015).
+- [X] T149 [P] [US11] Write `apps/api/tests/integration/draft-expired-uploads.spec.ts`: a draft older than its uploads' expiry restores caption, interest and place and **says so** about the media, rather than appearing to have silently lost data.
 
 ### Implementation for User Story 11
 
-- [ ] T150 [US11] Add `draft: (userId, draftId)` to `keys.ts` — private by key, in the owner's partition with no index (the `savedPost` argument, A49).
-- [ ] T151 [US11] Create `apps/api/src/persistence/draft.repository.ts` (FR-037) holding caption, `interestIds`, `placeId` and **`uploadIds`** — upload targets, not media rows, so a draft is a pre-publish object and publishing uses the existing path unchanged (research R11).
-- [ ] T152 [US11] Add `POST`/`GET`/`DELETE` `/v1/me/drafts` in `apps/api/src/modules/posts/draft.controller.ts`.
-- [ ] T153 [US11] Delete the draft **inside** `apps/api/src/modules/posts/post.transaction.ts`'s publish transaction, so FR-038's "stops being a draft" cannot half-happen.
-- [ ] T154 [P] [US11] Add the endpoints to `specs/001-interest-media-sharing/contracts/openapi.yaml` and update the snapshot in `apps/api/tests/integration/auth-surface.spec.ts`.
-- [ ] T155 [US11] Add draft save and restore to `apps/mobile/src/features/publish/`, including the expired-media message from T149.
-- [ ] T156 [US11] Add `testID`s, run `verify-maestro-ids.mjs`, and add `.maestro/32-draft.yaml` asserting `POST /v1/me/drafts` **201** and a restore.
+- [X] T150 [US11] Add `draft: (userId, draftId)` to `keys.ts` — private by key, in the owner's partition with no index (the `savedPost` argument, A49).
+- [X] T151 [US11] Create `apps/api/src/persistence/draft.repository.ts` (FR-037) holding caption, `interestIds`, `placeId` and **`uploadIds`** — upload targets, not media rows, so a draft is a pre-publish object and publishing uses the existing path unchanged (research R11).
+- [X] T152 [US11] Add `POST`/`GET`/`DELETE` `/v1/me/drafts` in `apps/api/src/modules/posts/draft.controller.ts`.
+- [X] T153 [US11] Delete the draft **inside** `apps/api/src/modules/posts/post.transaction.ts`'s publish transaction, so FR-038's "stops being a draft" cannot half-happen.
+- [X] T154 [P] [US11] Add the endpoints to `specs/001-interest-media-sharing/contracts/openapi.yaml` and update the snapshot in `apps/api/tests/integration/auth-surface.spec.ts`.
+- [X] T155 [US11] Add draft save and restore to `apps/mobile/src/features/publish/`, including the expired-media message from T149.
+- [X] T156 [US11] Add `testID`s, run `verify-maestro-ids.mjs`, and add `.maestro/32-draft.yaml` asserting `POST /v1/me/drafts` **201** and a restore.
 
 ## Phase 16: Release gate — Phase C (US7–US11)
 

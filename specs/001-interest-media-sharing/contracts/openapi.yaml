@@ -648,6 +648,78 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/ReactionState' }
 
+  /me/drafts:
+    get:
+      tags: [Posts]
+      summary: Your unfinished posts
+      description: >
+        008/FR-037, FR-038. Private BY KEY: a draft lives in its owner's own partition
+        under no index (A49), so there is no query anyone else can write that reaches one.
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/Draft' } }
+                  page: { $ref: '#/components/schemas/PageInfo' }
+    post:
+      tags: [Posts]
+      summary: Save an unfinished post
+      description: >
+        008/FR-037. Every field is optional, because a draft is by definition unfinished
+        and the interest is the field people fill in last. 001/FR-006 is enforced at
+        PUBLISH, where it belongs; refusing to save what somebody has not finished would
+        defeat the story.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DraftSave' }
+      responses:
+        '201':
+          description: Saved
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Draft' }
+
+  /me/drafts/{draftId}:
+    get:
+      tags: [Posts]
+      summary: Restore an unfinished post
+      description: >
+        008/FR-039. Reports which uploads have EXPIRED rather than returning ids that
+        would fail at publish or dropping them silently — a draft that quietly lost its
+        pictures is indistinguishable from a bug to the person restoring it.
+      parameters:
+        - name: draftId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Draft' }
+        '404': { description: No such draft. Somebody else's reads the same way — a draft's very existence is the private part }
+    delete:
+      tags: [Posts]
+      summary: Discard an unfinished post
+      parameters:
+        - name: draftId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '204': { description: Discarded }
+        '404': { description: No such draft }
+
   /posts/{postId}/comments:
     get:
       tags: [Engagement]
@@ -1823,6 +1895,12 @@ components:
           minItems: 1
           description: FR-006 — publishing without an interest is rejected.
           items: { type: string }
+        draftId:
+          type: string
+          description: >
+            008/FR-038. The draft this post came from. It is deleted in the SAME
+            transaction as the post is written, so "stops being a draft" cannot
+            half-happen — a surviving draft is one somebody publishes twice.
         altTexts:
           type: object
           additionalProperties: { type: string, maxLength: 300 }
@@ -1906,6 +1984,43 @@ components:
       properties:
         viewerHasReacted: { type: boolean }
         reactionCount: { type: integer }
+
+    Draft:
+      type: object
+      required: [draftId, interestIds, uploadIds, createdAt, updatedAt]
+      properties:
+        draftId: { type: string }
+        caption: { type: string, maxLength: 2000 }
+        interestIds: { type: array, items: { type: string } }
+        placeId: { type: string, nullable: true }
+        uploadIds:
+          type: array
+          items: { type: string }
+          description: Upload ids still usable at the time of the read.
+        expiredUploadIds:
+          type: array
+          items: { type: string }
+          description: >
+            008/FR-039. Ids whose upload target is gone. Named rather than dropped, so a
+            client can say the pictures need re-picking instead of appearing to have lost
+            them.
+        altTexts:
+          type: object
+          additionalProperties: { type: string, maxLength: 300 }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    DraftSave:
+      type: object
+      properties:
+        draftId: { type: string, description: Omit to create; supply to overwrite your own. }
+        caption: { type: string, maxLength: 2000 }
+        interestIds: { type: array, maxItems: 10, items: { type: string } }
+        placeId: { type: string, nullable: true }
+        uploadIds: { type: array, maxItems: 10, items: { type: string } }
+        altTexts:
+          type: object
+          additionalProperties: { type: string, maxLength: 300 }
 
     Comment:
       type: object
