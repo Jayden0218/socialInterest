@@ -79,7 +79,20 @@ describe('moderation — reports, decisions, and the audit trail', () => {
     const res = await request(h.app.getHttpServer())
       .get('/v1/moderation/reports')
       .set('authorization', `Bearer ${reporterToken}`);
-    expect(res.status).toBe(401);
+    /**
+     * 403, and it was 401 until 008/T199.
+     *
+     * The caller is authenticated and simply is not staff, so 401 — "your
+     * credentials are the problem" — told a client to do the one thing that
+     * cannot help. Nothing in the app acts on either status for this route (the
+     * product has no moderation UI), so this is a correctness fix rather than a
+     * behavioural one; it is noted rather than slipped in, because this
+     * assertion pinned the old value deliberately.
+     *
+     * The 401 further down this file is a DIFFERENT case and stays: there the
+     * caller sends no token at all.
+     */
+    expect(res.status).toBe(403);
   });
 
   it('FR-045/FR-047: a decision removes the content, notifies the author, and is audited', async () => {

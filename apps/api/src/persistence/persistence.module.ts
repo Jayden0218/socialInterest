@@ -19,6 +19,7 @@ import { UploadRepository } from './upload.repository';
 import { DraftRepository } from './draft.repository';
 import { MuteRepository } from './mute.repository';
 import { DismissalRepository } from './dismissal.repository';
+import { AppealRepository } from './appeal.repository';
 import { EventRepository } from './event.repository';
 // feature 004
 import { ConversationRepository } from './conversation.repository';
@@ -60,6 +61,7 @@ const providers: Provider[] = [
   repo(DraftRepository),
   repo(MuteRepository),
   repo(DismissalRepository),
+  repo(AppealRepository),
   repo(EventRepository),
   repo(ConversationRepository),
   repo(MessageRepository),
@@ -96,6 +98,7 @@ const providers: Provider[] = [
     DraftRepository,
     MuteRepository,
     DismissalRepository,
+    AppealRepository,
     EventRepository,
     ConversationRepository,
     MessageRepository,

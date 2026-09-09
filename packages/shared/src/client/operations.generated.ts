@@ -1,7 +1,7 @@
 // GENERATED from specs/001-interest-media-sharing/contracts/openapi.yaml
 // Do not edit by hand. Run: pnpm --filter @sih/shared generate:client
 //
-// 78 operations across 56 paths.
+// 84 operations across 62 paths.
 
 export const operations = {
   getMe: { method: 'GET', path: '/me', auth: true }, // Current person's profile and preferences
@@ -55,6 +55,12 @@ export const operations = {
   getSearchPosts: { method: 'GET', path: '/search/posts', auth: true }, // Find a post by words in its caption
   getModerationReports: { method: 'GET', path: '/moderation/reports', auth: true }, // The moderation queue, oldest first
   patchModerationReportsByReportId: { method: 'PATCH', path: '/moderation/reports/{reportId}', auth: true }, // Record a moderation decision
+  getMeModerationNotices: { method: 'GET', path: '/me/moderation-notices', auth: true }, // What was removed of mine, and why
+  postAppeals: { method: 'POST', path: '/appeals', auth: true }, // Appeal a moderation decision
+  getAppealsByAppealId: { method: 'GET', path: '/appeals/{appealId}', auth: true }, // One appeal
+  getMeAppeals: { method: 'GET', path: '/me/appeals', auth: true }, // My appeals and their outcomes
+  getModerationAppeals: { method: 'GET', path: '/moderation/appeals', auth: true }, // The appeal queue, oldest first
+  patchModerationAppealsByAppealId: { method: 'PATCH', path: '/moderation/appeals/{appealId}', auth: true }, // Decide an appeal
   patchModerationInterestsByInterestId: { method: 'PATCH', path: '/moderation/interests/{interestId}', auth: true }, // Re-parent, merge, or retire an interest
   getConversations: { method: 'GET', path: '/conversations', auth: true }, // The signed-in person's inbox
   putConversationsWithByHandle: { method: 'PUT', path: '/conversations/with/{handle}', auth: true }, // Open (or fetch) the conversation with a person

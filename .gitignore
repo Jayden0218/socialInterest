@@ -15,3 +15,6 @@ apps/mobile/ios/
 
 # Evidence captured by the Android device-pass job; uploaded as a CI artifact.
 artifacts/
+
+# Playwright/e2e run artefacts — machine-local, never a review artefact.
+apps/e2e/test-results/

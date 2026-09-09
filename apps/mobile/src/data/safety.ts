@@ -88,4 +88,53 @@ export class SafetyData {
   dismiss(postId: string): Promise<void> {
     return this.client.call<void>('putPostsByPostIdDismiss', { params: { postId } });
   }
+
+  /**
+   * 008/FR-046, FR-047 — BEING TOLD, AND BEING ABLE TO DISAGREE.
+   *
+   * Constitution IV. Before 008 the author of a removed post got a `comment`
+   * notification from `SYSTEM` with no subject and no reason, and had no way at
+   * all to contest it: the API had no appeal route and the app had no screen.
+   */
+  moderationNotices(opts: { limit?: number; cursor?: string } = {}): Promise<{
+    items: ModerationNotice[];
+    page: { nextCursor: string | null; emptyStateHint?: string | null };
+  }> {
+    return this.client.call('getMeModerationNotices', {
+      query: { limit: opts.limit, cursor: opts.cursor },
+    });
+  }
+
+  /** Filed against a NOTICE, never a subject id — the server explains why. */
+  appeal(actionId: string, body: string): Promise<Appeal> {
+    return this.client.call<Appeal>('postAppeals', { body: { actionId, body } });
+  }
+
+  appeals(opts: { limit?: number; cursor?: string } = {}): Promise<{
+    items: Appeal[];
+    page: { nextCursor: string | null; emptyStateHint?: string | null };
+  }> {
+    return this.client.call('getMeAppeals', { query: { limit: opts.limit, cursor: opts.cursor } });
+  }
+}
+
+/** 008/FR-046. What was removed, and why — never the moderator's own note. */
+export interface ModerationNotice {
+  actionId: string;
+  subjectType: string;
+  subjectId: string;
+  action: string;
+  reason?: string | null;
+  timestamp: string;
+  appealId?: string | null;
+}
+
+/** 008/FR-047. */
+export interface Appeal {
+  appealId: string;
+  subjectKind: string;
+  subjectId: string;
+  body: string;
+  state: 'open' | 'upheld' | 'rejected';
+  createdAt: string;
 }

@@ -1,7 +1,9 @@
 import request from 'supertest';
 import { PATH_METADATA, METHOD_METADATA } from '@nestjs/common/constants';
+import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { bootHarness, type Harness } from './harness';
 import { IS_PUBLIC } from '../../src/common/auth/auth.guard';
+import { OperatorGuard } from '../../src/common/auth/operator.guard';
 
 /**
  * WHICH ROUTES ARE PUBLIC, PINNED AS A SNAPSHOT.
@@ -59,7 +61,41 @@ describe('the public/authenticated boundary', () => {
     // one here; the snapshot is what said otherwise.
   ].sort();
 
-  const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as const;
+  /**
+   * 008/T199 — THE OPERATOR SURFACE, PINNED THE SAME WAY.
+   *
+   * The public snapshot above catches a route that stops or starts being
+   * readable signed out. It says nothing about a route that stops or starts
+   * being MODERATOR-ONLY, and 008/US14 adds an appeal queue and a decision
+   * endpoint — the two places where "anybody can reach this" would mean anybody
+   * can overturn a moderation decision.
+   *
+   * Read from the guard metadata Nest actually registered, which is the
+   * boot-time route dump the task asks for rather than reading the decorators
+   * and believing them. A controller-level `@UseGuards(OperatorGuard)` covers
+   * every method on it, which is why this enumerates methods and not classes:
+   * a method added to a guarded controller is covered, and a method added to an
+   * unguarded one shows up here as missing.
+   */
+  const EXPECTED_OPERATOR = [
+    'GET /moderation/reports',
+    'PATCH /moderation/reports/:reportId',
+    'PATCH /moderation/interests/:interestId',
+    // 008/US14.
+    'GET /moderation/appeals',
+    'PATCH /moderation/appeals/:appealId',
+  ].sort();
+
+  /**
+   * NEST'S OWN `RequestMethod` ORDER, and the previous version of this array had
+   * it wrong: `['GET','POST','PUT','PATCH','DELETE']` maps 3 to PATCH and 4 to
+   * DELETE where Nest means the opposite. It never showed, because every route
+   * in the public snapshot is a GET — index 0 — so the only entries this file
+   * ever rendered were the ones the mistake could not reach.
+   *
+   * Found by 008/T199, the moment a snapshot enumerated PATCH routes.
+   */
+  const METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'ALL'] as const;
 
   function actualPublicRoutes(): string[] {
     const found: string[] = [];
@@ -87,6 +123,50 @@ describe('the public/authenticated boundary', () => {
     }
     return found.sort();
   }
+
+  function actualOperatorRoutes(): string[] {
+    const found: string[] = [];
+    const modules = (h.module as unknown as { container: { getModules(): Map<string, { controllers: Map<unknown, { metatype?: new (...a: never[]) => unknown }> }> } }).container.getModules();
+    for (const mod of modules.values()) {
+      for (const wrapper of mod.controllers.values()) {
+        const ctor = wrapper.metatype;
+        if (!ctor) continue;
+        const base = (Reflect.getMetadata(PATH_METADATA, ctor) as string) ?? '';
+        const classGuards = (Reflect.getMetadata(GUARDS_METADATA, ctor) as unknown[]) ?? [];
+        for (const name of Object.getOwnPropertyNames(ctor.prototype)) {
+          if (name === 'constructor') continue;
+          const handler = (ctor.prototype as Record<string, unknown>)[name];
+          if (typeof handler !== 'function') continue;
+          const methodGuards = (Reflect.getMetadata(GUARDS_METADATA, handler) as unknown[]) ?? [];
+          if (![...classGuards, ...methodGuards].includes(OperatorGuard)) continue;
+          const path = (Reflect.getMetadata(PATH_METADATA, handler) as string) ?? '';
+          const methodIndex = Reflect.getMetadata(METHOD_METADATA, handler) as number;
+          const method = METHODS[methodIndex] ?? String(methodIndex);
+          const full = `/${[base, path].filter((p) => p && p !== '/').join('/')}`;
+          found.push(`${method} ${full}`);
+        }
+      }
+    }
+    return found.sort();
+  }
+
+  it('exactly these routes require an operator - no more, no fewer', () => {
+    // Both directions again. A moderation route that LOSES the guard is a
+    // decision anybody can overturn; an ordinary route that GAINS it is a
+    // feature that silently stops working for everybody who is not staff.
+    expect(actualOperatorRoutes()).toEqual(EXPECTED_OPERATOR);
+  });
+
+  it('an operator route refuses an ordinary signed-in caller', async () => {
+    const token = await h.token(await h.createPerson('notAModerator'));
+    for (const route of ['/v1/moderation/reports', '/v1/moderation/appeals']) {
+      const res = await request(h.app.getHttpServer())
+        .get(route)
+        .set('authorization', `Bearer ${token}`);
+      // 403, not 401: the caller IS authenticated and is simply not staff.
+      expect({ route, status: res.status }).toEqual({ route, status: 403 });
+    }
+  });
 
   it('exactly these routes are public - no more, no fewer', () => {
     // Both directions matter. A route that STOPS being public breaks signed-out

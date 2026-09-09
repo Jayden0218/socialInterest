@@ -10,6 +10,7 @@ import {
   PostDetailContainer,
   CommentsContainer,
   SafetyContainer,
+  ModerationNoticesContainer,
   PickInterestsContainer,
   SignInContainer,
   SignedOutNotice,
@@ -134,7 +135,9 @@ export type Route =
   | { name: 'people-search' }
   // ---- feature 007
   | { name: 'pick-interests' }
-  | { name: 'safety'; subject: ReportSubject; subjectId: string; authorHandle?: string };
+  | { name: 'safety'; subject: ReportSubject; subjectId: string; authorHandle?: string }
+  // ---- feature 008
+  | { name: 'moderation-notices' };
 
 /**
  * The root fills the viewport AND paints the surface.
@@ -298,7 +301,12 @@ export function Shell() {
         case 'edit-post':
           return <EditPostContainer postId={top.postId} onDone={pop} />;
         case 'edit-profile':
-          return <EditProfileContainer onDone={pop} />;
+          return (
+            <EditProfileContainer
+              onDone={pop}
+              onOpenModerationNotices={() => push({ name: 'moderation-notices' })}
+            />
+          );
         case 'person':
           // 003/T053. Another person's profile, with a follow control that works.
           return (
@@ -339,6 +347,18 @@ export function Shell() {
                 ])
               }
             />
+          );
+        /**
+         * 008/FR-046, FR-047. Reached from Edit profile, beside the other
+         * account-level things, because that is where somebody goes looking for
+         * what has happened TO THEIR ACCOUNT — and because a route to a human
+         * that takes three taps to find is a route most people do not take.
+         */
+        case 'moderation-notices':
+          return signedIn ? (
+            <ModerationNoticesContainer />
+          ) : (
+            <SignedOutNotice onSignIn={() => push({ name: 'sign-in' })} />
           );
         case 'saved':
           return signedIn ? (

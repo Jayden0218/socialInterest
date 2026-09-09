@@ -95,6 +95,7 @@ export function EditProfileScreen({
   followRequests,
   onApproveFollowRequest,
   onDeclineFollowRequest,
+  onOpenModerationNotices,
 }: {
   draft: ProfileDraft;
   saving?: boolean;
@@ -122,6 +123,15 @@ export function EditProfileScreen({
   followRequests?: { userId: string; handle: string; displayName: string }[];
   onApproveFollowRequest?: (handle: string) => void;
   onDeclineFollowRequest?: (handle: string) => void;
+  /**
+   * 008/FR-046, FR-047 — the way to "what was removed of mine, and why".
+   *
+   * Constitution IV: a route to a human is only real if somebody can find it.
+   * Here, beside the account's other settings, and ABOVE the delete-account
+   * block — a person who cannot contest a removal and meets "Delete account"
+   * first has been offered the wrong door.
+   */
+  onOpenModerationNotices?: () => void;
 }) {
   return (
     /**
@@ -362,6 +372,18 @@ export function EditProfileScreen({
               onPress={onClearFeedSignals}
             />
           ) : null}
+        </View>
+      ) : null}
+
+      {onOpenModerationNotices ? (
+        <View style={{ paddingHorizontal: space.lg, paddingTop: space.lg, gap: space.sm }}>
+          <Text style={{ ...textStyle.caption, color: palette.text.muted }}>Safety</Text>
+          <Button
+            testID="open-moderation-notices"
+            label="Removed content"
+            variant="secondary"
+            onPress={onOpenModerationNotices}
+          />
         </View>
       ) : null}
 

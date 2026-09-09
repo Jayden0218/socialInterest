@@ -60,9 +60,9 @@ paths:
 #     [ ] PUT    /posts/{postId}/dismiss          008/FR-041, FR-042
 #     [x] PATCH  /me                              + accountPrivacy (FR-043)
 #     [x] GET    /me/follow-requests (+approve/decline)  008/FR-043
-#     [ ] GET    /me/moderation-notices           008/FR-046
-#     [ ] POST   /appeals, GET /me/appeals        008/FR-047, FR-048
-#     [ ] GET PATCH /moderation/appeals           008/FR-047
+#     [x] GET    /me/moderation-notices           008/FR-046
+#     [x] POST   /appeals, GET /me/appeals        008/FR-047, FR-048
+#     [x] GET PATCH /moderation/appeals           008/FR-047
 #   Phase E
 #     [ ] POST GET PATCH DELETE /me/collections   008/FR-049, FR-050
 #     [ ] PUT DELETE /me/collections/{id}/posts/{postId}  008/FR-051
@@ -1107,6 +1107,183 @@ paths:
               schema: { $ref: '#/components/schemas/Report' }
         '403': { description: Not an operator }
 
+  /me/moderation-notices:
+    get:
+      tags: [Safety]
+      summary: What was removed of mine, and why
+      description: >
+        008/FR-046, access pattern A55. The append-only moderation log is
+        partitioned by MONTH — right for an audit trail, useless for "what was
+        removed of mine" — so the same event is also written to the recipient's
+        own partition and read here.
+
+        Carries the subject, the action, and the REPORTED REASON. It deliberately
+        does NOT carry the moderator's note or id: the note is internal and often
+        quotes the reporter, and naming the moderator invites the retaliation the
+        queue exists to absorb.
+
+        Before 008 the author of a removed post got a `comment` notification from
+        `SYSTEM` with no subject and no reason. Being told that something
+        happened is not being told what and why.
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/ModerationNotice' }
+                  page: { $ref: '#/components/schemas/PageMeta' }
+        '401': { $ref: '#/components/responses/Unauthorised' }
+
+  /appeals:
+    post:
+      tags: [Safety]
+      summary: Appeal a moderation decision
+      description: >
+        008/FR-047. Filed against a NOTICE (`actionId`), never against a subject
+        id — a notice lives in its recipient's own partition, so "may this person
+        appeal this" is answered by a read rather than by an ownership chain that
+        has to be right for each of four subject kinds.
+
+        404 for a notice that is not yours, so an id cannot be used to discover
+        that somebody else's content was removed. 409 for a decision already
+        appealed: the same disagreement is not a second one, and admitting it
+        would let one person fill the queue.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [actionId, body]
+              properties:
+                actionId: { type: string }
+                body: { type: string, minLength: 1, maxLength: 2000 }
+      responses:
+        '201':
+          description: Filed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Appeal' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { description: Already appealed }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /appeals/{appealId}:
+    get:
+      tags: [Safety]
+      summary: One appeal
+      description: >
+        008/FR-048, SC-015. Readable by its author and by moderators, and by
+        nobody else. Anyone else gets **404** — the same 404 an invented id gets,
+        so the error cannot be used as an oracle for whether a named person had
+        content removed. That is the error-distinction rule the visibility
+        contract sets for blocks, applied to moderation.
+      parameters:
+        - name: appealId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Appeal' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /me/appeals:
+    get:
+      tags: [Safety]
+      summary: My appeals and their outcomes
+      description: 008/FR-047, access pattern A54 — pointer rows, so no scan.
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Appeal' }
+                  page: { $ref: '#/components/schemas/PageMeta' }
+        '401': { $ref: '#/components/responses/Unauthorised' }
+
+  /moderation/appeals:
+    get:
+      tags: [Moderation]
+      summary: The appeal queue, oldest first
+      description: >
+        Operator only. 008/FR-047, access pattern A53. Keyed exactly like the
+        report queue, and oldest-first for the same reason — newest-first quietly
+        starves the oldest appeal while the headline number stays healthy.
+      parameters:
+        - name: state
+          in: query
+          schema: { type: string, enum: [open, upheld, rejected] }
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Appeal' }
+                  page: { $ref: '#/components/schemas/PageMeta' }
+        '403': { description: Not an operator }
+
+  /moderation/appeals/{appealId}:
+    patch:
+      tags: [Moderation]
+      summary: Decide an appeal
+      description: >
+        Operator only. 008/FR-047. The outcome is appended to the same
+        append-only log every other decision goes to — so it survives deletion of
+        the subject, which is exactly when somebody asks what happened — AND the
+        author is told, in the same call. An outcome recorded and never delivered
+        leaves the author waiting on a decision already made.
+
+        409 if the appeal has already been decided.
+      parameters:
+        - name: appealId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [state]
+              properties:
+                state: { type: string, enum: [upheld, rejected] }
+                note: { type: string, maxLength: 1000 }
+      responses:
+        '200':
+          description: Decided
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Appeal' }
+        '403': { description: Not an operator }
+        '409': { description: Already decided }
+
   /moderation/interests/{interestId}:
     patch:
       tags: [Moderation, Interests]
@@ -1889,6 +2066,39 @@ components:
             row. Flipping it changes what the single boundary answers on the next
             read, everywhere at once (FR-044), and the followers who already have
             access keep it (FR-045).
+
+    ModerationNotice:
+      type: object
+      required: [actionId, subjectType, subjectId, action, timestamp]
+      properties:
+        actionId: { type: string }
+        subjectType: { type: string }
+        subjectId: { type: string }
+        action: { type: string }
+        reason:
+          type: string
+          description: The reporter's CATEGORY, never their words.
+        timestamp: { type: string, format: date-time }
+        appealId:
+          type: string
+          nullable: true
+          description: >
+            008/FR-047. Present once this decision has been appealed, so the list
+            says which decisions have been contested without a query per row.
+
+    Appeal:
+      type: object
+      required: [appealId, subjectKind, subjectId, authorId, body, state, createdAt]
+      properties:
+        appealId: { type: string }
+        subjectKind: { type: string, enum: [post, comment, message, review] }
+        subjectId: { type: string }
+        authorId: { type: string }
+        body: { type: string }
+        state: { type: string, enum: [open, upheld, rejected] }
+        createdAt: { type: string, format: date-time }
+        decidedAt: { type: string, format: date-time, nullable: true }
+        outcome: { type: string, nullable: true }
 
     DeletionOutcome:
       type: object

@@ -1,0 +1,64 @@
+# 008/US14, T202 — TOLD WHAT AND WHY, AND ABLE TO DISAGREE.
+#
+# WHAT TO READ IN THE RUN AGGREGATE:
+#   GET  /v1/me/moderation-notices  200
+#   POST /v1/appeals                201
+#
+# The 201 is the line that matters. A screen that listed notices and whose
+# Appeal button did nothing would satisfy every assertion below except that one,
+# and it is the exact shape 008 exists to end — before this feature, the author
+# of a removed post got a notification from SYSTEM carrying no subject and no
+# reason, and had no way to contest it at all.
+#
+# The removal itself is seeded by `seed-moderation-notice-fixture`: it takes a
+# post, a reporter and a MODERATOR, and the device drives one ordinary person.
+appId: app.socialinterest
+---
+- runFlow: 01-sign-in.yaml
+
+- tapOn:
+    id: "tab-profile"
+- assertVisible:
+    id: "open-edit-profile"
+- tapOn:
+    id: "open-edit-profile"
+- assertVisible:
+    id: "edit-profile-screen"
+
+# Constitution IV: the route to a human has to be findable, so it is here beside
+# the account's other settings and above the delete-account block.
+- assertVisible:
+    id: "open-moderation-notices"
+- tapOn:
+    id: "open-moderation-notices"
+- assertVisible:
+    id: "moderation-notices-screen"
+
+# FR-046. The notice the fixture produced, addressed to this person.
+- extendedWaitUntil:
+    visible:
+      id: "moderation-notice-${REMOVED_ACTION_ID}"
+    timeout: 30000
+
+# FR-047. Disagree with it, on the same screen — a route to a human that takes
+# another navigation step to reach is a route most people do not take.
+- tapOn:
+    id: "appeal-${REMOVED_ACTION_ID}"
+- assertVisible:
+    id: "appeal-body"
+- tapOn:
+    id: "appeal-body"
+- inputText: "This was a photograph of a sunset."
+- tapOn:
+    id: "submit-appeal"
+
+# The state replaces the button, because the container RE-READS after the
+# appeal: the notice's appealId is written server-side, and offering the button
+# again would produce a 409 that reads as a bug.
+- extendedWaitUntil:
+    visible:
+      id: "appeal-state-${REMOVED_ACTION_ID}"
+    timeout: 30000
+
+- assertNotVisible:
+    id: "notices-error"

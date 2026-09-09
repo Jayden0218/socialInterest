@@ -73,5 +73,5 @@ export type { KeyValueStore } from './token-store';
 export type { UploadTarget } from './posts';
 export type { PostPage } from './interests';
 export type { CommentPage } from './engagement';
-export type { ReportReason } from './safety';
+export type { ReportReason, ModerationNotice, Appeal } from './safety';
 export type { MyProfile } from './session';

@@ -162,9 +162,55 @@ export const keys = {
     gsi1sk: `TS#${createdAt}`,
   }),
 
+  /**
+   * 008/A53, A54 — AN APPEAL, KEYED EXACTLY LIKE A REPORT.
+   *
+   * Deliberately identical in shape rather than merely similar: the queue is one
+   * Query, a transition moves it between queues with one write, and the ordering
+   * is oldest-first for the same reason SC-010 needs it on reports — newest-first
+   * quietly starves the oldest, and an appeal nobody reaches is a refusal with
+   * extra steps.
+   */
+  appeal: (appealId: string) => ({ pk: `APPEAL#${appealId}`, sk: '#META' }),
+  appealByState: (state: string, createdAt: string) => ({
+    gsi1pk: `ASTATE#${state}`,
+    gsi1sk: `TS#${createdAt}`,
+  }),
+  /**
+   * A54. A POINTER ROW IN THE AUTHOR'S OWN PARTITION.
+   *
+   * "My appeals" would otherwise be a scan of every appeal, filtered — which is
+   * the shape that works with ten appeals and stops working with ten thousand,
+   * silently, by getting slower. The row carries the id and nothing else; the
+   * appeal itself stays in one place, so there is no second copy to drift.
+   */
+  appealByAuthor: (authorId: string, createdAt: string, appealId: string) => ({
+    pk: `USER#${authorId}`,
+    sk: `APPEALBY#${createdAt}#${appealId}`,
+  }),
+
   moderationLog: (yyyymm: string, timestamp: string, actionId: string) => ({
     pk: `MODLOG#${yyyymm}`,
     sk: `TS#${timestamp}#${actionId}`,
+  }),
+
+  /**
+   * 008/A55, FR-046 — WHAT THE AUTHOR IS TOLD, IN THE AUTHOR'S OWN PARTITION.
+   *
+   * The append-only log is partitioned BY MONTH, which is right for an audit
+   * trail and useless for "what was removed of mine": answering that from
+   * `MODLOG#` is a scan of every decision anyone ever made, filtered. So the
+   * same event is also written here, addressed to the person it happened to.
+   *
+   * Written by the SAME call that appends the log (`ModerationLogRepository`
+   * takes the recipient), so a removal that is logged and never explained is not
+   * expressible. FR-046's "and why" is the reported REASON and the action taken
+   * — never the moderator's free-text note, which is internal and would leak
+   * both the reporter's words and the queue's own workings.
+   */
+  moderationNotice: (recipientId: string, timestamp: string, actionId: string) => ({
+    pk: `USER#${recipientId}`,
+    sk: `MODNOTICE#${timestamp}#${actionId}`,
   }),
 
   notification: (recipientId: string, createdAt: string, notificationId: string) => ({

@@ -63,8 +63,18 @@ export class ModerationController {
      * endpoints; here they are recorded, not mutated.
      */
     const removing = decision.action === 'remove_content';
+    /**
+     * 008/FR-046 — WHOSE CONTENT THIS WAS.
+     *
+     * Collected in the branches that already load the subject, because "the
+     * author" is a different lookup for each kind and there is no shared field.
+     * A removal whose author cannot be resolved still logs and still removes;
+     * it simply cannot notify, which is recorded below rather than swallowed.
+     */
+    let noticeRecipientId: string | null = null;
     if (removing && report.subjectType === 'post') {
       await this.posts.setRemovedByModeration(report.subjectId);
+      noticeRecipientId = (await this.posts.findById(report.subjectId))?.authorId ?? null;
     }
     /**
      * 005/FR-015, FR-016 and research R6. Removing a review takes its RATING
@@ -85,6 +95,8 @@ export class ModerationController {
       const [placeId, raterId] = report.subjectId.split(':');
       if (placeId && raterId) {
         await this.ratings.setRemovedByModeration(placeId, raterId);
+        // A review's author IS the rater — the subject id carries them.
+        noticeRecipientId = raterId;
       }
     }
     /**
@@ -126,6 +138,7 @@ export class ModerationController {
             { postId, commentId, createdAt: existing.createdAt },
             'removed',
           );
+          noticeRecipientId = existing.authorId;
         }
       }
     }
@@ -133,6 +146,7 @@ export class ModerationController {
       const [conversationId, messageId] = report.subjectId.split(':');
       if (conversationId && messageId) {
         await this.messages.setModerationState(conversationId, messageId, 'removed');
+        noticeRecipientId = (await this.messages.find(conversationId, messageId))?.authorId ?? null;
       }
     }
 
@@ -143,16 +157,28 @@ export class ModerationController {
       ...(decision.state !== 'under_review' ? { resolvedAt: new Date().toISOString() } : {}),
     });
 
-    // FR-047: written to an append-only log, separate from the subject, so the
-    // record outlives the content it concerns.
-    await this.log.append({
-      moderatorId: req.viewer!.userId,
-      subjectType: report.subjectType,
-      subjectId: report.subjectId,
-      reportId,
-      action: decision.action ?? decision.state,
-      ...(decision.note ? { note: decision.note } : {}),
-    });
+    /**
+     * FR-047: written to an append-only log, separate from the subject, so the
+     * record outlives the content it concerns.
+     *
+     * 008/FR-046: and the SAME CALL writes the author's notice. The reason it
+     * carries is `report.reason` — the reporter's CATEGORY — never
+     * `decision.note`, which is the moderator's internal text and would leak
+     * both the queue's workings and, often, the reporter's own words.
+     */
+    await this.log.append(
+      {
+        moderatorId: req.viewer!.userId,
+        subjectType: report.subjectType,
+        subjectId: report.subjectId,
+        reportId,
+        action: decision.action ?? decision.state,
+        ...(decision.note ? { note: decision.note } : {}),
+      },
+      noticeRecipientId
+        ? { recipientId: noticeRecipientId, reason: report.reason }
+        : undefined,
+    );
 
     /**
      * 005/FR-015. The review's author is told, on the same path a post's author

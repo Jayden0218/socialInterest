@@ -510,21 +510,31 @@ modified client would take; the outcome is appended to the moderation log.
 
 ### Tests for User Story 14
 
-- [ ] T191 [P] [US14] Write `apps/api/tests/integration/appeal-privacy.spec.ts` driving the request **directly** with another person's appeal id (FR-048, SC-015).
-- [ ] T192 [P] [US14] Write `apps/api/tests/integration/appeal-outcome-is-logged.spec.ts`: the outcome appears in `MODLOG#` and survives deletion of the subject (Constitution IV).
+- [x] T191 [P] [US14] Write `apps/api/tests/integration/appeal-privacy.spec.ts` driving the request **directly** with another person's appeal id (FR-048, SC-015).
+- [x] T192 [P] [US14] Write `apps/api/tests/integration/appeal-outcome-is-logged.spec.ts`: the outcome appears in `MODLOG#` and survives deletion of the subject (Constitution IV).
 
 ### Implementation for User Story 14
 
-- [ ] T193 [US14] Add `appeal` and `appealByState` keys to `keys.ts`, mirroring `report` and `reportByState` exactly, so the queue is one Query and a transition moves it with one write (A53).
-- [ ] T194 [US14] Add the `APPEALBY#` pointer row to `apps/api/src/persistence/keys.ts` so an author's appeal list needs no scan (A54).
-- [ ] T195 [P] [US14] Create `apps/api/src/persistence/appeal.repository.ts`.
-- [ ] T196 [US14] Create `apps/api/src/modules/moderation/appeal.service.ts`, appending every outcome to the existing moderation log.
-- [ ] T197 [US14] Add `GET /v1/me/moderation-notices` to `apps/api/src/modules/moderation/appeal.controller.ts` (FR-046) — an author is told **what** and **why**.
-- [ ] T198 [US14] Add `POST /v1/appeals` and `GET /v1/me/appeals` to `apps/api/src/modules/moderation/appeal.controller.ts` (FR-047).
-- [ ] T199 [US14] Add `GET`/`PATCH /v1/moderation/appeals` for operators, and confirm the operator guard by the boot-time route dump rather than by inspection.
-- [ ] T200 [P] [US14] Add the endpoints to `specs/001-interest-media-sharing/contracts/openapi.yaml` and update the snapshot in `apps/api/tests/integration/auth-surface.spec.ts`.
-- [ ] T201 [US14] Add the notice and appeal surfaces to `apps/mobile/src/features/safety/`.
-- [ ] T202 [US14] Add `testID`s, run `verify-maestro-ids.mjs`, and add `.maestro/35-appeal.yaml` asserting `POST /v1/appeals` **201**.
+- [x] T193 [US14] Add `appeal` and `appealByState` keys to `keys.ts`, mirroring `report` and `reportByState` exactly, so the queue is one Query and a transition moves it with one write (A53).
+- [x] T194 [US14] Add the `APPEALBY#` pointer row to `apps/api/src/persistence/keys.ts` so an author's appeal list needs no scan (A54).
+- [x] T195 [P] [US14] Create `apps/api/src/persistence/appeal.repository.ts`.
+- [x] T196 [US14] Create `apps/api/src/modules/moderation/appeal.service.ts`, appending every outcome to the existing moderation log.
+- [x] T197 [US14] Add `GET /v1/me/moderation-notices` to `apps/api/src/modules/moderation/appeal.controller.ts` (FR-046) — an author is told **what** and **why**.
+- [x] T198 [US14] Add `POST /v1/appeals` and `GET /v1/me/appeals` to `apps/api/src/modules/moderation/appeal.controller.ts` (FR-047).
+- [x] T199 [US14] Add `GET`/`PATCH /v1/moderation/appeals` for operators, and confirm the operator guard by the boot-time route dump rather than by inspection.
+  **The route dump found something the inspection would not have.** `auth-surface.spec.ts`
+  now pins the OPERATOR route set the same way it pins the public one, read from the guard
+  metadata Nest actually registered. Two defects fell out of writing it: the file's
+  `RequestMethod` lookup table had `PATCH` and `DELETE` transposed — invisible for two
+  features because every route in the public snapshot is a GET — and `OperatorGuard` threw
+  **401 where `openapi.yaml` documents 403** on every moderation route. That second one is
+  002's first defect in a smaller place: the contract and the API disagreed and each looked
+  right alone.
+- [x] T200 [P] [US14] Add the endpoints to `specs/001-interest-media-sharing/contracts/openapi.yaml` and update the snapshot in `apps/api/tests/integration/auth-surface.spec.ts`.
+- [x] T201 [US14] Add the notice and appeal surfaces to `apps/mobile/src/features/safety/`.
+  Reached from Edit profile, above the delete-account block: a person who cannot contest a
+  removal and meets "Delete account" first has been offered the wrong door.
+- [x] T202 [US14] Add `testID`s, run `verify-maestro-ids.mjs`, and add `.maestro/35-appeal.yaml` asserting `POST /v1/appeals` **201**.
 
 ## Phase 20: Release gate — Phase D (US12–US14)
 

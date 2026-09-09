@@ -319,6 +319,17 @@ FOLLOW_REQUESTER="$(echo "$FOLLOWREQ" | sed -n 's/^FOLLOW_REQUESTER=//p')"
 [ -n "$FOLLOW_REQUESTER" ] \
   || { echo "FAIL: the follow-request fixture did not print what the flow needs"; exit 1; }
 
+# 008/US14. A moderation notice addressed to the device person, which takes a
+# post, a reporter AND a moderator - the device drives one ordinary person, so
+# the whole round trip happens server-side and the app is left the two things
+# only it can show: being told what and why, and being able to disagree.
+echo "== seed the moderation-notice fixture (008/US14) =="
+MODNOTICE="$(cd apps/e2e && E2E_BASE_URL=http://127.0.0.1:3000 npx tsx scripts/seed-moderation-notice-fixture.ts "$TOKEN")"
+echo "$MODNOTICE"
+REMOVED_ACTION_ID="$(echo "$MODNOTICE" | sed -n 's/^REMOVED_ACTION_ID=//p')"
+[ -n "$REMOVED_ACTION_ID" ] \
+  || { echo "FAIL: the moderation-notice fixture did not print what the flow needs"; exit 1; }
+
 # ---------------------------------------------------------------------------
 # A SAMPLER, because run 26 died in a way nothing here could see.
 #
@@ -417,6 +428,7 @@ MAESTRO_ENV=(
   -e GROUP_MEMBER_A="$GROUP_MEMBER_A" -e GROUP_MEMBER_B="$GROUP_MEMBER_B"
   -e GROUP_MEMBER_C="$GROUP_MEMBER_C" -e GROUP_SEARCH="$GROUP_SEARCH"
   -e FOLLOW_REQUESTER="$FOLLOW_REQUESTER"
+  -e REMOVED_ACTION_ID="$REMOVED_ACTION_ID"
 )
 
 # Sorted, so the order is the same on every run and a failure is comparable

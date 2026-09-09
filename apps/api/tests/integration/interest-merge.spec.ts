@@ -174,7 +174,9 @@ describe('FR-030 — interest merge, re-parent and retire', () => {
       .patch(`/v1/moderation/interests/${topId}`)
       .set('authorization', `Bearer ${userToken}`)
       .send({ action: 'retire' });
-    expect(res.status).toBe(401);
+    // 403 since 008/T199 — the caller is authenticated and is not staff. See
+    // the note in `moderation.spec.ts` and in `operator.guard.ts`.
+    expect(res.status).toBe(403);
   });
 });
 
