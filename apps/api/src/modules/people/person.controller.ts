@@ -8,6 +8,7 @@ import { PostRepository } from '../../persistence/post.repository';
 import { PostQueryService } from '../posts/post-query.service';
 import { CATALOGUE_SEARCH, type CatalogueSearch } from '../interests/catalogue.cache';
 import { PersonSearchService } from './person-search.service';
+import { ProfileProjection } from './profile.projection';
 import { PersonFollowService } from './person-follow.service';
 
 @Controller('people')
@@ -20,6 +21,7 @@ export class PersonController {
     @Inject(PostQueryService) private readonly queries: PostQueryService,
     @Inject(CATALOGUE_SEARCH) private readonly catalogue: CatalogueSearch,
     @Inject(PersonSearchService) private readonly searchService: PersonSearchService,
+    @Inject(ProfileProjection) private readonly profiles: ProfileProjection,
   ) {}
 
   /** FR-038: profile with counts and the interests this person posts to most. */
@@ -34,14 +36,15 @@ export class PersonController {
       q ?? '',
       limit ? Math.min(25, Math.max(1, Number(limit) || 10)) : 10,
     );
-    return {
-      items: people.map((p) => ({
-        userId: p.userId,
-        handle: p.handle,
-        displayName: p.displayName,
-        ...(p.avatarKey ? { avatarUrl: p.avatarKey } : {}),
-      })),
-    };
+    /**
+     * 008/US5. THE RAW STORAGE KEY IS GONE.
+     *
+     * This line was `avatarUrl: p.avatarKey` — the object-store key, emitted as
+     * a URL, on the ONE surface of seven that carried the field at all. Against
+     * a private bucket a client gets 403, which is 006/R4b's defect reproduced
+     * in a second place. The projection presigns it, after the boundary.
+     */
+    return { items: await Promise.all(people.map((p) => this.profiles.toPublicProfile(p))) };
   }
 
   @Public()
@@ -67,9 +70,7 @@ export class PersonController {
       .map((i) => ({ interestId: i.interestId, name: i.name, slug: i.slug, level: i.level }));
 
     return {
-      userId: person.userId,
-      handle: person.handle,
-      displayName: person.displayName,
+      ...(await this.profiles.toPublicProfile(person)),
       bio: person.bio ?? null,
       followerCount: person.followerCount,
       followingCount: person.followingCount,

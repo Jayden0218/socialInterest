@@ -2,6 +2,7 @@ import { VisibilityFilter } from '../../src/visibility/visibility.filter';
 import type { PersonFollowRepository } from '../../src/persistence/person-follow.repository';
 import type { BlockRepository } from '../../src/persistence/block.repository';
 import { PostQueryService } from '../../src/modules/posts/post-query.service';
+import { ProfileProjection } from '../../src/modules/people/profile.projection';
 import { FollowingFeedService } from '../../src/modules/feed/following-feed.service';
 import { CommentService } from '../../src/modules/engagement/comment.service';
 import { NotificationService } from '../../src/modules/notifications/notification.service';
@@ -104,6 +105,10 @@ function build(): Ctx {
     filter,
     { find: async () => null } as never,
     { publicUrl: (k: string) => `http://store/${k}` } as never,
+    // 008/US5. The one profile projection. A real instance rather than a stub:
+    // it is pure apart from presigning, and stubbing it here would let this
+    // probe pass while the projection itself was broken.
+    new ProfileProjection({ presignedGetUrl: async (k: string) => `http://store/signed/${k}` } as never),
   );
 
   return {
@@ -170,6 +175,7 @@ const PROBES: Probe[] = [
         queries,
         { findById: async () => null } as never,
         { publish: async () => undefined } as never,
+        new ProfileProjection({ presignedGetUrl: async (k: string) => `http://store/signed/${k}` } as never),
       );
       return comments.list(VIEWER, 'p1');
     },
@@ -195,6 +201,7 @@ const PROBES: Probe[] = [
         queries,
         { find: async () => null } as never,
         { publish: async () => undefined } as never,
+        new ProfileProjection({ presignedGetUrl: async (k: string) => `http://store/signed/${k}` } as never),
       );
       return notifications.listVisible(VIEWER.userId);
     },
@@ -337,6 +344,7 @@ const PROBES: Probe[] = [
         } as never,
         { findById: async () => ({ userId: 'a1', handle: 'a', displayName: 'A' }) } as never,
         new AuthoredContentVisibility(filter),
+        new ProfileProjection({ presignedGetUrl: async (k: string) => `http://store/signed/${k}` } as never),
       );
       await service.listByPlace(VIEWER, 'pl1');
       expect(blocksSpy.mock.calls.length).toBeGreaterThan(0);

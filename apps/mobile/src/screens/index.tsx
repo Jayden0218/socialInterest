@@ -486,6 +486,7 @@ import { ProfileScreen, type ProfileData } from '../features/profile/ProfileScre
 import { ComposeScreen, newSlot, runUpload, type UploadSlot } from '../features/publish/ComposeScreen';
 import { MediaPickerScreen, type PickedMedia } from '../features/publish/MediaPickerScreen';
 import { useMediaLibrary } from '../features/publish/useMediaLibrary';
+import { readMediaBytes } from '../features/publish/uploadFlow';
 import { DEFAULT_VISIBILITY } from '../features/publish/VisibilityControl';
 import { useInterestPosts, useProfilePosts } from '../containers';
 import type { InterestRef, Visibility } from '@sih/shared';
@@ -643,6 +644,8 @@ export function ProfileContainer({
       ? data.session.me().then((me) => ({
           handle: me.handle,
           displayName: me.displayName,
+          // 008/FR-017. Your own face, on your own profile.
+          avatarUrl: me.avatarUrl ?? null,
           bio: me.bio ?? null,
           followerCount: me.followerCount ?? 0,
           followingCount: me.followingCount ?? 0,
@@ -659,6 +662,7 @@ export function ProfileContainer({
       : data.people.get(handle).then((p) => ({
           handle: p.handle,
           displayName: p.displayName,
+          avatarUrl: p.avatarUrl ?? null,
           bio: p.bio ?? null,
           followerCount: p.followerCount ?? 0,
           followingCount: p.followingCount ?? 0,
@@ -1191,6 +1195,7 @@ export function EditPostContainer({
     };
   }, [data, postId]);
 
+
   const save = useCallback(async () => {
     if (!draft) return;
     setSaving(true);
@@ -1251,6 +1256,11 @@ export function EditProfileContainer({ onDone }: { onDone: () => void }) {
   // 007/FR-011, FR-012.
   const [feedSignals, setFeedSignals] = useState<FeedSignalSummary | null>(null);
   const [clearingSignals, setClearingSignals] = useState(false);
+  // 008/FR-017. Declared BEFORE any return, like every hook in this file -
+  // `hooks-before-return.test.ts` fails the build otherwise.
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const library = useMediaLibrary();
 
   useEffect(() => {
     let live = true;
@@ -1270,15 +1280,84 @@ export function EditProfileContainer({ onDone }: { onDone: () => void }) {
       .then((me) => {
         if (!live) return;
         setDraft({
+          userId: me.userId,
           displayName: me.displayName,
           bio: me.bio ?? '',
           notificationPrefs: me.notificationPrefs,
         });
+        setAvatarUrl(me.avatarUrl ?? null);
       })
       .catch((e: unknown) => live && setError(e instanceof DataError ? e.message : String(e)));
     return () => {
       live = false;
     };
+  }, [data]);
+
+  /**
+   * 008/FR-017, FR-018 — SET A PROFILE PICTURE.
+   *
+   * The SAME presign/PUT/quote path as any other image: `createUploadTarget`
+   * with kind `avatar`, PUT the bytes, then send the UPLOAD ID. The server reads
+   * the key from the record it issued, because 002's second defect was a
+   * client-supplied key letting a post point at another person's media.
+   *
+   * The library is the same one compose uses. `expo install`-provisioned only —
+   * `pnpm add` once took `expo-image-picker@57` against SDK 54 and killed the
+   * app during module registration with `NoClassDefFoundError: AnyTypeCache`.
+   */
+  const changeAvatar = useCallback(async () => {
+    /**
+     * The same library the compose flow uses, and the same fallback.
+     *
+     * `pick()` opens the device gallery where there is one and falls back to the
+     * bundled sample set where there is not — a browser journey and an emulator
+     * with no camera roll both take that path, and the bytes are real either
+     * way, so the presign/PUT/quote path this exercises is the real one.
+     */
+    await library.pick();
+    const picked = library.available.find((m) => m.kind === 'image');
+    if (!picked) return;
+    setAvatarBusy(true);
+    try {
+      const bytes = await readMediaBytes(picked.uri, fetch);
+      /**
+       * `readMediaBytes` returns `Uint8Array | Blob` - a data: URI decodes to
+       * the first, a device file: URI fetches to the second - and only the Blob
+       * lacks `byteLength`. `size` is its equivalent.
+       *
+       * The declared size is what the app TELLS the server when asking for an
+       * upload target, and 006 shipped a sample declaring 68 for 70 bytes, so
+       * the app announced one length and uploaded another.
+       */
+      const sizeBytes = bytes instanceof Uint8Array ? bytes.byteLength : bytes.size;
+      const target = await data.posts.createUploadTarget({
+        kind: 'avatar',
+        contentType: picked.contentType,
+        sizeBytes,
+      });
+      // Same cast and same reason as `uploadFlow.ts:128`: `fetch` accepts both,
+      // and widening the data layer's signature to `any` would be worse.
+      await data.posts.uploadBytes(target, bytes as unknown as Uint8Array, picked.contentType);
+      const me = await data.session.updateProfile({ avatarUploadId: target.uploadId });
+      setAvatarUrl(me.avatarUrl ?? null);
+    } catch (e: unknown) {
+      setError(e instanceof DataError ? e.message : String(e));
+    } finally {
+      setAvatarBusy(false);
+    }
+  }, [data, library]);
+
+  /** FR-017. `null` REMOVES it; absent would leave it alone. */
+  const removeAvatar = useCallback(async () => {
+    setAvatarBusy(true);
+    try {
+      const me = await data.session.updateProfile({ avatarUploadId: null });
+      setAvatarUrl(me.avatarUrl ?? null);
+    } catch (e: unknown) {
+      setError(e instanceof DataError ? e.message : String(e));
+    } finally {
+      setAvatarBusy(false);
+    }
   }, [data]);
 
   const save = useCallback(async () => {
@@ -1333,6 +1412,10 @@ export function EditProfileContainer({ onDone }: { onDone: () => void }) {
   if (!draft) return <View testID="edit-profile-loading" />;
   return (
     <EditProfileScreen
+      avatarUrl={avatarUrl}
+      avatarBusy={avatarBusy}
+      onChangeAvatar={() => void changeAvatar()}
+      onRemoveAvatar={() => void removeAvatar()}
       draft={draft}
       saving={saving}
       feedSignals={feedSignals}

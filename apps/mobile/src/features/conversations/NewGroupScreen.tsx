@@ -166,7 +166,7 @@ export function NewGroupScreen({
                   backgroundColor: palette.bg.sunken,
                 }}
               >
-                <Avatar userId={p.userId} displayName={p.displayName} size={22} />
+                <Avatar userId={p.userId} displayName={p.displayName} url={p.avatarUrl} size={22} />
                 <Text style={{ ...textStyle.label, color: palette.intent.accent }}>
                   {p.displayName}
                 </Text>
@@ -241,7 +241,7 @@ export function NewGroupScreen({
             const chosen = handles.includes(item.handle);
             return (
               <Row style={{ paddingVertical: 9, paddingHorizontal: space.lg, gap: space.md }}>
-                <Avatar userId={item.userId} displayName={item.displayName} size={42} />
+                <Avatar userId={item.userId} displayName={item.displayName} url={item.avatarUrl} size={42} />
                 <View style={{ flexGrow: 1, flexShrink: 1, gap: 2 }}>
                   <Text style={{ ...textStyle.body, fontWeight: '600', color: palette.text.primary }}>
                     {item.displayName}

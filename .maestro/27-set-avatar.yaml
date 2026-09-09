@@ -1,0 +1,63 @@
+# 008/US5, T086 — A FACE ON A PROFILE.
+#
+# `avatarKey` has existed on the person item since 001, `media.limits.ts` has had
+# an `avatar` entry, and `POST /v1/media/uploads` has accepted kind `avatar` the
+# whole time. NOTHING COULD SET ONE: the upload half was built and the setting
+# half never was — a fifth instance of the pattern 008 exists to end.
+#
+# And `avatarUrl` was emitted on exactly ONE of seven profile projections, as the
+# RAW STORAGE KEY, which a private bucket answers 403 to. So a device run is
+# where "the picture actually appears" stops being a claim about a string.
+#
+# WHAT TO READ IN THE RUN AGGREGATE:
+#   POST /v1/media/uploads   201   the avatar upload target
+#   PATCH /v1/me             200   the avatar set, from the upload id
+#
+# The PATCH is the line that did not exist before this story.
+appId: app.socialinterest
+---
+- runFlow: 01-sign-in.yaml
+
+- tapOn:
+    id: "tab-profile"
+- assertVisible:
+    id: "open-edit-profile"
+- tapOn:
+    id: "open-edit-profile"
+- assertVisible:
+    id: "edit-profile-screen"
+
+# The editor exists at all, which it did not before.
+- assertVisible:
+    id: "avatar-editor"
+- assertVisible:
+    id: "change-avatar"
+
+# No photo yet, so no Remove control - the two must not both be offered.
+- assertNotVisible:
+    id: "remove-avatar"
+
+- tapOn:
+    id: "change-avatar"
+
+# The upload and the PATCH. `Uploading…` is the button's own account of what it
+# is doing; waiting for it to go away is waiting for the request to resolve,
+# which is what an assertion on a screen can honestly observe.
+- extendedWaitUntil:
+    visible:
+      id: "remove-avatar"
+    timeout: 120000
+
+# The button now offers to CHANGE rather than ADD, which is the app's own
+# statement that it believes there is a photo.
+- assertVisible: "Change photo"
+
+# 008/FR-019 in the other direction: removing it puts the derived disc back and
+# the Remove control goes away with it.
+- tapOn:
+    id: "remove-avatar"
+- extendedWaitUntil:
+    notVisible:
+      id: "remove-avatar"
+    timeout: 60000
+- assertVisible: "Add photo"

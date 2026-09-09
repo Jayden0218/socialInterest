@@ -6,6 +6,7 @@ import { InterestRepository } from '../../persistence/interest.repository';
 import { rankByEngagement, type EngagedItem } from './engagement-order';
 import { PlaceRepository } from '../../persistence/place.repository';
 import { OBJECT_STORE, type ObjectStore } from '../../ports';
+import { ProfileProjection } from '../people/profile.projection';
 import {
   VisibilityFilter,
   type Decision,
@@ -37,6 +38,7 @@ export class PostQueryService {
     @Inject(VisibilityFilter) private readonly visibility: VisibilityFilter,
     @Inject(PlaceRepository) private readonly places: PlaceRepository,
     @Inject(OBJECT_STORE) private readonly store: ObjectStore,
+    @Inject(ProfileProjection) private readonly profiles: ProfileProjection,
   ) {}
 
   /**
@@ -65,11 +67,9 @@ export class PostQueryService {
 
     return {
       postId: post.postId,
-      author: {
-        userId: post.authorId,
-        handle: author?.handle ?? 'unknown',
-        displayName: author?.displayName ?? 'Unknown',
-      },
+      // 008/US5. THE one projection - `avatarUrl` reaches every surface that
+      // shows a person, presigned, instead of one surface as a raw storage key.
+      author: await this.profiles.fromPerson(post.authorId, author ?? null),
       ...(post.caption === undefined ? {} : { caption: post.caption }),
       // FR-006 guarantees at least one interest, so a missing catalogue row is
       // a broken reference rather than an empty list. Dropping it silently

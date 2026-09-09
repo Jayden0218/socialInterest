@@ -240,7 +240,7 @@ export function PostCard({
         ) : null}
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>
-          <Avatar userId={post.author.userId} displayName={post.author.displayName} size={18} />
+          <Avatar userId={post.author.userId} displayName={post.author.displayName} url={post.author.avatarUrl} size={18} />
           {/*
             The DISPLAY NAME, not the handle.
 

@@ -8,6 +8,8 @@ import { PagedPostList, type PagedState } from '../../components/PagedPostList';
 export interface ProfileData {
   handle: string;
   displayName: string;
+  /** 008/FR-017. A presigned url, or null for the derived initial (FR-019). */
+  avatarUrl?: string | null;
   bio: string | null;
   followerCount: number;
   followingCount: number;
@@ -196,7 +198,12 @@ export function ProfileScreen({
 
       <View style={{ paddingHorizontal: space.lg, paddingTop: space.sm }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
-          <Avatar userId={profile.handle} displayName={profile.displayName} size={74} />
+          <Avatar
+            userId={profile.handle}
+            displayName={profile.displayName}
+            url={profile.avatarUrl ?? null}
+            size={74}
+          />
           <View style={{ flexGrow: 1, flexDirection: 'row', justifyContent: 'space-around' }}>
             <Stat testID="follower-count" value={profile.followerCount} label="followers" />
             <Stat testID="following-count" value={profile.followingCount} label="following" />

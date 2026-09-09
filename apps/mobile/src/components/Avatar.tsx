@@ -1,4 +1,4 @@
-import { Text, View } from 'react-native';
+import { Image, Text, View } from 'react-native';
 import { oklch, stableHash } from '../ui/color';
 import { useTheme } from '../ui/useTheme';
 import { radius, type as typeScale } from '../ui/tokens';
@@ -6,10 +6,15 @@ import { radius, type as typeScale } from '../ui/tokens';
 /**
  * 006/FR-009, FR-010, R5. A person, visible wherever they are named.
  *
- * GENERATED, NEVER FETCHED. There is no avatar upload in this product, and
- * adding one is storage, moderation and an endpoint - a separate feature. A
- * stable generated avatar meets the requirement now and is replaced by an image
- * later without touching a single call site.
+ * 008/US5 — AN IMAGE WHEN THERE IS ONE, THE GENERATED DISC WHEN THERE IS NOT.
+ *
+ * The comment here used to read "GENERATED, NEVER FETCHED ... replaced by an
+ * image later without touching a single call site", and that prediction was
+ * exactly right: this is the later, and no call site changed.
+ *
+ * FR-019 is the half that must not regress. A person with no avatar sees the
+ * same derived initial they always have — the server sends `null`, not an empty
+ * string, precisely so this branch is unambiguous.
  *
  * No third-party service (G3). Gravatar and friends would leak an identifier to
  * someone else on every render, in a product whose constitution is largely about
@@ -22,10 +27,13 @@ export function Avatar({
   userId,
   displayName,
   size = 36,
+  url,
 }: {
   userId: string;
   displayName: string;
   size?: number;
+  /** 008/FR-017. A presigned GET url, or null/absent for the derived initial. */
+  url?: string | null;
 }) {
   const palette = useTheme();
   const hue = stableHash(userId) % 360;
@@ -40,6 +48,56 @@ export function Avatar({
    * least likely to be in a test fixture.
    */
   const initial = ([...displayName.trim()][0] ?? '?').toUpperCase();
+
+  /**
+   * The SAME testID either way.
+   *
+   * `avatar-<userId>` is an interface (006/FR-027) and a device flow must not
+   * have to know whether this person uploaded a photograph. Whether the disc
+   * holds an image or a letter is the product's business, not the selector's.
+   */
+  if (url) {
+    return (
+      /**
+       * THE WRAPPER CARRIES THE TESTID AND IS NOT HIDDEN, exactly as the
+       * generated branch below does it — and for the reason that branch already
+       * documents at length.
+       *
+       * The first version of this put `accessibilityElementsHidden` on the
+       * `Image` ITSELF, alongside its testID. An element hidden from
+       * accessibility is invisible to `getByTestId` AND to Maestro, so
+       * `avatar-<userId>` became a handle no test and no device flow could
+       * select — for people who HAVE an avatar only, which is the half a fixture
+       * of faceless test accounts would never exercise.
+       *
+       * The comment below warned about this and I reproduced it one branch over.
+       * It was caught by the test written alongside, which is the only reason it
+       * is not in the next device run.
+       */
+      <View
+        testID={`avatar-${userId}`}
+        style={{
+          width: size,
+          height: size,
+          borderRadius: radius.pill,
+          backgroundColor: background,
+          overflow: 'hidden',
+        }}
+      >
+        <Image
+          testID={`avatar-image-${userId}`}
+          source={{ uri: url }}
+          resizeMode="cover"
+          // Decorative: the name is read from the Text beside it, as with the
+          // initial below. `accessible={false}` says that without making the
+          // node unselectable, which is the distinction the wrapper preserves.
+          accessible={false}
+          accessibilityIgnoresInvertColors
+          style={{ width: '100%', height: '100%' }}
+        />
+      </View>
+    );
+  }
 
   return (
     <View

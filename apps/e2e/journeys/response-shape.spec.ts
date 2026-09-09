@@ -3,6 +3,7 @@ import { baseUrl } from '../support/base-url';
 import { raw } from '../support/http';
 import { eventually } from '../support/eventually';
 import { publishReadyImage } from '../support/publish';
+import { jpegPlain } from '../support/media';
 import type { Post } from '@sih/shared';
 
 /**
@@ -336,10 +337,22 @@ const DECLARED_FIELDS: readonly DeclaredField[] = [
   },
   {
     path: 'PublicProfile.avatarUrl',
-    writer: '008/US5 (T083) - PATCH /me accepts avatarUploadId',
-    hasWriter: false,
+    writer: '008/US5 (T082) - PATCH /me accepts avatarUploadId',
+    hasWriter: true,
     observe: async () => {
-      throw new Error('no writer yet - this observer lands with 008/US5');
+      const me = await actor('avatarField');
+      const bytes = jpegPlain();
+      const target = await me.data.posts.createUploadTarget({
+        kind: 'avatar',
+        contentType: 'image/jpeg',
+        sizeBytes: bytes.byteLength,
+      });
+      await me.data.posts.uploadBytes(target, bytes, 'image/jpeg');
+      await me.data.session.updateProfile({ avatarUploadId: target.uploadId });
+      // Read back from a DIFFERENT surface than the one that wrote it, so a
+      // PATCH echoing its own input would not satisfy this.
+      const viewer = await actor('avatarFieldViewer');
+      return (await viewer.data.people.get(me.handle)).avatarUrl ?? null;
     },
   },
 ];

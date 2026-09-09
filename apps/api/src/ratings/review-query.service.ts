@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { PersonRepository } from '../persistence/person.repository';
 import { RatingRepository, type RatingItem } from '../persistence/rating.repository';
 import { AuthoredContentVisibility } from '../visibility/authored-content';
+import { ProfileProjection, type ProfileSource } from '../modules/people/profile.projection';
 import type { Viewer } from '../visibility/visibility.filter';
 
 /**
@@ -25,6 +26,7 @@ export class ReviewQueryService {
     @Inject(RatingRepository) private readonly ratings: RatingRepository,
     @Inject(PersonRepository) private readonly people: PersonRepository,
     @Inject(AuthoredContentVisibility) private readonly visibility: AuthoredContentVisibility,
+    @Inject(ProfileProjection) private readonly profiles: ProfileProjection,
   ) {}
 
   /** One review, hydrated. The author is a profile, never an id. */
@@ -65,8 +67,10 @@ export class ReviewQueryService {
     );
 
     const authors = await Promise.all(visible.map((r) => this.people.findById(r.userId)));
-    const items = visible
-      .map((r, i) => (authors[i] ? this.hydrate(r, authors[i]!) : null))
+    const hydrated = await Promise.all(
+      visible.map((r, i) => (authors[i] ? this.hydrate(r, authors[i]!) : Promise.resolve(null))),
+    );
+    const items = hydrated
       .filter((r): r is Record<string, unknown> => r !== null)
       // A35's stated limit: the sort key is `RATING#<userId>`, so the datastore
       // returns them in user-id order. Sorted here, newest first, which is right
@@ -85,17 +89,13 @@ export class ReviewQueryService {
    * media record, and how six surfaces returned candidate rows. Adding a field to
    * `RatingItem` must not silently add it to the API.
    */
-  private hydrate(
-    item: RatingItem,
-    author: { userId: string; handle: string; displayName: string; avatarKey?: string | null },
-  ): Record<string, unknown> {
+  private async hydrate(item: RatingItem, author: ProfileSource): Promise<Record<string, unknown>> {
     return {
       placeId: item.placeId,
-      author: {
-        userId: author.userId,
-        handle: author.handle,
-        displayName: author.displayName,
-      },
+      // 008/US5. One projection. `avatarKey` was already threaded into this
+      // function's signature and then DROPPED on the next line - the shape of
+      // near-miss this story exists to end.
+      author: await this.profiles.toPublicProfile(author),
       score: item.score,
       body: item.body,
       createdAt: item.createdAt,

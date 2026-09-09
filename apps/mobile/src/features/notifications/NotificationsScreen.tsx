@@ -105,7 +105,7 @@ function NotificationRow({
         paddingVertical: space.sm,
       }}
     >
-      <Avatar userId={notification.actor.userId} displayName={notification.actor.displayName} size={42} />
+      <Avatar userId={notification.actor.userId} displayName={notification.actor.displayName} url={notification.actor.avatarUrl} size={42} />
 
       <Text
         accessibilityRole="button"

@@ -67,6 +67,15 @@ export class SessionData {
     displayName?: string;
     bio?: string;
     notificationPrefs?: Partial<NotificationPrefs>;
+    /**
+     * 008/FR-017. An UPLOAD ID, never a key - the server reads the key from the
+     * record it issued (002's second defect was a client-supplied key letting a
+     * post point at another person's media).
+     *
+     * `null` REMOVES the avatar; absent leaves it alone. Both are needed, and
+     * `undefined` cannot mean both without one of them silently losing.
+     */
+    avatarUploadId?: string | null;
   }): Promise<MyProfile> {
     return this.client.call<MyProfile>('patchMe', { body: patch });
   }

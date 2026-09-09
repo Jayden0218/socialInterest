@@ -225,26 +225,26 @@ not 403)** on all seven profile-bearing responses.
 
 ### Tests for User Story 5
 
-- [ ] T070 [P] [US5] Write `apps/e2e/journeys/avatar-everywhere.spec.ts`: set an avatar, then assert a fetchable `avatarUrl` on post author, comment author, review author, conversation participant, notification actor, people search and own profile (SC-008). **Fetch the URL** — presence of a string is what the current code would pass.
-- [ ] T071 [P] [US5] Write `apps/api/tests/unit/one-profile-projection.spec.ts`: no module outside `profile.projection.ts` constructs an object literal carrying both `handle` and `displayName`. Strip comments line-by-line before scanning.
-- [ ] T072 [US5] Verify T071 RED: hand-build a `PublicProfile` literal in one service, watch `one-profile-projection.spec.ts` fail, revert, and record the commit in `docs/verification/008-guard-red-log.md`. Without this, T220 demands a log entry nobody was scheduled to produce.
-- [ ] T073 [P] [US5] Write `apps/api/tests/integration/avatar-key-is-server-derived.spec.ts`: a client-supplied key in the patch body is ignored (002's second defect let a post point at another person's media).
+- [X] T070 [P] [US5] Write `apps/e2e/journeys/avatar-everywhere.spec.ts`: set an avatar, then assert a fetchable `avatarUrl` on post author, comment author, review author, conversation participant, notification actor, people search and own profile (SC-008). **Fetch the URL** — presence of a string is what the current code would pass.
+- [X] T071 [P] [US5] Write `apps/api/tests/unit/one-profile-projection.spec.ts`: no module outside `profile.projection.ts` constructs an object literal carrying both `handle` and `displayName`. Strip comments line-by-line before scanning.
+- [X] T072 [US5] Verify T071 RED: hand-build a `PublicProfile` literal in one service, watch `one-profile-projection.spec.ts` fail, revert, and record the commit in `docs/verification/008-guard-red-log.md`. Without this, T220 demands a log entry nobody was scheduled to produce.
+- [X] T073 [P] [US5] Write `apps/api/tests/integration/avatar-key-is-server-derived.spec.ts`: a client-supplied key in the patch body is ignored (002's second defect let a post point at another person's media).
 
 ### Implementation for User Story 5
 
-- [ ] T074 [US5] Create `apps/api/src/modules/people/profile.projection.ts` with `toPublicProfile()`, presigning `avatarKey` through the same `presignedGetUrl` used by `toMediaItem` — **after** any visibility decision, never before (006/R4b).
-- [ ] T075 [US5] Route `apps/api/src/modules/posts/post-query.service.ts` through the projection.
-- [ ] T076 [P] [US5] Route `apps/api/src/modules/engagement/comment.service.ts` through the projection.
-- [ ] T077 [P] [US5] Route `apps/api/src/modules/notifications/notification.service.ts` through the projection.
-- [ ] T078 [P] [US5] Route `apps/api/src/modules/conversations/conversation.service.ts` through the projection.
-- [ ] T079 [P] [US5] Route `apps/api/src/ratings/review-query.service.ts` through the projection.
-- [ ] T080 [US5] Route `apps/api/src/modules/people/person.controller.ts` through the projection and **delete** `avatarUrl: p.avatarKey` at line 42 — the raw-key emission.
-- [ ] T081 [US5] Route `apps/api/src/modules/people/me.controller.ts` through the projection; `GET /v1/me` currently returns no `avatarUrl` at all.
-- [ ] T082 [US5] Accept `avatarUploadId` in `me.controller.ts`'s patch schema; resolve it against the server's own upload record and write `avatarKey` via `updateProfile` (FR-017). Removal is `avatarUploadId: null`.
-- [ ] T083 [US5] Confirm the avatar upload passes the same stripping and processing path as any other image (FR-018) — `upload.service.ts:78` already maps kind `avatar` to `image`; assert it rather than assume it.
-- [ ] T084 [US5] Confirm the derived-initial fallback still renders for a person with no avatar (FR-019) in `Avatar`, which lives in `apps/mobile/src/ui/primitives.tsx` — there is no `ui/Avatar.tsx` — including `allowFontScaling={false}` on that glyph — the one exception the Avatar guard permits, and the guard asserts it is still there so deleting it cannot make the build pass.
-- [ ] T085 [US5] Add avatar set/remove to `apps/mobile/src/features/profile/EditProfileScreen.tsx`, using `expo install`-provisioned modules only. `pnpm add` took `expo-image-picker@57` against SDK 54 and killed the app at module registration; `node_modules/.../expo/bundledNativeModules.json` is authoritative when the Expo API is unreachable from here.
-- [ ] T086 [US5] Add `.maestro/27-set-avatar.yaml` asserting `PATCH /v1/me` **200** and a subsequent profile fetch carrying a fetchable avatar URL.
+- [X] T074 [US5] Create `apps/api/src/modules/people/profile.projection.ts` with `toPublicProfile()`, presigning `avatarKey` through the same `presignedGetUrl` used by `toMediaItem` — **after** any visibility decision, never before (006/R4b).
+- [X] T075 [US5] Route `apps/api/src/modules/posts/post-query.service.ts` through the projection.
+- [X] T076 [P] [US5] Route `apps/api/src/modules/engagement/comment.service.ts` through the projection.
+- [X] T077 [P] [US5] Route `apps/api/src/modules/notifications/notification.service.ts` through the projection.
+- [X] T078 [P] [US5] Route `apps/api/src/modules/conversations/conversation.service.ts` through the projection.
+- [X] T079 [P] [US5] Route `apps/api/src/ratings/review-query.service.ts` through the projection.
+- [X] T080 [US5] Route `apps/api/src/modules/people/person.controller.ts` through the projection and **delete** `avatarUrl: p.avatarKey` at line 42 — the raw-key emission.
+- [X] T081 [US5] Route `apps/api/src/modules/people/me.controller.ts` through the projection; `GET /v1/me` currently returns no `avatarUrl` at all.
+- [X] T082 [US5] Accept `avatarUploadId` in `me.controller.ts`'s patch schema; resolve it against the server's own upload record and write `avatarKey` via `updateProfile` (FR-017). Removal is `avatarUploadId: null`.
+- [X] T083 [US5] Confirm the avatar upload passes the same stripping and processing path as any other image (FR-018) — `upload.service.ts:78` already maps kind `avatar` to `image`; assert it rather than assume it.
+- [X] T084 [US5] Confirm the derived-initial fallback still renders for a person with no avatar (FR-019) in `Avatar`, which lives in `apps/mobile/src/ui/primitives.tsx` — there is no `ui/Avatar.tsx` — including `allowFontScaling={false}` on that glyph — the one exception the Avatar guard permits, and the guard asserts it is still there so deleting it cannot make the build pass.
+- [X] T085 [US5] Add avatar set/remove to `apps/mobile/src/features/profile/EditProfileScreen.tsx`, using `expo install`-provisioned modules only. `pnpm add` took `expo-image-picker@57` against SDK 54 and killed the app at module registration; `node_modules/.../expo/bundledNativeModules.json` is authoritative when the Expo API is unreachable from here.
+- [X] T086 [US5] Add `.maestro/27-set-avatar.yaml` asserting `PATCH /v1/me` **200** and a subsequent profile fetch carrying a fetchable avatar URL.
 
 **Checkpoint**: US5 shippable; one projection, seven call sites, a fetchable URL.
 

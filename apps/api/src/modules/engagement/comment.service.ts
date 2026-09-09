@@ -5,6 +5,7 @@ import { CommentRepository, type CommentItem } from '../../persistence/comment.r
 import { PostRepository } from '../../persistence/post.repository';
 import { PersonRepository } from '../../persistence/person.repository';
 import { PostQueryService } from '../posts/post-query.service';
+import { ProfileProjection } from '../people/profile.projection';
 import type { Viewer } from '../../visibility/visibility.filter';
 import { EVENT_BUS, type EventBus } from '../../ports';
 
@@ -21,6 +22,7 @@ export class CommentService {
     @Inject(PostQueryService) private readonly queries: PostQueryService,
     @Inject(PersonRepository) private readonly people: PersonRepository,
     @Inject(EVENT_BUS) private readonly events: EventBus,
+    @Inject(ProfileProjection) private readonly profiles: ProfileProjection,
   ) {}
 
   /**
@@ -41,19 +43,15 @@ export class CommentService {
         p,
       ]),
     );
-    return items.map((c) => {
-      const p = profiles.get(c.authorId);
-      return {
+    return Promise.all(
+      items.map(async (c) => ({
         commentId: c.commentId,
-        author: {
-          userId: c.authorId,
-          handle: p?.handle ?? 'unknown',
-          displayName: p?.displayName ?? 'Unknown',
-        },
+        // 008/US5. One projection, so a comment author has a face too.
+        author: await this.profiles.fromPerson(c.authorId, profiles.get(c.authorId) ?? null),
         body: c.body,
         createdAt: c.createdAt,
-      };
-    });
+      })),
+    );
   }
 
   /** Gate on the POST, through the one visibility boundary. */

@@ -112,6 +112,7 @@ export function ConversationScreen({
         <Avatar
           userId={conversation.conversationId}
           displayName={conversationTitle(conversation)}
+          url={conversation.other?.avatarUrl ?? null}
           size={34}
         />
         <View style={{ flexGrow: 1, flexShrink: 1, gap: 1 }}>

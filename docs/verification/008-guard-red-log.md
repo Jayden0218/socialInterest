@@ -109,9 +109,33 @@ violation (004), and a doc comment making one accuse a correct file (007).
 
 ---
 
+## T071 — `apps/api/tests/unit/one-profile-projection.spec.ts`
+
+**Guards**: SC-008. No module outside `profile.projection.ts` builds a `PublicProfile` by hand.
+
+| | |
+|---|---|
+| **Observed red** | 2026-09-09, **against the product as it stands** |
+| **Change that broke it** | none — the defect was live, in nine places |
+| **What it said** | nine locations across seven files, each `path:line` |
+
+Like T008, this needed nothing broken on purpose. Nine hand-written projections existed and
+`avatarUrl` appeared on exactly one of them, as a raw storage key.
+
+**Its FIRST version matched a single line and caught only seven of the nine** — silently
+passing over `post-query.service.ts`, `comment.service.ts` and `person.controller.ts`, the
+multi-line ones, **including the file that emitted the raw key**. A guard that finds most of a
+defect is how the rest of it survives. Widened to a line window, it found all nine.
+
+It then produced one **false positive** on a type annotation (`author: { handle: string;
+displayName: string }`), and that was useful too: the honest fix was to use the projection's
+own `ProfileSource` type rather than restate the shape, so the false positive found a real
+duplication before being excluded.
+
+---
+
 ## Pending
 
 | Guard | Task | Verified red by |
 |---|---|---|
-| `one-profile-projection.spec.ts` | T071 | T072 |
 | `search-records-no-signals.spec.ts` | T087 | T104 |

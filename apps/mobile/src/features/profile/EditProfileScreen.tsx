@@ -1,6 +1,7 @@
 import { Pressable, Switch, Text, View } from 'react-native';
 import { activePalette as palette, radius, space, textStyle, MIN_TOUCH_TARGET } from '../../ui/theme';
 import { Banner, Button, Field, Row, Screen } from '../../ui/primitives';
+import { Avatar } from '../../components/Avatar';
 
 import type { NotificationPrefs } from '../../data/session';
 import { NOTIFICATION_CATEGORIES } from '../notifications/NotificationsScreen';
@@ -11,6 +12,13 @@ export interface ProfileDraft {
   displayName: string;
   bio: string;
   notificationPrefs: NotificationPrefs;
+  /**
+   * 008/US5. Needed only so the avatar preview uses the SHARED `Avatar`, whose
+   * colour and testID are both seeded from the person's id. Passing a different
+   * id here would give the preview a different colour from every other surface,
+   * which is the kind of drift one shared component exists to prevent.
+   */
+  userId: string;
 }
 
 /**
@@ -71,9 +79,18 @@ export function EditProfileScreen({
   onSave,
   onClearFeedSignals,
   onDeleteAccount,
+  avatarUrl,
+  onChangeAvatar,
+  onRemoveAvatar,
+  avatarBusy,
 }: {
   draft: ProfileDraft;
   saving?: boolean;
+  /** 008/FR-017, FR-019. Null renders the derived initial, as it always has. */
+  avatarUrl?: string | null;
+  onChangeAvatar?: () => void;
+  onRemoveAvatar?: () => void;
+  avatarBusy?: boolean;
   /** FR-011. Absent while it loads, and absent in tests that do not need it. */
   feedSignals?: FeedSignalSummary | null;
   clearingSignals?: boolean;
@@ -149,6 +166,53 @@ export function EditProfileScreen({
           </Text>
         </Pressable>
       </View>
+
+      {/*
+        008/FR-017 — SET OR REMOVE A PROFILE PICTURE.
+        
+        `avatarKey` has existed on the person item, `media.limits.ts` has had an
+        `avatar` entry, and `POST /v1/media/uploads` has accepted kind `avatar`
+        since 001. Nothing could set one: the upload half was built and the
+        setting half never was. This is that half.
+        
+        FR-019: with no avatar, `Avatar` renders the derived initial exactly as
+        before — the control changes what a person CAN do, not what they see when
+        they have not done it.
+      */}
+      {onChangeAvatar ? (
+        <View
+          testID="avatar-editor"
+          style={{ alignItems: 'center', gap: space.sm, paddingTop: space.lg }}
+        >
+          {/* The shared Avatar, so the preview cannot drift from every other
+              surface - and its own testID `avatar-<userId>` is unchanged
+              whether it holds a photograph or the derived initial. */}
+          <Avatar
+            userId={draft.userId}
+            displayName={draft.displayName}
+            {...(avatarUrl ? { url: avatarUrl } : {})}
+            size={72}
+          />
+          <Row style={{ gap: space.sm }}>
+            <Button
+              testID="change-avatar"
+              label={avatarBusy ? 'Uploading…' : avatarUrl ? 'Change photo' : 'Add photo'}
+              variant="secondary"
+              disabled={avatarBusy === true}
+              onPress={onChangeAvatar}
+            />
+            {avatarUrl && onRemoveAvatar ? (
+              <Button
+                testID="remove-avatar"
+                label="Remove"
+                variant="secondary"
+                disabled={avatarBusy === true}
+                onPress={onRemoveAvatar}
+              />
+            ) : null}
+          </Row>
+        </View>
+      ) : null}
 
       <View style={{ paddingHorizontal: space.lg, paddingTop: space.md, gap: 14 }}>
         <LabelledField

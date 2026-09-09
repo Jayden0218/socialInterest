@@ -47,8 +47,6 @@ paths:
 #   Phase A
 #     [ ] GET    /notifications                   + readAt populated, unreadCount
 #   Phase B
-#     [ ] PATCH  /me                              + avatarUploadId (008/FR-017)
-#     [ ] (every profile-bearing response)        + avatarUrl, presigned (FR-019)
 #     [ ] GET    /search/posts                    008/FR-020..FR-022
 #   Phase C
 #     [ ] POST   /posts/{postId}/comments         + parentCommentId (FR-023)
@@ -1491,7 +1489,18 @@ components:
         userId: { type: string }
         handle: { type: string }
         displayName: { type: string }
-        avatarUrl: { type: string, nullable: true }
+        avatarUrl:
+          type: string
+          nullable: true
+          description: >
+            008/US5. A PRESIGNED GET url, issued at projection time — after the
+            boundary has decided the viewer may have the thing this profile is
+            attached to (006/R4b).
+
+            NOT a storage key. It was emitted as one on exactly one of seven
+            projections before 008, which a private bucket answers 403 to; and
+            `null`, not absent or empty, when the person has none, so a client
+            renders the derived initial rather than an image pointed at nothing.
         bio: { type: string, nullable: true }
         followerCount: { type: integer }
         followingCount: { type: integer }
@@ -1530,7 +1539,24 @@ components:
       properties:
         displayName: { type: string, minLength: 1, maxLength: 50 }
         bio: { type: string, maxLength: 300 }
-        avatarUploadId: { type: string }
+        avatarUploadId:
+          type: string
+          nullable: true
+          description: >
+            008/FR-017. An UPLOAD ID, never a key: the server reads the key from
+            the record it issued, because 002's second defect was a
+            client-supplied key letting a post point at another person's media.
+            An upload issued to somebody else is 404; a video upload is 409.
+
+            `null` REMOVES the avatar; absent leaves it alone. Both are needed,
+            and one value cannot mean both without the other silently losing.
+
+            **This field was declared here before 008 and nothing implemented
+            it** — as was `avatarUrl` on PublicProfile. The contract, the shared
+            type and the generated client all carried the promise; only the
+            server did not. That is the pattern 008 exists to end, and it is
+            recorded here because a contract is exactly where such a promise
+            hides best.
         notificationPrefs:
           type: object
           description: >

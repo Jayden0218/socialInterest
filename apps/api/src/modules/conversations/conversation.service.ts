@@ -10,6 +10,7 @@ import {
   ConversationRepository,
   type ConversationItem,
 } from '../../persistence/conversation.repository';
+import { ProfileProjection } from '../people/profile.projection';
 import { MessageRepository, type MessageItem } from '../../persistence/message.repository';
 import { PersonRepository } from '../../persistence/person.repository';
 import { PersonFollowRepository } from '../../persistence/person-follow.repository';
@@ -29,6 +30,7 @@ export class ConversationService {
     @Inject(BlockRepository) private readonly blocks: BlockRepository,
     @Inject(ConversationAccess) private readonly access: ConversationAccess,
     @Inject(EVENT_BUS) private readonly events: EventBus,
+    @Inject(ProfileProjection) private readonly profiles: ProfileProjection,
   ) {}
 
   /**
@@ -162,15 +164,14 @@ export class ConversationService {
       page.items.map((i) => this.conversations.find(i.conversationId)),
     );
     return {
-      items: page.items.map((row, i) => {
+      items: await Promise.all(page.items.map(async (row, i) => {
         const other = others[i];
         const meta = metas[i];
         return {
           conversationId: row.conversationId,
+          // 008/US5. One projection, so the person you are talking to has a face.
           other: row.otherUserId
-            ? (other
-                ? { userId: other.userId, handle: other.handle, displayName: other.displayName }
-                : { userId: row.otherUserId, handle: 'unavailable', displayName: 'Unavailable' })
+            ? await this.profiles.fromPerson(row.otherUserId, other ?? null)
             : null,
           // Absent on a legacy row, and a legacy row is always a pair.
           kind: meta?.kind ?? 'pair',
@@ -180,7 +181,7 @@ export class ConversationService {
           lastMessagePreview: row.lastMessagePreview ?? null,
           unreadCount: row.unreadCount ?? 0,
         };
-      }),
+      })),
       nextCursor: page.nextCursor,
     };
   }
@@ -215,11 +216,7 @@ export class ConversationService {
       // Null for a group: there is no single other person. Kept populated for
       // every pair so a client built against the 004 contract still works.
       other:
-        isGroup || !otherId
-          ? null
-          : other
-            ? { userId: other.userId, handle: other.handle, displayName: other.displayName }
-            : { userId: otherId, handle: 'unavailable', displayName: 'Unavailable' },
+        isGroup || !otherId ? null : await this.profiles.fromPerson(otherId, other ?? null),
       kind: item.kind ?? 'pair',
       name: item.nameRemovedByModeration ? null : (item.name ?? null),
       // The VIEWER's state, which for a group is the only one that means
@@ -232,16 +229,13 @@ export class ConversationService {
       initiatedByViewer: item.initiatorId === viewerId,
       ...(isGroup
         ? {
-            participants: members.map((m, i) => {
-              const person = people[i];
-              return {
-                person: person
-                  ? { userId: person.userId, handle: person.handle, displayName: person.displayName }
-                  : { userId: m.userId, handle: 'unavailable', displayName: 'Unavailable' },
+            participants: await Promise.all(
+              members.map(async (m, i) => ({
+                person: await this.profiles.fromPerson(m.userId, people[i] ?? null),
                 state: m.state,
                 joinedAt: m.joinedAt,
-              };
-            }),
+              })),
+            ),
           }
         : {}),
     };

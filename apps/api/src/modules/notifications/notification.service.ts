@@ -5,6 +5,7 @@ import { PersonRepository } from '../../persistence/person.repository';
 import { PostRepository } from '../../persistence/post.repository';
 import { ConversationRepository } from '../../persistence/conversation.repository';
 import { PostQueryService } from '../posts/post-query.service';
+import { ProfileProjection } from '../people/profile.projection';
 import { EVENT_BUS, type EventBus } from '../../ports';
 
 /**
@@ -30,6 +31,7 @@ export class NotificationService implements OnModuleInit {
     @Inject(PostQueryService) private readonly queries: PostQueryService,
     @Inject(ConversationRepository) private readonly conversations: ConversationRepository,
     @Inject(EVENT_BUS) private readonly events: EventBus,
+    @Inject(ProfileProjection) private readonly profiles: ProfileProjection,
   ) {}
 
   onModuleInit(): void {
@@ -211,16 +213,12 @@ export class NotificationService implements OnModuleInit {
         p,
       ]),
     );
-    return items.map((n) => {
-      const p = profiles.get(n.actorId);
+    return Promise.all(items.map(async (n) => {
       return {
         notificationId: n.notificationId,
         kind: n.kind,
-        actor: {
-          userId: n.actorId,
-          handle: p?.handle ?? 'unknown',
-          displayName: p?.displayName ?? 'Unknown',
-        },
+        // 008/US5. One projection.
+        actor: await this.profiles.fromPerson(n.actorId, profiles.get(n.actorId) ?? null),
         postId: n.postId ?? null,
         postThumbUrl: n.postId ? (thumbs.get(n.postId) ?? null) : null,
         createdAt: n.createdAt,
@@ -235,7 +233,7 @@ export class NotificationService implements OnModuleInit {
          */
         readAt: deriveReadAt(n.createdAt, lastReadAt),
       };
-    });
+    }));
   }
 }
 

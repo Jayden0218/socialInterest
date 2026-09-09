@@ -230,6 +230,9 @@ function ConversationRow({
       <Avatar
         userId={item.other?.userId ?? item.conversationId}
         displayName={title}
+        // A GROUP has no single other person, so no single face. The derived
+        // disc, seeded by the conversation id, is the honest answer there.
+        url={item.other?.avatarUrl ?? null}
         size={50}
       />
 

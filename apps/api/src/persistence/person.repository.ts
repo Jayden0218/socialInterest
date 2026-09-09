@@ -138,7 +138,16 @@ export class PersonRepository extends BaseRepository {
 
   async updateProfile(
     userId: string,
-    patch: Partial<Pick<PersonItem, 'displayName' | 'bio' | 'avatarKey' | 'notificationPrefs'>>,
+    /**
+     * 008/FR-017. `avatarKey: null` REMOVES it; absent leaves it alone.
+     *
+     * The two have to be different, or removing a profile picture would be
+     * impossible to express - and `undefined` cannot mean both "unchanged" and
+     * "clear it" without one of them silently losing.
+     */
+    patch: Partial<Pick<PersonItem, 'displayName' | 'bio' | 'notificationPrefs'>> & {
+      avatarKey?: string | null;
+    },
   ): Promise<void> {
     const person = await this.findById(userId);
     if (!person) throw new Error(`person ${userId} not found`);
@@ -149,6 +158,10 @@ export class PersonRepository extends BaseRepository {
       type: 'Person',
       ...person,
       ...patch,
+      // An explicit null clears the attribute rather than storing a null, which
+      // would then read back as "has an avatar" to anything doing a truthiness
+      // check on the key's presence.
+      ...(patch.avatarKey === null ? { avatarKey: undefined } : {}),
       // Rewritten on every profile edit, or a renamed person stays findable
       // only under the name they used to have.
       displayNameLower: (patch.displayName ?? person.displayName).toLowerCase(),
