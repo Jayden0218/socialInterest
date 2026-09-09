@@ -23,6 +23,7 @@ import type {
   Review,
 } from '@sih/shared';
 import {
+  useFollowingFeed,
   useHomeFeed,
   useInterestSearch,
   useMarkNotificationsRead,
@@ -70,14 +71,29 @@ export function HomeFeedContainer({
    * exact mistake has been made here before.
    */
   const dwell = useDwell(data.signals);
-  const { state, error, loadMore } = useHomeFeed();
-  if (error) return <Failed message={error} />;
+  const [tab, setTab] = useState<'for-you' | 'following'>('for-you');
+  const ranked = useHomeFeed();
+  const following = useFollowingFeed();
+  const active = tab === 'for-you' ? ranked : following;
+  if (active.error) return <Failed message={active.error} />;
   return (
     <HomeFeedScreen
-      state={state}
-      onLoadMore={loadMore}
+      state={active.state}
+      onLoadMore={active.loadMore}
       onEmptyAction={onEmptyAction}
-      onViewableChanged={dwell.onViewableChanged}
+      tab={tab}
+      onSelectTab={setTab}
+      /**
+       * 008/FR-009 — THE DWELL HOOK IS ATTACHED TO THE RANKED TAB ONLY.
+       *
+       * FR-009 is a CLIENT obligation as well as a server one. The server
+       * records nothing on `GET /feed/following`, but dwell is measured on the
+       * device and posted to `/v1/signals` separately - so leaving this wired
+       * while Following was showing would train the ranked feed from the surface
+       * a person chose in order to avoid it. The structural guard on the server
+       * cannot see this; only this line and its journey can.
+       */
+      {...(tab === 'for-you' ? { onViewableChanged: dwell.onViewableChanged } : {})}
       renderPost={(post) => (
         <PostCard
           post={post}
@@ -87,8 +103,10 @@ export function HomeFeedContainer({
              * FR-010: this records that the post was opened. It does NOT show
              * the person why it was ranked where it was - no browse or post
              * surface may. The disclosure lives in Settings and nowhere else.
+             *
+             * 008/FR-009: not on the Following tab, for the reason above.
              */
-            dwell.record({ kind: 'open', postId });
+            if (tab === 'for-you') dwell.record({ kind: 'open', postId });
             onOpenPost(postId);
           }}
         />

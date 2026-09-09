@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { FeedController } from './feed.controller';
 import { FeedService } from './feed.service';
+import { FollowingFeedService } from './following-feed.service';
 
 import { InterestFollowService } from '../interests/interest-follow.service';
 import { PersonFollowService } from '../people/person-follow.service';
@@ -15,7 +16,7 @@ import { RankingModule } from '../ranking/ranking.module';
 @Module({
   imports: [PostsModule, RankingModule],
   controllers: [FeedController],
-  providers: [FeedService, InterestFollowService, PersonFollowService],
-  exports: [FeedService, InterestFollowService, PersonFollowService],
+  providers: [FeedService, FollowingFeedService, InterestFollowService, PersonFollowService],
+  exports: [FeedService, FollowingFeedService, InterestFollowService, PersonFollowService],
 })
 export class FeedModule {}

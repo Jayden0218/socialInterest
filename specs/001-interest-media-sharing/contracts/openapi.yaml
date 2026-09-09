@@ -46,7 +46,6 @@ paths:
 #
 #   Phase A
 #     [ ] GET    /notifications                   + readAt populated, unreadCount
-#     [ ] GET    /feed/following                  008/FR-008..FR-010
 #   Phase B
 #     [ ] PATCH  /me                              + avatarUploadId (008/FR-017)
 #     [ ] (every profile-bearing response)        + avatarUrl, presigned (FR-019)
@@ -484,6 +483,36 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/PostPage' }
+  /feed/following:
+    get:
+      tags: [Feed]
+      summary: Posts by the people you follow, newest first
+      description: >
+        008/FR-008, FR-009, FR-010. CHRONOLOGICAL AND UNRANKED, deliberately: it
+        exists to be the predictable alternative to the ranked home feed, and if
+        it ranked it would be a second "For you".
+
+        Reading it records NO behavioural signal (FR-009). A person who prefers
+        this surface must not still be training the feed they are avoiding.
+
+        Bounded by the 200-person follow cap: the fan-out is one query per
+        followed author, so without a cap the surface would have no stated worst
+        case.
+
+        `emptyStateHint` is `no_follows` for a viewer who follows nobody, and
+        null for one whose followed authors have simply not posted - two
+        different facts, and only the first gets an explanation.
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PostPage' }
+        '401': { $ref: '#/components/responses/Unauthorised' }
+
 
   /signals:
     post:

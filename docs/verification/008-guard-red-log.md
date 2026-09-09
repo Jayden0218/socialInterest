@@ -87,10 +87,31 @@ data layer and the stubs were wrong in the same way the type was. Only a request
 
 ---
 
+## T037 — `apps/api/tests/unit/following-feed-is-unranked.spec.ts`
+
+**Guards**: FR-009. `following-feed.service.ts` may not reach `SignalService`,
+`RankingService`, `CandidateSource`, or the ranker's tuning constants. Following exists to be
+the predictable alternative to the ranked feed; if reading it trained the ranker, choosing it
+would still feed the feed a person was avoiding.
+
+| | |
+|---|---|
+| **Observed red** | 2026-09-09, during 008/T048 |
+| **Change that broke it** | Added `import { RankingService } from '../ranking/ranking.service';` to the service |
+| **What it said** | `src/modules/feed/following-feed.service.ts:7 → RankingService` and `→ ranking.service` |
+| **Reverted** | yes, immediately; suite green again |
+
+The check lives in `tests/unit/support/forbidden-imports.ts` and is **shared with T087**,
+because FR-009 and FR-021 are literally the same requirement on two surfaces. Four
+independent copies of a comment-stripping import check is four places to get it wrong, and
+this project has been bitten in both directions — a comment making a guard pass over a real
+violation (004), and a doc comment making one accuse a correct file (007).
+
+---
+
 ## Pending
 
 | Guard | Task | Verified red by |
 |---|---|---|
-| `following-feed-is-unranked.spec.ts` | T037 | T048 |
 | `one-profile-projection.spec.ts` | T071 | T072 |
 | `search-records-no-signals.spec.ts` | T087 | T104 |

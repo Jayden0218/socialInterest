@@ -9,6 +9,19 @@ export function useHomeFeed(): PagedResult<Post> {
   return usePaged<Post>((cursor) => data.feed.home(cursor ? { cursor } : {}), []);
 }
 
+/**
+ * 008/FR-008. The Following feed - chronological, unranked.
+ *
+ * A separate hook rather than a parameter on `useHomeFeed`, so switching tabs
+ * cannot carry one surface's cursor into the other: the ranked feed's cursor is
+ * an opaque token holding what this session has been shown, and Following's is a
+ * timestamp. Feeding either to the other would repeat posts or skip them.
+ */
+export function useFollowingFeed(): PagedResult<Post> {
+  const data = useData();
+  return usePaged<Post>((cursor) => data.feed.following(cursor ? { cursor } : {}), []);
+}
+
 export function useInterestSearch(query: string): PagedResult<Interest> {
   const data = useData();
   return usePaged<Interest>(

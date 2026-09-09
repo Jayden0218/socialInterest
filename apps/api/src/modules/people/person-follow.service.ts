@@ -18,6 +18,26 @@ import { EVENT_BUS, type EventBus } from '../../ports';
  * followed interests only)", which 007 withdrew: a ranked feed has no
  * followed-interest set to be confined to.
  */
+/**
+ * 008/FR-008, research R3 — HOW MANY PEOPLE ONE PERSON MAY FOLLOW.
+ *
+ * A PRODUCT CONSTRAINT ARRIVING FROM A TECHNICAL BOUND, which is the kind of
+ * decision the constitution requires be written down rather than absorbed.
+ *
+ * The Following feed fans out one query per followed author and merge-sorts the
+ * results (A45). Without a cap that surface has no stated worst case, and
+ * "unbounded but probably fine" is exactly the claim this project's records
+ * exist to stop.
+ *
+ * 200 mirrors `MAX_FOLLOWED_INTERESTS` and the same 2s p95 budget that number
+ * was chosen against. Raising it without re-measuring the Following feed puts
+ * that budget at risk in the same way.
+ *
+ * Named in `specs/008-post-reach-and-depth/spec.md`'s Assumptions, because a
+ * limit a reader cannot find in the spec is a limit they meet as a bug.
+ */
+export const MAX_FOLLOWED_PEOPLE = 200;
+
 @Injectable()
 export class PersonFollowService {
   constructor(
@@ -45,6 +65,21 @@ export class PersonFollowService {
 
     if (await this.follows.isFollowing(followerId, followee.userId)) {
       return { alreadyFollowing: true };
+    }
+
+    /**
+     * 008/FR-008. Checked AFTER the idempotence check above, so somebody at the
+     * cap can still re-follow a person they already follow without being told
+     * they are full. Overfetched by one so "at the cap" and "over it" are the
+     * same answer.
+     */
+    const current = await this.follows.listFollowing(followerId, { limit: MAX_FOLLOWED_PEOPLE + 1 });
+    if (current.items.length >= MAX_FOLLOWED_PEOPLE) {
+      throw new DomainError(
+        HttpStatus.CONFLICT,
+        'Following limit reached',
+        `You can follow at most ${MAX_FOLLOWED_PEOPLE} people. Unfollow someone to make room.`,
+      );
     }
 
     await this.follows.follow(followerId, followee.userId);

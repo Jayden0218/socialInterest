@@ -73,6 +73,14 @@ export const SURFACES: readonly Surface[] = [
   // entirely lets the suite report a smaller green number while a surface is
   // uncovered. False is the honest value until T053 flips it.
   { name: 'place reviews', built: true, story: '005/US2 (T053)', kind: 'review' },
+
+  // ---- feature 008 adds one in Phase A.
+  //
+  // The Following feed reads across the follow graph rather than the interest
+  // partitions, so it is a NEW candidate source feeding the same boundary. That
+  // is precisely the shape Principle II's second clause governs: it selects, and
+  // `VisibilityFilter` still decides at read time, per request.
+  { name: 'following feed', built: true, story: '008/US3 (T043)' },
 ] as const;
 
 /**
@@ -105,6 +113,8 @@ export const EVER_BUILT: readonly string[] = [
   'in-interest search',
   // 005
   'place reviews',
+  // 008
+  'following feed',
 ];
 
 export const POST_STATE_COUNT = 7;

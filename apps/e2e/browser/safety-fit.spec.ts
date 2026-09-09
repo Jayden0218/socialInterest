@@ -153,6 +153,38 @@ describe('006/J-09 - the safety sheet on a short screen', () => {
       },
       control: '[data-testid="open-edit-profile"]',
     },
+    /**
+     * 008/US3, SC-017. The Following tab.
+     *
+     * A new control on the app's primary surface, and the one 008/Phase A adds
+     * to a screen that has to hold at 130% text. It sits in a two-item row under
+     * the title, so the risk is horizontal rather than vertical - which is why
+     * the assertion below checks both edges, and why measuring only the fold
+     * would have missed it.
+     */
+    {
+      name: 'feed following tab',
+      open: async (page) => {
+        await page.click('[data-testid="tab-feed"]');
+        await page.waitForSelector('[data-testid="feed-tab-following"]', { timeout: 30_000 });
+      },
+      control: '[data-testid="feed-tab-following"]',
+    },
+    /**
+     * 008/US2. The notifications surface, which now writes on view.
+     *
+     * Included because the surface gained behaviour rather than because it
+     * gained a control: a screen that fails to render is a screen that never
+     * marks anything read, and this is the cheapest place to notice.
+     */
+    {
+      name: 'notifications',
+      open: async (page) => {
+        await page.click('[data-testid="tab-notifications"]');
+        await page.waitForSelector('[data-testid="notifications-screen"]', { timeout: 30_000 });
+      },
+      control: '[data-testid="notifications-screen"]',
+    },
   ];
 
   it.each(SCREENS)('$name keeps its primary control reachable at 130% text on a 640pt screen', async ({ open, control }) => {

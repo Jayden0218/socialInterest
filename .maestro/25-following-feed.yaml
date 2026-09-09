@@ -1,0 +1,56 @@
+# 008/US3, T053 — THE FOLLOWING TAB IS REAL.
+#
+# It shipped in 007 rendered `disabled`, with a comment in the screen saying it
+# was not built. Honest, and still a control that did nothing for a whole
+# feature: 003 found the same shape on the profile, where the follow button was
+# wired to `() => undefined`, and the app could not demonstrate the premise of
+# its own non-negotiable Principle I.
+#
+# WHAT TO READ IN THE RUN AGGREGATE:
+#   GET /v1/feed/following  200
+# Its absence means the tab switched a local flag and never asked the server —
+# which is precisely the failure this flow exists to rule out, and which every
+# on-screen assertion below would pass through.
+#
+# NOT CHAINED to a flow that follows somebody. A toggle is not idempotent and
+# flows share ONE SERVER: 005 lost a run because `20-rate-place` chained
+# `16-place-page`, whose follow had already fired, so the chained tap UNFOLLOWED.
+# This flow only reads.
+appId: app.socialinterest
+---
+- runFlow: 01-sign-in.yaml
+- assertVisible:
+    id: "home-feed-screen"
+
+# Both tabs present, and Following REACHABLE — which is the whole change.
+- assertVisible:
+    id: "feed-tab-for-you"
+- assertVisible:
+    id: "feed-tab-following"
+
+- tapOn:
+    id: "feed-tab-following"
+
+# The surface answered. Either outcome is a pass, deliberately: a fresh device
+# account follows nobody, so the honest result is the empty state that says what
+# the surface is FOR (FR-010) — and a flow that failed on it would be failing on
+# the product working. What must have happened either way is the REQUEST, and
+# that is in the aggregate.
+- assertVisible:
+    id: "home-feed-screen"
+- assertNotVisible:
+    id: "load-error"
+
+# Back, and forward again. Two switches means two GET /v1/feed/following in the
+# aggregate, which is what distinguishes a tab wired to the server from one that
+# fetched once at mount and then flipped a local flag.
+- tapOn:
+    id: "feed-tab-for-you"
+- assertVisible:
+    id: "home-feed-screen"
+- tapOn:
+    id: "feed-tab-following"
+- assertVisible:
+    id: "home-feed-screen"
+- assertNotVisible:
+    id: "load-error"

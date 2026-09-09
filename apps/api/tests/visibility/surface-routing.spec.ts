@@ -2,6 +2,7 @@ import { VisibilityFilter } from '../../src/visibility/visibility.filter';
 import type { PersonFollowRepository } from '../../src/persistence/person-follow.repository';
 import type { BlockRepository } from '../../src/persistence/block.repository';
 import { PostQueryService } from '../../src/modules/posts/post-query.service';
+import { FollowingFeedService } from '../../src/modules/feed/following-feed.service';
 import { CommentService } from '../../src/modules/engagement/comment.service';
 import { NotificationService } from '../../src/modules/notifications/notification.service';
 import { FeedService } from '../../src/modules/feed/feed.service';
@@ -116,6 +117,35 @@ function build(): Ctx {
 }
 
 const PROBES: Probe[] = [
+  {
+    surface: 'following feed',
+    /**
+     * 008/US3. A NEW CANDIDATE SOURCE FEEDING THE SAME BOUNDARY.
+     *
+     * The Following feed reads the follow graph rather than the interest
+     * partitions, which is exactly the shape Principle II's second clause
+     * governs: a new way of SELECTING must not become a new way of DECIDING.
+     *
+     * The service is constructed with stubs rather than resolved from the
+     * module, like the comment and notification probes above and below - what is
+     * being asserted is that this code path reaches `filter`, and a real module
+     * would prove it more slowly and no more convincingly.
+     */
+    run: ({ filter, queries }) => {
+      const following = new FollowingFeedService(
+        {
+          listFollowing: async () => ({
+            items: [{ followerId: VIEWER.userId, followeeId: 'a1', followedAt: '2026-01-01T00:00:00Z' }],
+            nextCursor: null,
+          }),
+        } as never,
+        { listByAuthor: async () => ({ items: [post], nextCursor: null }) } as never,
+        queries,
+        filter,
+      );
+      return following.page(VIEWER);
+    },
+  },
   {
     surface: 'interest space',
     run: ({ queries }) => queries.listByInterest(VIEWER, 'i1'),

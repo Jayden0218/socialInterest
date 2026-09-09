@@ -365,23 +365,38 @@ describe('SC-005 review visibility (005 addendum)', () => {
     });
 
     it('and the surface list is fully covered by that claim', () => {
-      // Stated so the count is legible next to the 480 above: this is ONE
-      // assertion standing for all twelve surfaces, not twelve skipped ones.
-      expect(SURFACES.length).toBe(12);
-      expect(EVER_BUILT.length).toBe(12);
+      // Stated so the count is legible next to the total below: this is ONE
+      // assertion standing for every surface, not thirteen skipped ones.
+      //
+      // 12 -> 13 with 008/US3's Following feed. Raising this number is a
+      // DELIBERATE, reviewable edit and is meant to be: a surface added without
+      // touching it fails here, which is the only thing stopping the enumeration
+      // silently falling behind the product.
+      expect(SURFACES.length).toBe(13);
+      expect(EVER_BUILT.length).toBe(13);
     });
   });
 
   /**
-   * The combined number SC-005 is about: 462 post assertions + 18 review ones.
+   * The combined number SC-005 is about.
+   *
+   * 462 + 18 = 480 through 005. 008/US3 adds the Following feed, a twelfth POST
+   * surface: 12 x 7 x 6 = 504, plus the same 18 review assertions = 522.
+   *
    * Asserted only once the review surface is built, so an in-progress feature
    * reports a gap rather than turning the suite red for forty unrelated tasks.
+   *
+   * The number rising is the point. A bigger green number is NOT the goal on its
+   * own - 004 recorded that 462 assertions all running the same `decide()` would
+   * mean one function tested 66 times - which is why `surface-routing.spec.ts`
+   * demands a probe proving each surface CONSULTS the boundary before it may
+   * count here.
    */
   it('reports the combined SC-005 total', () => {
     if (!reviewSurface?.built) {
       console.log('\n  SC-005 is NOT closed: the review surface is still in progress.\n');
       return;
     }
-    expect(assertionsRun + reviewAssertionsRun).toBe(480);
+    expect(assertionsRun + reviewAssertionsRun).toBe(522);
   });
 });

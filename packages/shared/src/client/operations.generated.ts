@@ -1,7 +1,7 @@
 // GENERATED from specs/001-interest-media-sharing/contracts/openapi.yaml
 // Do not edit by hand. Run: pnpm --filter @sih/shared generate:client
 //
-// 64 operations across 47 paths.
+// 65 operations across 48 paths.
 
 export const operations = {
   getMe: { method: 'GET', path: '/me', auth: true }, // Current person's profile and preferences
@@ -25,6 +25,7 @@ export const operations = {
   patchPostsByPostId: { method: 'PATCH', path: '/posts/{postId}', auth: true }, // Edit caption, interests, or visibility
   deletePostsByPostId: { method: 'DELETE', path: '/posts/{postId}', auth: true }, // Delete a post
   getFeedHome: { method: 'GET', path: '/feed/home', auth: true }, // The caller's ranked home feed
+  getFeedFollowing: { method: 'GET', path: '/feed/following', auth: true }, // Posts by the people you follow, newest first
   postSignals: { method: 'POST', path: '/signals', auth: true }, // Record what the caller did with posts they were shown
   getMeFeedSignals: { method: 'GET', path: '/me/feed-signals', auth: true }, // What the caller's feed is built from
   deleteMeFeedSignals: { method: 'DELETE', path: '/me/feed-signals', auth: true }, // Clear everything the feed has learned about the caller

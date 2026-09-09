@@ -59,6 +59,7 @@ async function main(): Promise<void> {
      * caller with no token; a route that is not registered answers 404.
      */
     { name: 'mark notifications read (unauth)', path: '/v1/notifications/read', method: 'PUT', expect: [401] },
+    { name: 'following feed (unauth)', path: '/v1/feed/following', expect: [401] },
   ];
 
   let failed = 0;
