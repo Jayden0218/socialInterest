@@ -463,10 +463,32 @@ ten the whole time. Only a request finds the first; only a rendering test finds 
   by hand, every follow 404'd, and the feed was correctly empty. The helper asserts its own
   204 now: an unchecked setup call is how a test fails somewhere other than where it broke.
 
-### Still not verified for 008, and must be reported that way
+### PHASE A RUNS ON ANDROID: 23/23, run 49, 2026-09-09
 
-- **Phase A ON ANDROID.** Three flows exist (`23-multi-photo-post`, `24-notifications-read`,
-  `25-following-feed`) — see the run record for whether they have been executed.
+Record: `docs/verification/runs/2026-09-09-008-phase-a-device-record.md`. Booted in 63s, no
+retries, no device drop. Asserted through the SERVICE, and two of these lines did not exist
+in the product a day earlier: **`PUT /v1/notifications/read` 204 x4** (US2's writer) and
+**`GET /v1/feed/following` 200 x23** (US3's surface), plus **11 uploads for 9 posts** — one
+post carried three images end to end (US1). `docs/screens/android/05-home-feed.png` shows
+both feed tabs live and a **`1/3` badge** on the multi-photo card.
+
+**It took two runs and both of run 48's failures were mine.**
+
+- **A GLOBAL index in a testID.** Adding two sample images moved the video from
+  `media-item-video-1` to `-3`. The id already carried the KIND for exactly this reason and
+  still carried a global index — half a fix — and `verify-maestro-ids` passed the broken
+  selector, because **a computed index under a dynamic prefix is what it cannot see**. The
+  index is per-kind now, so sample media can never renumber it again.
+- **`MediaPager` mounted and collapsed to zero height** — no `flex` inside an `aspectRatio`
+  frame. **Nine component assertions were green throughout and none was wrong**: RNTL performs
+  NO LAYOUT, so a tree that mounts and a tree that occupies space are different claims and
+  only the first is testable there. Same shape as the profile grid 007 shipped.
+  **Measured before changing anything**: `browser/media-pager-fit.spec.ts` reproduced it in 38
+  seconds with the reason attached — `locator resolved to HIDDEN <div
+  data-testid="media-pager">` — where the emulator took 36 minutes to say "not visible". The
+  component tests fire `layout` explicitly now rather than hiding the dependency.
+
+### Still not verified for 008, and must be reported that way
 - **Native font scaling.** `safety-fit.spec.ts` measures layout at 130% text in a browser and
   says so; react-native-web ignores the platform font setting entirely, which is why 006's
   `Avatar` overflow was invisible there. A browser result does not close SC-017.

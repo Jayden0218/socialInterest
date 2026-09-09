@@ -176,9 +176,9 @@ after browsing it.
 - [X] T054 Run the real CI step list from `.github/workflows/ci.yml`, in order, and record it in `docs/verification/runs/2026-09-09-008-phase-a.md`.
 - [X] T055 Run `pnpm --filter @sih/api test:visibility` against `apps/api/tests/visibility/matrix.spec.ts` and confirm **zero skipped rows** with surface 13 present (SC-016).
 - [X] T056 Measure SC-017 for every control added in Phase A **in two places, because no single harness can measure both halves**. Screen size: `apps/e2e/browser/` at the shortest supported viewport. Font scaling: a device run, or an `apps/mobile` component test with an explicit scale factor — **react-native-web ignores the platform font setting**, which is exactly why the `Avatar` overflow was invisible to every browser journey and every screenshot in `docs/screens`. Where a control sits above its field that is an invariant needing no number; where it necessarily sits below one, bound it by what a device demonstrably reached (`ngmeasure.spec.ts`, 289) — **never by 640 minus a guess**.
-- [ ] T057 Dispatch `.github/workflows/android-emulator.yml` for Phase A's flows and read the whole-run API aggregate, which prints last and to `$GITHUB_STEP_SUMMARY`. Job logs come back only as a tail and the artifact host is denied by this environment's egress with a 403.
-- [ ] T058 Write `docs/verification/runs/2026-09-09-008-phase-a-device-record.md` with the per-flow result and the aggregate status codes. Report failures plainly; "it should work" is not a result.
-- [ ] T059 Check every Phase A box in this file, then update `CLAUDE.md`'s 008 section. **Check the boxes before writing "complete"** — in 007 the task list was right and the summary was not, for four tasks and nine screens.
+- [X] T057 Dispatch `.github/workflows/android-emulator.yml` for Phase A's flows and read the whole-run API aggregate, which prints last and to `$GITHUB_STEP_SUMMARY`. Job logs come back only as a tail and the artifact host is denied by this environment's egress with a 403.
+- [X] T058 Write `docs/verification/runs/2026-09-09-008-phase-a-device-record.md` with the per-flow result and the aggregate status codes. Report failures plainly; "it should work" is not a result.
+- [X] T059 Check every Phase A box in this file, then update `CLAUDE.md`'s 008 section. **Check the boxes before writing "complete"** — in 007 the task list was right and the summary was not, for four tasks and nine screens.
 
 **Checkpoint — Phase A is a coherent release and may ship here.**
 
