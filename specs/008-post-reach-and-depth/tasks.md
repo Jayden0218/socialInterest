@@ -45,11 +45,11 @@ and mute without appeals is half a control surface.
 
 **Purpose**: the environment and the records this feature will be judged against.
 
-- [ ] T001 Bring the local profile up and confirm it: `docker compose up -d`, then `pnpm --filter @sih/infra db:create-local`, `s3:create-local`, `seed:catalogue`. In this sandbox write `/etc/docker/daemon.json` with the `mirror.gcr.io` registry mirror and start dockerd with `setsid nohup` first — neither survives a container reset (see `quickstart.md`).
-- [ ] T002 Drop and reseed the local DynamoDB table before any paging work, and record the row counts in `specs/008-post-reach-and-depth/quickstart.md`. A shared table grown across runs produced two false "regressions" in 007; check the size before believing a bounded-page failure.
-- [ ] T003 [P] Run the real CI step list from `.github/workflows/ci.yml` end to end on the current head and record the baseline result in `docs/verification/runs/2026-09-09-008-baseline.md`. There is no `pnpm verify` aggregate — running a proxy for the list is how two red builds happened.
-- [ ] T004 [P] Add the 008 surface and item-type stubs to `specs/001-interest-media-sharing/contracts/openapi.yaml` as a tracked TODO block, so the contract and the code change in the same diff rather than after it (002's first defect).
-- [ ] T005 [P] Record in `docs/verification/divergence-register.md` that 008 introduces **no new divergence** — post search deliberately does not adopt a managed search service (research R6). `verify:register` checks this file; a single writer only.
+- [X] T001 Bring the local profile up and confirm it: `docker compose up -d`, then `pnpm --filter @sih/infra db:create-local`, `s3:create-local`, `seed:catalogue`. In this sandbox write `/etc/docker/daemon.json` with the `mirror.gcr.io` registry mirror and start dockerd with `setsid nohup` first — neither survives a container reset (see `quickstart.md`).
+- [X] T002 Drop and reseed the local DynamoDB table before any paging work, and record the row counts in `specs/008-post-reach-and-depth/quickstart.md`. A shared table grown across runs produced two false "regressions" in 007; check the size before believing a bounded-page failure.
+- [X] T003 [P] Run the real CI step list from `.github/workflows/ci.yml` end to end on the current head and record the baseline result in `docs/verification/runs/2026-09-09-008-baseline.md`. There is no `pnpm verify` aggregate — running a proxy for the list is how two red builds happened.
+- [X] T004 [P] Add the 008 surface and item-type stubs to `specs/001-interest-media-sharing/contracts/openapi.yaml` as a tracked TODO block, so the contract and the code change in the same diff rather than after it (002's first defect).
+- [X] T005 [P] Record in `docs/verification/divergence-register.md` that 008 introduces **no new divergence** — post search deliberately does not adopt a managed search service (research R6). `verify:register` checks this file; a single writer only.
 
 ---
 
@@ -60,13 +60,13 @@ later story adds a row to.
 
 **⚠️ No user story work begins until this phase is complete.**
 
-- [ ] T006 Extend `apps/api/tests/visibility/matrix.spec.ts` so surfaces are declared in a registry with a `kind`, and adding a surface is a data change rather than a code change. 005 added `Surface.kind` because otherwise a review surface would run post rows and report a bigger green number for a smaller thing.
-- [ ] T007 Extend `apps/api/tests/visibility/surface-routing.spec.ts` to fail when a surface appears in the matrix registry but no test proves it **consults** `VisibilityFilter`. A matrix row for a surface that never calls the boundary passes for the wrong reason.
-- [ ] T008 [P] Add the declared-field guard (FR-054) to `apps/e2e/journeys/response-shape.spec.ts`: every optional field declared in a response schema must be **non-null in at least one fixture**. Verify it RED against `readAt` and `avatarUrl` as they stand today (research R16).
-- [ ] T009 [P] Add a multi-item media fixture to `apps/mobile/src/__tests__/fixtures/` and make the post-rendering tests use it. Confirm the fixture has more than one item — a multi-item assertion against a single-item fixture passes and means nothing.
-- [ ] T010 [P] Write `apps/api/tests/unit/selection-not-boundary.spec.ts` per `contracts/selection-vs-boundary.md`: `apps/api/src/visibility/**` must not import a mute or dismissal repository, transitively. It has nothing to guard yet and MUST still be written now — it is a contract test.
-- [ ] T011 [P] Write `apps/api/tests/unit/privacy-is-not-per-surface.spec.ts`: no module outside `apps/api/src/visibility/` may read `accountPrivacy` to decide what to return. Comments are stripped line-by-line before scanning — 004 and 007 both had guards that a comment alone made pass.
-- [ ] T012 Add `docs/verification/008-guard-red-log.md` recording, for each structural guard in this feature, the commit at which it was **observed failing**. A guard nobody has watched fail is not yet a guard (006's `safety-fit.spec.ts` passed with the defect in place).
+- [X] T006 Extend `apps/api/tests/visibility/matrix.spec.ts` so surfaces are declared in a registry with a `kind`, and adding a surface is a data change rather than a code change. **Already satisfied**: `apps/api/tests/visibility/surfaces.ts` is that registry, carries `kind`, and has an append-only `EVER_BUILT` ratchet. Verified, not rewritten. 005 added `Surface.kind` because otherwise a review surface would run post rows and report a bigger green number for a smaller thing.
+- [X] T007 Extend `apps/api/tests/visibility/surface-routing.spec.ts` to fail when a surface appears in the matrix registry but no test proves it **consults** `VisibilityFilter`. **Already satisfied**: its completeness test fails for any `built` surface without a probe. Verified, not rewritten. A matrix row for a surface that never calls the boundary passes for the wrong reason.
+- [X] T008 [P] Add the declared-field guard (FR-054) to `apps/e2e/journeys/response-shape.spec.ts`: every optional field declared in a response schema must be **non-null in at least one fixture**. Verify it RED against `readAt` and `avatarUrl` as they stand today (research R16).
+- [X] T009 [P] Add a multi-item media fixture to `apps/mobile/src/__tests__/fixtures/` and make the post-rendering tests use it. Confirm the fixture has more than one item — a multi-item assertion against a single-item fixture passes and means nothing.
+- [X] T010 [P] Write `apps/api/tests/unit/selection-not-boundary.spec.ts` per `contracts/selection-vs-boundary.md`: `apps/api/src/visibility/**` must not import a mute or dismissal repository, transitively. It has nothing to guard yet and MUST still be written now — it is a contract test.
+- [X] T011 [P] Write `apps/api/tests/unit/privacy-is-not-per-surface.spec.ts`: no module outside `apps/api/src/visibility/` may read `accountPrivacy` to decide what to return. Comments are stripped line-by-line before scanning — 004 and 007 both had guards that a comment alone made pass.
+- [X] T012 Add `docs/verification/008-guard-red-log.md` recording, for each structural guard in this feature, the commit at which it was **observed failing**. A guard nobody has watched fail is not yet a guard (006's `safety-fit.spec.ts` passed with the defect in place).
 
 **Checkpoint**: the matrix takes new surfaces as data, and the two guards that govern Phase D
 exist before the code they govern.

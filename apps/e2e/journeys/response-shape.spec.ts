@@ -1,4 +1,6 @@
 import { actor, anonymous } from '../support/client';
+import { baseUrl } from '../support/base-url';
+import { raw } from '../support/http';
 import { eventually } from '../support/eventually';
 import { publishReadyImage } from '../support/publish';
 import type { Post } from '@sih/shared';
@@ -251,4 +253,113 @@ describe('007/T053 the notification thumbnail', () => {
     const res = await fetch(reaction!.postThumbUrl as string);
     expect({ status: res.status, url: reaction!.postThumbUrl }).toMatchObject({ status: 200 });
   }, 120_000);
+});
+
+/**
+ * ===========================================================================
+ * 008/T008 - EVERY DECLARED FIELD MUST HAVE A WRITER.
+ * ===========================================================================
+ *
+ * Feature 008 exists because of a pattern found three times independently: a
+ * field or a control is declared, is returned to every client or rendered on
+ * every screen, and THE OTHER HALF WAS NEVER WRITTEN.
+ *
+ *   - `Notification.readAt` is in the schema, is returned on every notification,
+ *     and nothing anywhere writes it. Every notification is unread forever.
+ *   - `PublicProfile.avatarUrl` is in the schema and is emitted on ONE of seven
+ *     profile projections - as the raw storage key, which a private bucket
+ *     answers 403 to. `avatarKey` has no writer at all.
+ *   - The publish screen promises "up to 10 photos" and every render path reads
+ *     `media[0]`.
+ *
+ * WHAT THIS GUARD DOES: for each field below whose writer is supposed to exist,
+ * fetch a real response and assert the field is non-null in at least one case.
+ * A schema field that is never populated by anything is the defect; a fixture
+ * that never populates it is the only way to catch that from outside.
+ *
+ * WHAT IT DOES NOT DO, said plainly because a guard that reads as more coverage
+ * than it is, is worse than none: it cannot catch a field the SERVER populates
+ * correctly and a CLIENT ignores. That is 007's `ApiPage<T>` defect - five
+ * features of green tests, because every mobile test stubbed the data layer and
+ * the stubs were wrong in exactly the same way the type was, so they agreed with
+ * each other and neither agreed with the server. Only a request finds that, and
+ * only a rendering test finds `media[0]`. Both live elsewhere.
+ *
+ * THE RATCHET. `hasWriter: false` means the writer has not landed yet, and the
+ * field is REPORTED as pending rather than asserted - the same shape as
+ * `apps/api/tests/visibility/surfaces.ts`, and for the same reason: asserting a
+ * field before its feature exists turns the suite red for every unrelated task
+ * until it lands, which is how a signal stops being read. Flipping one to `true`
+ * is the last step of the story that writes it.
+ */
+interface DeclaredField {
+  /** Schema and field, as a reader of `packages/shared` would name it. */
+  readonly path: string;
+  /** The story that gives it a writer. */
+  readonly writer: string;
+  /** False = pending, reported not asserted. Flipped by the story that lands it. */
+  readonly hasWriter: boolean;
+  /** Produces one observed value. Non-null is the assertion. */
+  readonly observe: () => Promise<unknown>;
+}
+
+const DECLARED_FIELDS: readonly DeclaredField[] = [
+  {
+    path: 'Notification.readAt',
+    writer: '008/US2 (T031) - the read watermark',
+    hasWriter: true,
+    observe: async () => {
+      const author = await actor('readAtAuthor');
+      const reactor = await actor('readAtReactor');
+      const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+      const postId = await publishReadyImage(author, [interest.interestId], { caption: 'readAt' });
+      await reactor.data.engagement.react(postId);
+
+      await eventually(
+        () => author.data.notifications.list({ limit: 20 }),
+        (p) => p.items.some((n) => n.kind === 'reaction'),
+        { timeoutMs: 15_000, describe: 'a reaction notification' },
+      );
+
+      /**
+       * Over RAW HTTP, not the app's data layer, and deliberately so while this
+       * guard is being verified red: the data layer gains `markAllRead` with
+       * 008/T035, and a guard that cannot compile until its fix lands cannot be
+       * watched failing first. `apps/e2e/journeys/notification-read.spec.ts`
+       * drives the app's own layer once it exists; this one only asks whether
+       * anything at all writes the field.
+       */
+      await raw(`${baseUrl()}/v1`, '/me/notifications/read', { method: 'PUT', token: author.token });
+      const after = await author.data.notifications.list({ limit: 20 });
+      return after.items.find((n) => n.kind === 'reaction')?.readAt ?? null;
+    },
+  },
+  {
+    path: 'PublicProfile.avatarUrl',
+    writer: '008/US5 (T083) - PATCH /me accepts avatarUploadId',
+    hasWriter: false,
+    observe: async () => {
+      throw new Error('no writer yet - this observer lands with 008/US5');
+    },
+  },
+];
+
+describe('008/FR-054 every declared field has a writer', () => {
+  for (const field of DECLARED_FIELDS.filter((f) => f.hasWriter)) {
+    it(`${field.path} is populated by something (${field.writer})`, async () => {
+      const value = await field.observe();
+      // Report the field name on failure. "expected null not to be null" says
+      // nothing; the whole point of this guard is naming WHICH promise is empty.
+      expect({ field: field.path, populated: value !== null && value !== undefined })
+        .toEqual({ field: field.path, populated: true });
+    }, 120_000);
+  }
+
+  it('lists the declared fields still waiting for a writer, so none is forgotten', () => {
+    const pending = DECLARED_FIELDS.filter((f) => !f.hasWriter).map((f) => `${f.path} <- ${f.writer}`);
+    console.log(`\ndeclared fields still without a writer: ${pending.join(', ') || 'none'}\n`);
+    // Deliberately not an assertion. A pending field is honest work in progress;
+    // a pending field nobody can see is the defect.
+    expect(Array.isArray(pending)).toBe(true);
+  });
 });

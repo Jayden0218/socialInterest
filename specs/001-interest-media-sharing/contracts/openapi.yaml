@@ -31,6 +31,49 @@ tags:
 
 paths:
 
+# ---------------------------------------------------------------------------
+# FEATURE 008 — tracked, NOT yet in this document.
+#
+# 002's first defect was this document and the server disagreeing about
+# publishing: OpenAPI said `uploadIds: string[]`, the server wanted
+# `uploads: [{uploadId, key, kind}]`, and any client generated from the contract
+# 400s on every publish. Contract tests cannot catch that — both sides generated
+# from one document agree with each other by construction. Only a request can.
+#
+# So this block exists to make the omission VISIBLE while it is still an
+# omission. Each line is added below, with its schema, in the SAME commit as the
+# code that serves it — never after. Delete a line when it lands.
+#
+#   Phase A
+#     [ ] PUT    /me/notifications/read           008/FR-005, FR-006, FR-007
+#     [ ] GET    /notifications                   + readAt populated, unreadCount
+#     [ ] GET    /feed/following                  008/FR-008..FR-010
+#   Phase B
+#     [ ] PATCH  /me                              + avatarUploadId (008/FR-017)
+#     [ ] (every profile-bearing response)        + avatarUrl, presigned (FR-019)
+#     [ ] GET    /search/posts                    008/FR-020..FR-022
+#   Phase C
+#     [ ] POST   /posts/{postId}/comments         + parentCommentId (FR-023)
+#     [ ] PATCH  /posts/{postId}/comments/{id}    008/FR-027
+#     [ ] DELETE /posts/{postId}/comments/{id}    008/FR-028
+#     [ ] (post + comment)                        + mentions (FR-030)
+#     [ ] (media item)                            + altText (FR-034)
+#     [ ] PATCH  /posts/{postId}                  + term-row re-index (FR-020)
+#     [ ] POST GET DELETE /me/drafts              008/FR-037, FR-038
+#   Phase D
+#     [ ] PUT DELETE /people/{handle}/mute        008/FR-039, FR-040
+#     [ ] PUT    /posts/{postId}/dismiss          008/FR-041, FR-042
+#     [ ] PATCH  /me                              + accountPrivacy (FR-043)
+#     [ ] GET    /me/follow-requests (+approve/decline)  008/FR-043
+#     [ ] GET    /me/moderation-notices           008/FR-046
+#     [ ] POST   /appeals, GET /me/appeals        008/FR-047, FR-048
+#     [ ] GET PATCH /moderation/appeals           008/FR-047
+#   Phase E
+#     [ ] POST GET PATCH DELETE /me/collections   008/FR-049, FR-050
+#     [ ] PUT DELETE /me/collections/{id}/posts/{postId}  008/FR-051
+#     [ ] GET    /me/collections/{id}/posts       008/FR-050
+# ---------------------------------------------------------------------------
+
   /me:
     get:
       tags: [People]
