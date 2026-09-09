@@ -38,8 +38,17 @@ describe('007/T051 - the profile posts are a grid, not a column', () => {
     const me = await actor(`grid${Math.random().toString(36).slice(2, 6)}`);
     const interest = (await me.data.interests.listTop({ limit: 1 })).items[0]!;
     const ids: string[] = [];
-    // Six, so a full first row cannot be an accident of having exactly three.
-    for (let i = 0; i < 6; i++) {
+    /**
+     * SEVEN, not six, and the odd one is the point.
+     *
+     * Six fills two exact rows and passes over the defect run 47's capture
+     * showed: with `numColumns` and a `flex: 1` tile, a trailing row holding ONE
+     * item gives it the WHOLE row, so the profile rendered two neat rows and
+     * then a tile stretched edge to edge. A count that divides evenly never
+     * produces a trailing row, so it could never see it - and two thirds of all
+     * counts do produce one.
+     */
+    for (let i = 0; i < 7; i++) {
       ids.push(await publishReadyImage(me, [interest.interestId], { caption: `grid ${i}` }));
     }
 
@@ -59,7 +68,7 @@ describe('007/T051 - the profile posts are a grid, not a column', () => {
       )
     ).filter((b): b is NonNullable<typeof b> => b !== null);
 
-    expect(boxes.length).toBeGreaterThanOrEqual(6);
+    expect(boxes.length).toBeGreaterThanOrEqual(7);
 
     // THREE DISTINCT COLUMNS. A single-column list yields one x for every tile,
     // which is exactly the shape that shipped.
@@ -73,6 +82,15 @@ describe('007/T051 - the profile posts are a grid, not a column', () => {
       expect({ w: Math.round(b.width), h: Math.round(b.height), square: Math.abs(b.width - b.height) < 2 })
         .toMatchObject({ square: true });
     }
+
+    /**
+     * EVERY tile is the same width, INCLUDING the one alone in the last row.
+     * That is the assertion the six-post version could not make, and it is the
+     * one that fails on the stretched trailing tile: it would be three times
+     * the width of its neighbours.
+     */
+    const widths = new Set(boxes.map((b) => Math.round(b.width)));
+    expect({ widths: [...widths], distinct: widths.size }).toMatchObject({ distinct: 1 });
 
     await page.close();
   }, 240_000);

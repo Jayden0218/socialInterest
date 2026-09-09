@@ -110,12 +110,44 @@ export function PagedPostList<T>({ state, keyOf, renderItem, onLoadMore, empty, 
     );
   }
 
+  /**
+   * THE LAST ROW IS PADDED, and run 47's device capture is why.
+   *
+   * With `numColumns` and a tile that is `flex: 1`, a trailing row holding ONE
+   * item gives that item the whole row: the profile grid rendered two neat rows
+   * of three and then a single tile stretched edge to edge. It happens whenever
+   * the count is not a multiple of the column count - two thirds of the time at
+   * three columns - so it is the normal case, not an edge one.
+   *
+   * Padded with SPACERS rather than by sizing tiles as a percentage: percentages
+   * plus a gap overflow the row (3 x 33.33% + 4pt of gutters is wider than the
+   * screen) and wrap, which trades a stretched tile for a broken grid. The
+   * spacers are internal to this component, so `keyOf` and `renderItem` still
+   * only ever see real items.
+   */
+  type Row = { spacer: true; id: string } | { spacer: false; item: T };
+  const rows: Row[] = state.items.map((item) => ({ spacer: false as const, item }));
+  if (columns && columns > 1) {
+    const remainder = rows.length % columns;
+    if (remainder !== 0) {
+      for (let i = remainder; i < columns; i++) {
+        rows.push({ spacer: true as const, id: `spacer-${i}` });
+      }
+    }
+  }
+
   return (
     <FlatList
       testID="paged-post-list"
-      data={state.items}
-      keyExtractor={keyOf}
-      renderItem={({ item, index }) => renderItem(item, index)}
+      data={rows}
+      // A REAL ITEM KEEPS ITS OWN KEY, untouched. `handleViewable` below maps
+      // these keys straight to post ids for FR-004's dwell signal, so decorating
+      // them - with an index, say - would record attention against
+      // "<postId>:0" and quietly stop matching anything.
+      keyExtractor={(row) => (row.spacer ? row.id : keyOf(row.item))}
+      renderItem={({ item: row, index }) =>
+        row.spacer ? <View style={{ flex: 1 }} /> : renderItem(row.item, index)
+      }
       // Cursor paging: appending never reorders what is already on screen.
       onEndReachedThreshold={0.5}
       onEndReached={() => {
