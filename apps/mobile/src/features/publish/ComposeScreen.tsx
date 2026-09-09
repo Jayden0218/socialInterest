@@ -152,7 +152,35 @@ export function ComposeScreen(props: ComposeScreenProps) {
           whole point. `upload-status-<i>` is unchanged and still carries the
           words: a journey asserts on them, and so does a screen reader.
         */}
-        <View testID="upload-slots" style={{ flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' }}>
+        {/*
+          A HORIZONTAL STRIP, NOT A WRAPPING GRID — measured, after run 52.
+
+          `23-multi-photo-post` had passed on the device twice and failed on the
+          first run that carried US10's per-image description field. Measured at
+          the emulator's own 320x616 (`browser/compose-fit.spec.ts`): three 104pt
+          tiles do not fit across 320 minus padding, so they wrapped to two rows,
+          each row now 198pt tall because of the description box — and
+          `interest-option-0` landed at y=709, NINETY-THREE POINTS BELOW A 616
+          FOLD. Choosing an interest is required to publish (001/FR-006), so the
+          screen had made its own publish button unreachable for a multi-photo
+          post on a small phone.
+
+          A row that scrolls sideways is bounded at ONE row height for any number
+          of media, which is what the artboard shows and what the product
+          promises (up to ten). The wrapping grid was unbounded in the one
+          direction the screen cannot afford.
+
+          Nested scrolls on DIFFERENT AXES, so this does not repeat 007/R6's
+          nested-VirtualizedList problem: that was two vertical lists, where the
+          inner one loses windowing.
+        */}
+        <ScrollView
+          testID="upload-slots"
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ flexDirection: 'row', gap: space.sm }}
+        >
           {props.slots.map((slot, i) => (
             <View key={slot.media.uri} style={{ width: 104, gap: space.xs }}>
               <Image
@@ -224,7 +252,7 @@ export function ComposeScreen(props: ComposeScreenProps) {
               ) : null}
             </View>
           ))}
-        </View>
+        </ScrollView>
 
         {/*
           The caption is TEXT ON THE PAGE in the artboard, not a boxed input —

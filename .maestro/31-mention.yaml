@@ -62,8 +62,28 @@ appId: app.socialinterest
     id: "post-[0-9A-Z]{26}"
 - assertVisible:
     id: "post-detail-screen"
+# THE CAPTION, NOT THE LINK SPAN — after run 52.
+#
+# This asserted `mention-${FRIEND}`, the testID `MentionText` puts on the
+# handle. That element is a NESTED `<Text>` inside the caption's `<Text>`, and
+# on Android nested Text children are spans inside ONE TextView rather than
+# views of their own, so the id has no node in the hierarchy for Maestro to
+# find. `verify-maestro-ids` resolves it happily — it reads the source, where
+# the id certainly exists — which is the same blind spot as a computed index
+# under a dynamic prefix.
+#
+# The link itself is not in doubt and is not left untested: the browser drives
+# this exact path — publish with `@handle`, profile, open, and the link is
+# present and tappable — and `mention-text.test.tsx` covers the splitting. What
+# a device can see is the caption, and it is asserted here BY ITS TEXT, which
+# also proves the handle survived the round trip the server does at write time.
+#
+# Recorded rather than quietly weakened: device coverage of the link's TAP
+# is a real gap, and a nested span is not addressable by any selector Maestro
+# has.
 - assertVisible:
-    id: "mention-${FRIEND}"
+    id: "post-caption"
+- assertVisible: "a walk with @${FRIEND}"
 
 # And the autocomplete, driven where a partial handle is being typed.
 - tapOn:
