@@ -67,12 +67,20 @@ export function SafetyActions({
   onSelectReason,
   onReport,
   onBlock,
+  onMute,
+  onDismiss,
+  muted,
 }: {
   subject: ReportSubject;
   selectedReason: string | null;
   onSelectReason: (reason: string) => void;
   onReport: () => void;
   onBlock?: () => void;
+  /** 008/FR-039. Less of this person, without blocking them. */
+  onMute?: () => void;
+  /** 008/FR-041. Not this post again. */
+  onDismiss?: () => void;
+  muted?: boolean;
 }) {
   return (
     <Screen testID="safety-actions" scroll>
@@ -120,6 +128,45 @@ export function SafetyActions({
         disabled={selectedReason === null}
         onPress={onReport}
       />
+
+      {/*
+        008/FR-039, FR-041 — THE TWO QUIETER OPTIONS, ABOVE BLOCK.
+        
+        Order is the argument: somebody who wants less of a person should meet
+        mute before they meet the irreversible thing. Block stays at the bottom
+        with its warning, and the screen still scrolls — 006 found `block-person`
+        UNREACHABLE rather than merely below the fold, which is a Constitution IV
+        release gate, and `screen-scrolls.test.ts` keeps this one scrolling.
+      */}
+      {onDismiss ? (
+        <View style={{ gap: space.sm }}>
+          <Text style={{ ...textStyle.caption, color: palette.text.muted }}>
+            It stays on their profile and still opens from a link. Your feed stops choosing it.
+          </Text>
+          <Button
+            testID="dismiss-post"
+            label="Show me less like this"
+            variant="secondary"
+            onPress={onDismiss}
+          />
+        </View>
+      ) : null}
+
+      {onMute ? (
+        <View style={{ gap: space.sm }}>
+          <Text style={{ ...textStyle.caption, color: palette.text.muted }}>
+            {muted
+              ? 'You are seeing less of them. They are not told, and nothing you both do changes.'
+              : 'Their posts stop appearing in your feeds and search. They are not told, your follow stays, and their profile still shows their posts.'}
+          </Text>
+          <Button
+            testID={muted ? 'unmute-person' : 'mute-person'}
+            label={muted ? 'Show their posts again' : 'See less of this person'}
+            variant="secondary"
+            onPress={onMute}
+          />
+        </View>
+      ) : null}
 
       {onBlock ? (
         <View style={{ gap: space.sm }}>

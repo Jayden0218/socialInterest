@@ -32,6 +32,7 @@
     "decline-request",
     "delete-account",
     "delete-account-warning",
+    "dismiss-post",
     "display-name-input",
     "draft-media-expired",
     "edit-banner",

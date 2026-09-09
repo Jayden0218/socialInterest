@@ -44,6 +44,21 @@ export const SIGNAL_WEIGHTS = {
   like: 1.0,
   /** The strongest thing a person tells you: they intend to come back. */
   save: 2.0,
+  /**
+   * 008/FR-042. THE ONLY NEGATIVE ONE, and a starting value.
+   *
+   * -1.0 mirrors `like`, deliberately: dismissing is the same size of statement
+   * in the other direction, and a larger magnitude would let a handful of
+   * dismissals erase an interest somebody engages with daily. It is named here,
+   * like every other weight, so the first real usage data can argue with it
+   * rather than somebody discovering it in a diff.
+   *
+   * A negative total simply drops OUT of the ranked list: `rankedInterests`
+   * keeps entries above 0.001, so an interest dismissed into negative territory
+   * ranks exactly as one never seen. That is the intended floor — a dismissal
+   * should not be able to say something stronger than "stop showing me this".
+   */
+  dismiss: -1.0,
 } as const;
 
 export type SignalKind = keyof typeof SIGNAL_WEIGHTS;

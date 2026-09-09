@@ -579,6 +579,13 @@ export function SafetyContainer({
   const data = useData();
   const [reason, setReason] = useState<string | null>(null);
 
+  /*
+    008/FR-039, FR-041. Offered where the other per-person choices are.
+
+    Mute needs a PERSON and dismissal needs a POST, so a report about an
+    interest name gets neither — correct, because there is nobody to see less of
+    and nothing to stop showing.
+  */
   return (
     <SafetyActions
       subject={subject}
@@ -595,6 +602,8 @@ export function SafetyContainer({
           .then(onDone);
       }}
       {...(authorHandle ? { onBlock: () => void data.safety.block(authorHandle).then(onDone) } : {})}
+      {...(authorHandle ? { onMute: () => void data.safety.mute(authorHandle).then(onDone) } : {})}
+      {...(subject === 'post' ? { onDismiss: () => void data.safety.dismiss(subjectId).then(onDone) } : {})}
     />
   );
 }

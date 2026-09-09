@@ -148,6 +148,11 @@ const PROBES: Probe[] = [
         { listByAuthor: async () => ({ items: [post], nextCursor: null }) } as never,
         queries,
         filter,
+        // 008/US12. Selection reads, empty here: this probe is about the
+        // BOUNDARY being consulted, and a mute that hid the post would make the
+        // probe pass for the wrong reason.
+        { listMuted: async () => new Set<string>() } as never,
+        { listDismissed: async () => new Set<string>() } as never,
       );
       return following.page(VIEWER);
     },
@@ -166,6 +171,8 @@ const PROBES: Probe[] = [
         { listByTerm: async () => ({ items: [post], nextCursor: null }) } as never,
         queries,
         filter,
+        { listMuted: async () => new Set<string>() } as never,
+        { listDismissed: async () => new Set<string>() } as never,
       );
       return search.search(VIEWER, 'anything');
     },

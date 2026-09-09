@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Inject, Param, Patch, Post, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Inject, Param, Patch, Post, Put, Req } from '@nestjs/common';
 import { z } from 'zod';
 import { visibilitySchema } from '@sih/shared';
 import { DomainError } from '../../common/errors/problem.filter';
@@ -7,6 +7,8 @@ import { zodBody } from '../../common/http/validation';
 import { Public } from '../../common/auth/auth.guard';
 import { RateLimit } from '../../common/rate-limit/rate-limit.guard';
 import { PostService } from './post.service';
+import { DismissalRepository } from '../../persistence/dismissal.repository';
+import { EVENT_BUS, type EventBus } from '../../ports';
 import { SavedPostRepository } from '../../persistence/saved-post.repository';
 import { ReactionRepository } from '../../persistence/reaction.repository';
 import { PostQueryService } from './post-query.service';
@@ -100,6 +102,8 @@ export class PostController {
     // visibility boundary, so injecting the service here would be a cycle. The
     // question is a point read and needs no service logic.
     @Inject(SavedPostRepository) private readonly saved: SavedPostRepository,
+    @Inject(DismissalRepository) private readonly dismissals: DismissalRepository,
+    @Inject(EVENT_BUS) private readonly events: EventBus,
   ) {}
 
   /** FR-006, FR-007, FR-013. */
@@ -173,6 +177,38 @@ export class PostController {
   async update(@Req() req: AppRequest, @Param('postId') postId: string, @Body() body: unknown) {
     const patch = zodBody(updatePostSchema, body);
     return this.posts.update(postId, req.viewer!.userId, patch);
+  }
+
+  /**
+   * 008/FR-041, FR-042 — NOT THIS ONE AGAIN.
+   *
+   * Selection, never the boundary: the post still opens from a link, and it is
+   * still on its author's profile. What changes is that no surface CHOOSES to
+   * show it to this viewer again — and that the ranker learns something, which
+   * is the second reason this cannot live in `VisibilityFilter`
+   * (`contracts/selection-vs-boundary.md`).
+   *
+   * Idempotent, and there is deliberately no un-dismiss: "I have seen enough of
+   * this" is not a state somebody toggles, and a control to reverse it would
+   * imply the product keeps a list they are meant to curate. `DELETE
+   * /v1/me/feed-signals` clears them all, which is the honest way back.
+   */
+  @Put(':postId/dismiss')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async dismiss(@Req() req: AppRequest, @Param('postId') postId: string): Promise<void> {
+    await this.dismissals.dismiss(req.viewer!.userId, postId);
+    /**
+     * The SIGNAL is published, not called.
+     *
+     * `SignalService` lives in the signals module, which already imports this
+     * one — calling it from here would close a cycle. The event bus is how this
+     * codebase crosses that line already (`content.mentioned`), and it keeps
+     * every "should this be recorded" decision in the service that owns it.
+     */
+    await this.events.publish({
+      type: 'post.dismissed',
+      payload: { postId, viewerId: req.viewer!.userId },
+    });
   }
 
   /** FR-012. */

@@ -1,0 +1,59 @@
+# 008/US12, T174 — LESS OF THIS, WITHOUT BLOCKING.
+#
+# WHAT TO READ IN THE RUN AGGREGATE:
+#   PUT /v1/people/:handle/mute   204
+#   PUT /v1/posts/:postId/dismiss 204
+# Neither leaves a trace on any screen — that is the requirement (FR-040), so
+# the aggregate is the ONLY place either can be observed. A mute control that
+# set a local flag would satisfy everything visible here.
+#
+# The safety sheet is reached the way `09-report-and-block` reaches it, and the
+# two quieter options sit ABOVE Block: somebody who wants less of a person
+# should meet mute before they meet the irreversible thing.
+appId: app.socialinterest
+---
+- runFlow: 01-sign-in.yaml
+
+# A post by somebody else, so there is a person to mute. The seeded feed fixture
+# publishes one; `12-interest-from-feed` reaches it the same way.
+- tapOn:
+    id: "tab-feed"
+- extendedWaitUntil:
+    visible:
+      id: "post-[0-9A-Z]{26}"
+    timeout: 60000
+- tapOn:
+    id: "post-[0-9A-Z]{26}"
+- assertVisible:
+    id: "post-detail-screen"
+- tapOn:
+    id: "open-safety"
+- assertVisible:
+    id: "safety-actions"
+
+# FR-041. The post stops being chosen; it still opens from a link, which is what
+# makes this selection rather than the boundary.
+- assertVisible:
+    id: "dismiss-post"
+- tapOn:
+    id: "dismiss-post"
+
+# Back for the person-level one. The sheet closes on success, so this is a fresh
+# journey to it rather than a second tap.
+- extendedWaitUntil:
+    visible:
+      id: "post-[0-9A-Z]{26}"
+    timeout: 60000
+- tapOn:
+    id: "post-[0-9A-Z]{26}"
+- tapOn:
+    id: "open-safety"
+- assertVisible:
+    id: "safety-actions"
+- assertVisible:
+    id: "mute-person"
+- tapOn:
+    id: "mute-person"
+
+- assertNotVisible:
+    id: "load-error"

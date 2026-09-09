@@ -161,8 +161,36 @@ needed for the Following tab. Both halves, or neither counts.
 
 ---
 
+## T010 — `apps/api/tests/unit/selection-not-boundary.spec.ts`
+
+**Guards**: G4, and `contracts/selection-vs-boundary.md`. Nothing under `src/visibility/` may
+reference mute, dismissal or the ranker. Mute and dismissal are SELECTION rules — a muted
+person's profile is not empty and a dismissed post still opens from a link — so putting them
+in the one boundary would give it a second meaning every future surface inherits without
+asking for it.
+
+| | |
+|---|---|
+| **Observed red** | 2026-09-09, during 008/T171 |
+| **Change that broke it** | Added `import { MuteRepository } from '../persistence/mute.repository';` to `authored-content.ts` |
+| **What it said** | `src/visibility/authored-content.ts:9 → MuteRepository` |
+| **Reverted** | yes, immediately; both assertions green again |
+
+Its SECOND assertion stayed green throughout, and that is the one worth noting: account
+privacy is deliberately NOT on the forbidden list, because it *does* change the answer to
+"may this viewer see this post" on every surface — the contrast between the two is the whole
+contract, and a guard that forbade all three would have made the boundary unable to do its
+job.
+
+**The behavioural half is separate and neither is sufficient alone.**
+`mute-does-not-hide-profile.spec.ts` asserts a muted author's post is absent from Following
+and search and PRESENT on their profile and the direct read. A structural guard says the
+dependency is absent; it never says the behaviour is right.
+
+---
+
 ## Pending
 
 | Guard | Task | Verified red by |
 |---|---|---|
-| _none_ | — | — |
+| `privacy-is-not-per-surface.spec.ts` | T011 | T187 |

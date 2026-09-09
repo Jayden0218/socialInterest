@@ -69,4 +69,23 @@ export class SafetyData {
       body: decision,
     });
   }
+
+  /**
+   * 008/FR-039. Mute — SELECTION, not the boundary.
+   *
+   * Their posts stop being chosen for your feeds and search; their profile
+   * still shows them to you, the follow survives, and they are never told.
+   */
+  mute(handle: string): Promise<void> {
+    return this.client.call<void>('putPeopleByHandleMute', { params: { handle } });
+  }
+
+  unmute(handle: string): Promise<void> {
+    return this.client.call<void>('deletePeopleByHandleMute', { params: { handle } });
+  }
+
+  /** 008/FR-041. Not this post again — and a negative ranking signal. */
+  dismiss(postId: string): Promise<void> {
+    return this.client.call<void>('putPostsByPostIdDismiss', { params: { postId } });
+  }
 }

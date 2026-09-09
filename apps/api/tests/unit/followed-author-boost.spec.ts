@@ -43,7 +43,17 @@ describe('the followed-author boost (FR-029)', () => {
       profile: async () => ({ weights, updatedAt: '2026-09-08T00:00:00.000Z' }),
       seeds: async () => [],
     };
-    return new RankingService(signals as never, source as never, NO_INTEREST_FOLLOWS as never);
+    return new RankingService(
+      signals as never,
+      source as never,
+      // 008/US12. The ranker reads mutes and dismissals once per request; an
+      // empty pair here keeps this test about the BOOST, which is what it is
+      // for. A stub agreeing with an older constructor is what
+      // `surface-routing` has now caught three times.
+      { listMuted: async () => new Set<string>() } as never,
+      { listDismissed: async () => new Set<string>() } as never,
+      NO_INTEREST_FOLLOWS as never,
+    );
   };
 
   const NOW = Date.parse('2026-09-08T12:00:00.000Z');
@@ -107,7 +117,13 @@ describe('the followed-author boost (FR-029)', () => {
       })),
     };
     const signals = { profile: async () => null, seeds: async () => ['i1'] };
-    const ranking = new RankingService(signals as never, source as never, NO_INTEREST_FOLLOWS as never);
+    const ranking = new RankingService(
+      signals as never,
+      source as never,
+      { listMuted: async () => new Set<string>() } as never,
+      { listDismissed: async () => new Set<string>() } as never,
+      NO_INTEREST_FOLLOWS as never,
+    );
 
     await ranking.rank('viewer', 20, new Set(['friend', 'friend2']), NOW);
     const [, limitArg] = source.collect.mock.calls[0] as unknown as [string[], number];

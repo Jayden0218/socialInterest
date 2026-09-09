@@ -37,10 +37,21 @@ export class CandidateSource {
     @Inject(CATALOGUE_SEARCH) private readonly catalogue: CatalogueSearch,
   ) {}
 
+  /**
+   * 008/FR-039, FR-041 — MUTE AND DISMISSAL ARE APPLIED HERE, IN SELECTION.
+   *
+   * `contracts/selection-vs-boundary.md`: the question is whether the rule
+   * changes the answer to *may this viewer see this post* on EVERY surface,
+   * including the author's own profile. For both of these it does not — a muted
+   * person's profile is not empty and a dismissed post still opens from a link
+   * — so they belong to the ranker and MUST NOT reach `VisibilityFilter`.
+   * `selection-not-boundary.spec.ts` fails the build if they ever do.
+   */
   async collect(
     exploitInterests: string[],
     limit: number,
     depth = 0,
+    exclude: { authorIds?: Set<string>; postIds?: Set<string> } = {},
   ): Promise<{ candidates: Candidate[]; exploredInterests: string[]; fanOutWidth: number }> {
     const catalogueIds = this.catalogue.allIds();
 
@@ -89,7 +100,13 @@ export class CandidateSource {
           // filed under a sub-interest and its parent appears twice.
           if (seen.has(item.postId)) continue;
           seen.add(item.postId);
-          candidates.push(item as Candidate);
+          const candidate = item as Candidate;
+          // Dropped BEFORE ranking rather than filtered after: a dismissed post
+          // consuming a slot in the page would make "not this one again" mean
+          // "one fewer post", which is not what it says.
+          if (exclude.authorIds?.has(candidate.authorId)) continue;
+          if (exclude.postIds?.has(candidate.postId)) continue;
+          candidates.push(candidate);
         }
       }
     };

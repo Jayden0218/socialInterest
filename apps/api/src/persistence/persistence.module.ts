@@ -17,6 +17,8 @@ import { ModerationLogRepository } from './moderation-log.repository';
 import { NotificationRepository } from './notification.repository';
 import { UploadRepository } from './upload.repository';
 import { DraftRepository } from './draft.repository';
+import { MuteRepository } from './mute.repository';
+import { DismissalRepository } from './dismissal.repository';
 import { EventRepository } from './event.repository';
 // feature 004
 import { ConversationRepository } from './conversation.repository';
@@ -56,6 +58,8 @@ const providers: Provider[] = [
   repo(UploadRepository),
   // feature 008
   repo(DraftRepository),
+  repo(MuteRepository),
+  repo(DismissalRepository),
   repo(EventRepository),
   repo(ConversationRepository),
   repo(MessageRepository),
@@ -90,6 +94,8 @@ const providers: Provider[] = [
     UploadRepository,
     // feature 008
     DraftRepository,
+    MuteRepository,
+    DismissalRepository,
     EventRepository,
     ConversationRepository,
     MessageRepository,

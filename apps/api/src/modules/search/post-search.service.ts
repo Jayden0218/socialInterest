@@ -2,6 +2,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import { PostTermIndexRepository, type PostTermIndexItem } from '../../persistence/post-term-index.repository';
 import { PostQueryService } from '../posts/post-query.service';
 import { VisibilityFilter, type Viewer } from '../../visibility/visibility.filter';
+import { MuteRepository } from '../../persistence/mute.repository';
+import { DismissalRepository } from '../../persistence/dismissal.repository';
 import { queryTerms } from './tokeniser';
 
 /**
@@ -36,6 +38,8 @@ export class PostSearchService {
     @Inject(PostTermIndexRepository) private readonly terms: PostTermIndexRepository,
     @Inject(PostQueryService) private readonly postQueries: PostQueryService,
     @Inject(VisibilityFilter) private readonly visibility: VisibilityFilter,
+    @Inject(MuteRepository) private readonly mutes: MuteRepository,
+    @Inject(DismissalRepository) private readonly dismissals: DismissalRepository,
   ) {}
 
   async search(
@@ -66,7 +70,21 @@ export class PostSearchService {
     }
 
     const before = opts.cursor ?? null;
+    // Read once per request, like the two feeds do.
+    const excluded = {
+      authorIds: viewer ? await this.mutes.listMuted(viewer.userId) : new Set<string>(),
+      postIds: viewer ? await this.dismissals.listDismissed(viewer.userId) : new Set<string>(),
+    };
     const candidates = [...byPostId.values()]
+      /**
+       * 008/FR-039, FR-041. Selection, at the same stage as the two feeds.
+       *
+       * Searching is a person looking for something, and a muted author's post
+       * is still theirs to find on that author's profile — but a search result
+       * is a surface the product CHOSE to show them, which is exactly the line
+       * `contracts/selection-vs-boundary.md` draws.
+       */
+      .filter((r) => !excluded.authorIds.has(r.authorId) && !excluded.postIds.has(r.postId))
       .filter((r) => (before ? r.createdAt < before : true))
       // Recency only. No relevance ranking - stated in research R6 rather than
       // implied, and a term index carries nothing that would support one.

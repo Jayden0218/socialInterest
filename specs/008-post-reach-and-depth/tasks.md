@@ -435,26 +435,26 @@ conversation intact.
 
 ### Tests for User Story 12
 
-- [ ] T158 [P] [US12] Write `apps/api/tests/integration/mute-does-not-hide-profile.spec.ts` — the load-bearing test. Absent from feed/Following/search, **present** on the profile and the direct read (SC-013).
-- [ ] T159 [P] [US12] Write `apps/api/tests/integration/mute-is-invisible.spec.ts`: no count, ordering or aggregate visible to the subject changes (FR-040, Principle III).
-- [ ] T160 [P] [US12] Write `apps/api/tests/integration/dismissal-is-negative-signal.spec.ts`: dismissing moves the signal profile in the negative direction (FR-042).
-- [ ] T161 [P] [US12] Write `apps/api/tests/integration/dismissal-in-disclosure.spec.ts`: `dismiss` appears in 007's signals disclosure and is cleared by its reset. A collected signal absent from the disclosure is a Principle III violation, not a gap.
+- [X] T158 [P] [US12] Write `apps/api/tests/integration/mute-does-not-hide-profile.spec.ts` — the load-bearing test. Absent from feed/Following/search, **present** on the profile and the direct read (SC-013).
+- [X] T159 [P] [US12] Write `apps/api/tests/integration/mute-is-invisible.spec.ts`: no count, ordering or aggregate visible to the subject changes (FR-040, Principle III).
+- [X] T160 [P] [US12] Write `apps/api/tests/integration/dismissal-is-negative-signal.spec.ts`: dismissing moves the signal profile in the negative direction (FR-042).
+- [X] T161 [P] [US12] Write `apps/api/tests/integration/dismissal-in-disclosure.spec.ts`: `dismiss` appears in 007's signals disclosure and is cleared by its reset. A collected signal absent from the disclosure is a Principle III violation, not a gap.
 
 ### Implementation for User Story 12
 
-- [ ] T162 [US12] Add `mute: (muterId, mutedId)` to `keys.ts` — **no inverted index**, which is the mechanism of FR-040 rather than a rule someone must remember (A50).
-- [ ] T163 [US12] Add `dismissal: (viewerId, postId)` to `keys.ts` (A51).
-- [ ] T164 [P] [US12] Create `apps/api/src/persistence/mute.repository.ts`.
-- [ ] T165 [P] [US12] Create `apps/api/src/persistence/dismissal.repository.ts`.
-- [ ] T166 [US12] Apply mute (FR-039) and dismissal (FR-041) in `apps/api/src/modules/ranking/candidate-source.ts` — selection only.
-- [ ] T167 [US12] Apply them in `apps/api/src/modules/feed/following-feed.service.ts` and in `post-search.service.ts`, at the same selection stage.
-- [ ] T168 [US12] Add `dismiss` to `SIGNAL_WEIGHTS` in `apps/api/src/modules/ranking/constants.ts` with a negative weight, documented as a starting value.
-- [ ] T169 [US12] Add `PUT`/`DELETE /v1/people/{handle}/mute` and `PUT /v1/posts/{postId}/dismiss`. No response anywhere may disclose a mute.
-- [ ] T170 [US12] Add `dismiss` to the signals disclosure and reset in `apps/api/src/modules/signals/`.
-- [ ] T171 [US12] **Verify T010 RED**: wire mute into `VisibilityFilter`, watch `selection-not-boundary.spec.ts` and `mute-does-not-hide-profile.spec.ts` both fail, revert, and record the commit in `docs/verification/008-guard-red-log.md`.
-- [ ] T172 [P] [US12] Add the endpoints to `specs/001-interest-media-sharing/contracts/openapi.yaml` and update the snapshot in `apps/api/tests/integration/auth-surface.spec.ts`.
-- [ ] T173 [US12] Add mute and dismiss to the safety sheet in `apps/mobile/src/features/safety/`. The sheet's `Screen` must stay scrollable — 006 found `block-person` **unreachable**, not merely below the fold, and that is a Constitution IV release gate.
-- [ ] T174 [US12] Add `testID`s, run `verify-maestro-ids.mjs`, and add `.maestro/33-mute-and-dismiss.yaml` asserting `PUT /v1/people/{handle}/mute` **204**.
+- [X] T162 [US12] Add `mute: (muterId, mutedId)` to `keys.ts` — **no inverted index**, which is the mechanism of FR-040 rather than a rule someone must remember (A50).
+- [X] T163 [US12] Add `dismissal: (viewerId, postId)` to `keys.ts` (A51).
+- [X] T164 [P] [US12] Create `apps/api/src/persistence/mute.repository.ts`.
+- [X] T165 [P] [US12] Create `apps/api/src/persistence/dismissal.repository.ts`.
+- [X] T166 [US12] Apply mute (FR-039) and dismissal (FR-041) in `apps/api/src/modules/ranking/candidate-source.ts` — selection only.
+- [X] T167 [US12] Apply them in `apps/api/src/modules/feed/following-feed.service.ts` and in `post-search.service.ts`, at the same selection stage.
+- [X] T168 [US12] Add `dismiss` to `SIGNAL_WEIGHTS` in `apps/api/src/modules/ranking/constants.ts` with a negative weight, documented as a starting value.
+- [X] T169 [US12] Add `PUT`/`DELETE /v1/people/{handle}/mute` and `PUT /v1/posts/{postId}/dismiss`. No response anywhere may disclose a mute.
+- [X] T170 [US12] Add `dismiss` to the signals disclosure and reset in `apps/api/src/modules/signals/`.
+- [X] T171 [US12] **Verify T010 RED**: wire mute into `VisibilityFilter`, watch `selection-not-boundary.spec.ts` and `mute-does-not-hide-profile.spec.ts` both fail, revert, and record the commit in `docs/verification/008-guard-red-log.md`.
+- [X] T172 [P] [US12] Add the endpoints to `specs/001-interest-media-sharing/contracts/openapi.yaml` and update the snapshot in `apps/api/tests/integration/auth-surface.spec.ts`.
+- [X] T173 [US12] Add mute and dismiss to the safety sheet in `apps/mobile/src/features/safety/`. The sheet's `Screen` must stay scrollable — 006 found `block-person` **unreachable**, not merely below the fold, and that is a Constitution IV release gate.
+- [X] T174 [US12] Add `testID`s, run `verify-maestro-ids.mjs`, and add `.maestro/33-mute-and-dismiss.yaml` asserting `PUT /v1/people/{handle}/mute` **204**.
 
 ---
 

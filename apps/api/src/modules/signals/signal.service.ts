@@ -1,6 +1,7 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import { SignalRepository } from '../../persistence/signal.repository';
 import { PostQueryService } from '../posts/post-query.service';
+import { EVENT_BUS, type EventBus } from '../../ports';
 import {
   SIGNAL_BATCH_MAX,
   SIGNAL_MAX_DWELL_MS,
@@ -30,14 +31,30 @@ const EVENT_TTL_SECONDS = 30 * 24 * 60 * 60;
  * (`signals-hostile-client.spec.ts`), not the well-behaved one.
  */
 @Injectable()
-export class SignalService {
+export class SignalService implements OnModuleInit {
   /** Per kind, per post, per session — so a scroll back and forth counts once. */
   private readonly sessionSeen = new Map<string, Set<string>>();
 
   constructor(
     @Inject(SignalRepository) private readonly signals: SignalRepository,
     @Inject(PostQueryService) private readonly posts: PostQueryService,
+    @Inject(EVENT_BUS) private readonly events: EventBus,
   ) {}
+
+  /**
+   * 008/FR-042. A dismissal becomes a NEGATIVE signal, through the bus.
+   *
+   * Subscribed here rather than called from the post controller, which would
+   * close an import cycle — and this is where the decision belongs anyway: one
+   * service owns what is recorded, exactly as `NotificationService` owns what is
+   * announced.
+   */
+  onModuleInit(): void {
+    this.events.subscribe('post.dismissed', async (e) => {
+      const { postId, viewerId } = e.payload as { postId: string; viewerId: string };
+      await this.record({ userId: viewerId }, [{ kind: 'dismiss', postId }]);
+    });
+  }
 
   async record(
     viewer: { userId: string },

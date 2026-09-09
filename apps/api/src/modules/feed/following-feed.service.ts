@@ -4,6 +4,8 @@ import { PostRepository, type PostItem } from '../../persistence/post.repository
 import { PostQueryService } from '../posts/post-query.service';
 import { VisibilityFilter, type Viewer } from '../../visibility/visibility.filter';
 import { MAX_FOLLOWED_PEOPLE } from '../people/person-follow.service';
+import { MuteRepository } from '../../persistence/mute.repository';
+import { DismissalRepository } from '../../persistence/dismissal.repository';
 
 /**
  * 008/US3 — THE FEED OF PEOPLE YOU CHOSE.
@@ -43,6 +45,8 @@ export class FollowingFeedService {
     @Inject(PostRepository) private readonly posts: PostRepository,
     @Inject(PostQueryService) private readonly postQueries: PostQueryService,
     @Inject(VisibilityFilter) private readonly visibility: VisibilityFilter,
+    @Inject(MuteRepository) private readonly mutes: MuteRepository,
+    @Inject(DismissalRepository) private readonly dismissals: DismissalRepository,
   ) {}
 
   async page(
@@ -83,16 +87,34 @@ export class FollowingFeedService {
      * author being followed or unfollowed between pages.
      */
     const before = opts.cursor ?? null;
+
+    /**
+     * 008/FR-039, FR-041 — MUTE AND DISMISSAL, AT THE SELECTION STAGE.
+     *
+     * The same stage as the ranked feed's, and for the same reason: these are
+     * selection rules, not visibility ones (`contracts/selection-vs-boundary.md`).
+     * A muted author is skipped BEFORE their posts are read rather than filtered
+     * afterwards — a mute that still cost a query per muted author would make
+     * "less of this" mean "the same work, fewer results".
+     */
+    const [mutedAuthorIds, dismissedPostIds] = await Promise.all([
+      this.mutes.listMuted(viewer.userId),
+      this.dismissals.listDismissed(viewer.userId),
+    ]);
+
     const perAuthor = await Promise.all(
-      following.items.map((f) =>
-        this.posts
-          .listByAuthor(f.followeeId, { limit: FollowingFeedService.PER_AUTHOR })
-          .then((page) => page.items),
-      ),
+      following.items
+        .filter((f) => !mutedAuthorIds.has(f.followeeId))
+        .map((f) =>
+          this.posts
+            .listByAuthor(f.followeeId, { limit: FollowingFeedService.PER_AUTHOR })
+            .then((page) => page.items),
+        ),
     );
 
     const merged = perAuthor
       .flat()
+      .filter((p) => !dismissedPostIds.has(p.postId))
       .filter((p) => (before ? p.createdAt < before : true))
       // Strictly descending by time, tie-broken by id so the order is total and
       // a page boundary cannot show the same post twice or skip one.

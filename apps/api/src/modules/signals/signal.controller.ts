@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Inject, Post, Req } from '@nestjs/common';
 import type { AppRequest } from '../../common/http/request';
+import { DismissalRepository } from '../../persistence/dismissal.repository';
 import { SignalService, type IncomingSignal } from './signal.service';
 import { SeedService } from './seed.service';
 import { SignalRepository } from '../../persistence/signal.repository';
@@ -31,6 +32,7 @@ export class SignalController {
     @Inject(SignalRepository) private readonly repo: SignalRepository,
     @Inject(RankingService) private readonly ranking: RankingService,
     @Inject(CATALOGUE_SEARCH) private readonly catalogue: CatalogueSearch,
+    @Inject(DismissalRepository) private readonly dismissals: DismissalRepository,
   ) {}
 
   /**
@@ -78,7 +80,22 @@ export class SignalController {
        * so it would show the cold start again on every sign-in.
        */
       coldStartComplete: await this.seeds.asked(userId),
-      collected: ['posts you open', 'how long you stay', 'what you like', 'what you save'],
+      /**
+       * 008/FR-042, T161. `what you dismiss` is listed HERE, with the rest.
+       *
+       * A signal the product collects and does not disclose is a Principle III
+       * violation rather than a gap: FR-011 says a person may see what their
+       * feed is built from, and "except the negative ones" is not a version of
+       * that promise. In their words, not the ranker's — the kind is `dismiss`
+       * internally and nobody outside this codebase should have to know that.
+       */
+      collected: [
+        'posts you open',
+        'how long you stay',
+        'what you like',
+        'what you save',
+        'what you dismiss',
+      ],
     };
   }
 
@@ -94,6 +111,15 @@ export class SignalController {
   async clear(@Req() req: AppRequest) {
     const userId = callerId(req);
     await this.repo.clear(userId);
+    /**
+     * 008/FR-042. The DISMISSALS go too.
+     *
+     * A reset that left them would keep hiding posts on the strength of a
+     * profile the person had just erased — the feed would still be shaped by
+     * something the product had told them was gone. `clear` on the repository
+     * removes the rows; there is no second store to forget.
+     */
+    await this.dismissals.clear(userId);
     this.signals.forget(userId);
     return { cleared: true };
   }

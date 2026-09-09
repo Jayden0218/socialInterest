@@ -720,6 +720,52 @@ paths:
         '204': { description: Discarded }
         '404': { description: No such draft }
 
+  /people/{handle}/mute:
+    put:
+      tags: [People]
+      summary: Mute a person
+      description: >
+        008/FR-039, FR-040. SELECTION, never the boundary: their posts stop being chosen for
+        your feeds and search, and their profile still shows them to you if you go and look.
+        The follow survives - muting is not a quieter unfollow.
+
+
+        Nothing anywhere in this API discloses that a mute exists. The row lives only in the
+        muter's partition with no inverted index (A50), so there is no query the muted person
+        can write that reaches it.
+      parameters:
+        - $ref: '#/components/parameters/Handle'
+      responses:
+        '204': { description: Muted. Idempotent. }
+        '404': { description: No such person }
+        '422': { description: You cannot mute yourself }
+    delete:
+      tags: [People]
+      summary: Unmute a person
+      parameters:
+        - $ref: '#/components/parameters/Handle'
+      responses:
+        '204': { description: Unmuted. Idempotent. }
+        '404': { description: No such person }
+
+  /posts/{postId}/dismiss:
+    put:
+      tags: [Posts]
+      summary: Stop showing me this post
+      description: >
+        008/FR-041, FR-042. Selection AND a negative ranking signal, which is the second
+        reason it cannot live in the boundary - only a selection stage can consume a signal.
+        The post still opens from a link and is still on its author's profile.
+
+
+        There is deliberately no un-dismiss: "I have seen enough of this" is not a state
+        somebody toggles, and a control to reverse it would imply a list they are meant to
+        curate. `DELETE /me/feed-signals` clears them all, which is the honest way back.
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      responses:
+        '204': { description: Dismissed. Idempotent. }
+
   /posts/{postId}/comments:
     get:
       tags: [Engagement]

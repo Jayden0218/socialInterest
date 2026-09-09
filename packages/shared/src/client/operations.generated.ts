@@ -1,7 +1,7 @@
 // GENERATED from specs/001-interest-media-sharing/contracts/openapi.yaml
 // Do not edit by hand. Run: pnpm --filter @sih/shared generate:client
 //
-// 72 operations across 52 paths.
+// 75 operations across 54 paths.
 
 export const operations = {
   getMe: { method: 'GET', path: '/me', auth: true }, // Current person's profile and preferences
@@ -36,6 +36,9 @@ export const operations = {
   postMeDrafts: { method: 'POST', path: '/me/drafts', auth: true }, // Save an unfinished post
   getMeDraftsByDraftId: { method: 'GET', path: '/me/drafts/{draftId}', auth: true }, // Restore an unfinished post
   deleteMeDraftsByDraftId: { method: 'DELETE', path: '/me/drafts/{draftId}', auth: true }, // Discard an unfinished post
+  putPeopleByHandleMute: { method: 'PUT', path: '/people/{handle}/mute', auth: true }, // Mute a person
+  deletePeopleByHandleMute: { method: 'DELETE', path: '/people/{handle}/mute', auth: true }, // Unmute a person
+  putPostsByPostIdDismiss: { method: 'PUT', path: '/posts/{postId}/dismiss', auth: true }, // Stop showing me this post
   getPostsByPostIdComments: { method: 'GET', path: '/posts/{postId}/comments', auth: false }, // Comments on a post
   postPostsByPostIdComments: { method: 'POST', path: '/posts/{postId}/comments', auth: true }, // Comment on a post
   patchPostsByPostIdCommentsByCommentId: { method: 'PATCH', path: '/posts/{postId}/comments/{commentId}', auth: true }, // Correct your own comment

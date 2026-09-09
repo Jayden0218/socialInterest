@@ -289,6 +289,35 @@ export const keys = {
     sk: `DRAFT#${draftId}`,
   }),
 
+  /**
+   * A50 - 008/FR-039, FR-040. MUTE, WITH NO INVERTED INDEX.
+   *
+   * The absence of an index IS the privacy mechanism, not a rule somebody has
+   * to remember: the row lives only in the MUTER's partition, so there is no
+   * query the muted person can write that reaches it. FR-040 says a mute must
+   * not be inferable by its subject, and a structural answer to that outlives
+   * every future surface, which a filter on a response does not.
+   *
+   * Deliberately unlike `block`, which IS indexed both ways — a block has to be
+   * enforceable from either side, and a mute must not be visible from one.
+   */
+  mute: (muterId: string, mutedId: string) => ({
+    pk: `USER#${muterId}`,
+    sk: `MUTE#${mutedId}`,
+  }),
+
+  /**
+   * A51 - 008/FR-041. A post this viewer asked not to see again.
+   *
+   * Also private by key, and for a second reason: a dismissal is a negative
+   * signal about somebody's content (FR-042), and an index that let an author
+   * count dismissals would be a scoreboard of who disliked them.
+   */
+  dismissal: (viewerId: string, postId: string) => ({
+    pk: `USER#${viewerId}`,
+    sk: `DISMISS#${postId}`,
+  }),
+
   /** A33 - "is this saved?" without scanning the list. */
   savedPostBy: (userId: string, postId: string) => ({
     pk: `USER#${userId}`,
@@ -364,6 +393,8 @@ export const SK_PREFIX = {
   savedPost: 'SAVE#',
   // feature 008
   draft: 'DRAFT#',
+  mute: 'MUTE#',
+  dismissal: 'DISMISS#',
   // feature 005
   rating: 'RATING#',
   conversationMember: 'PARTICIPANT#',

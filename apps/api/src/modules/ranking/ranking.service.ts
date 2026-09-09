@@ -2,6 +2,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import { SignalRepository } from '../../persistence/signal.repository';
 import { InterestFollowRepository } from '../../persistence/interest-follow.repository';
 import { CandidateSource, type Candidate } from './candidate-source';
+import { MuteRepository } from '../../persistence/mute.repository';
+import { DismissalRepository } from '../../persistence/dismissal.repository';
 import { rankedInterests } from './decay';
 import { DECLARED_INTEREST_WEIGHT, FOLLOWED_AUTHOR_BOOST_MS } from './constants';
 
@@ -35,6 +37,8 @@ export class RankingService {
   constructor(
     @Inject(SignalRepository) private readonly signals: SignalRepository,
     @Inject(CandidateSource) private readonly source: CandidateSource,
+    @Inject(MuteRepository) private readonly mutes: MuteRepository,
+    @Inject(DismissalRepository) private readonly dismissals: DismissalRepository,
     @Inject(InterestFollowRepository) private readonly interestFollows: InterestFollowRepository,
   ) {}
 
@@ -70,7 +74,21 @@ export class RankingService {
     }
 
     const exploit = weights.slice(0, RankingService.EXPLOIT_WIDTH).map((w) => w.interestId);
-    const { candidates, fanOutWidth } = await this.source.collect(exploit, limit, depth);
+    /**
+     * 008/FR-039, FR-041. Read ONCE per request, not per candidate.
+     *
+     * A page considers dozens of authors; a lookup each would be dozens of
+     * reads on the hot path. Both sets are small by nature — muting and
+     * dismissing are deliberate acts — and both reads are bounded.
+     */
+    const [mutedAuthorIds, dismissedPostIds] = await Promise.all([
+      this.mutes.listMuted(userId),
+      this.dismissals.listDismissed(userId),
+    ]);
+    const { candidates, fanOutWidth } = await this.source.collect(exploit, limit, depth, {
+      authorIds: mutedAuthorIds,
+      postIds: dismissedPostIds,
+    });
 
     const score = new Map(weights.map((w) => [w.interestId, w.weight]));
     const ordered = [...candidates].sort((a, b) => this.score(b, score, followedAuthorIds, now) - this.score(a, score, followedAuthorIds, now));

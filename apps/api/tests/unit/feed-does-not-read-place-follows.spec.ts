@@ -90,7 +90,15 @@ describe('the home feed never consults place follows or ratings (FR-019, 005)', 
     // follow-expansion left with the composed feed - and gave the two numbers
     // below the same job for the ranker.
     expect(FeedService.length).toBe(5);
-    expect(RankingService.length).toBe(3);
+    /**
+     * 3 -> 5 in 008/US12. The two new dependencies are `MuteRepository` and
+     * `DismissalRepository`, and raising this number is the visible edit the
+     * guard exists to force. Both are SELECTION reads
+     * (`contracts/selection-vs-boundary.md`), which is the one kind of new
+     * dependency the ranker is allowed to acquire — a place-follow or a rating
+     * still is not, and the source scan above is what says so.
+     */
+    expect(RankingService.length).toBe(5);
     expect(CandidateSource.length).toBe(2);
   });
 });

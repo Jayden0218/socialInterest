@@ -2,6 +2,7 @@ import { Controller, Delete, Get, HttpCode, HttpStatus, Inject, Param, Put, Quer
 import { DomainError } from '../../common/errors/problem.filter';
 import type { AppRequest } from '../../common/http/request';
 import { Public } from '../../common/auth/auth.guard';
+import { MuteRepository } from '../../persistence/mute.repository';
 import { PersonRepository } from '../../persistence/person.repository';
 import { PersonFollowRepository } from '../../persistence/person-follow.repository';
 import { PostRepository } from '../../persistence/post.repository';
@@ -22,6 +23,7 @@ export class PersonController {
     @Inject(CATALOGUE_SEARCH) private readonly catalogue: CatalogueSearch,
     @Inject(PersonSearchService) private readonly searchService: PersonSearchService,
     @Inject(ProfileProjection) private readonly profiles: ProfileProjection,
+    @Inject(MuteRepository) private readonly mutes: MuteRepository,
   ) {}
 
   /** FR-038: profile with counts and the interests this person posts to most. */
@@ -116,5 +118,37 @@ export class PersonController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async unfollow(@Req() req: AppRequest, @Param('handle') handle: string): Promise<void> {
     await this.followService.unfollow(req.viewer!.userId, handle);
+  }
+
+  /**
+   * 008/FR-039, FR-040 — MUTE. Idempotent, and silent.
+   *
+   * 204 with no body, and NOTHING anywhere else in the API says a mute exists:
+   * no field on a profile, no count, no ordering. FR-040 makes that a
+   * requirement rather than a nicety, and the row's key (A50 — the muter's
+   * partition, no inverted index) is what makes it true structurally rather
+   * than by everyone remembering.
+   *
+   * The follow is untouched on purpose. Muting is not a quieter unfollow: the
+   * relationship survives, the conversation survives, and the person's profile
+   * still shows their posts to the muter who goes and looks.
+   */
+  @Put(':handle/mute')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async mute(@Req() req: AppRequest, @Param('handle') handle: string): Promise<void> {
+    const person = await this.people.findByHandle(handle);
+    if (!person) throw new DomainError(HttpStatus.NOT_FOUND, 'No such person');
+    if (person.userId === req.viewer!.userId) {
+      throw new DomainError(HttpStatus.UNPROCESSABLE_ENTITY, 'Validation failed', 'You cannot mute yourself');
+    }
+    await this.mutes.mute(req.viewer!.userId, person.userId);
+  }
+
+  @Delete(':handle/mute')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async unmute(@Req() req: AppRequest, @Param('handle') handle: string): Promise<void> {
+    const person = await this.people.findByHandle(handle);
+    if (!person) throw new DomainError(HttpStatus.NOT_FOUND, 'No such person');
+    await this.mutes.unmute(req.viewer!.userId, person.userId);
   }
 }
