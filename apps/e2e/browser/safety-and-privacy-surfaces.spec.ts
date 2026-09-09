@@ -107,6 +107,32 @@ describe('008/US13, US14 - the privacy and safety surfaces are reachable and rea
       throw new Error('approving the request never reached the server');
     })();
 
+    /*
+      AND BACK TO OPEN, which run 58 is the argument for.
+
+      `34-private-account` turned the device's account private and left it
+      there, so every later ANONYMOUS read saw a private account — correctly,
+      because a public post by a private account is evaluated by the followers
+      rule (FR-044). The runner's post-journey check asks the place page with
+      no token, and it failed: not a defect, US13 working on a surface nobody
+      had thought about it on.
+
+      A toggle is not idempotent and flows share ONE SERVER — 005/J-20's
+      lesson, in a new place. So the flow puts the account back, and this is
+      the browser half of the same claim: the switch works in BOTH directions,
+      the way 27-set-avatar covers set AND removed.
+    */
+    await page.click('[data-testid="account-privacy-switch"]');
+    await page.click('[data-testid="save-profile"]');
+    await (async () => {
+      for (let i = 0; i < 60; i++) {
+        const me = await owner.data.session.me();
+        if (me.accountPrivacy === 'open') return;
+        await new Promise((r) => setTimeout(r, 250));
+      }
+      throw new Error('the privacy toggle never went back to open');
+    })();
+
     await page.close();
   }, 240_000);
 

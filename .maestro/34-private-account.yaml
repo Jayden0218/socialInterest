@@ -85,5 +85,34 @@ appId: app.socialinterest
       id: "follow-request-${FOLLOW_REQUESTER}"
     timeout: 30000
 
+# AND BACK TO OPEN, WHICH RUN 58 IS THE ARGUMENT FOR.
+#
+# All 34 flows passed in run 58 and the run still failed, on a post-journey
+# server check: "the published post is not on its place page". That check asks
+# the place page with NO TOKEN, and this flow had left the device's account
+# private — so a public post by a private account is evaluated by the followers
+# rule (FR-044) and an anonymous reader correctly cannot see it. Not a defect:
+# US13 working on a surface nobody had thought about it on.
+#
+# A toggle is not idempotent and flows share ONE SERVER. That is 005/J-20's
+# lesson in a new place, and the fix is the same: leave the world as you found
+# it. It also buys the other direction of FR-043 for free, the way
+# `27-set-avatar` covers set AND removed — and the anonymous place check is
+# what asserts it, because it cannot pass while the account is still private.
+- scrollUntilVisible:
+    element:
+      id: "account-privacy-switch"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "account-privacy-switch"
+- scrollUntilVisible:
+    element:
+      id: "save-profile"
+    direction: UP
+    timeout: 20000
+- tapOn:
+    id: "save-profile"
+
 - assertNotVisible:
     id: "load-error"

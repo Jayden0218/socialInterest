@@ -685,6 +685,13 @@ fi
 echo "== 004/US2: did the post actually land AT the place? =="
 # A chip rendered from local state satisfies any view assertion. The place page
 # is a SERVER query, so asking it is the only claim worth making.
+#
+# ASKED ANONYMOUSLY, AND THAT IS LOAD-BEARING TWICE OVER. It is the stronger
+# question — the author sees their own post whatever its state — and since 008
+# it also asserts that `34-private-account` put the account back: a public post
+# by a private account is evaluated by the followers rule (FR-044), so this
+# check cannot pass while the device is still private. Run 58 failed exactly
+# here with all 34 flows green, which is how the coupling was found.
 PLACE_POSTS="$(curl -s "http://127.0.0.1:3000/v1/places/$PLACE_ID/posts?limit=20")"
 if ! echo "$PLACE_POSTS" | grep -q "published from a real device, at a place"; then
   echo "FAIL: the published post is not on its place page"
