@@ -40,6 +40,25 @@ appId: app.socialinterest
 - tapOn:
     id: "change-avatar"
 
+# THE APP'S OWN PICKER, not the system gallery.
+#
+# The first version of this flow tapped `change-avatar` and waited. On a device
+# that opened `com.android.documentsui` — a modal nothing in the app or the flow
+# can dismiss — and run 50 sat there for 120 seconds. Its aggregate shows 12
+# uploads for 10 posts, exactly what those posts needed, so no avatar upload was
+# ever attempted: the app was not slow, it was behind a system window.
+#
+# Choosing a picture now goes through `MediaPickerScreen`, the same screen
+# compose uses, with the device library still behind its own explicit control
+# (`10-publish-from-library` drives that hand-off and deliberately stops at
+# Google's UI).
+- assertVisible:
+    id: "media-picker-screen"
+- tapOn:
+    id: "media-item-image-0"
+- tapOn:
+    id: "media-continue"
+
 # The upload and the PATCH. `Uploading…` is the button's own account of what it
 # is doing; waiting for it to go away is waiting for the request to resolve,
 # which is what an assertion on a screen can honestly observe.

@@ -1292,6 +1292,25 @@ export function EditProfileContainer({ onDone }: { onDone: () => void }) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarBusy, setAvatarBusy] = useState(false);
   const library = useMediaLibrary();
+  /**
+   * 008/T086, after emulator run 50 — THE PICKER IS THE APP'S OWN.
+   *
+   * This used to call `library.pick()` directly, which on a device opens the
+   * SYSTEM gallery: a modal owned by `com.android.documentsui` that nothing in
+   * the app or the flow can dismiss. Run 50's `27-set-avatar` waited 120 seconds
+   * for a photo to appear and the whole-run aggregate shows 12 uploads for 10
+   * posts — exactly the media those posts needed and not one byte more, so no
+   * avatar upload was ever attempted.
+   *
+   * Compose has never had that problem, because it does not hand off blind: it
+   * shows `MediaPickerScreen` — the app's own list, with the device library
+   * behind an explicit control (`10-publish-from-library` verifies that
+   * hand-off and deliberately does not drive Google's UI). Setting a picture now
+   * takes the same route, which is both the consistent product and the one a
+   * device run can drive.
+   */
+  const [pickingAvatar, setPickingAvatar] = useState(false);
+  const [avatarChoice, setAvatarChoice] = useState<PickedMedia[]>([]);
 
   useEffect(() => {
     let live = true;
@@ -1336,18 +1355,7 @@ export function EditProfileContainer({ onDone }: { onDone: () => void }) {
    * `pnpm add` once took `expo-image-picker@57` against SDK 54 and killed the
    * app during module registration with `NoClassDefFoundError: AnyTypeCache`.
    */
-  const changeAvatar = useCallback(async () => {
-    /**
-     * The same library the compose flow uses, and the same fallback.
-     *
-     * `pick()` opens the device gallery where there is one and falls back to the
-     * bundled sample set where there is not — a browser journey and an emulator
-     * with no camera roll both take that path, and the bytes are real either
-     * way, so the presign/PUT/quote path this exercises is the real one.
-     */
-    await library.pick();
-    const picked = library.available.find((m) => m.kind === 'image');
-    if (!picked) return;
+  const uploadAvatar = useCallback(async (picked: PickedMedia) => {
     setAvatarBusy(true);
     try {
       const bytes = await readMediaBytes(picked.uri, fetch);
@@ -1376,7 +1384,7 @@ export function EditProfileContainer({ onDone }: { onDone: () => void }) {
     } finally {
       setAvatarBusy(false);
     }
-  }, [data, library]);
+  }, [data]);
 
   /** FR-017. `null` REMOVES it; absent would leave it alone. */
   const removeAvatar = useCallback(async () => {
@@ -1441,11 +1449,33 @@ export function EditProfileContainer({ onDone }: { onDone: () => void }) {
 
   if (error) return <Failed message={error} />;
   if (!draft) return <View testID="edit-profile-loading" />;
+  if (pickingAvatar) {
+    return (
+      <MediaPickerScreen
+        // Images only: a profile picture is one still. The picker's own rule
+        // that a video is always a post on its own would otherwise let somebody
+        // choose a clip here and be refused later by `media.limits.ts`.
+        available={library.available.filter((m) => m.kind === 'image')}
+        selected={avatarChoice}
+        // ONE, always the most recent tap - `media-continue` is enabled by a
+        // non-empty selection and an avatar is not a set.
+        onChange={(next) => setAvatarChoice(next.slice(-1))}
+        onContinue={() => {
+          const chosen = avatarChoice[0];
+          setPickingAvatar(false);
+          setAvatarChoice([]);
+          if (chosen) void uploadAvatar(chosen);
+        }}
+        libraryStatus={library.status}
+        onOpenLibrary={() => void library.pick()}
+      />
+    );
+  }
   return (
     <EditProfileScreen
       avatarUrl={avatarUrl}
       avatarBusy={avatarBusy}
-      onChangeAvatar={() => void changeAvatar()}
+      onChangeAvatar={() => setPickingAvatar(true)}
       onRemoveAvatar={() => void removeAvatar()}
       draft={draft}
       saving={saving}

@@ -60,10 +60,18 @@ appId: app.socialinterest
     id: "tab-profile"
 - extendedWaitUntil:
     visible:
-      id: "post-.*"
+# A POST ID IS A ULID, and saying so is what makes this selector unambiguous.
+#
+# `post-.*` also matched `post-caption`, `post-detail-screen`, `post-media` and
+# `post-image` — literals that are simply not mounted on this screen, so it
+# worked by luck rather than by meaning. Run 50 lost a flow to the same shape
+# where the luck ran out (`share-person-.*` matched the search field beside the
+# results), and `verify-maestro-ids` now fails on any pattern that can reach a
+# declared literal.
+      id: "post-[0-9A-Z]{26}"
     timeout: 60000
 - tapOn:
-    id: "post-.*"
+    id: "post-[0-9A-Z]{26}"
 - assertVisible:
     id: "post-detail-screen"
 
@@ -76,30 +84,44 @@ appId: app.socialinterest
 - assertVisible:
     id: "share-to-person"
 - tapOn:
-    id: "share-person-search"
-# The device fixture's own handle prefix. A two-character query is the shortest
-# the container will send, and matching THIS account is deliberate: the flow has
-# one account, and sending to yourself exercises open + send end to end without
-# needing a second signed-in device.
-- inputText: "de"
+    id: "share-recipient-search"
+# THE SEEDED GROUP MEMBER, by their full handle.
+#
+# The first version of this flow searched "de" — the device account's own handle
+# prefix — with a comment claiming that "sending to yourself exercises open and
+# send end to end". IT CANNOT: `PersonSearchService` excludes the viewer from
+# their own results, deliberately, so the one person that query was written to
+# find is the one person it can never return.
+#
+# `GROUP_MEMBER_C` is a real second person, exported by `seed-group-fixture.ts`
+# and already used by `21-group-chat`. Being in a group with somebody creates no
+# PAIR conversation, so this is still FR-011's case: a post reaching somebody
+# never messaged.
+- inputText: "${GROUP_MEMBER_C}"
 - hideKeyboard
 
-# A result, then the send. If the search returns nothing this fails here as a
-# missing element, which is the honest outcome - there is then nobody to send to
-# and the aggregate will show GET /v1/people with no messages after it.
+# AN EXACT ID, NOT `share-person-.*`.
+#
+# A Maestro selector is a regex, and `share-person-.*` also matched the search
+# FIELD, which was `share-person-search` and is rendered first. Run 50's tap
+# landed on the field: nothing was sent, the sheet stayed open, and the run's
+# aggregate shows no refusal anywhere because there was nothing to refuse. The
+# field is renamed, and this selects the recipient by name so the flow cannot
+# depend on which element a pattern happens to reach first.
 - extendedWaitUntil:
     visible:
-      id: "share-person-.*"
+      id: "share-person-${GROUP_MEMBER_C}"
     timeout: 30000
 - tapOn:
-    id: "share-person-.*"
+    id: "share-person-${GROUP_MEMBER_C}"
 
-# The sheet closes on a successful send, and the neutral refusal banner must NOT
-# be showing - it is the one thing that distinguishes "sent" from "refused" here,
-# and FR-014 deliberately makes every refusal read the same.
-- assertNotVisible:
-    id: "share-send-error"
+# The sheet is a PUSHED screen and pops on a successful send, so its absence is
+# the send having resolved. The neutral refusal banner is checked AFTER the wait
+# as well as before it: checking only before proves nothing, because the request
+# had not finished yet.
 - extendedWaitUntil:
     notVisible:
       id: "share-action"
     timeout: 30000
+- assertNotVisible:
+    id: "share-send-error"

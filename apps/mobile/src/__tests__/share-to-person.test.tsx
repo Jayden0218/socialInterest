@@ -37,7 +37,7 @@ describe('008/FR-011 the recipient picker', () => {
         onSendToPerson={() => undefined}
       />,
     );
-    fireEvent.changeText(t.getByTestId('share-person-search'), 'jri');
+    fireEvent.changeText(t.getByTestId('share-recipient-search'), 'jri');
     expect(queries).toEqual(['jri']);
   });
 

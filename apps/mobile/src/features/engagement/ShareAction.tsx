@@ -95,7 +95,20 @@ export function ShareAction({
         <View testID="share-to-person" style={{ gap: space.xs }}>
           <Text style={{ ...textStyle.caption, color: palette.text.muted }}>Send to someone</Text>
           <Field
-            testID="share-person-search"
+            /*
+              `share-recipient-search`, NOT `share-person-search`.
+
+              A Maestro selector is a REGEX, and a flow taps a recipient with
+              `share-person-.*` because it cannot know the handle in advance.
+              This field's old id matched that regex too - and, being rendered
+              first, it was what the tap landed on. Emulator run 50 lost
+              `26-send-post` to exactly that: the field was focused, no send was
+              made, the sheet stayed open, and the whole run shows no refusal
+              because nothing was ever sent. `verify-maestro-ids` could not see
+              it either; it resolves `share-person-` as a dynamic prefix and had
+              no reason to notice a literal sharing it.
+            */
+            testID="share-recipient-search"
             accessibilityLabel="Search people to send this post to"
             value={query}
             onChangeText={(next) => {

@@ -120,7 +120,13 @@ for (const { label: file, path: flowPath } of flowFiles()) {
   // intact - without them `com.android.documentsui:id/dir_list` was truncated at
   // the colon and then reported as a missing testID, which is a confusing way to
   // be told the check does not understand the value.
-  for (const m of text.matchAll(/\bid:\s*"?([A-Za-z0-9_.:/${}-]+)"?/g)) {
+  // `*` and `+` ARE part of the selector — they were dropped until run 50.
+  //
+  // The class excluded them, so `share-person-.*` was read as `share-person-.`
+  // and the ambiguity check below could not see the pattern it needed to test.
+  // The `bare` strip further down already removes trailing metacharacters, so
+  // nothing that relied on the truncated form changes.
+  for (const m of text.matchAll(/\bid:\s*"?([A-Za-z0-9_.:/*+${}[\]-]+)"?/g)) {
     ids.add(`${file}\t${m[1]}`);
   }
 }
@@ -258,6 +264,39 @@ if (existsSync(RUNNER)) {
   }
 }
 
+/**
+ * AMBIGUOUS PATTERNS — the check that run 50 needed.
+ *
+ * A Maestro selector is a REGEX matched against the whole id, and this file has
+ * always known that. What it did not check is whether a pattern written for a
+ * server-generated id ALSO matches a literal the app declares.
+ *
+ * `26-send-post` selected a recipient with `share-person-.*`, because it cannot
+ * know a handle in advance. The recipient search field was
+ * `share-person-search`, which that pattern matches and which is rendered
+ * FIRST, so the tap focused a text field: nothing was sent, the sheet stayed
+ * open, and the whole run showed no refusal because there was nothing to refuse.
+ * Every other check here passed - the prefix `share-person-` exists and the flow
+ * resolved against it - and the flow failed 35 minutes into a device run.
+ *
+ * The rule: a regex selector may not also match a literal testID. Fix it by
+ * naming the literal something the pattern cannot reach (the field is
+ * `share-recipient-search` now) or by tightening the pattern.
+ */
+const ambiguous = [];
+for (const entry of ids) {
+  const [file, id] = entry.split('\t');
+  if (isForeignResourceId(id) || !/[.*+?[\]|]/.test(id)) continue;
+  let re;
+  try {
+    re = new RegExp(`^${id}$`);
+  } catch {
+    continue; // Not a valid regex; the checks above already report it.
+  }
+  const hits = [...known].filter((k) => re.test(k));
+  if (hits.length) ambiguous.push(`${file}: id "${id}" also matches ${hits.map((h) => `"${h}"`).join(', ')}`);
+}
+
 console.log(`checked ${ids.size} selector(s) across ${flowFiles().length} flow(s)`);
 console.log(`app declares ${known.size} testID literal(s) and ${prefixes.size} dynamic prefix(es)`);
 if (foreign.length) {
@@ -274,12 +313,17 @@ if (unresolved.length) {
   for (const m of unresolved) console.error('  ' + m);
   console.error('This is how pref-message passed while the switch did not exist.');
 }
+if (ambiguous.length) {
+  console.error('FAIL: these Maestro patterns also match a literal testID the app declares:');
+  for (const m of ambiguous) console.error('  ' + m);
+  console.error('The first matching element wins, and it is not the one the flow means.');
+}
 if (missingVars.length) {
   console.error('FAIL: these Maestro flows use a variable the device runner never passes:');
   for (const m of missingVars) console.error('  ' + m);
   console.error('Maestro substitutes the literal text and then times out looking for it.');
 }
-if (missing.length || unresolved.length || missingVars.length) process.exit(1);
+if (missing.length || unresolved.length || ambiguous.length || missingVars.length) process.exit(1);
 // What is still NOT verified, stated plainly rather than left to be discovered.
 //
 // A dynamic prefix used to match ANY suffix, which let `media-item-video` pass

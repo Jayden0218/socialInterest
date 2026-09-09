@@ -15,10 +15,18 @@ appId: app.socialinterest
     id: "tab-profile"
 - extendedWaitUntil:
     visible:
-      id: "post-.*"
+# A POST ID IS A ULID, and saying so is what makes this selector unambiguous.
+#
+# `post-.*` also matched `post-caption`, `post-detail-screen`, `post-media` and
+# `post-image` — literals that are simply not mounted on this screen, so it
+# worked by luck rather than by meaning. Run 50 lost a flow to the same shape
+# where the luck ran out (`share-person-.*` matched the search field beside the
+# results), and `verify-maestro-ids` now fails on any pattern that can reach a
+# declared literal.
+      id: "post-[0-9A-Z]{26}"
     timeout: 30000
 - tapOn:
-    id: "post-.*"
+    id: "post-[0-9A-Z]{26}"
 - assertVisible:
     id: "post-detail-screen"
 
@@ -45,5 +53,5 @@ appId: app.socialinterest
 # The post is in the list. Empty here would mean the save never left the device.
 - extendedWaitUntil:
     visible:
-      id: "post-.*"
+      id: "post-[0-9A-Z]{26}"
     timeout: 30000
