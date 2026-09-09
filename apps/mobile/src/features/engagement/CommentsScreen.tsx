@@ -1,7 +1,9 @@
 import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
-import type { Comment } from '@sih/shared';
+import type { Comment, PublicProfile } from '@sih/shared';
 import { activePalette as palette, radius, space, textStyle, touchTarget } from '../../ui/theme';
 import { Banner, Button, EmptyState, Screen } from '../../ui/primitives';
+import { MentionText } from '../../components/MentionText';
+import { MentionSuggest } from '../../components/MentionSuggest';
 
 export const MAX_COMMENT_LENGTH = 1000;
 
@@ -42,6 +44,9 @@ export function CommentsScreen({
   onReplyTo,
   onEdit,
   onDelete,
+  onOpenPerson,
+  mentionMatches,
+  onChooseMention,
 }: {
   comments: Comment[];
   draft: string;
@@ -65,6 +70,11 @@ export function CommentsScreen({
   onReplyTo?: (comment: Comment | null) => void;
   onEdit?: (comment: Comment | null) => void;
   onDelete?: (comment: Comment) => void;
+  /** 008/FR-030. Opens a person named in a comment. */
+  onOpenPerson?: (handle: string) => void;
+  /** 008/FR-030. People matching the handle being typed, if any. */
+  mentionMatches?: PublicProfile[];
+  onChooseMention?: (handle: string) => void;
 }) {
   const blocked = status ? messageForStatus(status) : null;
 
@@ -103,16 +113,21 @@ export function CommentsScreen({
                 <Text style={{ ...textStyle.caption, color: palette.text.muted }}>
                   {item.author.displayName}
                 </Text>
-                <Text
-                  testID={removed ? `comment-removed-${index}` : undefined}
-                  style={{
-                    ...textStyle.body,
-                    color: removed ? palette.text.muted : palette.text.primary,
-                    fontStyle: removed ? 'italic' : 'normal',
-                  }}
-                >
-                  {removed ? REMOVED_COMMENT_TEXT : item.body}
-                </Text>
+                {removed ? (
+                  <Text
+                    testID={`comment-removed-${index}`}
+                    style={{ ...textStyle.body, color: palette.text.muted, fontStyle: 'italic' }}
+                  >
+                    {REMOVED_COMMENT_TEXT}
+                  </Text>
+                ) : (
+                  // 008/FR-030. @handles are tappable in a comment too.
+                  <MentionText
+                    text={item.body ?? ''}
+                    style={{ ...textStyle.body, color: palette.text.primary }}
+                    {...(onOpenPerson ? { onOpenPerson } : {})}
+                  />
+                )}
                 {/*
                   No reply control on a REPLY: nesting is bounded at one level
                   (FR-025), and offering a control whose result is silently
@@ -234,6 +249,12 @@ export function CommentsScreen({
             ...textStyle.body,
           }}
         />
+        {/* Above the button and below the field: it must not cover what is
+            being typed, and it must not push the submit off a short screen —
+            006 measured a safety control at 665px on a 640px screen. */}
+        {mentionMatches && onChooseMention ? (
+          <MentionSuggest people={mentionMatches} onChoose={onChooseMention} />
+        ) : null}
         <Button
           testID="comment-submit"
           label={submitting ? 'Posting…' : editing ? 'Save' : 'Post'}

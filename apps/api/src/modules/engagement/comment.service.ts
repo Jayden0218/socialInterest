@@ -9,6 +9,7 @@ import { ProfileProjection } from '../people/profile.projection';
 import type { Viewer } from '../../visibility/visibility.filter';
 import { EVENT_BUS, type EventBus } from '../../ports';
 import { groupWithParents, validReplyParent } from './reply-parent';
+import { resolveMentions } from './mention';
 import { CommentUpdateTransaction } from './comment-update.transaction';
 
 /**
@@ -27,6 +28,8 @@ export interface CommentResponse {
   parentCommentId: string | null;
   /** 008/FR-027. Present exactly when the comment has been edited. */
   editedAt: string | null;
+  /** 008/FR-030. Resolved at write time; the client renders links from THIS. */
+  mentions: string[];
   createdAt: string;
 }
 
@@ -83,6 +86,7 @@ export class CommentService {
         moderationState: c.moderationState ?? null,
         parentCommentId: c.parentCommentId ?? null,
         editedAt: c.editedAt ?? null,
+        mentions: c.mentions ?? [],
         createdAt: c.createdAt,
       })),
     );
@@ -146,12 +150,18 @@ export class CommentService {
       }
       parent = decision.parentCommentId;
     }
+    /** 008/FR-030. Same rule as a caption: resolved once, stored as ids. */
+    const mentions = await resolveMentions(
+      body,
+      async (handle) => (await this.people.findByHandle(handle))?.userId ?? null,
+    );
     const comment: CommentItem = {
       commentId: ulid(),
       postId,
       authorId: viewer.userId,
       body,
       parentCommentId: parent,
+      ...(mentions.length > 0 ? { mentions } : {}),
       createdAt: new Date().toISOString(),
     };
     await this.comments.create(comment);
@@ -160,6 +170,14 @@ export class CommentService {
       type: 'post.commented',
       payload: { postId, commentId: comment.commentId, authorId: viewer.userId },
     });
+    // FR-031, FR-032. `NotificationService` decides who is told — see the note
+    // on the same publish in `post.service.ts`.
+    if (mentions.length > 0) {
+      await this.events.publish({
+        type: 'content.mentioned',
+        payload: { postId, actorId: viewer.userId, mentionedIds: mentions },
+      });
+    }
     return (await this.withAuthors([comment]))[0]!;
   }
 

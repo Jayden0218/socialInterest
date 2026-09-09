@@ -8,7 +8,7 @@ import type { DataClient, TokenStore } from './client';
  */
 /**
  * The notification categories a person can turn off (001/FR-049, extended by
- * 004/FR-031 with `message`).
+ * 004/FR-031 with `message` and by 008/FR-031 with `mention`).
  *
  * Declared ONCE, here, because it was declared twice - in NotificationsScreen
  * and EditProfileScreen - and adding the fourth category to one of them and not
@@ -19,6 +19,7 @@ export interface NotificationPrefs {
   comment: boolean;
   follow: boolean;
   message: boolean;
+  mention: boolean;
 }
 
 export interface MyProfile extends PublicProfile {

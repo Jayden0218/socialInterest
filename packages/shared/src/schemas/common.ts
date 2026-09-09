@@ -15,7 +15,23 @@ export const interestStateSchema = z.enum(['active', 'merging', 'merged', 'retir
 export const personStatusSchema = z.enum(['active', 'deleting', 'deleted']);
 export const reportStateSchema = z.enum(['open', 'under_review', 'actioned', 'dismissed']);
 export const reportSubjectSchema = z.enum(['post', 'comment', 'interest']);
-export const notificationKindSchema = z.enum(['reaction', 'comment', 'follow', 'message']);
+/**
+ * 008/FR-031 adds `mention`.
+ *
+ * A kind is only real when FOUR things exist: this enum, a description, a
+ * preference, and a publisher. This project has shipped each half without the
+ * other twice — 004's `message` toggle that was described and never rendered,
+ * 007's `follow` kind with a switch and no publisher — so
+ * `mention-kind-has-both-halves.spec.ts` reads all four files rather than
+ * trusting them to agree.
+ */
+export const notificationKindSchema = z.enum([
+  'reaction',
+  'comment',
+  'follow',
+  'message',
+  'mention',
+]);
 
 /** 004/FR-013. A restaurant is a CATEGORY, not the entity - see research R3. */
 export const placeCategorySchema = z.enum([

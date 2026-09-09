@@ -35,6 +35,8 @@ export interface CommentItem {
    * conversation name and a message, in a third place.
    */
   moderationState?: 'removed' | null;
+  /** 008/FR-030. The people this comment names, resolved at write time. */
+  mentions?: string[];
 }
 
 /** A15. Comments share the post's partition, so listing is one Query. */

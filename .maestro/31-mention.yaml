@@ -1,0 +1,90 @@
+# 008/US9, T138 — NAMING SOMEBODY PUTS IT IN FRONT OF THEM.
+#
+# WHAT TO READ IN THE RUN AGGREGATE:
+#   GET  /v1/people          200   the autocomplete searching for the handle
+#   POST /v1/posts           201   the caption carrying the mention
+#   GET  /v1/notifications   200   read by the person who was named
+#
+# The mention is announced when the post becomes READY, not when it is
+# published: a pending post is visible only to its author, so a notification
+# sent at publish is one the boundary refuses and never sends again. That is
+# why this flow waits for the post rather than asserting immediately.
+#
+# The DEVICE ACCOUNT mentions the seeded chat friend, who is a real second
+# person. Mentioning yourself notifies nobody, deliberately, so a flow that did
+# it would assert nothing.
+appId: app.socialinterest
+---
+- runFlow: 01-sign-in.yaml
+
+- tapOn:
+    id: "open-compose"
+- assertVisible:
+    id: "media-picker-screen"
+- tapOn:
+    id: "media-item-image-0"
+- tapOn:
+    id: "media-continue"
+- assertVisible:
+    id: "compose-screen"
+- tapOn:
+    id: "interest-option-0"
+- tapOn:
+    id: "caption-input"
+# Typed in full rather than through the autocomplete: the suggestion list is
+# asserted separately below, and a flow that depends on a network round trip to
+# finish a word fails for a reason that is not the product.
+- inputText: "a walk with @${FRIEND}"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "publish-button"
+    direction: DOWN
+- extendedWaitUntil:
+    visible: "Uploaded"
+    timeout: 120000
+- tapOn:
+    id: "publish-button"
+- extendedWaitUntil:
+    notVisible:
+      id: "compose-screen"
+    timeout: 60000
+
+# The caption renders the handle as a link on the screen that shows the whole
+# text. The card truncates to two lines by design, so this is asserted here.
+- tapOn:
+    id: "tab-profile"
+- extendedWaitUntil:
+    visible:
+      id: "post-[0-9A-Z]{26}"
+    timeout: 60000
+- tapOn:
+    id: "post-[0-9A-Z]{26}"
+- assertVisible:
+    id: "post-detail-screen"
+- assertVisible:
+    id: "mention-${FRIEND}"
+
+# And the autocomplete, driven where a partial handle is being typed.
+- tapOn:
+    id: "comments-button"
+- assertVisible:
+    id: "comments-screen"
+- tapOn:
+    id: "comment-input"
+- inputText: "thanks @${FRIEND_PREFIX}"
+- extendedWaitUntil:
+    visible:
+      id: "mention-suggest-${FRIEND}"
+    timeout: 30000
+- tapOn:
+    id: "mention-suggest-${FRIEND}"
+- hideKeyboard
+- tapOn:
+    id: "comment-submit"
+- extendedWaitUntil:
+    visible:
+      id: "comment-0"
+    timeout: 30000
+- assertNotVisible:
+    id: "load-error"

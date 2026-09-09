@@ -31,3 +31,31 @@ export async function eventually<T>(
   }
   return last;
 }
+
+/**
+ * 008/US9. THE NEGATIVE FORM, and it is not `eventually`'s opposite.
+ *
+ * "Zero notifications" checked ONCE against an asynchronous pipeline passes
+ * before anything could have arrived: green, worthless, and indistinguishable
+ * from a real pass. `apps/e2e/support/eventually.ts` grew this for the same
+ * reason in 004; the integration harness needed it the moment a block had to be
+ * proved to have suppressed something.
+ */
+export async function consistently<T>(
+  read: () => Promise<T>,
+  holds: (value: T) => boolean,
+  opts: { forMs?: number; intervalMs?: number; describe?: string } = {},
+): Promise<void> {
+  const forMs = opts.forMs ?? 1000;
+  const intervalMs = opts.intervalMs ?? 100;
+  const deadline = Date.now() + forMs;
+  do {
+    const value = await read();
+    if (!holds(value)) {
+      throw new Error(
+        `${opts.describe ?? 'condition'} stopped holding within ${forMs}ms. Value: ${JSON.stringify(value)}`,
+      );
+    }
+    await new Promise((r) => setTimeout(r, intervalMs));
+  } while (Date.now() < deadline);
+}

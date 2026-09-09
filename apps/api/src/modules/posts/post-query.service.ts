@@ -82,10 +82,19 @@ export class PostQueryService {
           slug: i.slug,
           level: i.level,
         })),
+      // 008/FR-030. The stored list, never re-parsed from the caption.
       visibility: post.visibility,
       processingState: post.processingState,
       mediaKind: post.mediaKind,
       media: await Promise.all(media.map((m) => this.toMediaItem(m))),
+      /**
+       * 008/FR-030. The STORED list, never re-parsed from the caption.
+       *
+       * On the response and NOT on `VisibilityCandidate`: a mention is not a
+       * visibility input, and putting it there would be a second predicate
+       * beside the boundary.
+       */
+      mentions: post.mentions ?? [],
       reactionCount: post.reactionCount,
       commentCount: post.commentCount,
       place: place

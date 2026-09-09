@@ -24,6 +24,14 @@ export interface PostItem {
    * embedded location, and this discloses location on purpose (004/FR-021).
    */
   placeId?: string | null;
+  /**
+   * 008/FR-030. The people the caption names, resolved at WRITE time.
+   *
+   * NO INDEX. A "posts mentioning me" surface is not a requirement, and adding
+   * the write before the surface is how unused writes accumulate — the same
+   * decision `savedPost` records for private-by-key data.
+   */
+  mentions?: string[];
 }
 
 export interface MediaItemRecord {

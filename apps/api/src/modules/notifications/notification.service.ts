@@ -57,10 +57,44 @@ export class NotificationService implements OnModuleInit {
      * the note on `PersonFollowService.follow`. FR-049's preference is checked
      * here with the others, not at the publisher.
      */
+    /**
+     * 008/FR-031, FR-032 — MENTIONS.
+     *
+     * The block is NOT re-asked here. `canOpen` runs the post through
+     * `PostQueryService`, which runs `decideAuthoredRules`, which is the one
+     * place this codebase answers "are these two blocked". A mention notifying
+     * across a block would be a second predicate agreeing with the boundary
+     * today and one refactor from disagreeing — the same argument that deleted
+     * `MediaPager`'s `viewerIsAuthor` prop.
+     */
+    this.events.subscribe('content.mentioned', async (e) => {
+      const { postId, actorId, mentionedIds } = e.payload as {
+        postId: string;
+        actorId: string;
+        mentionedIds: string[];
+      };
+      for (const recipientId of mentionedIds) {
+        await this.notifyMentioned(recipientId, actorId, postId);
+      }
+    });
     this.events.subscribe('person.followed', async (e) => {
       const { followerId, followeeId } = e.payload as { followerId: string; followeeId: string };
       await this.notifyFollowed(followeeId, followerId);
     });
+  }
+
+  private async notifyMentioned(
+    recipientId: string,
+    actorId: string,
+    postId: string,
+  ): Promise<void> {
+    if (recipientId === actorId) return; // naming yourself notifies nobody
+    const recipient = await this.people.findById(recipientId);
+    if (!recipient || recipient.status !== 'active') return;
+    if (recipient.notificationPrefs.mention === false) return; // FR-049
+    // FR-032. The block lives here, in the boundary, and nowhere else.
+    if (!(await this.canOpen(recipientId, postId))) return;
+    await this.notifications.create({ recipientId, kind: 'mention', actorId, postId });
   }
 
   /**

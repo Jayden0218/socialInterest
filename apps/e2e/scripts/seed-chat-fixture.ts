@@ -14,7 +14,7 @@
  * conversation there.
  *
  * Usage: npx tsx apps/e2e/scripts/seed-chat-fixture.ts <device-token>
- * Prints REQUESTER=, FRIEND=, REQUEST_BODY= and FRIEND_BODY=.
+ * Prints REQUESTER=, FRIEND=, FRIEND_PREFIX=, REQUEST_BODY= and FRIEND_BODY=.
  */
 import { createAppData, MemoryTokenStore } from '@sih/mobile/data';
 import { actor } from '../support/client';
@@ -84,6 +84,21 @@ async function main(): Promise<void> {
   process.stdout.write(`FRIEND_NAME=${friendPrefix}\n`);
   process.stdout.write(`REQUEST_BODY=${requestBody}\n`);
   process.stdout.write(`FRIEND_BODY=${friendBody}\n`);
+  /**
+   * 008/US9. A PREFIX OF THE FRIEND'S HANDLE, asserted to find them.
+   *
+   * `31-mention.yaml` types a partial handle to exercise the mention
+   * autocomplete, and a prefix invented in the flow would be a constant the
+   * fixture cannot keep true. 005 recorded the same shape: a fixture must
+   * assert the search the flow actually runs, so this one does it here rather
+   * than leaving the flow to discover it thirty seconds into a device run.
+   */
+  const mentionPrefix = friend.handle.slice(0, Math.max(3, friend.handle.length - 4));
+  const found = await device.people.search(mentionPrefix, { limit: 10 });
+  if (!found.items.some((p) => p.handle === friend.handle)) {
+    throw new Error(`fixture: searching "${mentionPrefix}" does not find ${friend.handle}`);
+  }
+  process.stdout.write(`FRIEND_PREFIX=${mentionPrefix}\n`);
 }
 
 main().catch((e: unknown) => {

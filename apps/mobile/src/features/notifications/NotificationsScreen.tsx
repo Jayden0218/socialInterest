@@ -24,6 +24,10 @@ export const NOTIFICATION_CATEGORIES: { key: keyof NotificationPrefs; label: str
   // control itself has worked since 001 - only this row and the server enum are
   // new.
   { key: 'message', label: 'Messages' },
+  // 008/FR-031. The fifth. Added here AND to `describeNotification` below AND
+  // to the shared schema AND with a publisher behind it — a kind missing any
+  // one of those is a control for something that cannot happen.
+  { key: 'mention', label: 'Mentions of you' },
 ];
 
 export function describeNotification(n: Notification): string {
@@ -36,6 +40,8 @@ export function describeNotification(n: Notification): string {
       return `${n.actor.displayName} followed you`;
     case 'message':
       return `${n.actor.displayName} sent you a message`;
+    case 'mention':
+      return `${n.actor.displayName} mentioned you`;
   }
 }
 

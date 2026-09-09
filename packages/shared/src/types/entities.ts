@@ -141,6 +141,8 @@ export const placeSchema = placeSummarySchema.extend({
 export type Place = z.infer<typeof placeSchema>;
 
 export const postSchema = z.object({
+  /** 008/FR-030. The user ids the caption names, resolved at write time. */
+  mentions: z.array(z.string()).optional(),
   postId: z.string(),
   author: publicProfileSchema,
   caption: z.string().max(2000).nullable().optional(),
@@ -180,6 +182,13 @@ export const commentSchema = z.object({
   moderationState: z.enum(['removed']).nullable().optional(),
   /** 008/FR-023. The comment this one answers; null for a top-level one. */
   parentCommentId: z.string().nullable().optional(),
+  /**
+   * 008/FR-030. The people this text names, RESOLVED AT WRITE TIME.
+   *
+   * User ids rather than handles: a handle change would otherwise re-point an
+   * old mention at whoever holds it now (research R9).
+   */
+  mentions: z.array(z.string()).optional(),
   /**
    * 008/FR-027. WHEN it was edited, and its presence IS "marked as edited".
    *
@@ -289,5 +298,7 @@ export const notificationPreferencesSchema = z.object({
   comment: z.boolean().optional(),
   follow: z.boolean().optional(),
   message: z.boolean().optional(),
+  /** 008/FR-031. Added HERE and to the list the Edit-profile screen renders. */
+  mention: z.boolean().optional(),
 });
 export type NotificationPreferences = z.infer<typeof notificationPreferencesSchema>;

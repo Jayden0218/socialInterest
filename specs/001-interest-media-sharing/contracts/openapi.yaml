@@ -1764,6 +1764,14 @@ components:
         postId: { type: string }
         author: { $ref: '#/components/schemas/PublicProfile' }
         caption: { type: string, nullable: true, maxLength: 2000 }
+        mentions:
+          type: array
+          items: { type: string }
+          description: >
+            008/FR-030. The user ids the CAPTION names, resolved at write time. Announced
+            to those people when the post becomes ready rather than when it is published:
+            a pending post is visible only to its author, so a notification sent at
+            publish would be refused by the boundary and never sent again.
         interests:
           type: array
           minItems: 1
@@ -1893,6 +1901,14 @@ components:
           enum: [removed]
           nullable: true
           description: 008/FR-026. Present and `removed` exactly when `body` is null for that reason.
+        mentions:
+          type: array
+          items: { type: string }
+          description: >
+            008/FR-030. The user ids this comment names, resolved at WRITE time. Ids
+            rather than handles: re-parsing at read time would let a handle change
+            silently re-point an old mention at whoever holds it now (research R9). An
+            unknown handle yields no mention and stays plain text (FR-033).
         editedAt:
           type: string
           format: date-time

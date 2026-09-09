@@ -1,9 +1,10 @@
 import { Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import type { InterestRef, Visibility } from '@sih/shared';
+import type { InterestRef, PublicProfile, Visibility } from '@sih/shared';
 import { activePalette as palette, radius, space, textStyle, MIN_TOUCH_TARGET } from '../../ui/theme';
 import { Banner, Button, Row, Screen } from '../../ui/primitives';
 import { InterestSelector, canPublish } from './InterestSelector';
 import { VisibilityControl, DEFAULT_VISIBILITY } from './VisibilityControl';
+import { MentionSuggest } from '../../components/MentionSuggest';
 import { allUploaded, canRetry, type UploadSlot } from './uploadFlow';
 import type { PickedMedia } from './MediaPickerScreen';
 
@@ -27,6 +28,9 @@ export interface ComposeScreenProps {
   onPublish: () => void;
   /** 004/FR-015. Rendered by the container, so this screen stays presentational. */
   placePicker?: React.ReactElement | null;
+  /** 008/FR-030. People matching the handle being typed, if any. */
+  mentionMatches?: PublicProfile[];
+  onChooseMention?: (handle: string) => void;
 }
 
 /**
@@ -168,6 +172,16 @@ export function ComposeScreen(props: ComposeScreenProps) {
             ...textStyle.body,
           }}
         />
+        {/*
+          008/FR-030. The people a partial `@handle` could mean.
+          
+          Under the field, so it cannot cover what is being typed. The container
+          searches only while a handle is being typed at the END of the text —
+          see `trailingMention`.
+        */}
+        {props.mentionMatches && props.onChooseMention ? (
+          <MentionSuggest people={props.mentionMatches} onChoose={props.onChooseMention} />
+        ) : null}
 
         <View style={{ height: 1, backgroundColor: palette.line.hairline }} />
 

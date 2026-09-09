@@ -353,20 +353,20 @@ discloses nothing; an unknown handle renders as plain text.
 
 ### Tests for User Story 9
 
-- [ ] T128 [P] [US9] Write `apps/api/tests/unit/mention-resolution.spec.ts`: resolution happens at **write** time and an unknown handle yields no mention (FR-033).
-- [ ] T129 [P] [US9] Write `apps/api/tests/integration/mention-across-block.spec.ts`: no notification and no disclosure in either direction (FR-032).
-- [ ] T130 [P] [US9] Write `apps/api/tests/unit/mention-kind-has-both-halves.spec.ts`: `mention` appears in the notification-kind schema, in `describeNotification`, in the preferences list **and** in the list the Edit-profile screen renders. 004's `message` toggle existed in the describing list and not the rendering one; 007's `follow` kind had a toggle and no publisher.
+- [X] T128 [P] [US9] Write `apps/api/tests/unit/mention-resolution.spec.ts`: resolution happens at **write** time and an unknown handle yields no mention (FR-033).
+- [X] T129 [P] [US9] Write `apps/api/tests/integration/mention-across-block.spec.ts`: no notification and no disclosure in either direction (FR-032).
+- [X] T130 [P] [US9] Write `apps/api/tests/unit/mention-kind-has-both-halves.spec.ts`: `mention` appears in the notification-kind schema, in `describeNotification`, in the preferences list **and** in the list the Edit-profile screen renders. 004's `message` toggle existed in the describing list and not the rendering one; 007's `follow` kind had a toggle and no publisher.
 
 ### Implementation for User Story 9
 
-- [ ] T131 [US9] Create `apps/api/src/modules/engagement/mention.ts` (FR-030): parse `@handle`, resolve to userIds at write time, return the resolved list. Re-parsing at read time would let a handle change silently re-point an old mention (research R9).
-- [ ] T132 [US9] Store `mentions: string[]` on the post and comment items, in `apps/api/src/persistence/post.repository.ts` and `apps/api/src/persistence/comment.repository.ts`. **Add no index** — a "posts mentioning me" surface is not a requirement, and adding the write before the surface is how unused writes accumulate.
-- [ ] T133 [US9] Add the `mention` notification kind and publish it, passing the same block check via `decideAuthoredRules` rather than asking the question again (FR-031, FR-032).
-- [ ] T134 [P] [US9] Add `mention` to `notificationPreferencesSchema` in `packages/shared/src/types/entities.ts` **and** to the categories list `EditProfileScreen` renders — both lists, or neither.
-- [ ] T135 [P] [US9] Add `mentions` to `postSchema` and `commentSchema` and to the OpenAPI contract.
-- [ ] T136 [US9] Render mentions as links to the profile in `apps/mobile/src/components/PostCard.tsx` and the comment list, from the **stored** list; an unresolved handle stays plain text.
-- [ ] T137 [US9] Add the mention autocomplete over people search to the caption composer in `apps/mobile/src/features/publish/` and the comment composer in `apps/mobile/src/features/engagement/`.
-- [ ] T138 [US9] Add `testID`s, run `verify-maestro-ids.mjs`, and add `.maestro/31-mention.yaml` asserting the mention notification arrives via `GET /v1/notifications` **200**.
+- [X] T131 [US9] Create `apps/api/src/modules/engagement/mention.ts` (FR-030): parse `@handle`, resolve to userIds at write time, return the resolved list. Re-parsing at read time would let a handle change silently re-point an old mention (research R9).
+- [X] T132 [US9] Store `mentions: string[]` on the post and comment items, in `apps/api/src/persistence/post.repository.ts` and `apps/api/src/persistence/comment.repository.ts`. **Add no index** — a "posts mentioning me" surface is not a requirement, and adding the write before the surface is how unused writes accumulate.
+- [X] T133 [US9] Add the `mention` notification kind and publish it, passing the same block check via `decideAuthoredRules` rather than asking the question again (FR-031, FR-032). **Announced when the post becomes READY, not when it is published** — a pending post is visible only to its author, so `canOpen` refuses every mention on a fresh post and the event fires once. Found by a test that published and then polled; on the real path, where transcoding takes seconds, it would have failed always.
+- [X] T134 [P] [US9] Add `mention` to `notificationPreferencesSchema` in `packages/shared/src/types/entities.ts` **and** to the categories list `EditProfileScreen` renders — both lists, or neither.
+- [X] T135 [P] [US9] Add `mentions` to `postSchema` and `commentSchema` and to the OpenAPI contract.
+- [X] T136 [US9] Render mentions as links to the profile in `apps/mobile/src/components/PostCard.tsx` and the comment list, from the **stored** list; an unresolved handle stays plain text.
+- [X] T137 [US9] Add the mention autocomplete over people search to the caption composer in `apps/mobile/src/features/publish/` and the comment composer in `apps/mobile/src/features/engagement/`.
+- [X] T138 [US9] Add `testID`s, run `verify-maestro-ids.mjs`, and add `.maestro/31-mention.yaml` asserting the mention notification arrives via `GET /v1/notifications` **200**.
 
 ---
 

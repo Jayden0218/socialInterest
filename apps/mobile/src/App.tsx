@@ -252,7 +252,11 @@ export function Shell() {
           );
         case 'comments':
           return signedIn ? (
-            <CommentsContainer postId={top.postId} />
+            <CommentsContainer
+              postId={top.postId}
+              // 008/FR-030.
+              onOpenPerson={(personHandle) => push({ name: 'person', handle: personHandle })}
+            />
           ) : (
             <SignedOutNotice onSignIn={() => push({ name: 'sign-in' })} />
           );

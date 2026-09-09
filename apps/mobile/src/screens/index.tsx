@@ -5,6 +5,7 @@ import { InterestSearchScreen, type SearchMode } from '../features/discover/Inte
 import { PostSearchResults } from '../features/discover/PostSearchResults';
 import { NotificationsScreen } from '../features/notifications/NotificationsScreen';
 import { PostCard, PostTile } from '../components/PostCard';
+import { completeMention, trailingMention } from '../components/MentionSuggest';
 import { InboxScreen } from '../features/conversations/InboxScreen';
 import { ConversationScreen } from '../features/conversations/ConversationScreen';
 import { NewGroupScreen } from '../features/conversations/NewGroupScreen';
@@ -229,7 +230,7 @@ export function NotificationsContainer({ onOpen }: { onOpen: (postId: string) =>
   return (
     <NotificationsScreen
       notifications={state.items}
-      prefs={{ reaction: true, comment: true, follow: true, message: true }}
+      prefs={{ reaction: true, comment: true, follow: true, message: true, mention: true }}
       // The notification's postId, not its notificationId. Passing the latter
       // opened a post route with a notification's id, and the API answered 404
       // "No longer available" - so every notification was a dead end. A follow
@@ -379,10 +380,15 @@ export function PostDetailContainer({
 
   return (
     <View style={{ flex: 1 }}>
+      {/*
+        008/FR-030. A mention opens the same person surface a byline does, so a
+        reader cannot end up on two different screens for one person.
+      */}
       <PostDetailScreen
         post={post}
         {...(onOpenPlace ? { onOpenPlace } : {})}
         {...(onOpenInterest ? { onOpenInterest } : {})}
+        {...(onOpenAuthor ? { onOpenPerson: onOpenAuthor } : {})}
       />
       {/* Reacting had no control anywhere in the app: EngagementBar existed,
           was render-tested, and was never mounted. FR-039 was unreachable. */}
@@ -423,7 +429,14 @@ export function PostDetailContainer({
 
 }
 
-export function CommentsContainer({ postId }: { postId: string }) {
+export function CommentsContainer({
+  postId,
+  onOpenPerson,
+}: {
+  postId: string;
+  /** 008/FR-030. A mention in a comment opens that person's profile. */
+  onOpenPerson?: (handle: string) => void;
+}) {
   const data = useData();
   const { state, error, reload } = usePagedComments(postId);
   const [draft, setDraft] = useState('');
@@ -434,6 +447,24 @@ export function CommentsContainer({ postId }: { postId: string }) {
   // 008/FR-027. Which of your own comments the composer is correcting, if any.
   const [editing, setEditing] = useState<Comment | null>(null);
   const [viewerId, setViewerId] = useState('');
+  // 008/FR-030. The same autocomplete the caption composer has.
+  const [mentionMatches, setMentionMatches] = useState<PublicProfile[]>([]);
+
+  useEffect(() => {
+    const partial = trailingMention(draft);
+    if (!partial || partial.length < 2) {
+      setMentionMatches([]);
+      return;
+    }
+    let live = true;
+    void data.people
+      .search(partial, { limit: 5 })
+      .then((page) => live && setMentionMatches(page.items))
+      .catch(() => live && setMentionMatches([]));
+    return () => {
+      live = false;
+    };
+  }, [data, draft]);
 
   /**
    * 008/FR-029. Who is signed in, so the app can draw the controls that are
@@ -522,6 +553,9 @@ export function CommentsContainer({ postId }: { postId: string }) {
       onReplyTo={beginReply}
       onEdit={beginEdit}
       onDelete={(comment) => void remove(comment)}
+      mentionMatches={mentionMatches}
+      onChooseMention={(handle) => setDraft((d) => completeMention(d, handle))}
+      {...(onOpenPerson ? { onOpenPerson } : {})}
     />
   );
 }
@@ -902,6 +936,33 @@ export function ComposeContainer({
   const [placeQuery, setPlaceQuery] = useState('');
   const [placeLocality, setPlaceLocality] = useState('');
   const [placeMatches, setPlaceMatches] = useState<PlaceSummary[]>([]);
+  // 008/FR-030. People matching the handle currently being typed.
+  const [mentionMatches, setMentionMatches] = useState<PublicProfile[]>([]);
+
+  /**
+   * 008/FR-030. Searched only while a handle is being typed at the END.
+   *
+   * `trailingMention` returns null the moment the person moves past it, which
+   * clears the list — a suggestion list that outlives the thing it suggests for
+   * is a control that edits text behind the cursor.
+   */
+  useEffect(() => {
+    const partial = trailingMention(caption);
+    if (!partial || partial.length < 2) {
+      setMentionMatches([]);
+      return;
+    }
+    let live = true;
+    void data.people
+      .search(partial, { limit: 5 })
+      // Swallowed: a people lookup that is down must never take publishing down
+      // with it, which is the same rule the place lookup follows.
+      .then((page) => live && setMentionMatches(page.items))
+      .catch(() => live && setMentionMatches([]));
+    return () => {
+      live = false;
+    };
+  }, [data, caption]);
 
   useEffect(() => {
     let live = true;
@@ -1008,6 +1069,8 @@ export function ComposeContainer({
       publishing={publishing}
       error={error}
       onCaptionChange={setCaption}
+      mentionMatches={mentionMatches}
+      onChooseMention={(handle) => setCaption((c) => completeMention(c, handle))}
       onInterestsChange={setSelected}
       onVisibilityChange={setVisibility}
       onRetry={upload}

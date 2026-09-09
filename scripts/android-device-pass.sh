@@ -274,9 +274,12 @@ echo "$CHAT"
 REQUESTER="$(echo "$CHAT" | sed -n 's/^REQUESTER=//p')"
 FRIEND="$(echo "$CHAT" | sed -n 's/^FRIEND=//p')"
 FRIEND_NAME="$(echo "$CHAT" | sed -n 's/^FRIEND_NAME=//p')"
+# 008/US9. The prefix `31-mention.yaml` types to exercise the autocomplete; the
+# fixture asserts it actually finds the friend before printing it.
+FRIEND_PREFIX="$(echo "$CHAT" | sed -n 's/^FRIEND_PREFIX=//p')"
 REQUEST_BODY="$(echo "$CHAT" | sed -n 's/^REQUEST_BODY=//p')"
 FRIEND_BODY="$(echo "$CHAT" | sed -n 's/^FRIEND_BODY=//p')"
-[ -n "$REQUESTER" ] && [ -n "$FRIEND" ] && [ -n "$FRIEND_NAME" ] \
+[ -n "$REQUESTER" ] && [ -n "$FRIEND" ] && [ -n "$FRIEND_NAME" ] && [ -n "$FRIEND_PREFIX" ] \
   && [ -n "$REQUEST_BODY" ] && [ -n "$FRIEND_BODY" ] \
   || { echo "FAIL: the conversation fixture did not print what the flows need"; exit 1; }
 
@@ -397,6 +400,7 @@ MAESTRO_ENV=(
   -e TOKEN="$TOKEN" -e PRESENT="$PRESENT" -e INTEREST="$INTEREST"
   -e AUTHOR="$AUTHOR" -e COLD_TOKEN="$COLD_TOKEN"
   -e REQUESTER="$REQUESTER" -e FRIEND="$FRIEND" -e FRIEND_NAME="$FRIEND_NAME"
+  -e FRIEND_PREFIX="$FRIEND_PREFIX"
   -e REQUEST_BODY="$REQUEST_BODY" -e FRIEND_BODY="$FRIEND_BODY"
   -e PLACE_NAME="$PLACE_NAME" -e PLACE_LOCALITY="$PLACE_LOCALITY"
   -e GROUP_MEMBER_A="$GROUP_MEMBER_A" -e GROUP_MEMBER_B="$GROUP_MEMBER_B"

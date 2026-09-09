@@ -3,7 +3,14 @@ import { ulid } from 'ulid';
 import { BaseRepository, type Page } from './base.repository';
 import { keys, SK_PREFIX } from './keys';
 
-export type NotificationKind = 'reaction' | 'comment' | 'follow' | 'message';
+/**
+ * 008/FR-031 adds `mention`, and this is the FIFTH place a kind has to appear.
+ *
+ * The others are the shared enum, `describeNotification`, the preference schema
+ * and the list the Edit-profile screen renders — plus a publisher, without
+ * which the kind is a switch for something that cannot happen (007's `follow`).
+ */
+export type NotificationKind = 'reaction' | 'comment' | 'follow' | 'message' | 'mention';
 
 export interface NotificationItem {
   notificationId: string;

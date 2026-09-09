@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PostRepository } from '../../persistence/post.repository';
 import { PostService } from './post.service';
+import { EVENT_BUS, type EventBus } from '../../ports';
 import { PostTransaction } from './post.transaction';
 
 /**
@@ -20,6 +21,7 @@ export class ProcessingService {
     @Inject(PostRepository) private readonly posts: PostRepository,
     @Inject(PostTransaction) private readonly tx: PostTransaction,
     @Inject(PostService) private readonly postService: PostService,
+    @Inject(EVENT_BUS) private readonly events: EventBus,
   ) {}
 
   async reconcile(postId: string): Promise<'pending' | 'processing' | 'ready' | 'failed'> {
@@ -46,6 +48,29 @@ export class ProcessingService {
         processingState: next,
       });
       this.logger.log(`post ${postId}: ${post.processingState} -> ${next}`);
+
+      /**
+       * 008/FR-031 — THE MENTION IS ANNOUNCED WHEN THE POST BECOMES READY, NOT
+       * WHEN IT IS PUBLISHED.
+       *
+       * Publishing it at publish time looked right and would have shipped a
+       * defect: a post is `pending` until its media is processed, and
+       * `VisibilityFilter` shows a non-ready post only to its author. So
+       * `NotificationService.canOpen` would have refused every mention on a
+       * fresh post, the event is fired once, and the person named would never
+       * be told — on the real path, where transcoding takes seconds, ALWAYS.
+       *
+       * Found by a test that published and then polled, which is the shape a
+       * device takes. Announcing it here also means a post that never becomes
+       * ready never announces, which is correct: there is nothing for the
+       * mentioned person to open.
+       */
+      if (next === 'ready' && (post.mentions?.length ?? 0) > 0) {
+        await this.events.publish({
+          type: 'content.mentioned',
+          payload: { postId, actorId: post.authorId, mentionedIds: post.mentions ?? [] },
+        });
+      }
     }
     return next;
   }

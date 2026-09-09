@@ -2,7 +2,9 @@ import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { ulid } from 'ulid';
 import type { Visibility } from '@sih/shared';
 import { PlaceRepository } from '../../persistence/place.repository';
+import { PersonRepository } from '../../persistence/person.repository';
 import { DomainError } from '../../common/errors/problem.filter';
+import { resolveMentions } from '../engagement/mention';
 import { MEDIA_LIMITS } from '../../config/media.limits';
 import { CATALOGUE_SEARCH, type CatalogueSearch } from '../interests/catalogue.cache';
 import { PostRepository, type MediaItemRecord, type PostItem } from '../../persistence/post.repository';
@@ -37,6 +39,7 @@ export class PostService {
     @Inject(PostUpdateTransaction) private readonly updates: PostUpdateTransaction,
     @Inject(UploadRepository) private readonly uploads: UploadRepository,
     @Inject(PlaceRepository) private readonly places: PlaceRepository,
+    @Inject(PersonRepository) private readonly people: PersonRepository,
   ) {}
 
   /**
@@ -143,10 +146,24 @@ export class PostService {
       }
     }
 
+    /**
+     * 008/FR-030. Resolved HERE, once, and stored as ids (research R9).
+     *
+     * `findByHandle` per named handle: at most ten, bounded by `MAX_MENTIONS`,
+     * and only on a write. Doing this at read time would let a handle change
+     * silently re-point an old mention at somebody else.
+     */
+    const mentions = input.caption
+      ? await resolveMentions(input.caption, async (handle) =>
+          (await this.people.findByHandle(handle))?.userId ?? null,
+        )
+      : [];
+
     const post: PostItem = {
       postId,
       authorId: input.authorId,
       ...(input.caption ? { caption: input.caption } : {}),
+      ...(mentions.length > 0 ? { mentions } : {}),
       interestIds: input.interestIds,
       ...(input.placeId ? { placeId: input.placeId } : {}),
       // FR-013: public unless the author chose otherwise.
@@ -173,6 +190,20 @@ export class PostService {
     }));
 
     await this.tx.createPost({ post, media, expandedInterestIds });
+
+    /**
+     * FR-031, FR-032. NOTHING IS ANNOUNCED HERE, and that is deliberate.
+     *
+     * A post is `pending` until its media is processed, and `VisibilityFilter`
+     * shows a non-ready post only to its author — so a mention announced at
+     * publish time is one `NotificationService.canOpen` refuses, on a path that
+     * fires once. The announcement lives in `ProcessingService.reconcile`, when
+     * the post becomes something the mentioned person can actually open.
+     *
+     * `NotificationService` still owns every "should this person be told"
+     * decision, including the block, which is answered once in
+     * `decideAuthoredRules` and never re-asked.
+     */
 
     await this.events.publish({
       type: 'post.created',

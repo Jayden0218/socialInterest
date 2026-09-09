@@ -287,7 +287,7 @@ describe('Notifications and safety', () => {
     render(
       <NotificationsScreen
         notifications={[]}
-        prefs={{ reaction: true, comment: true, follow: true, message: true }}
+        prefs={{ reaction: true, comment: true, follow: true, message: true, mention: true }}
         onOpen={() => undefined}
         onEditPrefs={() => undefined}
       />,
@@ -299,7 +299,7 @@ describe('Notifications and safety', () => {
     render(
       <NotificationsScreen
         notifications={[]}
-        prefs={{ reaction: false, comment: false, follow: false, message: false }}
+        prefs={{ reaction: false, comment: false, follow: false, message: false, mention: false }}
         onOpen={() => undefined}
         onEditPrefs={() => undefined}
       />,
@@ -317,7 +317,7 @@ describe('Notifications and safety', () => {
     render(
       <NotificationsScreen
         notifications={[n]}
-        prefs={{ reaction: true, comment: true, follow: true, message: true }}
+        prefs={{ reaction: true, comment: true, follow: true, message: true, mention: true }}
         onOpen={() => undefined}
         onEditPrefs={() => undefined}
       />,
@@ -352,7 +352,7 @@ describe('EditProfileScreen — FR-049 partial preference patch', () => {
     const onChange = jest.fn();
     render(
       <EditProfileScreen
-        draft={{ userId: 'u-edit', displayName: 'Me', bio: '', notificationPrefs: { reaction: true, comment: true, follow: true, message: true } }}
+        draft={{ userId: 'u-edit', displayName: 'Me', bio: '', notificationPrefs: { reaction: true, comment: true, follow: true, message: true, mention: true } }}
         onChange={onChange}
         onSave={() => undefined}
         onDeleteAccount={() => undefined}
@@ -360,10 +360,11 @@ describe('EditProfileScreen — FR-049 partial preference patch', () => {
     );
     fireEvent(screen.getByTestId('pref-reaction'), 'valueChange', false);
     expect(onChange).toHaveBeenCalledWith(
-      // `message` is 004/FR-031's fourth category. The point of the test is that
-      // toggling one leaves the OTHERS untouched, so the new one belongs here.
+      // `message` is 004/FR-031's fourth category and `mention` is 008/FR-031's
+      // fifth. The point of the test is that toggling one leaves the OTHERS
+      // untouched, so each new one belongs here at its ORIGINAL value.
       expect.objectContaining({
-        notificationPrefs: { reaction: false, comment: true, follow: true, message: true },
+        notificationPrefs: { reaction: false, comment: true, follow: true, message: true, mention: true },
       }),
     );
   });
@@ -383,7 +384,7 @@ describe('EditProfileScreen — FR-049 partial preference patch', () => {
    * auth-surface.spec.ts enumerating routes instead of naming them.
    */
   it('renders a switch for every notification preference the model has', () => {
-    const prefs = { reaction: true, comment: true, follow: true, message: true };
+    const prefs = { reaction: true, comment: true, follow: true, message: true, mention: true };
     render(
       <EditProfileScreen
         draft={{ userId: 'u-edit', displayName: 'Me', bio: '', notificationPrefs: prefs }}
