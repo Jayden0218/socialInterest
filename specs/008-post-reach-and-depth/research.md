@@ -190,6 +190,21 @@ Why not the alternatives:
   without specific owner approval. So it is recorded as the **deferred replacement behind
   the same interface**, which is what D3 designed for, and the term index is what ships.
 
+**Two things the first version of this decision left out, both found by the analysis pass
+and both the same shape as the defect this feature exists to end:**
+
+1. **The term row denormalises `visibility` and `processingState`, and MUST join the update
+   fan-out.** `postInterestIndex` already carries them so the filter runs on Query results
+   without a second read, and `post-update.transaction.ts` keeps every index item in sync —
+   its comment says an index item whose visibility drifts from the post's *"is exactly the
+   SC-009 failure this class exists to make impossible"*. Copying the projection without
+   joining the fan-out reproduces that defect; projecting nothing forces an N+1 read per
+   result. The first draft of this decision projected only `authorId` and said neither.
+2. **A caption edit rewrites the term rows.** Captions are editable via
+   `PATCH /v1/posts/:postId`. Nothing in the first draft re-indexed on edit, which would
+   leave a post findable by a word its caption no longer contains and unfindable by one it
+   now does — an index that is wrong in a way nobody would notice, which is the worst kind.
+
 **Honest limit**: tokenisation is whitespace-and-punctuation splitting with case folding.
 No stemming, no phrase queries, no relevance ranking beyond recency. SC-009 asks for
 findability "by any distinctive word", which this meets; it does not claim more.

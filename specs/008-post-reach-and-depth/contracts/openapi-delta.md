@@ -35,6 +35,7 @@ endpoints use the existing nested shape and are asserted **against a real respon
 | `PATCH` | `/v1/me` | **Changed**: accepts `avatarUploadId`. The server derives the key from its own upload record — it never accepts a client-supplied key (002's second defect). |
 | — | every profile-bearing response | **Changed**: `avatarUrl` present and **presigned**, from one projection (research R5). Today it appears on one surface of seven, as a raw storage key. |
 | `GET` | `/v1/search/posts?q=` | New. Term-index candidates, then the boundary. Records no signals. |
+| `PATCH` | `/v1/posts/{postId}` | **Changed behaviour, unchanged shape**: a caption edit rewrites the post's term rows, and a visibility change fans out to them like every other index item. |
 | `GET` | `/v1/search/posts?q=` (no matches) | FR-022: returns interests and people matching the query in the same response, so the client needs no second request to render the fallback. |
 | — | `PUT /v1/conversations/with/{handle}`, `POST /v1/conversations/{id}/messages` | **Unchanged.** US4 needs no endpoint (research R4). |
 

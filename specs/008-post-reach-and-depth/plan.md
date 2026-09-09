@@ -71,7 +71,9 @@ with no credentials. Post search is the one place this bites a design (R6) and t
 resolution is recorded there rather than deferred silently.
 
 **Scale/Scope**: 15 stories, 54 FRs, 17 SCs, 5 phases. Roughly: API touched in 9 of 15
-modules, ~7 new item types, ~14 new endpoints, and mobile work on 12 of 20 screens.
+modules, **9 new item types** (notification watermark, post term, draft, mute, dismissal,
+appeal, appeal pointer, collection, collection item), ~20 new endpoints, and mobile work on
+12 of 20 screens.
 **Phase A is 3 stories, 10 FRs and 5 SCs** and is the recommended release boundary.
 
 ## Constitution Check
@@ -87,7 +89,7 @@ modules, ~7 new item types, ~14 new endpoints, and mobile work on 12 of 20 scree
 | **V. Emulation Is Not Evidence** | No new divergence | Nothing here introduces a local stand-in for a managed service. Post search deliberately does **not** add one (R6); if a search backend is ever adopted, this principle applies again and the divergence register gains an entry. |
 | **Cost and Environment** | Yes | **G13**: every task completable on the local profile. R6 is the test of this gate and it holds — a term index in the existing table needs no account. |
 
-### Gate result: **PASS**, with three obligations recorded rather than waived
+### Gate result: **PASS**, with five obligations recorded rather than waived
 
 1. **FR-054 is not generally testable, and pretending otherwise would be the same defect
    again.** "Every declared field has a writer" cannot be enforced by a single guard. What
@@ -100,7 +102,23 @@ modules, ~7 new item types, ~14 new endpoints, and mobile work on 12 of 20 scree
    a product constraint arriving as a consequence of a technical bound, which is the shape
    of decision the constitution requires be written down rather than absorbed. It mirrors
    `MAX_FOLLOWED_INTERESTS` and the same 2s budget.
-3. **The spec's own wording is corrected here.** The spec's pattern table calls the
+3. **The post term index denormalises `visibility` and MUST join the update fan-out**
+   (research R6, corrected after the analysis pass). `postInterestIndex` already
+   denormalises it so the filter can run on Query results without a second read, and
+   `post-update.transaction.ts` keeps every index item in sync — its own comment says an
+   index item whose visibility drifts from the post's *"is exactly the SC-009 failure this
+   class exists to make impossible"*. A term row that copied the projection without joining
+   the fan-out would reproduce that defect; a term row that projected nothing would force an
+   N+1 read per search result. Neither is left to the implementer's judgement.
+4. **SC-006's numeric half is withdrawn and replaced, not quietly dropped.** It read "in
+   under 30 seconds". The constitution requires every stated numeric criterion to have a
+   task that measures it, and on this stack a stopwatch measures the emulator — the same
+   reason 002/SC-002's timing half is recorded unverified rather than met. SC-006 now bounds
+   the path at **four interactions with every step asserted populated**, which is what a test
+   can honestly measure, and the device run records an elapsed time as an observation that
+   is never a pass condition. A criterion changed to be measurable is legitimate; one left
+   unmeasured is not.
+5. **The spec's own wording is corrected here.** The spec's pattern table calls the
    Following tab "a dead control on the primary surface". It is not: it renders
    `disabled`, with `accessibilityState`, and says so on press — an honest incomplete
    state, deliberately, and the code comment says why. The story stands; the severity
@@ -149,6 +167,7 @@ apps/api/src/
 │   ├── posts/                        # US10,11 — alt text, drafts
 │   ├── ranking/candidate-source.ts   # US12 — mute and dismissal applied HERE
 │   ├── moderation/appeal.service.ts  # US14 — new
+│   ├── moderation/appeal.controller.ts # US14 — new
 │   └── saved/collection.service.ts   # US15 — new
 └── tests/
     ├── visibility/matrix.spec.ts     # + every new surface (SC-016)
@@ -236,10 +255,12 @@ no principle is engaged.*
 
 ### What remains genuinely undecided
 
-- **Reply nesting depth** is bounded at one level and the spec asked for that to be
-  challenged at planning. Research R7 answers it: the bound is a *display* rule, the stored
-  graph stays truthful under FR-025's attach-to-ancestor rule, so deepening later is a
-  rendering change rather than a migration. Recorded as answered, not as open.
+- **Reply nesting depth** is settled and is no longer only in the research: the bound is now
+  stated in **FR-025 itself** ("at one level of replies"), because a requirement whose bound
+  lives only in a design document is a requirement nobody can test from the spec. Research R7
+  carries the reasoning — the bound is a *display* rule, the stored graph stays truthful
+  under the attach-to-ancestor rule, so deepening later is a rendering change and not a
+  migration.
 - **Stop-word handling and the 40-term cap** in post search are starting values, named as
   constants so the first real usage data can change them. They are not measured optima and
   must not be reported as such.

@@ -56,10 +56,28 @@ half. That class is why the survey, not the feature list, drove the scope.
 candidates; anything with no evidence of being needed *here* was dropped and is
 listed under "What this spec does NOT add" rather than left implicit.
 
-**Two assumptions are judgements worth challenging at planning.**
-Reply nesting is bounded at **one level** — a display decision defended on the
-grounds that nothing in this product calls for deeper trees; full threading
-changes US7's data shape, not its priority. And a **private account** (US13) is
-specified as a visibility input to the one existing boundary, never as a second
-filter — Principle II makes that non-negotiable, so if it cannot be expressed
-that way the story changes, not the principle.
+**Both open judgements were settled by planning, and the spec was edited rather
+than left to point at a design document.**
+
+- **Reply nesting** is bounded at one level, and that bound now lives in
+  **FR-025 itself**. A requirement whose bound is only in `research.md` is one a
+  reader cannot test from the spec.
+- **A private account** (US13) is a visibility input to the one existing
+  boundary, never a second filter — Principle II makes that non-negotiable, and
+  `contracts/selection-vs-boundary.md` now states the test that decides which
+  side any such rule falls on.
+
+**One success criterion was amended, and the amendment is the honest kind.**
+SC-006 read "in under 30 seconds". The constitution requires every stated numeric
+criterion to have a task that measures it, and on this stack a stopwatch measures
+the emulator rather than the product — the same reason 002/SC-002's timing half is
+recorded unverified. SC-006 now bounds the path at **four interactions with every
+step asserted populated**, and the device run records elapsed time as an
+observation that is never a pass condition. Changing a criterion to make it
+measurable is legitimate; leaving one unmeasured is not.
+
+**One assumption arrived from the plan and was added back to the spec.** A person
+may follow at most 200 people. It is user-visible — a 201st follow is refused —
+and it comes from the Following feed's fan-out bound rather than a product
+preference. A limit a reader cannot find in the spec is a limit they meet as a
+bug.

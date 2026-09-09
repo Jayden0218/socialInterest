@@ -487,8 +487,10 @@ seeing the other's contents.
 
 - **FR-023**: A comment MUST be able to name another comment on the same post as its parent.
 - **FR-024**: Replies MUST display with their parent rather than in publication order.
-- **FR-025**: Nesting MUST be bounded; a deeper reply MUST attach to the deepest permitted
-  ancestor rather than being refused.
+- **FR-025**: Nesting MUST be bounded **at one level of replies**; a deeper reply MUST attach
+  to the deepest permitted ancestor rather than being refused. The bound is a DISPLAY rule —
+  the stored parent reference carries no depth limit of its own, so deepening later is a
+  rendering change and not a migration (plan research R7).
 - **FR-026**: A moderated parent MUST leave its replies readable, with the removal stated.
 - **FR-027**: A comment's author MUST be able to edit it, and it MUST be marked as edited.
 - **FR-028**: A comment's author MUST be able to delete it, and counts MUST follow.
@@ -570,7 +572,12 @@ seeing the other's contents.
 - **SC-005**: Reading Following or performing a search moves no ranking weight, measured by
   comparing the signal profile before and after.
 - **SC-006**: A viewer can send a post to somebody never messaged and the recipient can open
-  it, in under 30 seconds from the post being on screen.
+  it, in **no more than four interactions** from the post being on screen — share, pick
+  recipient, send, and the recipient's open — with every step of that path asserted
+  populated. **The original wording said "in under 30 seconds", and that is withdrawn**: a
+  stopwatch on this stack times the machine and the emulator, not the product, which is the
+  same reason 002/SC-002's timing half is recorded unverified rather than met. An elapsed
+  time IS recorded on the device run as an observation, and is never a pass condition.
 - **SC-007**: A post sent to somebody who may not see it yields no content and no evidence
   of its existence, verified by the path a modified client would take.
 - **SC-008**: A profile picture set once appears on 100% of surfaces showing that person.
@@ -611,6 +618,11 @@ seeing the other's contents.
   different privacy surface.
 - **No push notifications, no localisation, no Nearby, no commerce** — see the scoping
   section for why each is out.
+- **A person may follow at most 200 people.** This is user-visible — a 201st follow is
+  refused — and it arrives from a technical bound rather than a product preference: the
+  Following feed fans out one query per followed author, so without a cap the surface has no
+  stated worst case. It mirrors the existing 200-interest cap and the same latency budget.
+  Named here because a limit a reader cannot find in the spec is a limit they meet as a bug.
 - **Existing test identifiers are preserved** (006/FR-027 and its snapshot still bind).
 
 ## Dependencies

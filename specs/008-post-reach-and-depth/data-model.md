@@ -78,8 +78,25 @@ what changes is that `PATCH /v1/me` sets it from the server's own upload record,
 | `sk` | `POST#<createdAt>#<postId>` | Newest-first within a term, same shape as `postInterestIndex` |
 | `authorId` | string | Projected so a candidate needs no extra read before filtering |
 | `postId` | string | |
+| `visibility` | `Visibility` | **Denormalised, exactly as `postInterestIndex` does it** |
+| `processingState` | string | Same |
 
 Written on publish; **capped at 40 distinct tokens per post**. Deleted with the post.
+
+**The denormalised `visibility` is the part to get right, and it is not optional.**
+`postInterestIndex` carries it so `VisibilityFilter` can run on Query results without a
+second read per candidate, and `post-update.transaction.ts` fans a visibility change out to
+**every** index item — its own comment says an index item whose visibility drifts from the
+post's *"is exactly the SC-009 failure this class exists to make impossible"*. Term rows
+therefore MUST join that fan-out. The two ways to get this wrong are both worse than the
+work of doing it: copying the projection **without** joining the fan-out reproduces the exact
+defect that comment names, and projecting **nothing** turns every search result into an extra
+post read.
+
+**A caption edit rewrites the term rows.** Captions are editable
+(`PATCH /v1/posts/:postId`), so an edit adds rows for new tokens and deletes rows for removed
+ones in the same transaction. Without it a post stays findable by a word its caption no
+longer contains, and unfindable by one it now does — a stale index nothing would notice.
 
 | # | Access pattern | How |
 |---|---|---|
@@ -258,13 +275,22 @@ person does not have to rediscover the ceiling:
 | Transaction | Items |
 |---|---|
 | Publish a post with N media and T terms | 1 post + N media + interests + place + **T ≤ 40 terms** + draft delete |
+| **Edit a post** (`post-update.transaction.ts`) | 1 post + every interest index item + place item + **term rows added and removed** |
 | Delete a comment | comment + post counter = 2 |
 | Add to a collection | membership + `savedPost` + `savedPostBy` + counter = 4 |
 
-**Publish is the one to watch.** `PostTransaction` documents its own bound today — at most
+**Two to watch, not one.** The update path was previously omitted from this table, which is
+how a budget stops being a budget.
+
+**Publish.** `PostTransaction` documents its own bound today — at most
 10 media, 2 index items per assigned interest, one place item, "well inside DynamoDB's
 100-item transaction limit". Adding up to 40 term rows takes a worst case of roughly 60 and
 narrows that margin from comfortable to merely sufficient. The term cap is therefore **not a
 free tuning knob**: raising it, or raising the media limit, must be re-checked against the
 100-item ceiling, which 005/R3 established is a correctness constraint rather than a
 preference.
+
+**Edit.** `post-update.transaction.ts` already fans a visibility change out to every index
+item; term rows join that fan-out and a caption change adds up to 40 more. Worst case is
+comparable to publish, and the same ceiling applies — so a caption edit that would exceed it
+must fail loudly rather than write a partial index.
