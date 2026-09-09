@@ -137,6 +137,37 @@ describe('006/J-09 - the safety sheet on a short screen', () => {
     await page.close();
   }, 180_000);
 
+  /**
+   * 008/US12, AND RUN 57 IS WHY IT IS HERE.
+   *
+   * `33-mute-and-dismiss` reached the sheet, dismissed the post — the run's
+   * aggregate carries `PUT /v1/posts/:postId/dismiss` 204 — and then failed on
+   * `Assertion is false: id: mute-person is visible`. Measured at the
+   * emulator's own 320x616 the controls sit at `submit-report` 455,
+   * `dismiss-post` 557, `mute-person` 676, `block-person` 852: the dismissal is
+   * on screen and the mute is past the fold, which is the whole failure.
+   *
+   * What is asserted is REACHABILITY, not those numbers. Where each control
+   * falls depends on the length of a sentence above it, so a guard pinned to
+   * the fold would fail the day the sheet gets shorter — while the flow, which
+   * scrolls, would still pass. Reachable is the property the product owes;
+   * 676 is a fact about today's copy.
+   */
+  it('both quieter options are reachable on a short screen', async () => {
+    await openSafetySheet(320, 640);
+    for (const control of ['dismiss-post', 'mute-person']) {
+      const target = page.locator(`[data-testid="${control}"]`);
+      expect(await target.count()).toBe(1);
+      const box = (await target.boundingBox())!;
+      if (box.y + box.height > 640) {
+        expect(await scrollControlIntoView(page, `[data-testid="${control}"]`)).toBe(true);
+        const after = (await target.boundingBox())!;
+        expect(after.y).toBeLessThan(640);
+      }
+    }
+    await page.close();
+  }, 180_000);
+
   it('and is visible without scrolling on a tall screen', async () => {
     await openSafetySheet(414, 896);
     const box = (await page.locator('[data-testid="block-person"]').boundingBox())!;

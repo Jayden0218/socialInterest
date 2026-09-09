@@ -69,6 +69,23 @@ appId: app.socialinterest
     id: "open-safety"
 - assertVisible:
     id: "safety-actions"
+
+# SCROLLED TO, exactly as `09-report-and-block` scrolls to `block-person`, and
+# measured rather than assumed. At the emulator's own 320x616 the sheet's
+# controls sit at `submit-report` 455, `dismiss-post` 557, `mute-person` 676,
+# `block-person` 852 — so the dismissal above is on screen and the mute is
+# sixty points past the fold, which is precisely the shape of run 57's failure
+# (`Assertion is false: id: mute-person is visible`, after
+# `PUT /v1/posts/:postId/dismiss` 204 in the same run's aggregate).
+#
+# The sheet scrolls because run 35 found `block-person` UNREACHABLE rather than
+# merely below the fold — a Constitution IV release gate — so this is a person
+# scrolling to a control that is meant to be scrolled to, not a workaround.
+- scrollUntilVisible:
+    element:
+      id: "mute-person"
+    direction: DOWN
+    timeout: 20000
 - assertVisible:
     id: "mute-person"
 - tapOn:
