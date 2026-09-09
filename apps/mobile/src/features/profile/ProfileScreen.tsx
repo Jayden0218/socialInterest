@@ -263,11 +263,20 @@ export function ProfileScreen({
 
       {isSelf && onOpenSaved ? <ProfileTabs onOpenSaved={onOpenSaved} /> : null}
 
+      {/*
+        A THREE-COLUMN GRID, two points apart — `Profile.dc.html`, and run 46's
+        device capture is what caught that it was not one. The profile shipped
+        rendering full-width cards in a single column: I built this screen's
+        header, marked T051 done, and left the content as the old list. Every
+        test asserted the post was PRESENT, and it was.
+      */}
       <PagedPostList
         state={posts}
         keyOf={(p) => p.postId}
         renderItem={renderPost}
         onLoadMore={onLoadMore}
+        columns={3}
+        gap={2}
         empty={{ title: 'No posts yet', body: isSelf ? 'Your posts will appear here.' : 'Nothing to show.' }}
       />
     </Screen>

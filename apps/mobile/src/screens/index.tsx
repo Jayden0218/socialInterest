@@ -3,7 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import { HomeFeedScreen } from '../features/feed/HomeFeedScreen';
 import { InterestSearchScreen } from '../features/discover/InterestSearchScreen';
 import { NotificationsScreen } from '../features/notifications/NotificationsScreen';
-import { PostCard } from '../components/PostCard';
+import { PostCard, PostTile } from '../components/PostCard';
 import { InboxScreen } from '../features/conversations/InboxScreen';
 import { ConversationScreen } from '../features/conversations/ConversationScreen';
 import { NewGroupScreen } from '../features/conversations/NewGroupScreen';
@@ -699,9 +699,10 @@ export function ProfileContainer({
         ? { onMessage: () => onMessage(profile.handle) }
         : {})}
       onLoadMore={loadMore}
-      renderPost={(post) => (
-        <PostCard post={post} onOpen={onOpenPost} />
-      )}
+      // A TILE, not a card. `Profile.dc.html` is a three-column grid; a card
+      // carries a byline and an interest, which on somebody's own profile
+      // repeat the header above them once per post.
+      renderPost={(post) => <PostTile post={post} onOpen={onOpenPost} />}
       {...(isSelf && onEditProfile ? { onEditProfile } : {})}
       {...(isSelf && onOpenSaved ? { onOpenSaved } : {})}
     />

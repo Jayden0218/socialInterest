@@ -65,9 +65,18 @@ export interface PagedPostListProps<T> {
    * dwell: a saved-posts list scrolling past a post is not attention to it.
    */
   onViewableChanged?: (keys: string[]) => void;
+  /**
+   * 007/T051. A profile's posts are a GRID in `Profile.dc.html` - three columns
+   * of square tiles, 2pt apart - while a feed and a saved list are a waterfall
+   * of cards. Same paging, same viewability, different shape, so it is a prop
+   * rather than a second component.
+   */
+  columns?: number;
+  /** The gutter between items. A grid's is 2; a card list's is `space.md`. */
+  gap?: number;
 }
 
-export function PagedPostList<T>({ state, keyOf, renderItem, onLoadMore, empty, onViewableChanged }: PagedPostListProps<T>) {
+export function PagedPostList<T>({ state, keyOf, renderItem, onLoadMore, empty, onViewableChanged, columns, gap }: PagedPostListProps<T>) {
   /**
    * A STABLE CALLBACK, held through a ref, and it is not a micro-optimisation.
    *
@@ -112,7 +121,13 @@ export function PagedPostList<T>({ state, keyOf, renderItem, onLoadMore, empty, 
       onEndReached={() => {
         if (shouldLoadMore(state)) onLoadMore();
       }}
-      contentContainerStyle={{ gap: space.md }}
+      // `numColumns` may not CHANGE on the fly - React Native throws, the same
+      // rule as `onViewableItemsChanged` two lines down. It is a prop of the
+      // screen, fixed for the life of the list, so that is safe here.
+      {...(columns && columns > 1
+        ? { numColumns: columns, columnWrapperStyle: { gap: gap ?? space.md } }
+        : {})}
+      contentContainerStyle={{ gap: gap ?? space.md }}
       {...(onViewableChanged
         ? {
             /**

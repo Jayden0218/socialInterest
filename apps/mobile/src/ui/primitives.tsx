@@ -270,7 +270,23 @@ export function ScreenHeader({
         gap: space.md,
       }}
     >
+      {/*
+        ONE LINE, ALWAYS — and this is a device-only defect.
+        
+        Run 46's emulator capture shows the Chats header rendering as "Chat" /
+        "s", wrapped across two lines. The same screen measured in a browser at
+        the same 320pt width puts it on one line 53.6pt wide with 158pt of
+        slack, so no browser run could have found it: react-native-web does not
+        use the platform's font metrics.
+        
+        `numberOfLines={1}` is the fix that does not depend on knowing WHY the
+        native metrics differ. A screen title is a heading — if it genuinely
+        cannot fit it should ellipsize, never reflow the header and shove the
+        content down. Applied here rather than at the call site because every
+        screen's title wants the same answer.
+      */}
       <Text
+        numberOfLines={1}
         style={{
           ...textStyle.display,
           fontWeight: type.display.weight,

@@ -48,7 +48,7 @@ const FALLBACK_RATIO = 4 / 3;
  * scope excluded; picking `thumb` first here means the day it exists, this line
  * starts using it with no other change.
  */
-function mediaUrl(item: MediaItem): string | null {
+export function mediaUrl(item: MediaItem): string | null {
   if (item.kind === 'video') return item.posterUrl ?? null;
   const r = item.renditions ?? {};
   return r['thumb'] ?? r['original'] ?? null;
@@ -238,6 +238,87 @@ export function PostCard({
           />
         ) : null}
       </View>
+    </Pressable>
+  );
+}
+
+/**
+ * A PROFILE TILE — 007/T051, `design/007-ui/Profile.dc.html`.
+ *
+ * The artboard's profile is a three-column grid of square tiles two points
+ * apart: no card, no radius, no caption, no byline. A profile answers "what has
+ * this person made", and a grid answers it in one glance where a column of
+ * cards answers it one post at a time.
+ *
+ * Run 46's device capture is why this exists. The profile shipped rendering
+ * `PostCard` in a single full-bleed column — I built the header, marked T051
+ * done, and left the content as the old list. Nothing caught it because every
+ * test asserts the post is PRESENT, and it was.
+ *
+ * `post-<id>` is unchanged, so `17-saved` and the browser journeys select the
+ * same way. The video badge stays: a grid that hides which tiles are video
+ * makes somebody tap to find out.
+ */
+export function PostTile({ post, onOpen }: { post: Post; onOpen: (postId: string) => void }) {
+  const palette = useTheme();
+  const item = post.media?.[0];
+  const url = item ? mediaUrl(item) : null;
+  const failed = item?.processingState === 'failed' || post.processingState === 'failed';
+
+  return (
+    <Pressable
+      testID={`post-${post.postId}`}
+      accessibilityRole="button"
+      // The caption is the only description a tile has, so it carries it.
+      accessibilityLabel={post.caption ?? 'Post'}
+      onPress={() => onOpen(post.postId)}
+      style={{ flex: 1, aspectRatio: 1, backgroundColor: palette.bg.sunken }}
+    >
+      {failed ? (
+        <View
+          testID={`post-media-failed-${post.postId}`}
+          style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.xs }}
+        >
+          <Text
+            style={{
+              color: palette.text.muted,
+              fontSize: typeScale.small.size,
+              lineHeight: typeScale.small.lineHeight,
+              textAlign: 'center',
+            }}
+          >
+            Not processed
+          </Text>
+        </View>
+      ) : url ? (
+        <Image
+          testID={`post-image-${post.postId}`}
+          source={{ uri: url }}
+          resizeMode="cover"
+          accessibilityLabel={post.caption ?? 'Post media'}
+          style={{ width: '100%', height: '100%' }}
+        />
+      ) : (
+        <Skeleton style={{ width: '100%', height: '100%' }} />
+      )}
+
+      {post.mediaKind === 'video' ? (
+        <View
+          testID={`post-video-badge-${post.postId}`}
+          style={{
+            position: 'absolute',
+            right: space.xs,
+            bottom: space.xs,
+            paddingHorizontal: space.xs,
+            borderRadius: radius.pill,
+            backgroundColor: palette.bg.raised,
+          }}
+        >
+          <Text style={{ fontSize: typeScale.small.size, color: palette.text.primary }}>
+            Video
+          </Text>
+        </View>
+      ) : null}
     </Pressable>
   );
 }
