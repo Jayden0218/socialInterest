@@ -24,8 +24,16 @@ appId: app.socialinterest
     timeout: 60000
 - tapOn:
     id: "post-[0-9A-Z]{26}"
-- assertVisible:
-    id: "post-detail-screen"
+
+# WAITED FOR, not asserted. `PostDetailContainer` renders `post-loading` until
+# `GET /v1/posts/:postId` returns (screens/index.tsx), so a bare `assertVisible`
+# races a network round trip on a device. Failed this way in runs 53 and 54;
+# every other flow that opens post detail either waits or arrives via a screen
+# that has already fetched.
+- extendedWaitUntil:
+    visible:
+      id: "post-detail-screen"
+    timeout: 30000
 - tapOn:
     id: "open-safety"
 - assertVisible:

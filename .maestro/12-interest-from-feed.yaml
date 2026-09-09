@@ -35,10 +35,13 @@ appId: app.socialinterest
 # the post is REACHABLE on the feed, which is what a person would do about it.
 # 09-report-and-block reaches the same post with a re-polling wait and passed
 # where this failed, in the same run.
-- scrollUntilVisible:
-    element:
-      text: "${PRESENT}"
-    direction: DOWN
+# WAIT FIRST, THEN SCROLL. Run 54's scroll-only version failed the same way
+# run 53's bare assert did, and the reason is visible in the same run:
+# `09-report-and-block` reaches THIS EXACT POST with a re-polling
+# `extendedWaitUntil` and passed. A scroll that begins before the feed has
+# loaded scrolls an empty list and then asserts against it.
+- extendedWaitUntil:
+    visible: "${PRESENT}"
     timeout: 30000
 - assertVisible: "${PRESENT}"
 

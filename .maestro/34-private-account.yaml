@@ -45,6 +45,20 @@ appId: app.socialinterest
     id: "account-privacy-explainer"
 - tapOn:
     id: "account-privacy-switch"
+
+# BACK UP TO SAVE, because `Screen scroll` wraps EVERYTHING — the header row
+# included (`primitives.tsx`, the `scroll` branch returns one ScrollView around
+# all children). So scrolling down to `account-privacy` at y=667 takes
+# `save-profile` from y=80 to roughly -220, and run 54 reported it as "Element
+# not found" rather than as off screen.
+#
+# This is the half of run 53's fix I got wrong: I scrolled to reach the control
+# and did not ask what the scroll had moved away from.
+- scrollUntilVisible:
+    element:
+      id: "save-profile"
+    direction: UP
+    timeout: 20000
 - tapOn:
     id: "save-profile"
 
