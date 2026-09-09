@@ -1,0 +1,58 @@
+# 008/US2, T036 — VIEWING NOTIFICATIONS MARKS THEM READ.
+#
+# `readAt` has been declared on every notification, returned to every client, and
+# written by NOTHING since 001, so every notification in this product has been
+# unread forever. No test noticed: every one asserted the field was PRESENT and
+# none asserted it was ever populated.
+#
+# WHAT TO READ IN THE RUN AGGREGATE, which is where the evidence is:
+#   PUT /v1/notifications/read  204
+# Its ABSENCE is the finding. Everything this flow can assert on screen is
+# satisfied by a notifications tab that renders and writes nothing — which is
+# exactly the state the product shipped in for seven features.
+appId: app.socialinterest
+---
+- runFlow: 01-sign-in.yaml
+
+- tapOn:
+    id: "tab-notifications"
+- assertVisible:
+    id: "notifications-screen"
+
+# EITHER outcome is a pass for this flow, and that is deliberate.
+#
+# A fresh device account has no notifications, and generating one needs a second
+# person reacting to this person's post — which is `08-comment` and
+# `09-report-and-block`'s work, not this flow's. What must happen either way is
+# the WRITE, and the write fires once the surface is viewed.
+#
+# So the screen assertion is only that the surface loaded; the aggregate carries
+# the claim. A flow that failed here on an empty list would be failing on the
+# product working.
+- runFlow:
+    when:
+      visible:
+        id: "notification-list"
+    commands:
+      - assertVisible:
+          id: "notification-list"
+
+- runFlow:
+    when:
+      visible:
+        id: "notifications-empty"
+    commands:
+      - assertVisible:
+          id: "notifications-empty"
+
+# Leave and come back. The mark fires once per mount, so a second visit is a
+# second PUT — and two 204s in the aggregate is what tells a reader the write is
+# wired to the surface rather than to sign-in.
+- tapOn:
+    id: "tab-feed"
+- assertVisible:
+    id: "home-feed-screen"
+- tapOn:
+    id: "tab-notifications"
+- assertVisible:
+    id: "notifications-screen"

@@ -118,22 +118,22 @@ the count is exactly 1; a second account is unaffected.
 
 ### Tests for User Story 2
 
-- [ ] T024 [P] [US2] Write `apps/e2e/journeys/notification-read.spec.ts` over HTTP: read → mark → read again, `readAt` populated, `unreadCount` exactly 0 (SC-003). Assert against a real response — a stubbed data layer agreeing with a wrong type is how 007's `nextCursor` defect survived five features.
-- [ ] T025 [P] [US2] Write `apps/api/tests/integration/notification-read-isolation.spec.ts`: marking read on account A leaves account B's count untouched (FR-007).
-- [ ] T026 [P] [US2] Write `apps/api/tests/unit/notification-read-derivation.spec.ts` for the `readAt` derivation at the watermark boundary — a notification created exactly at `lastReadAt` is read, one a millisecond later is not.
+- [X] T024 [P] [US2] Write `apps/e2e/journeys/notification-read.spec.ts` over HTTP: read → mark → read again, `readAt` populated, `unreadCount` exactly 0 (SC-003). Assert against a real response — a stubbed data layer agreeing with a wrong type is how 007's `nextCursor` defect survived five features.
+- [X] T025 [P] [US2] Write `apps/api/tests/integration/notification-read-isolation.spec.ts`: marking read on account A leaves account B's count untouched (FR-007).
+- [X] T026 [P] [US2] Write `apps/api/tests/unit/notification-read-derivation.spec.ts` for the `readAt` derivation at the watermark boundary — a notification created exactly at `lastReadAt` is read, one a millisecond later is not.
 
 ### Implementation for User Story 2
 
-- [ ] T027 [US2] Add `notificationRead: (userId) => ({ pk: 'USER#<id>', sk: '#NOTIFREAD' })` to `apps/api/src/persistence/keys.ts`, beside `signalProfile`, with a comment stating it is the same watermark pattern `ConversationRepository.markRead` already uses.
-- [ ] T028 [US2] Add `readWatermark` read and write to `apps/api/src/persistence/notification.repository.ts` (A43).
-- [ ] T029 [US2] Add the bounded unread query (A44) to `apps/api/src/persistence/notification.repository.ts`: notifications with `sk > NOTIF#<lastReadAt>`. **Do not add a stored counter** — a count and the rows it counts are two sources of truth for one fact (research R2).
-- [ ] T030 [US2] Derive `readAt` in `apps/api/src/modules/notifications/notification.service.ts:190` from the watermark rather than passing through `n.readAt`, and add `unreadCount` to the list response.
-- [ ] T031 [US2] Add `PUT /v1/me/notifications/read` (FR-005, FR-006) to `apps/api/src/modules/notifications/notification.controller.ts`, idempotent, 204. Confirm the controller's path resolves under the global `v1` prefix — `@Controller('v1')` under it gives `/v1/v1/...`, which is how every 007 signals route 404'd.
-- [ ] T032 [US2] Read the caller from `req.viewer`, not `req.user`. Passport's convention is not this app's, and that mistake turned the same 007 routes into 500s once the path was fixed.
-- [ ] T033 [US2] Update the public-route snapshot in `apps/api/tests/integration/auth-surface.spec.ts` deliberately, as a reviewed line. Inserting a method above an existing `@Get` moves the `@Public()` decorator onto the new method with typecheck and lint clean; this has happened twice here.
-- [ ] T034 [P] [US2] Add the endpoint to `specs/001-interest-media-sharing/contracts/openapi.yaml` in this same change.
-- [ ] T035 [US2] Call the read endpoint when the notifications screen is viewed, in `apps/mobile/src/screens/index.tsx`'s notifications container, and render the unread badge from `unreadCount`. Declare every hook **before** any return — a hook after the final return is dead code and one after an early return is "Rendered more hooks than during the previous render" (`__tests__/hooks-before-return.test.ts` fails the build for both).
-- [ ] T036 [US2] Add `.maestro/24-notifications-read.yaml` and assert `PUT /v1/me/notifications/read` **204** appears in the run's API aggregate.
+- [X] T027 [US2] Add `notificationRead: (userId) => ({ pk: 'USER#<id>', sk: '#NOTIFREAD' })` to `apps/api/src/persistence/keys.ts`, beside `signalProfile`, with a comment stating it is the same watermark pattern `ConversationRepository.markRead` already uses.
+- [X] T028 [US2] Add `readWatermark` read and write to `apps/api/src/persistence/notification.repository.ts` (A43).
+- [X] T029 [US2] Add the bounded unread query (A44) to `apps/api/src/persistence/notification.repository.ts`: notifications with `sk > NOTIF#<lastReadAt>`. **Do not add a stored counter** — a count and the rows it counts are two sources of truth for one fact (research R2).
+- [X] T030 [US2] Derive `readAt` in `apps/api/src/modules/notifications/notification.service.ts:190` from the watermark rather than passing through `n.readAt`, and add `unreadCount` to the list response.
+- [X] T031 [US2] Add `PUT /v1/notifications/read` (FR-005, FR-006) to `apps/api/src/modules/notifications/notification.controller.ts`, idempotent, 204. **Path changed from the planned `/v1/me/notifications/read`** to sit beside `PUT /v1/conversations/:id/read`, the read watermark this copies; two watermark routes shaped differently would be one more thing to remember. All references updated. Confirm the controller's path resolves under the global `v1` prefix — `@Controller('v1')` under it gives `/v1/v1/...`, which is how every 007 signals route 404'd.
+- [X] T032 [US2] Read the caller from `req.viewer`, not `req.user`. Passport's convention is not this app's, and that mistake turned the same 007 routes into 500s once the path was fixed.
+- [X] T033 [US2] Update the public-route snapshot in `apps/api/tests/integration/auth-surface.spec.ts` deliberately, as a reviewed line. **No change needed and verified so**: the new route is authenticated, so the public set is unchanged and the test passes as-is — which is the guard confirming the decorator did not drift, not an omission. Inserting a method above an existing `@Get` moves the `@Public()` decorator onto the new method with typecheck and lint clean; this has happened twice here.
+- [X] T034 [P] [US2] Add the endpoint to `specs/001-interest-media-sharing/contracts/openapi.yaml` in this same change.
+- [X] T035 [US2] Call the read endpoint when the notifications screen is viewed, in `apps/mobile/src/screens/index.tsx`'s notifications container, and render the unread badge from `unreadCount`. Declare every hook **before** any return — a hook after the final return is dead code and one after an early return is "Rendered more hooks than during the previous render" (`__tests__/hooks-before-return.test.ts` fails the build for both).
+- [X] T036 [US2] Add `.maestro/24-notifications-read.yaml` and assert `PUT /v1/notifications/read` **204** appears in the run's API aggregate.
 
 **Checkpoint**: US2 independently shippable; `readAt` has a writer.
 

@@ -39,7 +39,10 @@ reintroduce silently.
 ## R2 — Notification read state: a watermark, and a **derived** `readAt`
 
 **Decision**: one item per person, `USER#<id> / #NOTIFREAD`, holding `lastReadAt`. A new
-`PUT /v1/me/notifications/read` writes it. `readAt` stays in the response contract and is
+`PUT /v1/notifications/read` writes it. (Planned as `/v1/me/notifications/read`; moved during
+implementation to sit beside `PUT /v1/conversations/:id/read`, the read watermark this
+feature is copying. Two watermark routes shaped differently would be one more thing to
+remember.) `readAt` stays in the response contract and is
 **derived** at projection time: `createdAt <= lastReadAt ? lastReadAt : null`. The unread
 count is derived by querying notifications newer than the watermark, bounded.
 

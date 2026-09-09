@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
+import { deriveReadAt } from './read-watermark';
 import { NotificationRepository, type NotificationItem } from '../../persistence/notification.repository';
 import { PersonRepository } from '../../persistence/person.repository';
 import { PostRepository } from '../../persistence/post.repository';
@@ -135,8 +136,16 @@ export class NotificationService implements OnModuleInit {
   async listVisible(
     viewerId: string,
     opts: { limit?: number; cursor?: string | null } = {},
-  ): Promise<{ items: Record<string, unknown>[]; nextCursor: string | null }> {
-    const page = await this.notifications.list(viewerId, opts);
+  ): Promise<{
+    items: Record<string, unknown>[];
+    nextCursor: string | null;
+    unreadCount: number;
+    unreadCapped: boolean;
+  }> {
+    const [page, lastReadAt] = await Promise.all([
+      this.notifications.list(viewerId, opts),
+      this.notifications.readWatermark(viewerId),
+    ]);
     const kept: NotificationItem[] = [];
     const thumbs = new Map<string, string | null>();
     for (const n of page.items) {
@@ -151,7 +160,34 @@ export class NotificationService implements OnModuleInit {
       kept.push(n);
       thumbs.set(n.postId, thumbnailOf(post));
     }
-    return { items: await this.withActors(kept, thumbs), nextCursor: page.nextCursor };
+    /**
+     * 008/FR-006. The count is over the WHOLE partition, not this page.
+     *
+     * "The true number" cannot be counted from the page the caller happened to
+     * ask for - a badge that changed when you scrolled would be reporting the
+     * request rather than the person's notifications.
+     */
+    const unread = await this.notifications.unreadCount(viewerId, lastReadAt);
+    return {
+      items: await this.withActors(kept, thumbs, lastReadAt),
+      nextCursor: page.nextCursor,
+      unreadCount: unread.count,
+      unreadCapped: unread.hasMore,
+    };
+  }
+
+  /**
+   * 008/FR-005, FR-007. Marks everything read as of now.
+   *
+   * `new Date()` on the SERVER, never a client-supplied timestamp. A client that
+   * sent a future one would mark notifications read before they arrived, and a
+   * client with a skewed clock would do it by accident.
+   *
+   * Idempotent: marking twice writes the same item with a later watermark and
+   * changes nothing a person can observe.
+   */
+  async markAllRead(viewerId: string): Promise<void> {
+    await this.notifications.markReadUpTo(viewerId, new Date().toISOString());
   }
 
   /**
@@ -166,6 +202,7 @@ export class NotificationService implements OnModuleInit {
   private async withActors(
     items: NotificationItem[],
     thumbs: Map<string, string | null> = new Map(),
+    lastReadAt: string | null = null,
   ): Promise<Record<string, unknown>[]> {
     const ids = [...new Set(items.map((n) => n.actorId))];
     const profiles = new Map(
@@ -187,7 +224,16 @@ export class NotificationService implements OnModuleInit {
         postId: n.postId ?? null,
         postThumbUrl: n.postId ? (thumbs.get(n.postId) ?? null) : null,
         createdAt: n.createdAt,
-        readAt: n.readAt ?? null,
+        /**
+         * 008/FR-005 — DERIVED, not read off the row.
+         *
+         * `n.readAt` was the field this returned for seven features and NOTHING
+         * EVER WROTE IT, so every notification in the product was unread
+         * forever. The row's own value is deliberately not consulted even as a
+         * fallback: a second source for one fact is how the count and the rows
+         * come to disagree.
+         */
+        readAt: deriveReadAt(n.createdAt, lastReadAt),
       };
     });
   }

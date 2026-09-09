@@ -46,6 +46,8 @@ export interface Page<T> {
 export interface QueryOptions {
   indexName?: 'gsi1' | 'gsi2' | 'gsi3' | 'gsi4' | 'gsi5';
   skPrefix?: string;
+  /** 008/A44. Everything after this sort key. Mutually exclusive with skPrefix. */
+  skGreaterThan?: string;
   limit?: number;
   cursor?: string | null;
   ascending?: boolean;
@@ -130,6 +132,18 @@ export abstract class BaseRepository {
       names['#sk'] = skName;
       values[':skPrefix'] = opts.skPrefix;
       condition += ' AND begins_with(#sk, :skPrefix)';
+    } else if (opts.skGreaterThan !== undefined) {
+      /**
+       * 008/A44. A RANGE on the sort key, for "everything after this point".
+       *
+       * Mutually exclusive with `skPrefix` - DynamoDB takes one sort-key
+       * condition, and offering both would silently drop one. The caller builds
+       * the full prefixed value (`NOTIF#<timestamp>`), so the prefix is still
+       * what bounds the scan; this only moves the start of it.
+       */
+      names['#sk'] = skName;
+      values[':skFrom'] = opts.skGreaterThan;
+      condition += ' AND #sk > :skFrom';
     }
 
     const r = await this.doc.send(

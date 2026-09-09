@@ -18,7 +18,7 @@ the code, never after.
 | Method | Path | Notes |
 |---|---|---|
 | — | `GET /v1/posts/{postId}` | **Unchanged.** Already returns every media item, presigned, in publication order. US1 is a client change. |
-| `PUT` | `/v1/me/notifications/read` | Writes the read watermark. Idempotent. 204. |
+| `PUT` | `/v1/notifications/read` | Writes the read watermark. Idempotent. 204. |
 | `GET` | `/v1/notifications` | **Changed**: `readAt` now derived and populated; response gains `unreadCount`. |
 | `GET` | `/v1/feed/following` | New surface. `?cursor=<createdAt>&limit=`. Same page shape as `/v1/feed/home`. |
 

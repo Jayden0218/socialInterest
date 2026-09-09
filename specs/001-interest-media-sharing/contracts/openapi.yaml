@@ -45,7 +45,6 @@ paths:
 # code that serves it — never after. Delete a line when it lands.
 #
 #   Phase A
-#     [ ] PUT    /me/notifications/read           008/FR-005, FR-006, FR-007
 #     [ ] GET    /notifications                   + readAt populated, unreadCount
 #     [ ] GET    /feed/following                  008/FR-008..FR-010
 #   Phase B
@@ -732,6 +731,28 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/NotificationPage' }
+
+  /notifications/read:
+    put:
+      tags: [Notifications]
+      summary: Mark every notification read
+      description: >
+        008/FR-005, FR-006, FR-007. Writes a read WATERMARK for the caller
+        (`lastReadAt`), from which each notification's `readAt` is derived.
+
+        Idempotent, which is why it is a PUT: setting the watermark to "now"
+        twice is one state, and a retry after a dropped response must not be a
+        second event. The timestamp is the SERVER's - a client-supplied one could
+        mark notifications read before they arrived.
+
+        Not folded into `GET /notifications`, deliberately: writing on read would
+        mutate N rows on a hot path and give a GET side effects.
+
+        Same shape as `PUT /conversations/{conversationId}/read`, which is the
+        read watermark this copies.
+      responses:
+        '204': { description: Read position updated }
+        '401': { $ref: '#/components/responses/Unauthorised' }
 
   /moderation/reports:
     get:
@@ -1901,7 +1922,29 @@ components:
         items:
           type: array
           items: { $ref: '#/components/schemas/Notification' }
-        page: { $ref: '#/components/schemas/PageMeta' }
+        page:
+          allOf:
+            - $ref: '#/components/schemas/PageMeta'
+            - type: object
+              properties:
+                unreadCount:
+                  type: integer
+                  minimum: 0
+                  description: >
+                    008/FR-006. Notifications newer than the caller's read
+                    watermark, over the WHOLE partition rather than this page - a
+                    badge that changed as you scrolled would be reporting the
+                    request rather than the person's notifications.
+
+                    DERIVED, never stored. A stored counter and the rows it
+                    counts are two sources of truth for one fact.
+                unreadCapped:
+                  type: boolean
+                  description: >
+                    True when the real number exceeds the server's counting
+                    bound, so `unreadCount` is a floor. Present so a client can
+                    render "50+" from what the server said rather than inventing
+                    a threshold of its own.
 
 
     # ---------------------------------------------- feature 004

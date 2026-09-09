@@ -152,6 +152,24 @@ export const keys = {
     sk: `NOTIF#${createdAt}#${notificationId}`,
   }),
 
+  /**
+   * 008/A43 - when this person last read their notifications.
+   *
+   * ONE ITEM, beside `#SIGNALPROFILE` in the person's own partition, and the
+   * same shape as the read watermark conversations already keep on the
+   * participant row (`ConversationRepository.markRead`). One pattern applied
+   * twice rather than a second invention.
+   *
+   * `readAt` on the response is DERIVED from this (see read-watermark.ts). The
+   * field has been declared on every notification and returned to every client
+   * since 001 with NOTHING WRITING IT, so every notification was unread forever.
+   *
+   * Deliberately NO stored unread counter, which is the one thing not copied
+   * from the conversation row: a count and the rows it counts are two sources of
+   * truth for one fact, and nothing here needs a counter to be cheap.
+   */
+  notificationRead: (userId: string) => ({ pk: `USER#${userId}`, sk: '#NOTIFREAD' }),
+
   // ---------------------------------------------------------------- feature 004
 
   /**

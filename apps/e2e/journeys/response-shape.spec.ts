@@ -329,7 +329,7 @@ const DECLARED_FIELDS: readonly DeclaredField[] = [
        * drives the app's own layer once it exists; this one only asks whether
        * anything at all writes the field.
        */
-      await raw(`${baseUrl()}/v1`, '/me/notifications/read', { method: 'PUT', token: author.token });
+      await raw(`${baseUrl()}/v1`, '/notifications/read', { method: 'PUT', token: author.token });
       const after = await author.data.notifications.list({ limit: 20 });
       return after.items.find((n) => n.kind === 'reaction')?.readAt ?? null;
     },

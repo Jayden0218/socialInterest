@@ -151,7 +151,15 @@ const PROBES: Probe[] = [
     // filtered on read, not only at creation.
     run: ({ queries }) => {
       const notifications = new NotificationService(
-        { list: async () => ({ items: [{ notificationId: 'n1', kind: 'comment', actorId: 'a1', postId: 'p1', createdAt: '2026-01-01T00:00:00Z' }], nextCursor: null }) } as never,
+        {
+          list: async () => ({ items: [{ notificationId: 'n1', kind: 'comment', actorId: 'a1', postId: 'p1', createdAt: '2026-01-01T00:00:00Z' }], nextCursor: null }),
+          // 008/US2. The read watermark and the derived unread count. This probe
+          // is about ROUTING, not read state, so both answer the "never read"
+          // case - which is also the state that makes `readAt` null and keeps
+          // this row asserting what it always asserted.
+          readWatermark: async () => null,
+          unreadCount: async () => ({ count: 0, hasMore: false }),
+        } as never,
         { findById: async () => ({ userId: 'a1', handle: 'a', displayName: 'A', status: 'active' }) } as never,
         {} as never,
         queries,

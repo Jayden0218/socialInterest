@@ -1,8 +1,9 @@
+import { useEffect, useRef } from 'react';
 import type { Post, Interest, Notification } from '@sih/shared';
 import { useData } from '../data-provider';
 import { usePaged, type PagedResult } from './usePaged';
 
-/** Home feed - composed from FOLLOWED INTERESTS only (Principle I, FR-033). */
+/** Home feed - RANKED from behaviour (007). 001/FR-033's composed feed is withdrawn. */
 export function useHomeFeed(): PagedResult<Post> {
   const data = useData();
   return usePaged<Post>((cursor) => data.feed.home(cursor ? { cursor } : {}), []);
@@ -44,6 +45,32 @@ export function useInterestPosts(
 export function useNotifications(): PagedResult<Notification> {
   const data = useData();
   return usePaged<Notification>((cursor) => data.notifications.list(cursor ? { cursor } : {}), []);
+}
+
+/**
+ * 008/FR-005 — MARKS THE NOTIFICATIONS READ WHEN THE SURFACE IS VIEWED.
+ *
+ * Separate from `useNotifications` on purpose. Marking read is a WRITE, and
+ * folding it into the paging hook would fire it again on every page - so the
+ * watermark would advance while a person scrolled through notifications they had
+ * not looked at yet.
+ *
+ * Fired ONCE per mount, after the first page has arrived. Before it arrives
+ * there is nothing to have been seen, and marking read on an empty screen would
+ * clear a badge for notifications the person never saw.
+ *
+ * Failure is swallowed on purpose: this is a courtesy write, and an error banner
+ * over somebody's notifications because a badge did not clear is worse than the
+ * badge not clearing.
+ */
+export function useMarkNotificationsRead(ready: boolean): void {
+  const data = useData();
+  const done = useRef(false);
+  useEffect(() => {
+    if (!ready || done.current) return;
+    done.current = true;
+    void data.notifications.markAllRead().catch(() => undefined);
+  }, [data, ready]);
 }
 
 /**

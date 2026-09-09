@@ -49,6 +49,16 @@ async function main(): Promise<void> {
     { name: 'post detail', path: '/v1/posts/none', expect: [404] },
     { name: 'upload (unauth)', path: '/v1/media/uploads', method: 'POST', expect: [401] },
     { name: 'publish (unauth)', path: '/v1/posts', method: 'POST', expect: [401] },
+    /**
+     * 008/US2. A 401, not a 404 — which is the whole point of checking it here.
+     *
+     * `@Controller('v1')` under the global `v1` prefix gives `/v1/v1/...`, and
+     * every 007 signals route answered 404 for exactly that reason: invisible to
+     * typecheck, to lint, and to this script, which checked OTHER controllers.
+     * A route that is registered where the contract says it is answers 401 for a
+     * caller with no token; a route that is not registered answers 404.
+     */
+    { name: 'mark notifications read (unauth)', path: '/v1/notifications/read', method: 'PUT', expect: [401] },
   ];
 
   let failed = 0;

@@ -45,4 +45,53 @@ export class NotificationRepository extends BaseRepository {
       cursor: opts.cursor ?? null,
     });
   }
+
+  /** 008/A43. When this person last read their notifications; null if never. */
+  async readWatermark(userId: string): Promise<string | null> {
+    const item = await this.getItem<{ lastReadAt?: string }>(keys.notificationRead(userId));
+    return item?.lastReadAt ?? null;
+  }
+
+  /**
+   * 008/FR-005, FR-007. Marks everything up to `at` read, durably.
+   *
+   * ONE WRITE, whatever the person has accumulated, which is also what makes
+   * "mark all read" free rather than a second mechanism. It affects nobody else
+   * because the item lives in this person's own partition.
+   */
+  async markReadUpTo(userId: string, at: string): Promise<void> {
+    await this.putItem({
+      ...keys.notificationRead(userId),
+      type: 'NotificationRead',
+      lastReadAt: at,
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
+  /**
+   * 008/A44, FR-006. How many notifications are newer than the watermark.
+   *
+   * A RANGE QUERY, not a stored counter. A count and the rows it counts are two
+   * sources of truth for one fact; this one is derived and cannot disagree with
+   * what the person actually has.
+   *
+   * BOUNDED, and it says so in its own return value. `hasMore` is not a
+   * convenience - a caller that got `25` with no way to know whether that was
+   * exact would either under-report or invent a "25+" the server never said.
+   */
+  async unreadCount(
+    userId: string,
+    lastReadAt: string | null,
+    cap = 50,
+  ): Promise<{ count: number; hasMore: boolean }> {
+    const page = await this.query<NotificationItem>(`USER#${userId}`, {
+      // `NOTIF#<createdAt>#<id>` sorts lexicographically by an ISO-8601 UTC
+      // timestamp, so "after the watermark" is a string comparison - the same
+      // comparison `deriveReadAt` makes, which is what keeps the two agreeing by
+      // construction rather than by coincidence.
+      ...(lastReadAt ? { skGreaterThan: `${SK_PREFIX.notification}${lastReadAt}` } : { skPrefix: SK_PREFIX.notification }),
+      limit: cap + 1,
+    });
+    return { count: Math.min(page.items.length, cap), hasMore: page.items.length > cap };
+  }
 }

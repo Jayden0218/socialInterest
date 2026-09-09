@@ -22,7 +22,13 @@ import type {
   PlaceSummary,
   Review,
 } from '@sih/shared';
-import { useHomeFeed, useInterestSearch, useNotifications, usePaged } from '../containers';
+import {
+  useHomeFeed,
+  useInterestSearch,
+  useMarkNotificationsRead,
+  useNotifications,
+  usePaged,
+} from '../containers';
 import { useDwell } from '../features/feed/useDwell';
 import { activePalette as palette, space } from '../ui/theme';
 import { Button, Row } from '../ui/primitives';
@@ -161,6 +167,15 @@ export function DiscoverContainer({
 
 export function NotificationsContainer({ onOpen }: { onOpen: (postId: string) => void }) {
   const { state, error } = useNotifications();
+  /**
+   * 008/FR-005. Viewing marks them read.
+   *
+   * Declared BEFORE any return, which `__tests__/hooks-before-return.test.ts`
+   * fails the build over: a hook after the early `error` return below is
+   * "Rendered more hooks than during the previous render" the first time a load
+   * fails.
+   */
+  useMarkNotificationsRead(state.items.length > 0);
   if (error) return <Failed message={error} />;
   return (
     <NotificationsScreen

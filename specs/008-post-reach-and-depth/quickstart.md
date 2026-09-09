@@ -80,7 +80,7 @@ pnpm --filter @sih/api test -t "notification read"
 pnpm --filter @sih/e2e test -t "notifications"
 ```
 
-Over HTTP: generate notifications, `GET` them, `PUT /v1/me/notifications/read`, `GET` again
+Over HTTP: generate notifications, `GET` them, `PUT /v1/notifications/read`, `GET` again
 — `readAt` populated, `unreadCount` 0 (SC-003). Then generate one more and assert the count
 is exactly 1, not "some". Then a second account: their count is untouched (FR-007).
 
@@ -107,7 +107,7 @@ scripts/android-device-pass.sh
 ```
 
 Read the **whole-run API aggregate** — it prints last, and to `$GITHUB_STEP_SUMMARY`.
-Expect `PUT /v1/me/notifications/read` 204 and `GET /v1/feed/following` 200 from the device.
+Expect `PUT /v1/notifications/read` 204 and `GET /v1/feed/following` 200 from the device.
 An absent line is the finding; a present one is the evidence. Job logs come back only as a
 tail and the artifact host is denied by this environment's egress with a 403, so anything
 that must be read has to print late and short.
