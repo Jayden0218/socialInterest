@@ -374,6 +374,105 @@ on this repository does not spend - so dispatching the emulator job is not the o
 call any more. Check the facts before repeating either claim; both halves of this one
 expired within a day.
 
+## What spec 008 Phase A built (2026-09-09)
+
+`specs/008-post-reach-and-depth/` is **a complete-app scope**: 15 stories, 54 FRs, 17 SCs,
+in five release phases. **Phase A (US1-US3) is implemented and its local gate is green**;
+B-E are specified and planned and NOT built. Do not read the spec's size as progress.
+
+### THE PATTERN PHASE A EXISTS TO END: a declared half with no other half
+
+Three cases, found independently by reading the build rather than by listing features:
+
+| The product declares | What was missing | Consequence |
+|---|---|---|
+| Publish: "**Up to 10 photos**" | every render path read `media[0]` | 9 of 10 photographs invisible **to everyone including the author, permanently** |
+| Notification `readAt`, returned to every client | **nothing wrote it** | every notification unread forever |
+| A "**Following**" tab on the primary surface | no feed behind it | a control that did nothing for a whole feature |
+
+A fourth and fifth were found while planning: `avatarKey` has no writer, and `avatarUrl` is
+emitted on **one of seven** profile projections — as the **raw storage key**, which a private
+bucket answers 403 to (006/R4b's defect in a second place). Both are Phase B.
+
+**The guard that caught this class is one assertion.** `apps/e2e/journeys/response-shape.spec.ts`
+now asserts every declared optional field is non-null in at least one fixture, and it was
+**red on its first run against the shipped product** — `{ field: 'Notification.readAt',
+populated: false }` — with nothing broken on purpose. `avatarUrl` sits in the same table with
+`hasWriter: false`, **reported rather than asserted**, the same ratchet `surfaces.ts` uses:
+asserting a field before its feature exists turns the suite red for every unrelated task,
+which is how a signal stops being read.
+
+**What that guard cannot catch, and it matters:** a field the server populates and a CLIENT
+ignores. That is 007's `ApiPage<T>` defect, and it is also `media[0]` — the API returned all
+ten the whole time. Only a request finds the first; only a rendering test finds the second.
+
+### Established
+
+- **THE SERVER WAS NEVER THE MEDIA DEFECT.** `PostQueryService.toResponse` already mapped
+  every media row, presigned, and `keys.mediaItem`'s zero-padded `MEDIA#000` already carried
+  publication order. `media-set.spec.ts` passed on its FIRST run. Four client call sites were
+  the whole loss. **Every post fixture in the mobile suite had exactly one media item**, which
+  is why 190 green tests said nothing — a multi-item assertion against a single-item fixture
+  passes and means nothing.
+- **A read watermark, not per-row writes** (008/R2). `readAt` is DERIVED from one
+  `USER#<id>/#NOTIFREAD` item, which is the shape `ConversationRepository.markRead` already
+  uses for messages. Writing on GET would mutate N rows on a hot path and give a GET side
+  effects. The conversation row's stored `unreadCount` is deliberately **not** copied: a count
+  and the rows it counts are two sources of truth for one fact.
+- **The watermark comparison is INCLUSIVE.** A strict `<` leaves a notification created in the
+  same millisecond as the mark permanently unread, so the badge shows 1 forever and nothing
+  the person does clears it.
+- **FR-009 needed enforcing in three places, not one.** Following must record no ranking
+  signal: structurally on the server (the service cannot import the ranker), behaviourally on
+  the server (the signal profile is byte-identical after paging), **and on the client** — dwell
+  is measured on the device and posted separately, so leaving the hook wired would train the
+  ranked feed from the surface a person chose to avoid it. No server guard can see that.
+- **`MAX_FOLLOWED_PEOPLE = 200`** — a product constraint arriving from a technical bound. The
+  Following fan-out is one query per followed author; without a cap the surface has no stated
+  worst case. Named in the spec's Assumptions, because a limit a reader cannot find in the
+  spec is a limit they meet as a bug.
+- **The visibility matrix is 522 assertions, zero skipped** (was 480). Raising the pinned
+  totals in `matrix.spec.ts` is a deliberate edit and is meant to be; `surface-routing.spec.ts`
+  refused to pass until the Following feed had a probe proving it **consults** the boundary.
+
+### Two corrections I made to my own work, both worth keeping
+
+- **I gave `MediaPager` a `viewerIsAuthor` prop** to hide failed items from non-authors. It
+  was redundant **and wrong in kind**: `ProcessingService.reconcile` marks the whole POST
+  `failed` if any item is, and `VisibilityFilter` shows a non-ready post only to its author —
+  so anyone holding such a post IS the author. The prop was a second visibility predicate
+  agreeing with the boundary today and one refactor from disagreeing. **Deleted.**
+- **The analysis pass found two defects of the same class I had just written a plan about.**
+  A caption edit did not rewrite the post-search term rows (captions ARE editable), and the
+  term row projected no `visibility` while `postInterestIndex` denormalises it precisely so
+  the filter can run on Query results — whose update fan-out carries a comment saying a
+  drifted index item "is exactly the SC-009 failure this class exists to make impossible".
+  Both are fixed in the design and are Phase B's to implement.
+
+### Guards that refused my work, correctly
+
+- **`verify-maestro-ids` refused `video-poster` passed as a prop.** Moving a testID literal
+  out of a `testID=` position makes it invisible to the verifier — the same rule that cost 005
+  three attempts. The ternary lives in `MediaPager` now.
+- **It also refused `tab-home`.** The tab key is `feed`. Its own error message says "this is
+  how `pref-message` passed while the switch did not exist".
+- **`surface-routing` went red** because its notifications probe stubbed a repository that had
+  grown two methods — a stub agreeing with an older shape is the `ApiPage<T>` failure in
+  miniature.
+- **An unchecked setup call cost three test failures.** `following-feed.spec.ts` built handles
+  by hand, every follow 404'd, and the feed was correctly empty. The helper asserts its own
+  204 now: an unchecked setup call is how a test fails somewhere other than where it broke.
+
+### Still not verified for 008, and must be reported that way
+
+- **Phase A ON ANDROID.** Three flows exist (`23-multi-photo-post`, `24-notifications-read`,
+  `25-following-feed`) — see the run record for whether they have been executed.
+- **Native font scaling.** `safety-fit.spec.ts` measures layout at 130% text in a browser and
+  says so; react-native-web ignores the platform font setting entirely, which is why 006's
+  `Avatar` overflow was invisible there. A browser result does not close SC-017.
+- **Phases B-E are not built.** iOS, 002/SC-002, real usage, and the datastore and hosting
+  decisions are all unchanged by 008.
+
 ## What spec 007 built (2026-09-08) — all eight phases
 
 `specs/007-ranked-feed-redesign/` replaces the composed feed with a **ranked**
