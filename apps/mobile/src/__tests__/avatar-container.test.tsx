@@ -48,6 +48,14 @@ function fakeData(calls: string[]): AppData {
       disclosure: async () => ({ interests: [], collected: [] }),
       clear: async () => undefined,
     },
+    /**
+     * 008/FR-043. The container reads the follow-request queue on mount, and a
+     * stub that lacks it is the stale-stub failure this repository has now seen
+     * three times — `surface-routing`, `following-feed`, and here.
+     */
+    people: {
+      followRequests: async () => ({ items: [], page: { nextCursor: null } }),
+    },
     posts: {
       createUploadTarget: async (input: Record<string, unknown>) => {
         calls.push(`createUploadTarget:${String(input['kind'])}`);

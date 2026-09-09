@@ -76,4 +76,28 @@ export class PeopleData {
   unfollow(handle: string): Promise<void> {
     return this.client.call<void>('deletePeopleByHandleFollow', { params: { handle } });
   }
+
+  /**
+   * 008/FR-043. THE OTHER HALF OF A PRIVATE ACCOUNT.
+   *
+   * A private account with no way to answer its requests is the "declared half
+   * with no other half" this whole feature exists to end — the toggle would
+   * work, the requests would arrive, and nobody could ever accept one.
+   */
+  followRequests(opts: { limit?: number; cursor?: string } = {}): Promise<{
+    items: PublicProfile[];
+    page: { nextCursor: string | null; emptyStateHint?: string | null };
+  }> {
+    return this.client.call('getMeFollowRequests', {
+      query: { limit: opts.limit, cursor: opts.cursor },
+    });
+  }
+
+  approveFollowRequest(handle: string): Promise<void> {
+    return this.client.call<void>('putMeFollowRequestsByHandle', { params: { handle } });
+  }
+
+  declineFollowRequest(handle: string): Promise<void> {
+    return this.client.call<void>('deleteMeFollowRequestsByHandle', { params: { handle } });
+  }
 }

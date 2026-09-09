@@ -16,6 +16,18 @@ export interface ProfileData {
   topInterests: InterestRef[];
   viewerIsFollowing: boolean;
   /**
+   * 008/FR-043 — THE THIRD STATE THE BOOLEAN CANNOT HOLD.
+   *
+   * `viewerIsFollowing` is false both for somebody who has not asked and for
+   * somebody who asked and is waiting, so a control drawn from the boolean alone
+   * says "Follow" to a person whose request is already sitting in the author's
+   * queue and invites them to send it again. Optional, so a profile from a
+   * server without 008 still renders exactly as it did.
+   */
+  viewerFollowState?: 'none' | 'pending' | 'following';
+  /** 008/FR-043. Absent means `open`. */
+  accountPrivacy?: 'open' | 'private';
+  /**
    * Only `/v1/me` returns this, so it is optional and the third stat simply is
    * not drawn on someone else's profile. The artboard shows three; inventing a
    * post count the API does not send would be drawing the design rather than
@@ -39,10 +51,28 @@ export interface ProfileData {
  * anything in your feed that was not eligible for it already. That distinction
  * is the whole of Principle I after the amendment, so the sentence says it.
  */
+export function followState(profile: ProfileData): 'none' | 'pending' | 'following' {
+  // The boolean is the fallback, not the source: a server that sends the state
+  // is authoritative, and one that does not can only express two of the three.
+  return profile.viewerFollowState ?? (profile.viewerIsFollowing ? 'following' : 'none');
+}
+
 export function followHint(profile: ProfileData): string {
-  return profile.viewerIsFollowing
-    ? 'Their posts rank higher in your feed. Following does not add anything new to it.'
-    : 'Following ranks their posts higher when they appear. It does not widen your feed.';
+  switch (followState(profile)) {
+    case 'following':
+      return 'Their posts rank higher in your feed. Following does not add anything new to it.';
+    /**
+     * 008/FR-043. What a person waiting actually needs to know is that nothing
+     * is broken and nothing more is required of them — not what a follow does
+     * for a feed they cannot see yet.
+     */
+    case 'pending':
+      return 'They approve their followers. You will see their posts once they accept.';
+    case 'none':
+      return profile.accountPrivacy === 'private'
+        ? 'This account approves its followers. Ask, and their posts appear here once they accept.'
+        : 'Following ranks their posts higher when they appear. It does not widen your feed.';
+  }
 }
 
 function Stat({ value, label, testID }: { value: number; label: string; testID?: string }) {
@@ -238,12 +268,26 @@ export function ProfileScreen({
             ) : null
           ) : (
             <>
+              {/*
+                008/FR-043. THREE LABELS, ONE CONTROL, and the testID is
+                unchanged — the preservation contract is about the id and what it
+                marks, and this still marks "the follow control on a profile".
+                
+                `Requested` is not disabled: tapping it WITHDRAWS the request,
+                which is the same shape as tapping `Following`. A disabled
+                control would leave somebody who changed their mind with no way
+                out of a queue they joined.
+              */}
               <PillButton
                 testID="follow-person-toggle"
-                label={profile.viewerIsFollowing ? 'Following' : 'Follow'}
-                emphasis={profile.viewerIsFollowing ? 'quiet' : 'accent'}
+                label={
+                  { following: 'Following', pending: 'Requested', none: profile.accountPrivacy === 'private' ? 'Request' : 'Follow' }[
+                    followState(profile)
+                  ]
+                }
+                emphasis={followState(profile) === 'none' ? 'accent' : 'quiet'}
                 disabled={followPending}
-                onPress={() => onToggleFollow(!profile.viewerIsFollowing)}
+                onPress={() => onToggleFollow(followState(profile) === 'none')}
               />
               {/*
                 004/FR-001. The ONE entry point to a conversation from inside the

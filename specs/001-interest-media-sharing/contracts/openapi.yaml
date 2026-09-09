@@ -58,8 +58,8 @@ paths:
 #   Phase D
 #     [ ] PUT DELETE /people/{handle}/mute        008/FR-039, FR-040
 #     [ ] PUT    /posts/{postId}/dismiss          008/FR-041, FR-042
-#     [ ] PATCH  /me                              + accountPrivacy (FR-043)
-#     [ ] GET    /me/follow-requests (+approve/decline)  008/FR-043
+#     [x] PATCH  /me                              + accountPrivacy (FR-043)
+#     [x] GET    /me/follow-requests (+approve/decline)  008/FR-043
 #     [ ] GET    /me/moderation-notices           008/FR-046
 #     [ ] POST   /appeals, GET /me/appeals        008/FR-047, FR-048
 #     [ ] GET PATCH /moderation/appeals           008/FR-047
@@ -110,6 +110,64 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/DeletionOutcome' }
+
+  /me/follow-requests:
+    get:
+      tags: [People]
+      summary: Follow requests waiting on me
+      description: >
+        008/FR-043, access pattern A52. On `/me` rather than `/people/{handle}`
+        because whose requests these are is not a parameter: there is exactly one
+        person who may read them and they are the caller. A handle in the path
+        would be a route that has to check it matches the viewer, which is a
+        check that can be forgotten.
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/PublicProfile'
+                        - type: object
+                          properties:
+                            requestedAt: { type: string, format: date-time }
+                  page: { $ref: '#/components/schemas/PageMeta' }
+        '401': { $ref: '#/components/responses/Unauthorised' }
+
+  /me/follow-requests/{handle}:
+    put:
+      tags: [People]
+      summary: Approve a follow request
+      description: >
+        008/FR-043. The counters move HERE and not at request time, so the
+        follower count and what the boundary grants are the same fact throughout.
+        404 when there is no pending request from this person.
+      parameters:
+        - $ref: '#/components/parameters/Handle'
+      responses:
+        '204': { description: Approved }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [People]
+      summary: Decline a follow request
+      description: >
+        008/FR-043. DELETES the row rather than storing a refusal. A stored
+        `declined` would be a third state nothing reads that also silently blocks
+        a change of mind — so a declined request may simply be sent again.
+      parameters:
+        - $ref: '#/components/parameters/Handle'
+      responses:
+        '204': { description: Declined }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   /people/{handle}:
     get:
@@ -667,7 +725,7 @@ paths:
                 type: object
                 properties:
                   items: { type: array, items: { $ref: '#/components/schemas/Draft' } }
-                  page: { $ref: '#/components/schemas/PageInfo' }
+                  page: { $ref: '#/components/schemas/PageMeta' }
     post:
       tags: [Posts]
       summary: Save an unfinished post
@@ -1739,6 +1797,20 @@ components:
             comment: { type: boolean }
             follow: { type: boolean }
             message: { type: boolean }
+        accountPrivacy:
+          type: string
+          enum: [open, private]
+          description: >
+            008/FR-043. Absent on the stored row means `open`, so every account
+            written before 008 keeps working; the response always states which.
+        pendingFollowRequests:
+          type: integer
+          description: >
+            008/FR-043 — how the request list gets found. No notification kind
+            was added for a follow request (a kind is only real when the enum, a
+            description, a preference and a publisher all exist, and this project
+            has shipped three halves without their fourth), so a count is what
+            makes `GET /me/follow-requests` reachable.
 
     PublicProfile:
       type: object
@@ -1756,6 +1828,24 @@ components:
           description: FR-038 — the interests this person posts to most.
           items: { $ref: '#/components/schemas/InterestRef' }
         viewerIsFollowing: { type: boolean }
+        viewerFollowState:
+          type: string
+          enum: [none, pending, following]
+          description: >
+            008/FR-043 — what the follow control should say.
+
+            `viewerIsFollowing` is a BOOLEAN and a request is a THIRD state, so a
+            client reading only the boolean draws "Follow" on a request already
+            sent and invites the person to send it again. The boolean stays for
+            clients that have it; this is the field with the answer.
+        accountPrivacy:
+          type: string
+          enum: [open, private]
+          description: >
+            008/FR-043. A private profile still shows WHO it is — handle, name,
+            counts — and the boundary decides what it shows OF them. Emitted from
+            the one profile projection, so it is on every projection rather than
+            one of seven (008/US5).
 
     ProfileUpdate:
       type: object
@@ -1790,6 +1880,15 @@ components:
             comment: { type: boolean }
             follow: { type: boolean }
             message: { type: boolean }
+        accountPrivacy:
+          type: string
+          enum: [open, private]
+          description: >
+            008/FR-043. THE ONLY WRITER of account privacy, and setting it is not
+            deciding with it: nothing here rebuilds an index or touches a follow
+            row. Flipping it changes what the single boundary answers on the next
+            read, everywhere at once (FR-044), and the followers who already have
+            access keep it (FR-045).
 
     DeletionOutcome:
       type: object

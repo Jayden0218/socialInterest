@@ -468,25 +468,36 @@ boundary — never a per-surface check.
 
 ### Tests for User Story 13
 
-- [ ] T175 [P] [US13] Extend `apps/api/tests/visibility/matrix.spec.ts` with the `authorPrivacy` axis and the `pending-follower` relationship per `contracts/visibility-matrix-delta.md` §1–2. Write it before the clause exists — it is a contract test.
-- [ ] T176 [P] [US13] Write `apps/api/tests/integration/privacy-flip-is-immediate.spec.ts`: flipping privacy changes every surface on the next read, with no re-index step (FR-044, 001/FR-017).
-- [ ] T177 [P] [US13] Write `apps/api/tests/integration/existing-followers-keep-access.spec.ts` (FR-045).
-- [ ] T178 [P] [US13] Write `apps/api/tests/integration/saved-post-of-newly-private-author.spec.ts`: a post saved before its author went private stops being readable (matrix surface 17).
+- [x] T175 [P] [US13] Extend `apps/api/tests/visibility/matrix.spec.ts` with the `authorPrivacy` axis and the `pending-follower` relationship per `contracts/visibility-matrix-delta.md` §1–2. Write it before the clause exists — it is a contract test.
+- [x] T176 [P] [US13] Write `apps/api/tests/integration/privacy-flip-is-immediate.spec.ts`: flipping privacy changes every surface on the next read, with no re-index step (FR-044, 001/FR-017).
+- [x] T177 [P] [US13] Write `apps/api/tests/integration/existing-followers-keep-access.spec.ts` (FR-045).
+- [x] T178 [P] [US13] Write `apps/api/tests/integration/saved-post-of-newly-private-author.spec.ts`: a post saved before its author went private stops being readable (matrix surface 17).
 
 ### Implementation for User Story 13
 
-- [ ] T179 [US13] Add `accountPrivacy: 'open' | 'private'` to the person item, defaulting to `open`.
-- [ ] T180 [US13] Add `state: 'accepted' | 'pending'` to the person-follow row in `apps/api/src/persistence/person-follow.repository.ts`, **absent meaning accepted**, so every follow written before 008 keeps working — the same compatibility rule 005/FR-026 used for conversation state. State lives on the follow row, not on the person (005/R2).
-- [ ] T181 [US13] Add `authorPrivacy` to `VisibilityCandidate` in `apps/api/src/visibility/visibility.filter.ts`.
-- [ ] T182 [US13] Add the single clause to `decide()`: when the author is private, a `public` post is evaluated by the `followers` rule. **Change nothing else in the filter and nothing at all in any surface.**
-- [ ] T183 [US13] Make only an `accepted` follow satisfy the `followers` case, in the same clause. A pending request grants nothing.
-- [ ] T184 [US13] Populate `authorPrivacy` in every `toCandidate` construction, and confirm by grep that there is exactly one per module.
-- [ ] T185 [US13] Add `accountPrivacy` to `PATCH /v1/me`.
-- [ ] T186 [US13] Add follow-request endpoints — `GET /v1/me/follow-requests`, approve, decline — to `apps/api/src/modules/people/person.controller.ts` (A52, FR-043).
-- [ ] T187 [US13] **Verify T011 RED**: add a hand-written `accountPrivacy` check to one surface, watch `privacy-is-not-per-surface.spec.ts` fail, revert, and record the commit.
-- [ ] T188 [P] [US13] Add the endpoints and the field to `specs/001-interest-media-sharing/contracts/openapi.yaml` and update the snapshot in `apps/api/tests/integration/auth-surface.spec.ts`.
-- [ ] T189 [US13] Add the privacy toggle and the follow-request list to `apps/mobile/src/features/profile/`.
-- [ ] T190 [US13] Add `testID`s, run `verify-maestro-ids.mjs`, and add `.maestro/34-private-account.yaml` asserting `PATCH /v1/me` **200** and a follow request approved **204**.
+- [x] T179 [US13] Add `accountPrivacy: 'open' | 'private'` to the person item, defaulting to `open`.
+- [x] T180 [US13] Add `state: 'accepted' | 'pending'` to the person-follow row in `apps/api/src/persistence/person-follow.repository.ts`, **absent meaning accepted**, so every follow written before 008 keeps working — the same compatibility rule 005/FR-026 used for conversation state. State lives on the follow row, not on the person (005/R2).
+- [x] T181 [US13] Add `authorPrivacy` to `VisibilityCandidate` in `apps/api/src/visibility/visibility.filter.ts`.
+  **CHANGED DURING IMPLEMENTATION, and the change is the point.** The field was added, then
+  REMOVED: `RelationshipCache.isPrivateAccount` resolves the author's privacy inside the
+  boundary instead, memoised per request beside the follow and block reads. Carrying it on the
+  candidate would have meant either denormalising privacy into every index row — a flip would
+  then need a re-index, which FR-044 and 001/FR-017 forbid — or asking all thirteen post
+  surfaces to populate a field, where the cost of forgetting one is that a private account
+  stays public on that surface. That is the "declared half with no other half" failure this
+  feature exists to end, in the one place its consequence is a privacy leak. The evidence is
+  in `privacy-is-not-per-surface.spec.ts`: **no read path is on its allow-list.**
+- [x] T182 [US13] Add the single clause to `decide()`: when the author is private, a `public` post is evaluated by the `followers` rule. **Change nothing else in the filter and nothing at all in any surface.**
+- [x] T183 [US13] Make only an `accepted` follow satisfy the `followers` case, in the same clause. A pending request grants nothing.
+- [x] T184 [US13] ~~Populate `authorPrivacy` in every `toCandidate` construction~~ — **not done, and
+  deliberately not**: see T181. There is nothing to populate, because no surface carries the
+  field. Confirmed by grep: `accountPrivacy` appears in five files, none of them a read path.
+- [x] T185 [US13] Add `accountPrivacy` to `PATCH /v1/me`.
+- [x] T186 [US13] Add follow-request endpoints — `GET /v1/me/follow-requests`, approve, decline — to `apps/api/src/modules/people/person.controller.ts` (A52, FR-043).
+- [x] T187 [US13] **Verify T011 RED**: add a hand-written `accountPrivacy` check to one surface, watch `privacy-is-not-per-surface.spec.ts` fail, revert, and record the commit.
+- [x] T188 [P] [US13] Add the endpoints and the field to `specs/001-interest-media-sharing/contracts/openapi.yaml` and update the snapshot in `apps/api/tests/integration/auth-surface.spec.ts`.
+- [x] T189 [US13] Add the privacy toggle and the follow-request list to `apps/mobile/src/features/profile/`.
+- [x] T190 [US13] Add `testID`s, run `verify-maestro-ids.mjs`, and add `.maestro/34-private-account.yaml` asserting `PATCH /v1/me` **200** and a follow request approved **204**.
 
 ---
 

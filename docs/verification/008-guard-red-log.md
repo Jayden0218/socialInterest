@@ -189,8 +189,31 @@ dependency is absent; it never says the behaviour is right.
 
 ---
 
-## Pending
+## `privacy-is-not-per-surface.spec.ts` (T011, verified by T187)
 
-| Guard | Task | Verified red by |
-|---|---|---|
-| `privacy-is-not-per-surface.spec.ts` | T011 | T187 |
+**G5.** Account privacy is one clause in one boundary. `accountPrivacy` may not be read
+outside the enumerated places — and the enumerated places contain **no read path**.
+
+| | |
+|---|---|
+| **Observed red** | 2026-09-09, during 008/T187 |
+| **Change that broke it** | Added a hand-written `accountPrivacy === 'private'` predicate to `saved.service.ts`, the way a surface would if somebody implemented privacy per surface |
+| **What it said** | `src/modules/saved/saved.service.ts:64` |
+| **Reverted** | yes, `git checkout`; green again |
+
+**And it was red on two of my own reads at the same time, correctly.** US13's first draft had
+`person.controller.ts` emit `accountPrivacy` on the profile response and
+`person-follow.service.ts` read it to decide whether a follow starts pending. The guard
+flagged both, and reading it properly changed the code AND the guard:
+
+- The profile field moved into `profile.projection.ts` — the ONE place a `PublicProfile` is
+  built — so it is reported on all seven projections instead of one, which is 008/US5's
+  `avatarUrl` lesson applied before it cost anything rather than after.
+- The rule was restated in three numbered categories (decide / report-and-persist / act at
+  write time) because the prose was vaguer than the code needed. `person-follow.service.ts`
+  is on the list under category 3, named, with the reason that it decides what to WRITE and
+  never what a viewer may SEE.
+
+Widening an allow-list is the move this guard's own comment warns about, so it is recorded
+here rather than made quietly: the list is pinned by a second assertion, so every addition is
+a reviewable diff, and **no read path is on it**.

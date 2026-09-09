@@ -1,0 +1,63 @@
+# 008/US13, T190 — A PRIVATE ACCOUNT, AND THE HALF THAT ANSWERS IT.
+#
+# WHAT TO READ IN THE RUN AGGREGATE:
+#   PATCH /v1/me                          200   (the toggle reached the server)
+#   GET   /v1/me/follow-requests          200   (the queue is loaded, not faked)
+#   PUT   /v1/me/follow-requests/:handle  204   (a request approved)
+#
+# The privacy toggle alone would be the exact defect this feature exists to end:
+# a control that works and a queue nobody can answer. So this flow drives BOTH,
+# and the approve is the line that matters — it is absent from any run where the
+# list rendered and its buttons did nothing.
+#
+# The requester is established server-side by `seed-follow-request-fixture`,
+# because the flow drives ONE device and a follow request needs two people. Same
+# reason `21-group-chat` seeds its members.
+appId: app.socialinterest
+---
+- runFlow: 01-sign-in.yaml
+
+- tapOn:
+    id: "tab-profile"
+- assertVisible:
+    id: "open-edit-profile"
+- tapOn:
+    id: "open-edit-profile"
+- assertVisible:
+    id: "edit-profile-screen"
+
+# FR-043. The setting, and the sentence that says what it does to what is
+# already published — which is the question anybody flipping it is asking.
+- assertVisible:
+    id: "account-privacy"
+- assertVisible:
+    id: "account-privacy-explainer"
+- tapOn:
+    id: "account-privacy-switch"
+- tapOn:
+    id: "save-profile"
+
+# Back in, because Save returns to the profile. The queue is read from the
+# server on mount, so this second visit is what proves the list is not local.
+- assertVisible:
+    id: "open-edit-profile"
+- tapOn:
+    id: "open-edit-profile"
+- extendedWaitUntil:
+    visible:
+      id: "follow-requests"
+    timeout: 30000
+- assertVisible:
+    id: "follow-request-${FOLLOW_REQUESTER}"
+- tapOn:
+    id: "approve-follow-request-${FOLLOW_REQUESTER}"
+
+# The row goes because the list is RE-READ after the approval, not spliced out
+# locally — so this assertion fails if the client only pretended.
+- extendedWaitUntil:
+    notVisible:
+      id: "follow-request-${FOLLOW_REQUESTER}"
+    timeout: 30000
+
+- assertNotVisible:
+    id: "load-error"

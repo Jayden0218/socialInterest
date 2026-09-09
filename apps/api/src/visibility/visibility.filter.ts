@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { Visibility } from '@sih/shared';
 import { BlockRepository } from '../persistence/block.repository';
 import { PersonFollowRepository } from '../persistence/person-follow.repository';
+import { PersonRepository } from '../persistence/person.repository';
 import { RelationshipCache } from './relationship.cache';
 
 /** The minimum a candidate must carry for a visibility decision. */
@@ -97,11 +98,17 @@ export class VisibilityFilter {
   constructor(
     @Inject(PersonFollowRepository) private readonly personFollows: PersonFollowRepository,
     @Inject(BlockRepository) private readonly blocks: BlockRepository,
+    /**
+     * 008/FR-043. The boundary reads the author's privacy ITSELF — see
+     * `RelationshipCache.isPrivateAccount` for why no surface may be asked to
+     * carry it on a candidate.
+     */
+    @Inject(PersonRepository) private readonly people: PersonRepository,
   ) {}
 
   /** One cache per request. Callers create it once and pass it down. */
   newRequestCache(): RelationshipCache {
-    return new RelationshipCache(this.personFollows, this.blocks);
+    return new RelationshipCache(this.personFollows, this.blocks, this.people);
   }
 
   async decide(
@@ -125,14 +132,40 @@ export class VisibilityFilter {
     if (isAuthor) return { visible: true };
     if (candidate.processingState !== 'ready') return { visible: false, reason: 'not_for_you' };
 
-    switch (candidate.visibility) {
+    /**
+     * 008/FR-043, FR-044 — A PRIVATE ACCOUNT, AS ONE CLAUSE.
+     *
+     * A private author's `public` post is evaluated by the `followers` rule.
+     * That is the whole implementation: no surface checks privacy, no index is
+     * rebuilt, and FR-044's "takes effect on the next read everywhere" is free
+     * because the boundary already runs per request (001/FR-017).
+     *
+     * The read happens only here, and only when it can change the answer: the
+     * author already returned above, and a post that is not `public` is decided
+     * by its own rule whatever the account says.
+     *
+     * FR-045 (existing followers keep access) falls out of it as well — the
+     * `followers` case reads the follow that is already there, and nothing about
+     * flipping privacy touches follow rows.
+     */
+    const effectiveVisibility =
+      candidate.visibility === 'public' && (await cache.isPrivateAccount(candidate.authorId))
+        ? 'followers'
+        : candidate.visibility;
+
+    switch (effectiveVisibility) {
       case 'public':
         return { visible: true };
 
       case 'followers': {
         if (viewer === null) return { visible: false, reason: 'not_for_you' };
-        // FR-015 resolves against the PERSON follow. Following the post's
-        // INTEREST grants nothing - the second easy mistake in the contract.
+        /**
+         * FR-015 resolves against the PERSON follow. Following the post's
+         * INTEREST grants nothing - the second easy mistake in the contract.
+         *
+         * 008/FR-043: and only an ACCEPTED follow. A pending request is somebody
+         * asking; treating it as a follow would make the request pointless.
+         */
         const following = await cache.isFollowing(viewer.userId, candidate.authorId);
         return following ? { visible: true } : { visible: false, reason: 'not_for_you' };
       }

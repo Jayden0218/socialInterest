@@ -11,6 +11,11 @@ export interface ProfileSource {
   bio?: string | null;
   followerCount?: number;
   followingCount?: number;
+  /**
+   * 008/FR-043. Reported, never used to decide anything — see the note in
+   * `toPublicProfile`.
+   */
+  accountPrivacy?: 'open' | 'private';
 }
 
 /**
@@ -51,6 +56,22 @@ export class ProfileProjection {
       ...(person.bio !== undefined ? { bio: person.bio } : {}),
       ...(person.followerCount !== undefined ? { followerCount: person.followerCount } : {}),
       ...(person.followingCount !== undefined ? { followingCount: person.followingCount } : {}),
+      /**
+       * 008/FR-043 — THE SETTING, REPORTED ON EVERY PROFILE.
+       *
+       * A client has to be able to say "this account is private" and draw
+       * "Request to follow" instead of "Follow". Emitted from the ONE
+       * projection rather than the profile endpoint, for the reason this file
+       * exists: `avatarUrl` was emitted on one of seven projections and that
+       * cost a whole story to fix.
+       *
+       * Reporting a setting is not deciding with it. Nothing in this file asks
+       * whether a viewer may see anything — `privacy-is-not-per-surface.spec.ts`
+       * names this file as a place that CARRIES the field, alongside the two
+       * that set it, and the boundary remains the only place that acts on it
+       * when answering "may this viewer see this post".
+       */
+      accountPrivacy: person.accountPrivacy ?? 'open',
     };
   }
 

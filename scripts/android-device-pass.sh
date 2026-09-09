@@ -308,6 +308,17 @@ GROUP_MEMBER_C="$(echo "$GROUP" | sed -n 's/^GROUP_MEMBER_C=//p')"
 [ -n "$GROUP_SEARCH" ] && [ -n "$GROUP_MEMBER_A" ] && [ -n "$GROUP_MEMBER_B" ] && [ -n "$GROUP_MEMBER_C" ] \
   || { echo "FAIL: the group fixture did not print what the flows need"; exit 1; }
 
+# 008/US13. A follow request waiting on the device person, which needs a second
+# person AND the account to have been private at the moment they asked. The
+# fixture sets that up and returns the account to open, so the flow can turn
+# privacy on itself - a toggle is not idempotent (005, run 32).
+echo "== seed the follow-request fixture (008/US13) =="
+FOLLOWREQ="$(cd apps/e2e && E2E_BASE_URL=http://127.0.0.1:3000 npx tsx scripts/seed-follow-request-fixture.ts "$TOKEN")"
+echo "$FOLLOWREQ"
+FOLLOW_REQUESTER="$(echo "$FOLLOWREQ" | sed -n 's/^FOLLOW_REQUESTER=//p')"
+[ -n "$FOLLOW_REQUESTER" ] \
+  || { echo "FAIL: the follow-request fixture did not print what the flow needs"; exit 1; }
+
 # ---------------------------------------------------------------------------
 # A SAMPLER, because run 26 died in a way nothing here could see.
 #
@@ -405,6 +416,7 @@ MAESTRO_ENV=(
   -e PLACE_NAME="$PLACE_NAME" -e PLACE_LOCALITY="$PLACE_LOCALITY"
   -e GROUP_MEMBER_A="$GROUP_MEMBER_A" -e GROUP_MEMBER_B="$GROUP_MEMBER_B"
   -e GROUP_MEMBER_C="$GROUP_MEMBER_C" -e GROUP_SEARCH="$GROUP_SEARCH"
+  -e FOLLOW_REQUESTER="$FOLLOW_REQUESTER"
 )
 
 # Sorted, so the order is the same on every run and a failure is comparable

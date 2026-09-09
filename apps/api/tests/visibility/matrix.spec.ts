@@ -1,6 +1,7 @@
 import { VisibilityFilter, type VisibilityCandidate, type Viewer } from '../../src/visibility/visibility.filter';
 import type { PersonFollowRepository } from '../../src/persistence/person-follow.repository';
 import type { BlockRepository } from '../../src/persistence/block.repository';
+import type { PersonRepository } from '../../src/persistence/person.repository';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { EVER_BUILT, SURFACES } from './surfaces';
@@ -11,9 +12,14 @@ import { EVER_BUILT, SURFACES } from './surfaces';
  * ===========================================================================
  *
  * Generated from contracts/visibility-matrix.md, which is a contract rather than
- * documentation, plus 004's contracts/visibility-matrix-addendum.md, which grows
- * the surface list from 7 to 11. 7 post states x 6 viewer relationships x
- * 11 surfaces = 462.
+ * documentation, plus 004's contracts/visibility-matrix-addendum.md and 008's
+ * contracts/visibility-matrix-delta.md.
+ *
+ * 008/US13 adds TWO dimensions at once: a `pending-follower` relationship and an
+ * author-privacy axis. 7 post states x 7 viewer relationships x 2 privacy
+ * settings x 13 surfaces, and the private half is a full table rather than a
+ * handful of extra cases, because "only one row changes" is a CLAIM about the
+ * implementation and this suite is where it has to be true.
  *
  * Surfaces are enabled by the story that builds them. A surface still marked
  * `built: false` is SKIPPED, not passed - the counts printed at the end say how
@@ -34,6 +40,14 @@ const VIEWERS = {
   anon: null,
   self: { userId: AUTHOR },
   follower: { userId: 'follower-1' },
+  /**
+   * 008/FR-043. HAS A FOLLOW ROW AND IS NOT A FOLLOWER.
+   *
+   * Enumerated separately because the obvious mistake is to treat the EXISTENCE
+   * of a follow row as a follow, and a row in state `pending` is exactly that
+   * trap. Every expectation below puts this viewer where `stranger` is.
+   */
+  'pending-follower': { userId: 'pending-follower-1' },
   stranger: { userId: 'stranger-1' },
   'blocked-by': { userId: 'blocked-by-1' },
   blocker: { userId: 'blocker-1' },
@@ -55,24 +69,63 @@ type StateKey = keyof typeof POST_STATES;
 
 /** The decision table from contracts/visibility-matrix.md. true = returned. */
 const EXPECTED: Record<StateKey, Record<ViewerKey, boolean>> = {
-  'public, ready':         { anon: true,  self: true, follower: true,  stranger: true,  'blocked-by': false, blocker: false },
-  'followers, ready':      { anon: false, self: true, follower: true,  stranger: false, 'blocked-by': false, blocker: false },
-  'private, ready':        { anon: false, self: true, follower: false, stranger: false, 'blocked-by': false, blocker: false },
-  'not ready':             { anon: false, self: true, follower: false, stranger: false, 'blocked-by': false, blocker: false },
-  'soft-deleted':          { anon: false, self: false, follower: false, stranger: false, 'blocked-by': false, blocker: false },
-  'author not active':     { anon: false, self: false, follower: false, stranger: false, 'blocked-by': false, blocker: false },
-  'removed by moderation': { anon: false, self: false, follower: false, stranger: false, 'blocked-by': false, blocker: false },
+  'public, ready':         { anon: true,  self: true, follower: true,  'pending-follower': true,  stranger: true,  'blocked-by': false, blocker: false },
+  'followers, ready':      { anon: false, self: true, follower: true,  'pending-follower': false, stranger: false, 'blocked-by': false, blocker: false },
+  'private, ready':        { anon: false, self: true, follower: false, 'pending-follower': false, stranger: false, 'blocked-by': false, blocker: false },
+  'not ready':             { anon: false, self: true, follower: false, 'pending-follower': false, stranger: false, 'blocked-by': false, blocker: false },
+  'soft-deleted':          { anon: false, self: false, follower: false, 'pending-follower': false, stranger: false, 'blocked-by': false, blocker: false },
+  'author not active':     { anon: false, self: false, follower: false, 'pending-follower': false, stranger: false, 'blocked-by': false, blocker: false },
+  'removed by moderation': { anon: false, self: false, follower: false, 'pending-follower': false, stranger: false, 'blocked-by': false, blocker: false },
+};
+
+/**
+ * 008/FR-044 — THE SAME TABLE WITH A PRIVATE AUTHOR, from the delta contract §2.
+ *
+ * Written out in full rather than derived, because a derived table proves
+ * whatever its derivation assumes. The assertion below then checks that this
+ * hand-written table IS the open one with a single row replaced — which is the
+ * evidence that account privacy was one clause and not a second predicate. If
+ * somebody later implements privacy per surface, this suite goes red in the
+ * derivation check even if every row still passes.
+ */
+const EXPECTED_PRIVATE_AUTHOR: Record<StateKey, Record<ViewerKey, boolean>> = {
+  'public, ready':         { anon: false, self: true, follower: true,  'pending-follower': false, stranger: false, 'blocked-by': false, blocker: false },
+  'followers, ready':      { anon: false, self: true, follower: true,  'pending-follower': false, stranger: false, 'blocked-by': false, blocker: false },
+  'private, ready':        { anon: false, self: true, follower: false, 'pending-follower': false, stranger: false, 'blocked-by': false, blocker: false },
+  'not ready':             { anon: false, self: true, follower: false, 'pending-follower': false, stranger: false, 'blocked-by': false, blocker: false },
+  'soft-deleted':          { anon: false, self: false, follower: false, 'pending-follower': false, stranger: false, 'blocked-by': false, blocker: false },
+  'author not active':     { anon: false, self: false, follower: false, 'pending-follower': false, stranger: false, 'blocked-by': false, blocker: false },
+  'removed by moderation': { anon: false, self: false, follower: false, 'pending-follower': false, stranger: false, 'blocked-by': false, blocker: false },
+};
+
+const PRIVACY = ['open', 'private'] as const;
+type PrivacyKey = (typeof PRIVACY)[number];
+
+const TABLE: Record<PrivacyKey, Record<StateKey, Record<ViewerKey, boolean>>> = {
+  open: EXPECTED,
+  private: EXPECTED_PRIVATE_AUTHOR,
 };
 
 // The surface list lives in surfaces.ts so this suite and surface-routing.spec.ts
 // cannot drift. See that file for why.
 
 
-function buildFilter(): VisibilityFilter {
+function buildFilter(authorPrivacy: PrivacyKey = 'open'): VisibilityFilter {
   const follows = {
+    /**
+     * The PENDING follower is deliberately absent here, because the real
+     * repository answers this question from the row's state and returns false
+     * for a pending one. A stub that returned true would be testing a follow
+     * repository this product does not have.
+     */
     isFollowing: async (followerId: string, followeeId: string) =>
       followerId === VIEWERS.follower.userId && followeeId === AUTHOR,
   } as unknown as PersonFollowRepository;
+
+  const people = {
+    findById: async (userId: string) =>
+      userId === AUTHOR ? { userId, accountPrivacy: authorPrivacy } : null,
+  } as unknown as PersonRepository;
 
   const blocks = {
     existsBetween: async (a: string, b: string) => {
@@ -84,7 +137,7 @@ function buildFilter(): VisibilityFilter {
     },
   } as unknown as BlockRepository;
 
-  return new VisibilityFilter(follows, blocks);
+  return new VisibilityFilter(follows, blocks, people);
 }
 
 // Every POST_STATES entry sets visibility and processingState itself, so no
@@ -100,32 +153,39 @@ let assertionsRun = 0;
 const skippedSurfaces: string[] = [];
 
 describe('SC-009 visibility matrix', () => {
-  const filter = buildFilter();
+  const filters: Record<PrivacyKey, VisibilityFilter> = {
+    open: buildFilter('open'),
+    private: buildFilter('private'),
+  };
 
   for (const surface of SURFACES.filter((s) => (s.kind ?? 'post') === 'post')) {
     const run = surface.built ? describe : describe.skip;
     if (!surface.built) skippedSurfaces.push(`${surface.name} (built by ${surface.story})`);
 
     run(`surface: ${surface.name}`, () => {
-      for (const state of Object.keys(POST_STATES) as StateKey[]) {
-        for (const viewerKey of Object.keys(VIEWERS) as ViewerKey[]) {
-          const expected = EXPECTED[state][viewerKey];
-          it(`${state} / ${viewerKey} -> ${expected ? 'visible' : 'hidden'}`, async () => {
-            const decision = await filter.decide(
-              VIEWERS[viewerKey],
-              candidate(state),
-              filter.newRequestCache(),
-            );
-            expect(decision.visible).toBe(expected);
-            assertionsRun++;
-          });
+      for (const privacy of PRIVACY) {
+        const filter = filters[privacy];
+        for (const state of Object.keys(POST_STATES) as StateKey[]) {
+          for (const viewerKey of Object.keys(VIEWERS) as ViewerKey[]) {
+            const expected = TABLE[privacy][state][viewerKey];
+            it(`author ${privacy} / ${state} / ${viewerKey} -> ${expected ? 'visible' : 'hidden'}`, async () => {
+              const decision = await filter.decide(
+                VIEWERS[viewerKey],
+                candidate(state),
+                filter.newRequestCache(),
+              );
+              expect(decision.visible).toBe(expected);
+              assertionsRun++;
+            });
+          }
         }
       }
     });
   }
 
   afterAll(() => {
-    const perSurface = Object.keys(POST_STATES).length * Object.keys(VIEWERS).length;
+    const perSurface =
+      Object.keys(POST_STATES).length * Object.keys(VIEWERS).length * PRIVACY.length;
     const postSurfaces = SURFACES.filter((s) => (s.kind ?? 'post') === 'post');
     const built = postSurfaces.filter((s) => s.built).length;
     console.log(
@@ -152,6 +212,25 @@ describe('SC-009 visibility matrix', () => {
    * `built: false` and the suite reporting 420 green assertions as though
    * nothing were wrong. It fails here instead, and it names the surface.
    */
+  /**
+   * 008/FR-044 — THE PRIVATE TABLE IS THE OPEN ONE WITH ONE ROW REPLACED.
+   *
+   * Not a restatement of the tables: it is the claim the implementation makes.
+   * A private author's `public` post is evaluated by the `followers` rule, so
+   * the private table must equal the open table with `public, ready` replaced
+   * by `followers, ready` and NOTHING else touched. Anything more is a second
+   * predicate, whatever the individual rows say.
+   */
+  it('account privacy changes exactly one row of the decision table', () => {
+    const derived = Object.fromEntries(
+      (Object.keys(EXPECTED) as StateKey[]).map((state) => [
+        state,
+        state === 'public, ready' ? EXPECTED['followers, ready'] : EXPECTED[state],
+      ]),
+    );
+    expect(EXPECTED_PRIVATE_AUTHOR).toEqual(derived);
+  });
+
   it('no surface that was ever covered has stopped being covered', () => {
     const regressed = EVER_BUILT.filter((name) => !SURFACES.find((s) => s.name === name)?.built);
     expect(regressed).toEqual([]);
@@ -164,7 +243,7 @@ describe('SC-009 visibility matrix', () => {
   it('every built post surface contributes its full set of assertions', () => {
     const built = SURFACES.filter((s) => (s.kind ?? 'post') === 'post' && s.built).length;
     expect(assertionsRun).toBe(
-      Object.keys(POST_STATES).length * Object.keys(VIEWERS).length * built,
+      Object.keys(POST_STATES).length * Object.keys(VIEWERS).length * PRIVACY.length * built,
     );
   });
 
@@ -382,8 +461,15 @@ describe('SC-005 review visibility (005 addendum)', () => {
    * The combined number SC-005 is about.
    *
    * 462 + 18 = 480 through 005. 008 adds three POST surfaces - the Following
-   * feed (US3), post search (US6) and comment replies (US7): 14 x 7 x 6 = 588,
-   * plus the same 18 review assertions = 606.
+   * feed (US3), post search (US6) and comment replies (US7) - and then US13 adds
+   * TWO DIMENSIONS to every one of them: a `pending-follower` relationship and
+   * the author-privacy axis. 14 surfaces x 7 states x 7 viewers x 2 privacy
+   * settings = 1,372, plus the same 18 review assertions = 1,390.
+   *
+   * The jump from 606 to 1,390 is the axis, not new surfaces, and it is the
+   * shape this project keeps relearning: a rule that changes the answer on every
+   * surface has to be asserted on every surface, or "it is one clause" is a
+   * claim rather than a measurement.
    *
    * Asserted only once the review surface is built, so an in-progress feature
    * reports a gap rather than turning the suite red for forty unrelated tasks.
@@ -399,6 +485,6 @@ describe('SC-005 review visibility (005 addendum)', () => {
       console.log('\n  SC-005 is NOT closed: the review surface is still in progress.\n');
       return;
     }
-    expect(assertionsRun + reviewAssertionsRun).toBe(606);
+    expect(assertionsRun + reviewAssertionsRun).toBe(1390);
   });
 });

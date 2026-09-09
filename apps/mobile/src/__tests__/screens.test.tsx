@@ -352,7 +352,7 @@ describe('EditProfileScreen — FR-049 partial preference patch', () => {
     const onChange = jest.fn();
     render(
       <EditProfileScreen
-        draft={{ userId: 'u-edit', displayName: 'Me', bio: '', notificationPrefs: { reaction: true, comment: true, follow: true, message: true, mention: true } }}
+        draft={{ userId: 'u-edit', displayName: 'Me', bio: '', notificationPrefs: { reaction: true, comment: true, follow: true, message: true, mention: true }, accountPrivacy: 'open' }}
         onChange={onChange}
         onSave={() => undefined}
         onDeleteAccount={() => undefined}
@@ -387,7 +387,7 @@ describe('EditProfileScreen — FR-049 partial preference patch', () => {
     const prefs = { reaction: true, comment: true, follow: true, message: true, mention: true };
     render(
       <EditProfileScreen
-        draft={{ userId: 'u-edit', displayName: 'Me', bio: '', notificationPrefs: prefs }}
+        draft={{ userId: 'u-edit', displayName: 'Me', bio: '', notificationPrefs: prefs, accountPrivacy: 'open' }}
         onChange={() => undefined}
         onSave={() => undefined}
         onDeleteAccount={() => undefined}

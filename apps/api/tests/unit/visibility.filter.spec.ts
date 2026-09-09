@@ -1,6 +1,7 @@
 import { VisibilityFilter, type VisibilityCandidate } from '../../src/visibility/visibility.filter';
 import type { PersonFollowRepository } from '../../src/persistence/person-follow.repository';
 import type { BlockRepository } from '../../src/persistence/block.repository';
+import type { PersonRepository } from '../../src/persistence/person.repository';
 
 /**
  * The two mistakes contracts/visibility-matrix.md names explicitly. Both are
@@ -19,10 +20,18 @@ const base: VisibilityCandidate = {
 const makeFilter = (opts: {
   follows?: (a: string, b: string) => boolean;
   blocked?: (a: string, b: string) => boolean;
+  /** 008/FR-043. Absent means `open`, exactly as an absent attribute does. */
+  privateAuthors?: string[];
 }) =>
   new VisibilityFilter(
     { isFollowing: async (a: string, b: string) => opts.follows?.(a, b) ?? false } as unknown as PersonFollowRepository,
     { existsBetween: async (a: string, b: string) => opts.blocked?.(a, b) ?? false } as unknown as BlockRepository,
+    {
+      findById: async (userId: string) => ({
+        userId,
+        ...(opts.privateAuthors?.includes(userId) ? { accountPrivacy: 'private' } : {}),
+      }),
+    } as unknown as PersonRepository,
   );
 
 describe('VisibilityFilter — mistake 1: a block must hide in BOTH directions', () => {
@@ -71,6 +80,7 @@ describe('VisibilityFilter — request cache', () => {
     const f = new VisibilityFilter(
       { isFollowing: async () => { followCalls++; return true; } } as unknown as PersonFollowRepository,
       { existsBetween: async () => false } as unknown as BlockRepository,
+      { findById: async (userId: string) => ({ userId }) } as unknown as PersonRepository,
     );
     const cache = f.newRequestCache();
     const posts = Array.from({ length: 20 }, (_, i) => ({
@@ -78,5 +88,59 @@ describe('VisibilityFilter — request cache', () => {
     }));
     await f.filter({ userId: 'fan' }, posts, cache);
     expect(followCalls).toBe(1);
+  });
+});
+
+/**
+ * 008/FR-043 to FR-045 — ACCOUNT PRIVACY, AT THE BOUNDARY.
+ *
+ * The matrix runs the whole table; these three cover what the table cannot say
+ * out loud: that the privacy READ happens inside the filter, that it is memoised
+ * per request like the follow and block reads, and that a failed read fails
+ * CLOSED. A design that made every surface carry the field would pass a matrix
+ * and lose all three.
+ */
+describe('VisibilityFilter — 008 account privacy', () => {
+  const publicReady = { ...base, visibility: 'public' as const };
+
+  it("evaluates a private author's public post by the followers rule", async () => {
+    const f = makeFilter({ privateAuthors: [AUTHOR] });
+    const stranger = await f.decide({ userId: 'stranger' }, publicReady, f.newRequestCache());
+    expect(stranger.visible).toBe(false);
+
+    const g = makeFilter({ privateAuthors: [AUTHOR], follows: (a, b) => a === 'fan' && b === AUTHOR });
+    const follower = await g.decide({ userId: 'fan' }, publicReady, g.newRequestCache());
+    // FR-045: the follow that already existed is the whole mechanism.
+    expect(follower.visible).toBe(true);
+  });
+
+  it('reads the author privacy once per request, not once per post', async () => {
+    let reads = 0;
+    const f = new VisibilityFilter(
+      { isFollowing: async () => false } as unknown as PersonFollowRepository,
+      { existsBetween: async () => false } as unknown as BlockRepository,
+      {
+        findById: async (userId: string) => {
+          reads++;
+          return { userId, accountPrivacy: 'open' };
+        },
+      } as unknown as PersonRepository,
+    );
+    const cache = f.newRequestCache();
+    const posts = Array.from({ length: 20 }, (_, i) => ({ ...base, postId: `p${i}` }));
+    await f.filter({ userId: 'stranger' }, posts, cache);
+    expect(reads).toBe(1);
+  });
+
+  it('fails CLOSED when the author cannot be read', async () => {
+    const f = new VisibilityFilter(
+      { isFollowing: async () => false } as unknown as PersonFollowRepository,
+      { existsBetween: async () => false } as unknown as BlockRepository,
+      { findById: async () => { throw new Error('datastore down'); } } as unknown as PersonRepository,
+    );
+    const d = await f.decide({ userId: 'stranger' }, publicReady, f.newRequestCache());
+    // A read that fails must not OPEN a private account. Hiding a public post is
+    // recoverable; publishing a private one is not.
+    expect(d.visible).toBe(false);
   });
 });

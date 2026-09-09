@@ -810,6 +810,13 @@ export function ProfileContainer({
           // The SERVER's answer, computed per viewer. A client-side guess here
           // would show the wrong state to anyone who followed from elsewhere.
           viewerIsFollowing: p.viewerIsFollowing === true,
+          /**
+           * 008/FR-043. The server's own three-state answer. Absent from a
+           * server without 008, and `followState()` falls back to the boolean —
+           * which can express two of the three and never claims the third.
+           */
+          viewerFollowState: p.viewerFollowState,
+          accountPrivacy: p.accountPrivacy,
         }));
 
     load
@@ -846,15 +853,25 @@ export function ProfileContainer({
       // Optimistic, then reconciled against the server's own answer below. The
       // server owns this - FR-034's follow cap means a request can be refused,
       // and a control that stayed switched would be lying about it.
+      const before = { viewerIsFollowing: profile.viewerIsFollowing, viewerFollowState: profile.viewerFollowState };
       setProfile((p) => (p ? { ...p, viewerIsFollowing: next } : p));
       try {
         if (next) await data.people.follow(profile.handle);
         else await data.people.unfollow(profile.handle);
         const fresh = await data.people.get(profile.handle);
+        /**
+         * 008/FR-043 — AND THIS RE-READ IS WHY THE OPTIMISTIC UPDATE IS SAFE.
+         *
+         * Following a PRIVATE account does not make you a follower; it files a
+         * request. The optimistic flip above says "Following" for one round
+         * trip, and the server's own answer replaces it with "Requested" — a
+         * client that guessed the outcome would say the wrong thing permanently.
+         */
         setProfile((p) => (p ? { ...p, viewerIsFollowing: fresh.viewerIsFollowing === true,
+          viewerFollowState: fresh.viewerFollowState,
           followerCount: fresh.followerCount ?? p.followerCount } : p));
       } catch (e: unknown) {
-        setProfile((p) => (p ? { ...p, viewerIsFollowing: !next } : p));
+        setProfile((p) => (p ? { ...p, ...before } : p));
         setError(e instanceof DataError ? e.message : String(e));
       } finally {
         setPending(false);
@@ -1504,6 +1521,9 @@ export function EditProfileContainer({ onDone }: { onDone: () => void }) {
    */
   const [pickingAvatar, setPickingAvatar] = useState(false);
   const [avatarChoice, setAvatarChoice] = useState<PickedMedia[]>([]);
+  // 008/FR-043. The queue the privacy toggle creates, on the screen that
+  // creates it — see the note on `EditProfileScreen`'s `followRequests` prop.
+  const [followRequests, setFollowRequests] = useState<PublicProfile[]>([]);
 
   useEffect(() => {
     let live = true;
@@ -1527,10 +1547,24 @@ export function EditProfileContainer({ onDone }: { onDone: () => void }) {
           displayName: me.displayName,
           bio: me.bio ?? '',
           notificationPrefs: me.notificationPrefs,
+          // Absent means `open`, exactly as it does on the stored row.
+          accountPrivacy: me.accountPrivacy ?? 'open',
         });
         setAvatarUrl(me.avatarUrl ?? null);
       })
-      .catch((e: unknown) => live && setError(e instanceof DataError ? e.message : String(e)));
+      .catch((e: unknown) => live && setError(e instanceof DataError ? e.message : String(e)))
+      /**
+       * 008/FR-043. LAST, and swallowing its own failures.
+       *
+       * Ordered after the profile deliberately: an empty or failed request list
+       * must never stop somebody editing their name. The first version ran it
+       * first and a container test with an incomplete data stub took the whole
+       * effect down with it — which is the production failure mode too, just
+       * with a different cause.
+       */
+      .then(() => data.people.followRequests())
+      .then((page) => live && setFollowRequests(page.items))
+      .catch(() => undefined);
     return () => {
       live = false;
     };
@@ -1601,6 +1635,8 @@ export function EditProfileContainer({ onDone }: { onDone: () => void }) {
         displayName: draft.displayName,
         bio: draft.bio,
         notificationPrefs: draft.notificationPrefs,
+        // 008/FR-043. Saved with everything else, so the screen has one contract.
+        accountPrivacy: draft.accountPrivacy,
       });
       onDone();
     } catch (e: unknown) {
@@ -1620,6 +1656,27 @@ export function EditProfileContainer({ onDone }: { onDone: () => void }) {
       setSaving(false);
     }
   }, [data, onDone]);
+
+  /**
+   * 008/FR-043. Approve or decline, then RE-READ.
+   *
+   * Removing the row locally would be the obvious optimisation and would make
+   * the list disagree with the server the moment a request arrives during the
+   * tap. The list is small by construction — it is bounded by the people who
+   * asked — so re-reading it costs one request and cannot drift.
+   */
+  const answerFollowRequest = useCallback(
+    async (handle: string, action: 'approve' | 'decline') => {
+      try {
+        if (action === 'approve') await data.people.approveFollowRequest(handle);
+        else await data.people.declineFollowRequest(handle);
+        setFollowRequests((await data.people.followRequests()).items);
+      } catch (e: unknown) {
+        setError(e instanceof DataError ? e.message : String(e));
+      }
+    },
+    [data],
+  );
 
   const clearFeedSignals = useCallback(async () => {
     setClearingSignals(true);
@@ -1678,6 +1735,13 @@ export function EditProfileContainer({ onDone }: { onDone: () => void }) {
       onSave={() => void save()}
       onClearFeedSignals={() => void clearFeedSignals()}
       onDeleteAccount={() => void deleteAccount()}
+      followRequests={followRequests.map((p) => ({
+        userId: p.userId,
+        handle: p.handle,
+        displayName: p.displayName,
+      }))}
+      onApproveFollowRequest={(handle) => void answerFollowRequest(handle, 'approve')}
+      onDeclineFollowRequest={(handle) => void answerFollowRequest(handle, 'decline')}
     />
   );
 }

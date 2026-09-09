@@ -27,6 +27,14 @@ export interface MyProfile extends PublicProfile {
   followerCount: number;
   followingCount: number;
   notificationPrefs: NotificationPrefs;
+  /**
+   * 008/FR-043. How many people are waiting to be let in.
+   *
+   * No notification kind was added for a follow request, so this count is what
+   * makes the request list reachable — a screen nothing points at is a screen
+   * nobody opens.
+   */
+  pendingFollowRequests?: number;
 }
 
 /**
@@ -77,6 +85,11 @@ export class SessionData {
      * `undefined` cannot mean both without one of them silently losing.
      */
     avatarUploadId?: string | null;
+    /**
+     * 008/FR-043. Setting it changes what the boundary answers on the next read,
+     * everywhere at once; the people who already follow you keep their access.
+     */
+    accountPrivacy?: 'open' | 'private';
   }): Promise<MyProfile> {
     return this.client.call<MyProfile>('patchMe', { body: patch });
   }

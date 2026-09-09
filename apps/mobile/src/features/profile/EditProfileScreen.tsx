@@ -19,6 +19,15 @@ export interface ProfileDraft {
    * which is the kind of drift one shared component exists to prevent.
    */
   userId: string;
+  /**
+   * 008/FR-043. `open` or `private`, and absent on the server means `open`.
+   *
+   * On the DRAFT rather than read from the profile directly, so the switch
+   * moves with the same save the rest of this screen uses. A privacy control
+   * that applied instantly while every other field waited for Save would be two
+   * different contracts on one screen.
+   */
+  accountPrivacy: 'open' | 'private';
 }
 
 /**
@@ -83,6 +92,9 @@ export function EditProfileScreen({
   onChangeAvatar,
   onRemoveAvatar,
   avatarBusy,
+  followRequests,
+  onApproveFollowRequest,
+  onDeclineFollowRequest,
 }: {
   draft: ProfileDraft;
   saving?: boolean;
@@ -98,6 +110,18 @@ export function EditProfileScreen({
   onSave: () => void;
   onClearFeedSignals?: () => void;
   onDeleteAccount: () => void;
+  /**
+   * 008/FR-043 — THE OTHER HALF OF THE TOGGLE.
+   *
+   * A private account whose requests cannot be answered is a switch that traps
+   * everybody outside it forever. The list is on THIS screen, beside the control
+   * that creates it, rather than on a screen of its own that nothing links to —
+   * 008's whole subject is a declared half with no other half, and a settings
+   * toggle with an unreachable queue is exactly that shape.
+   */
+  followRequests?: { userId: string; handle: string; displayName: string }[];
+  onApproveFollowRequest?: (handle: string) => void;
+  onDeclineFollowRequest?: (handle: string) => void;
 }) {
   return (
     /**
@@ -251,6 +275,71 @@ export function EditProfileScreen({
           </Row>
         ))}
       </View>
+
+      {/*
+        008/FR-043. WHO CAN SEE WHAT YOU POST.
+        
+        Worded as the consequence, not as the setting: "private" alone does not
+        say whether it applies to what is already published, and FR-044 says it
+        does. FR-045 — the people already following you keep their access — is
+        the second sentence, because it is the question anybody about to flip
+        this switch is actually asking.
+      */}
+      <View testID="account-privacy" style={{ gap: space.sm, paddingHorizontal: space.lg, paddingTop: space.lg }}>
+        <Text style={{ ...textStyle.caption, color: palette.text.muted }}>Who can see what you post</Text>
+        <Row style={{ justifyContent: 'space-between' }}>
+          <Text style={{ ...textStyle.body, color: palette.text.primary }}>Private account</Text>
+          <Switch
+            testID="account-privacy-switch"
+            accessibilityLabel="Private account"
+            value={draft.accountPrivacy === 'private'}
+            onValueChange={(value) =>
+              onChange({ ...draft, accountPrivacy: value ? 'private' : 'open' })
+            }
+          />
+        </Row>
+        <Text testID="account-privacy-explainer" style={{ ...textStyle.caption, color: palette.text.muted }}>
+          {draft.accountPrivacy === 'private'
+            ? 'Only people you approve can see your posts. Everyone already following you keeps access.'
+            : 'Anyone can see your posts.'}
+        </Text>
+      </View>
+
+      {/*
+        The queue the switch creates. Rendered whenever there is something in it,
+        whatever the switch currently says — turning privacy back off does not
+        answer the requests that arrived while it was on.
+      */}
+      {followRequests && followRequests.length > 0 ? (
+        <View testID="follow-requests" style={{ gap: space.sm, paddingHorizontal: space.lg, paddingTop: space.lg }}>
+          <Text style={{ ...textStyle.caption, color: palette.text.muted }}>
+            {followRequests.length === 1 ? '1 person wants to follow you' : `${followRequests.length} people want to follow you`}
+          </Text>
+          {followRequests.map((p) => (
+            <Row key={p.userId} style={{ justifyContent: 'space-between', gap: space.sm }}>
+              <Text
+                testID={`follow-request-${p.handle}`}
+                style={{ ...textStyle.body, color: palette.text.primary, flexShrink: 1 }}
+              >
+                {`${p.displayName} @${p.handle}`}
+              </Text>
+              <Row style={{ gap: space.sm }}>
+                <Button
+                  testID={`approve-follow-request-${p.handle}`}
+                  label="Approve"
+                  onPress={() => onApproveFollowRequest?.(p.handle)}
+                />
+                <Button
+                  testID={`decline-follow-request-${p.handle}`}
+                  label="Decline"
+                  variant="secondary"
+                  onPress={() => onDeclineFollowRequest?.(p.handle)}
+                />
+              </Row>
+            </Row>
+          ))}
+        </View>
+      ) : null}
 
       {feedSignals ? (
         <View testID="feed-signals" style={{ gap: space.sm, paddingHorizontal: space.lg, paddingTop: space.lg }}>

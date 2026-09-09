@@ -18,6 +18,15 @@ export interface PersonItem {
    * somebody typed is not a search.
    */
   displayNameLower?: string;
+  /**
+   * 008/FR-043. ABSENT MEANS `open`, for every account written before 008.
+   *
+   * It is one field on the person and it is read by `VisibilityFilter` alone
+   * (008/FR-044): privacy is a property of the AUTHOR, decided once at the
+   * boundary, never a per-surface rule. `privacy-is-not-per-surface.spec.ts`
+   * fails the build if a surface ever reads it directly.
+   */
+  accountPrivacy?: 'open' | 'private';
   status: 'active' | 'deleting' | 'deleted';
   createdAt: string;
 }
@@ -145,7 +154,9 @@ export class PersonRepository extends BaseRepository {
      * impossible to express - and `undefined` cannot mean both "unchanged" and
      * "clear it" without one of them silently losing.
      */
-    patch: Partial<Pick<PersonItem, 'displayName' | 'bio' | 'notificationPrefs'>> & {
+    patch: Partial<
+      Pick<PersonItem, 'displayName' | 'bio' | 'notificationPrefs' | 'accountPrivacy'>
+    > & {
       avatarKey?: string | null;
     },
   ): Promise<void> {

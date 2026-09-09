@@ -52,6 +52,19 @@ export const publicProfileSchema = z.object({
   followingCount: z.number().int().nonnegative().optional(),
   topInterests: z.array(interestRefSchema).optional(),
   viewerIsFollowing: z.boolean().optional(),
+  /**
+   * 008/FR-043. THREE STATES, because a request is not a follow.
+   *
+   * `viewerIsFollowing` is a boolean and cannot express "asked and waiting", so
+   * a client reading only the boolean draws "Follow" on a request already sent
+   * and invites the person to send it again. Optional, so a profile from a
+   * server without 008 still parses.
+   */
+  viewerFollowState: z.enum(['none', 'pending', 'following']).optional(),
+  /** 008/FR-043. Absent means `open`. Reported by every profile projection. */
+  accountPrivacy: z.enum(['open', 'private']).optional(),
+  /** 008/FR-043. On the follow-request list only: when they asked. */
+  requestedAt: z.string().optional(),
 });
 export type PublicProfile = z.infer<typeof publicProfileSchema>;
 

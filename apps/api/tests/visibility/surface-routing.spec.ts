@@ -1,6 +1,7 @@
 import { VisibilityFilter } from '../../src/visibility/visibility.filter';
 import type { PersonFollowRepository } from '../../src/persistence/person-follow.repository';
 import type { BlockRepository } from '../../src/persistence/block.repository';
+import type { PersonRepository } from '../../src/persistence/person.repository';
 import { PostQueryService } from '../../src/modules/posts/post-query.service';
 import { ProfileProjection } from '../../src/modules/people/profile.projection';
 import { FollowingFeedService } from '../../src/modules/feed/following-feed.service';
@@ -86,7 +87,12 @@ function build(): Ctx {
     blocks as unknown as { existsBetween: () => Promise<boolean> },
     'existsBetween',
   );
-  const filter = new VisibilityFilter(follows, blocks);
+  // 008/FR-043. The boundary reads the author's privacy itself, so it needs a
+  // person repository; absent `accountPrivacy` means `open`, as on a real row.
+  const boundaryPeople = {
+    findById: async (userId: string) => ({ userId }),
+  } as unknown as PersonRepository;
+  const filter = new VisibilityFilter(follows, blocks, boundaryPeople);
 
   const posts = {
     findById: async () => post,

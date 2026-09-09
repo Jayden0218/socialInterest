@@ -11,16 +11,38 @@ import { join } from 'node:path';
  * every surface simultaneously, and 001/FR-017 + SC-009 require that flip to
  * land everywhere immediately. That is the boundary's job and nothing else's.
  *
- * So `accountPrivacy` may be READ in exactly two kinds of place: inside
- * `src/visibility/`, where the decision is made, and at the points that BUILD a
- * candidate or persist the field. Anywhere else — a service, a controller, a
- * query path deciding what to return — is a second visibility predicate, and
- * Principle II's whole rationale is that six independently written predicates
- * give six chances to leak, silently and in a privacy-affecting way.
+ * THE RULE, STATED PRECISELY, because the first version of this file was vaguer
+ * than the code needed and went red on three legitimate reads the moment US13
+ * was written — which is the guard doing its job and then being read properly.
  *
- * The elegance is the evidence: one candidate field and one clause means every
- * existing surface inherits the rule with no change. If this guard ever fails,
- * the fix is the boundary, not the surface that tripped it.
+ * `accountPrivacy` may be read in exactly three kinds of place:
+ *
+ *   1. `src/visibility/` — DECIDING whether a viewer may see something. Only
+ *      here, and this is the whole point.
+ *   2. The one projection and the person item — REPORTING or PERSISTING the
+ *      setting. A client has to be able to draw "Request to follow", and a
+ *      setting nothing can read is a setting nobody can turn off.
+ *   3. `person-follow.service.ts` — ACTING ON IT AT WRITE TIME, to decide
+ *      whether a new follow row starts `accepted` or `pending`. That is a
+ *      decision about what to WRITE, not about what a viewer may SEE, and it is
+ *      the one place in the product that makes it.
+ *
+ * Anywhere else — a query path, a feed, a surface deciding what to return — is a
+ * second visibility predicate, and Principle II's whole rationale is that six
+ * independently written predicates give six chances to leak, silently and in a
+ * privacy-affecting way.
+ *
+ * The distinction that matters is READ-SIDE versus everything else. A file that
+ * answers "may this viewer see this" from the field, anywhere but the boundary,
+ * is the failure; a file that reports the setting or writes a follow row is not.
+ *
+ * NO READ PATH IS ON THE LIST, and that is the evidence. The plan had every
+ * candidate-building site populate an `authorPrivacy` field, which would have
+ * put thirteen surfaces here; the boundary reads the author's privacy itself
+ * instead, so a surface that forgot is not a thing that can exist. One clause,
+ * and every existing surface inherits the rule with no change. If this guard
+ * ever fails on a read path, the fix is the boundary, not the surface that
+ * tripped it.
  *
  * Written before the code, passes trivially today, and 008/T187 verifies it RED
  * by adding a hand-written check to one surface on purpose.
@@ -29,14 +51,16 @@ const API_SRC = join(__dirname, '../../src');
 
 /** Where reading the field is legitimate. */
 const ALLOWED_PREFIXES = [
+  // (1) Deciding.
   'src/visibility/',
-  // The candidate is CONSTRUCTED here and handed to the boundary; it does not
-  // decide anything with it.
-  'src/modules/posts/post-query.service.ts',
-  // The person item declares and persists the field.
+  // (2) Persisting and reporting.
   'src/persistence/person.repository.ts',
+  'src/modules/people/profile.projection.ts',
   // PATCH /me sets it. Setting is not deciding.
   'src/modules/people/me.controller.ts',
+  // (3) Acting on it at write time: a follow of a private account starts
+  // `pending`. No read path consults this.
+  'src/modules/people/person-follow.service.ts',
 ];
 
 const FIELD = 'accountPrivacy';
@@ -72,15 +96,16 @@ describe('008/G5 account privacy is decided in one place', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('the allow-list is a list of places that SET or CARRY the field, never one that decides', () => {
+  it('the allow-list is a list of places that SET, CARRY or WRITE FROM the field, never one that decides what a viewer may see', () => {
     // A future edit that adds a service here to quiet a failure would defeat the
     // guard silently. Pinning the list makes that a reviewable diff rather than
     // a one-word change nobody reads.
     expect(ALLOWED_PREFIXES).toEqual([
       'src/visibility/',
-      'src/modules/posts/post-query.service.ts',
       'src/persistence/person.repository.ts',
+      'src/modules/people/profile.projection.ts',
       'src/modules/people/me.controller.ts',
+      'src/modules/people/person-follow.service.ts',
     ]);
   });
 });

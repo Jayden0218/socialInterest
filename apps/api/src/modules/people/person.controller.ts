@@ -80,6 +80,21 @@ export class PersonController {
       viewerIsFollowing: req.viewer
         ? await this.follows.isFollowing(req.viewer.userId, person.userId)
         : false,
+      /**
+       * 008/FR-043 — WHAT THE FOLLOW BUTTON SHOULD SAY.
+       *
+       * `viewerIsFollowing` is a boolean and a request is a THIRD state, so a
+       * client reading only the boolean draws "Follow" on a request already
+       * sent and invites the person to send it again. The boolean stays for the
+       * clients that have it; this is the field with the answer.
+       *
+       * Note it says nothing about the account being private — the profile
+       * response does that below — because the two are different questions and
+       * a client wanting both should not have to infer either.
+       */
+      viewerFollowState: req.viewer
+        ? await this.followService.followState(req.viewer.userId, person.userId)
+        : 'none',
     };
   }
 

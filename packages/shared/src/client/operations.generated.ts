@@ -1,12 +1,15 @@
 // GENERATED from specs/001-interest-media-sharing/contracts/openapi.yaml
 // Do not edit by hand. Run: pnpm --filter @sih/shared generate:client
 //
-// 75 operations across 54 paths.
+// 78 operations across 56 paths.
 
 export const operations = {
   getMe: { method: 'GET', path: '/me', auth: true }, // Current person's profile and preferences
   patchMe: { method: 'PATCH', path: '/me', auth: true }, // Update display name, avatar, bio, or notification preferences
   deleteMe: { method: 'DELETE', path: '/me', auth: true }, // Delete the current account
+  getMeFollowRequests: { method: 'GET', path: '/me/follow-requests', auth: true }, // Follow requests waiting on me
+  putMeFollowRequestsByHandle: { method: 'PUT', path: '/me/follow-requests/{handle}', auth: true }, // Approve a follow request
+  deleteMeFollowRequestsByHandle: { method: 'DELETE', path: '/me/follow-requests/{handle}', auth: true }, // Decline a follow request
   getPeopleByHandle: { method: 'GET', path: '/people/{handle}', auth: true }, // A person's public profile
   getPeopleByHandlePosts: { method: 'GET', path: '/people/{handle}/posts', auth: true }, // A person's posts, newest first
   putPeopleByHandleFollow: { method: 'PUT', path: '/people/{handle}/follow', auth: true }, // Follow a person
