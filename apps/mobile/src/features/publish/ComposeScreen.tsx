@@ -31,6 +31,9 @@ export interface ComposeScreenProps {
   /** 008/FR-030. People matching the handle being typed, if any. */
   mentionMatches?: PublicProfile[];
   onChooseMention?: (handle: string) => void;
+  /** 008/FR-034. Descriptions being written, keyed by the media's own uri. */
+  altTexts?: Record<string, string>;
+  onAltTextChange?: (uri: string, text: string) => void;
 }
 
 /**
@@ -118,6 +121,12 @@ export function ComposeScreen(props: ComposeScreenProps) {
             <View key={slot.media.uri} style={{ width: 104, gap: space.xs }}>
               <Image
                 source={{ uri: slot.media.uri }}
+                /*
+                  008/FR-035. The description FIELD below labels this image, and
+                  the status text beside it says what is happening to it. An
+                  image announcing itself as well would read every tile twice.
+                */
+                accessible={false}
                 accessibilityIgnoresInvertColors
                 style={{
                   width: 104,
@@ -127,6 +136,36 @@ export function ComposeScreen(props: ComposeScreenProps) {
                   opacity: slot.stage === 'uploaded' ? 1 : 0.55,
                 }}
               />
+              {/*
+                008/FR-034, US10 — WHERE A DESCRIPTION IS WRITTEN.
+                
+                Per image, beside the image, because a post carries up to ten
+                and one box for all of them would describe none of them. Never
+                required: FR-035's fallback exists precisely so that a post
+                without descriptions is still usable, and a publish flow that
+                demanded one would teach people to type "photo".
+              */}
+              {props.onAltTextChange ? (
+                <TextInput
+                  testID={`alt-text-${i}`}
+                  accessibilityLabel={`Describe image ${i + 1}`}
+                  placeholder="Describe it"
+                  placeholderTextColor={palette.text.muted}
+                  value={props.altTexts?.[slot.media.uri] ?? ''}
+                  onChangeText={(next) => props.onAltTextChange?.(slot.media.uri, next)}
+                  maxLength={300}
+                  multiline
+                  style={{
+                    borderWidth: 1,
+                    borderColor: palette.line.hairline,
+                    borderRadius: radius.md,
+                    padding: space.xs,
+                    minHeight: 44,
+                    color: palette.text.primary,
+                    ...textStyle.caption,
+                  }}
+                />
+              ) : null}
               <Text
                 testID={`upload-status-${i}`}
                 style={{ ...textStyle.small, color: slot.stage === 'failed' ? palette.intent.danger : palette.text.muted }}

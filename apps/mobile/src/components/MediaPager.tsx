@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Image, type NativeScrollEvent, type NativeSyntheticEvent, ScrollView, Text, View } from 'react-native';
 import type { MediaItem, Post } from '@sih/shared';
+import { mediaLabel } from './mediaLabel';
 import { activePalette as palette, radius, space, textStyle } from '../ui/theme';
 
 /**
@@ -127,10 +128,10 @@ export function MediaPager({ post }: { post: Post }) {
                 testID={item.kind === 'video' && item.processingState === 'ready' ? 'video-poster' : 'post-image'}
                 style={{ flex: 1 }}
               >
-                <MediaFrame item={item} index={i} caption={post.caption ?? null} />
+                <MediaFrame item={item} index={i} label={mediaLabel(post, item)} />
               </View>
             ) : (
-              <MediaFrame item={item} index={i} caption={post.caption ?? null} />
+              <MediaFrame item={item} index={i} label={mediaLabel(post, item)} />
             )}
           </View>
         ))}
@@ -173,11 +174,12 @@ export function MediaPager({ post }: { post: Post }) {
 function MediaFrame({
   item,
   index,
-  caption,
+  label,
 }: {
   item: MediaItem;
   index: number;
-  caption: string | null;
+  /** 008/FR-035. Already resolved by `mediaLabel` — one order, one wording. */
+  label: string;
 }): React.ReactElement {
   if (item.processingState === 'failed') {
     return (
@@ -197,7 +199,7 @@ function MediaFrame({
       testID={`media-image-${index}`}
       source={{ uri }}
       resizeMode="cover"
-      accessibilityLabel={caption ?? 'Post media'}
+      accessibilityLabel={label}
       accessibilityIgnoresInvertColors
       style={{ flex: 1, width: '100%', height: '100%' }}
     />

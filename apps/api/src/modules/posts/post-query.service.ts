@@ -167,6 +167,14 @@ export class PostQueryService {
       // Part of the contract on purpose: a client can tell a viewer that media
       // is still being prepared rather than showing an empty frame (FR-010).
       exifStripped: m.exifStripped,
+      /**
+       * 008/FR-034. What the picture shows, per item.
+       *
+       * `null` rather than absent when there is none, so a client can tell "no
+       * description" from "field not returned" — and so FR-035's fallback has
+       * something to branch on.
+       */
+      altText: m.altText ?? null,
     };
   }
 

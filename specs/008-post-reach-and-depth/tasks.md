@@ -379,17 +379,17 @@ source or the other (SC-011).
 
 ### Tests for User Story 10
 
-- [ ] T139 [P] [US10] Write `apps/mobile/src/__tests__/images-are-described.test.ts` enumerating **every `Image` tag**, not every file. A per-file check lets one labelled image approve the rest of the file — exactly how the touch-target guard passed over a 36.7pt target.
-- [ ] T140 [P] [US10] Write `apps/api/tests/integration/alt-text-roundtrip.spec.ts`: set at publish, returned on read, editable with the post (FR-034, FR-036).
+- [X] T139 [P] [US10] Write `apps/mobile/src/__tests__/images-are-described.test.ts` enumerating **every `Image` tag**, not every file. A per-file check lets one labelled image approve the rest of the file — exactly how the touch-target guard passed over a 36.7pt target. **RED against the shipped product in three places**: the notification thumbnail, the compose slot and the media-picker tile all announced themselves as "image".
+- [X] T140 [P] [US10] Write `apps/api/tests/integration/alt-text-roundtrip.spec.ts`: set at publish, returned on read, editable with the post (FR-034, FR-036).
 
 ### Implementation for User Story 10
 
-- [ ] T141 [US10] Add `altText` (≤300) to the media item record and to `mediaItemSchema` in `packages/shared/src/types/entities.ts` — on the **media item**, not the post, because a post has up to ten.
-- [ ] T142 [US10] Accept `altText` per upload in `apps/api/src/modules/posts/post.controller.ts` and persist it in `post.transaction.ts`.
-- [ ] T143 [US10] Allow editing it in `post-update.transaction.ts` wherever the post is editable (FR-036).
-- [ ] T144 [P] [US10] Add `altText` to `specs/001-interest-media-sharing/contracts/openapi.yaml`.
-- [ ] T145 [US10] Add the per-image description field to the publish flow in `apps/mobile/src/features/publish/`.
-- [ ] T146 [US10] Apply `accessibilityLabel` from `altText`, with a fallback naming the post's interest and author rather than the word "image" (FR-035), in `MediaPager`, `PostCard`, `Waterfall` and `Avatar`.
+- [X] T141 [US10] Add `altText` (≤300) to the media item record and to `mediaItemSchema` in `packages/shared/src/types/entities.ts` — on the **media item**, not the post, because a post has up to ten.
+- [X] T142 [US10] Accept `altText` per upload in `apps/api/src/modules/posts/post.controller.ts` and persist it in `post.transaction.ts`.
+- [X] T143 [US10] Allow editing it in `post-update.transaction.ts` wherever the post is editable (FR-036).
+- [X] T144 [P] [US10] Add `altText` to `specs/001-interest-media-sharing/contracts/openapi.yaml`.
+- [X] T145 [US10] Add the per-image description field to the publish flow in `apps/mobile/src/features/publish/`.
+- [X] T146 [US10] Apply `accessibilityLabel` from `altText`, with a fallback naming the post's interest and author rather than the word "image" (FR-035), in `MediaPager`, `PostCard`, `Waterfall` and `Avatar`.
 
 ---
 

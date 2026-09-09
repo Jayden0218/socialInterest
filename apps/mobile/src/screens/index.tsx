@@ -938,6 +938,15 @@ export function ComposeContainer({
   const [placeMatches, setPlaceMatches] = useState<PlaceSummary[]>([]);
   // 008/FR-030. People matching the handle currently being typed.
   const [mentionMatches, setMentionMatches] = useState<PublicProfile[]>([]);
+  /**
+   * 008/FR-034. Descriptions, keyed by the media's own uri.
+   *
+   * By URI rather than by index: a failed upload can be retried and the slots
+   * re-ordered around it, and a description that followed a POSITION would then
+   * describe the wrong picture — the same class of mistake as a testID carrying
+   * a global index, which cost run 48.
+   */
+  const [altTexts, setAltTexts] = useState<Record<string, string>>({});
 
   /**
    * 008/FR-030. Searched only while a handle is being typed at the END.
@@ -1043,6 +1052,13 @@ export function ComposeContainer({
     try {
       const post = await data.posts.publish({
         uploadIds: slots.map((s) => s.uploadId).filter((id): id is string => Boolean(id)),
+        // Keyed by UPLOAD ID for the server, translated from uri here — the one
+        // place that knows both.
+        altTexts: Object.fromEntries(
+          slots
+            .filter((s) => s.uploadId && (altTexts[s.media.uri] ?? '').trim().length > 0)
+            .map((s) => [s.uploadId as string, (altTexts[s.media.uri] as string).trim()]),
+        ),
         interestIds: selected.map((i) => i.interestId),
         visibility,
         ...(caption ? { caption } : {}),
@@ -1071,6 +1087,8 @@ export function ComposeContainer({
       onCaptionChange={setCaption}
       mentionMatches={mentionMatches}
       onChooseMention={(handle) => setCaption((c) => completeMention(c, handle))}
+      altTexts={altTexts}
+      onAltTextChange={(uri, text) => setAltTexts((prev) => ({ ...prev, [uri]: text }))}
       onInterestsChange={setSelected}
       onVisibilityChange={setVisibility}
       onRetry={upload}

@@ -166,7 +166,17 @@ export function MediaPickerScreen({
             onPress={() => toggle(item)}
             style={{ flex: 1, aspectRatio: 1, overflow: 'hidden' }}
           >
-            <Image source={{ uri: item.uri }} style={{ flex: 1 }} accessibilityIgnoresInvertColors />
+            {/*
+              008/FR-035. The TILE is the control and carries the label; the
+              image inside it is decoration. Describing both would announce
+              every tile twice.
+            */}
+            <Image
+              source={{ uri: item.uri }}
+              style={{ flex: 1 }}
+              accessible={false}
+              accessibilityIgnoresInvertColors
+            />
             {isSelected(item) ? (
               <>
                 <View

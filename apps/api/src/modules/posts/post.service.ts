@@ -23,6 +23,8 @@ export interface CreatePostInput {
   uploadIds: string[];
   interestIds: string[];
   caption?: string;
+  /** 008/FR-034. Descriptions keyed by upload id. */
+  altTexts?: Record<string, string>;
   visibility?: Visibility;
   keepLocationMetadata?: boolean;
   /** 004/FR-015. Validated against the catalogue before the post is written. */
@@ -176,10 +178,29 @@ export class PostService {
       updatedAt: now,
     };
 
+    /**
+     * 008/FR-034. A description for an upload NOT being published is a mistake
+     * worth refusing: it means the client sent a key nothing will carry, and
+     * silently dropping it would lose a description the author wrote.
+     */
+    const unknownAlt = Object.keys(input.altTexts ?? {}).find(
+      (id) => !input.uploadIds.includes(id),
+    );
+    if (unknownAlt) {
+      throw new DomainError(
+        HttpStatus.UNPROCESSABLE_ENTITY,
+        'Validation failed',
+        `Description given for an upload that is not being published: ${unknownAlt}`,
+      );
+    }
+
     const media: MediaItemRecord[] = uploads.map((u, ordinal) => ({
       postId,
       ordinal,
       kind: u.kind,
+      ...(input.altTexts?.[input.uploadIds[ordinal] as string]
+        ? { altText: input.altTexts[input.uploadIds[ordinal] as string] as string }
+        : {}),
       originalKey: u.key,
       renditions: {},
       ...(u.durationMs !== undefined ? { durationMs: u.durationMs } : {}),
@@ -240,6 +261,8 @@ export class PostService {
       visibility?: PostItem['visibility'];
       /** 004/FR-015. `null` removes the place; omitted leaves it alone. */
       placeId?: string | null;
+      /** 008/FR-036. Per-item description edits, by ordinal. */
+      media?: { ordinal: number; altText: string | null }[];
     },
   ): Promise<PostItem> {
     const post = await this.requireOwnPost(postId, userId);
@@ -278,6 +301,20 @@ export class PostService {
       currentExpandedInterestIds: currentExpanded,
       update,
     });
+
+    /**
+     * 008/FR-036. The description is on the media ITEM, so it is written to the
+     * item and not through `PostUpdateTransaction`.
+     *
+     * That transaction exists to keep a post's visibility and its denormalised
+     * index items in step; alt text appears on no index, so putting it there
+     * would add a write to a transaction that has a reason to be narrow.
+     */
+    for (const item of patch.media ?? []) {
+      await this.posts.updateMediaState(postId, item.ordinal, {
+        ...(item.altText === null ? { altText: undefined } : { altText: item.altText }),
+      });
+    }
 
     if (patch.visibility && patch.visibility !== post.visibility) {
       await this.events.publish({

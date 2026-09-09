@@ -21,6 +21,21 @@ const updatePostSchema = z
     visibility: visibilitySchema,
     /** 004/FR-015. `null` REMOVES the attachment; omitting it changes nothing. */
     placeId: z.string().min(1).nullable(),
+    /**
+     * 008/FR-036. Per-item description edits, addressed by ORDINAL.
+     *
+     * The ordinal is the publication order `keys.mediaItem`'s zero-padded
+     * `MEDIA#000` already carries, so it needs no new field and cannot drift
+     * from what the reader sees.
+     */
+    media: z
+      .array(
+        z.object({
+          ordinal: z.number().int().min(0),
+          altText: z.string().max(300).nullable(),
+        }),
+      )
+      .max(10),
   })
   .partial()
   .refine((v) => Object.keys(v).length > 0, { message: 'Provide at least one field to change' });
@@ -49,6 +64,15 @@ const createPostSchema = z.object({
   interestIds: z
     .array(z.string().min(1))
     .min(1, { message: 'Choose an interest. Every post is filed under one.' }),
+  /**
+   * 008/FR-034. Descriptions keyed by UPLOAD ID.
+   *
+   * A map rather than a parallel array: two lists aligned by index is two lists
+   * for one thing, and this codebase keeps recording that as the mechanism of
+   * drift rather than a risk of it. `uploadIds` is untouched, so 002's contract
+   * fix — ids only, key and kind read from the server's own record — stands.
+   */
+  altTexts: z.record(z.string(), z.string().max(300)).optional(),
   caption: z.string().max(2000).optional(),
   visibility: visibilitySchema.default('public'),
   keepLocationMetadata: z.boolean().default(false),
@@ -84,6 +108,7 @@ export class PostController {
     const post = await this.posts.create({
       authorId: req.viewer!.userId,
       uploadIds: input.uploadIds,
+      ...(input.altTexts ? { altTexts: input.altTexts } : {}),
       interestIds: input.interestIds,
       ...(input.caption ? { caption: input.caption } : {}),
       visibility: input.visibility,

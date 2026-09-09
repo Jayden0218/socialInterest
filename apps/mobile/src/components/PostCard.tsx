@@ -3,6 +3,7 @@ import type { MediaItem, Post } from '@sih/shared';
 import { Avatar } from './Avatar';
 import { InterestWord } from './InterestWord';
 import { Skeleton } from './Skeleton';
+import { mediaLabel } from './mediaLabel';
 import { useTheme } from '../ui/useTheme';
 import { radius, space, type as typeScale } from '../ui/tokens';
 
@@ -144,7 +145,7 @@ export function PostCard({
               testID={`post-image-${post.postId}`}
               source={{ uri: url }}
               resizeMode="cover"
-              accessibilityLabel={post.caption ?? 'Post media'}
+              accessibilityLabel={mediaLabel(post, item)}
               style={{ width: '100%', height: '100%' }}
             />
           ) : (
@@ -348,7 +349,7 @@ export function PostTile({ post, onOpen }: { post: Post; onOpen: (postId: string
           testID={`post-image-${post.postId}`}
           source={{ uri: url }}
           resizeMode="cover"
-          accessibilityLabel={post.caption ?? 'Post media'}
+          accessibilityLabel={mediaLabel(post, item)}
           style={{ width: '100%', height: '100%' }}
         />
       ) : (

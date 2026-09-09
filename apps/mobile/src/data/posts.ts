@@ -49,6 +49,13 @@ export class PostsData {
    */
   publish(input: {
     uploadIds: string[];
+    /**
+     * 008/FR-034. Descriptions keyed by UPLOAD ID.
+     *
+     * A map rather than a parallel array, matching the contract: two lists
+     * aligned by index is two lists for one thing.
+     */
+    altTexts?: Record<string, string>;
     interestIds: string[];
     caption?: string;
     visibility?: Visibility;

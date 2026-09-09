@@ -47,6 +47,16 @@ export interface MediaItemRecord {
   /** FR-010: written only by the server-side processor; gates `ready`. */
   exifStripped: boolean;
   processingState: ProcessingState;
+  /**
+   * 008/FR-034. What this picture SHOWS, in the author's words.
+   *
+   * On the MEDIA ITEM and not on the post, because a post carries up to ten
+   * photographs and one sentence cannot describe ten pictures. Bounded at 300
+   * characters, and a longer one is REFUSED rather than truncated: publishing a
+   * sentence the author did not write, on the one field whose job is to say
+   * what the picture shows, would be worse than refusing.
+   */
+  altText?: string;
 }
 
 /** A3: the post and all its media items live in one partition, so this is one Query. */

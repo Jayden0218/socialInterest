@@ -1753,6 +1753,15 @@ components:
         height: { type: integer }
         durationMs: { type: integer, nullable: true }
         posterUrl: { type: string, nullable: true, description: 'Thumbnail shown before playback (FR-009).' }
+        altText:
+          type: string
+          maxLength: 300
+          nullable: true
+          description: >
+            008/FR-034. What this picture shows, in the author's words. On the MEDIA ITEM
+            rather than the post, because a post carries up to ten photographs and one
+            sentence cannot describe ten pictures. A longer description is refused rather
+            than truncated.
         renditions:
           type: object
           additionalProperties: { type: string, format: uri }
@@ -1814,6 +1823,24 @@ components:
           minItems: 1
           description: FR-006 — publishing without an interest is rejected.
           items: { type: string }
+        altTexts:
+          type: object
+          additionalProperties: { type: string, maxLength: 300 }
+          description: >
+            008/FR-034. Descriptions keyed by UPLOAD ID. A map rather than a parallel
+            array: a second list aligned by index is two lists for one thing, which is how
+            they come to disagree. Keys not among `uploadIds` are refused.
+        media:
+          type: array
+          description: >
+            008/FR-036. Per-item edits, addressed by ORDINAL - the publication order the
+            zero-padded `MEDIA#000` sort key already carries.
+          items:
+            type: object
+            required: [ordinal]
+            properties:
+              ordinal: { type: integer, minimum: 0 }
+              altText: { type: string, maxLength: 300, nullable: true }
         caption: { type: string, maxLength: 2000 }
         visibility:
           allOf: [{ $ref: '#/components/schemas/Visibility' }]

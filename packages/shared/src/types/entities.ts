@@ -56,6 +56,8 @@ export const publicProfileSchema = z.object({
 export type PublicProfile = z.infer<typeof publicProfileSchema>;
 
 export const mediaItemSchema = z.object({
+  /** 008/FR-034. What the picture shows, per item — a post has up to ten. */
+  altText: z.string().max(300).nullable().optional(),
   kind: z.enum(['image', 'video']),
   processingState: processingStateSchema,
   width: z.number().int().positive().optional(),

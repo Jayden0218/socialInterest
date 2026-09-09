@@ -126,6 +126,16 @@ function NotificationRow({
         <Image
           testID={`notification-thumb-${index}`}
           source={{ uri: notification.postThumbUrl }}
+          /*
+            008/FR-035. DECORATION, and hidden rather than described.
+            
+            The row's own text already says who did what; a thumbnail beside it
+            announcing the post a second time would make every notification read
+            twice. `accessibilityIgnoresInvertColors` is about colour inversion
+            and says nothing about this, which is why the guard does not accept
+            it as an answer.
+          */
+          accessible={false}
           accessibilityIgnoresInvertColors
           style={{
             width: 42,

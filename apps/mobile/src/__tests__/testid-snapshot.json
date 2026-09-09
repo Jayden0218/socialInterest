@@ -213,6 +213,7 @@
     "withdraw-rating"
   ],
   "prefixes": [
+    "alt-text-",
     "avatar-",
     "avatar-image-",
     "comment-",
