@@ -377,9 +377,9 @@ expired within a day.
 ## What spec 008 Phases A and B built (2026-09-09)
 
 `specs/008-post-reach-and-depth/` is **a complete-app scope**: 15 stories, 54 FRs, 17 SCs,
-in five release phases. **Phase A (US1-US3) and Phase B (US4-US6) are implemented and both
-local gates are green**; C-E are specified and planned and NOT built. Do not read the spec's
-size as progress.
+in five release phases. **All five phases are implemented and every local gate is green.**
+The device runs are recorded separately and are the thing to check before believing any of
+it — see "Still not verified for 008" at the end of this section.
 
 ### THE PATTERN PHASE A EXISTS TO END: a declared half with no other half
 
@@ -571,14 +571,127 @@ records exist to check.
   flows — working **by luck rather than by meaning**. A postId is a ULID and the selectors say
   so now.
 
+### What Phases C, D and E added (2026-09-09) — ALL FIVE PHASES ARE NOW IMPLEMENTED
+
+Records: `docs/verification/runs/2026-09-09-008-phase-c.md`, `…-phase-d.md`, `…-phase-e.md`.
+C is US7-US11 (replies, comment edit/delete, mentions, alt text, drafts); D is US12-US14
+(mute and dismiss, private accounts, moderation notices and appeals); E is US15
+(collections) plus the close-out.
+
+**The visibility matrix is 1,488 assertions across 16 surfaces, zero skipped** (was 564 after
+Phase A, 606 after C). Most of that growth is NOT new surfaces: US13 added two DIMENSIONS —
+a `pending-follower` relationship and an author-privacy axis — and both apply to every
+existing surface. A rule that changes the answer everywhere has to be asserted everywhere, or
+"it is one clause" is a claim rather than a measurement.
+
+- **THE PLAN HAD EVERY SURFACE CARRY `authorPrivacy`, AND THAT WAS WRONG.** T181/T184 said to
+  populate the field in each `toCandidate`. Privacy is a property of the AUTHOR, so that means
+  either denormalising it into every index row — a flip would then need a re-index, which
+  FR-044 and 001/FR-017 forbid — or asking thirteen surfaces to populate a field where
+  forgetting one leaves a private account public on that surface. The boundary reads it
+  itself instead (`RelationshipCache.isPrivateAccount`), memoised per request, consulted only
+  on a `public` post for a non-author, and **failing CLOSED** if the read throws. The evidence
+  is that `privacy-is-not-per-surface.spec.ts`'s allow-list got SHORTER: **no read path is on
+  it.**
+- **A private account answers 403, not 404**, and three test expectations of mine said
+  otherwise. Only a BLOCK must be indistinguishable from absence; a private account is a
+  stated fact on the profile, so the error may say so.
+- **`OperatorGuard` threw 401 where `openapi.yaml` documents 403** on every moderation route.
+  002's first defect in a smaller place — the contract and the API disagreed and each looked
+  right alone. Found by T199's operator-route snapshot, which also found that
+  `auth-surface.spec.ts` had **PATCH and DELETE transposed** in its `RequestMethod` lookup,
+  invisible for two features because every route in the public snapshot is a GET.
+- **FR-046 needed a second row, not a second query.** The append-only moderation log is
+  partitioned by MONTH — right for an audit trail, useless for "what was removed of mine".
+  The same event is now written to the recipient's own partition (A57) **by the same call**,
+  so a removal that is logged and never explained cannot be expressed. Before 008 the author
+  of a removed post got a `comment` notification from `SYSTEM` with no subject and no reason.
+- **An appeal is filed against a NOTICE, not a subject id.** That is the whole authorisation
+  model: a notice lives in its recipient's own partition, so "may this person appeal this" is
+  a read rather than an ownership chain that has to be right for four subject kinds.
+- **FR-051 is enforced by a TRANSACTION.** A collection add writes the membership row and the
+  `savedPost` rows together, so a post cannot be in a collection and absent from the saved
+  list by any path — including the one where nothing was saved beforehand, which is the path
+  a "move" implementation passes because there is nothing to move.
+
+**Two tasks turned out to be a "no", and the reasons are the deliverable.**
+
+- **T210: collection names are NOT reportable.** A collection is readable only by its owner,
+  so its name has an AUDIENCE OF ONE. There is no reporter, and a subject nobody else can see
+  would be an undecidable queue item — which is why `report.service.ts` already refuses a
+  report against an unnamed conversation. 005's conversation name is different in the way
+  that matters: every participant sees it. So `CollectionRepository` has no `removeName`; a
+  remover nothing can call would be the sixth declared-half-with-no-other-half.
+  `collections-are-not-reportable.spec.ts` pins the reasoning AND the condition that
+  overturns it — it fails the moment a collection route stops being on `/me`.
+- **T217 said "17 surfaces" and there are 16.** The delta contract numbers the saved list as
+  surface 17 while re-asserting it under the privacy axis, but it was already surface 9.
+
+**T224 — grep the COPY, not only the code — found two live defects**, which is the whole
+argument for having it as a task. 007 shipped a follow hint describing a withdrawn
+requirement because only the code was updated.
+
+- The share sheet said NOTHING for a public post — which reads as "anyone can open this" —
+  and a public post by a private account is evaluated by the `followers` rule. The post's
+  visibility really is `public` and the switch really was exhaustive, so nothing in the code
+  would have shown it.
+- The saved list's empty state told somebody to save a post they had already saved: true of
+  the whole list, wrong of an empty shelf, and describing a product where a collection is a
+  box.
+
+### Run 52 cost two flows, and the two failures were different in kind
+
+**`23-multi-photo-post`: US10's description box made the publish button unreachable.** It had
+passed twice and failed on the first run carrying a per-image description field.
+
+MEASURED at the emulator's own viewport — the AVD's colour buffers are 320x616, and 320 is
+the number that matters:
+
+| at 320x616 | before | after |
+|---|---|---|
+| `upload-slots` height | 404 | 198 |
+| `interest-option-0` bottom | 753 | 547 |
+
+Three 104pt tiles do not fit across 320 minus padding, so they wrapped to a second row, each
+row 198pt tall because of the description box, and the interest picker — **required to
+publish** — landed ninety-three points below the fold. The media strip scrolls SIDEWAYS now:
+bounded at one row for any number of media. `browser/compose-fit.spec.ts` asserts the
+INVARIANT with the fold as its consequence, because a guard asserting only the number passes
+again the moment a tile shrinks.
+
+**`31-mention`: THE ASSERTION COULD NOT HAVE PASSED ON ANDROID.** It asserted
+`mention-<handle>`, the testID `MentionText` puts on the handle — a NESTED `<Text>` inside
+the caption's `<Text>`, which Android renders as a span in one TextView rather than a view of
+its own, so it has no node for Maestro to find. `verify-maestro-ids` resolves it happily; it
+reads the source, where the id certainly exists. Same blind spot as a computed index under a
+dynamic prefix. The product was fine, established in a browser before anything was changed.
+**Device coverage of a mention link's TAP is a real gap** and the flow says so.
+
+### The lesson that keeps paying: prefer the free observation
+
+Phases C-E spent about twenty seconds of browser time to avoid several device runs:
+
+| Found in a browser | Would have cost |
+|---|---|
+| compose's fold defect, with the numbers attached | the run it did cost, again |
+| two navigation bugs in my own collections test (a pushed screen has no tab bar, 005/J-21) | two runs |
+| the mention link works — so the flow, not the product, was wrong | a run spent on the wrong theory |
+| `share-person-.*` matching a text field (run 50) | 35 minutes to say "still visible" |
+
+And the corollary, which cost real time in Phase D: **check the local table's size before
+believing a paging failure.** Two suites failed with 2,903 people accumulated across runs.
+Third occurrence; it is written down so the next one costs a count rather than an
+investigation.
+
 ### Still not verified for 008, and must be reported that way
 - **Native font scaling.** `safety-fit.spec.ts` measures layout at 130% text in a browser and
   says so; react-native-web ignores the platform font setting entirely, which is why 006's
-  `Avatar` overflow was invisible there. **A browser result does not close SC-017**, and Phase
-  B's three new cases (the avatar editor, the Discover Posts tab, the share sheet's recipient
-  picker) close the SCREEN-SIZE half only.
-- **Phases C-E are not built.** iOS, 002/SC-002, real usage, and the datastore and hosting
-  decisions are all unchanged by 008.
+  `Avatar` overflow was invisible there. **A browser result does not close SC-017.** Every
+  control the feature added is covered on the SCREEN-SIZE half only, and that has been the
+  position since 006.
+- **A mention link's tap on a device**, above.
+- iOS, 002/SC-002 (10,000 concurrent), real usage, and the datastore and hosting decisions
+  are all unchanged by 008 and all still open.
 
 ## What spec 007 built (2026-09-08) — all eight phases
 
