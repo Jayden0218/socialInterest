@@ -61,6 +61,26 @@ async function main(): Promise<void> {
     { name: 'mark notifications read (unauth)', path: '/v1/notifications/read', method: 'PUT', expect: [401] },
     { name: 'following feed (unauth)', path: '/v1/feed/following', expect: [401] },
     { name: 'post search (unauth)', path: '/v1/search/posts?q=x', expect: [401] },
+    /**
+     * Phase C. Each of these is a controller that boots under `tsx`, which does
+     * NOT emit decorator metadata the way ts-jest does — this step exists to
+     * catch DI that works in tests and not in production, and 007's signals
+     * routes answered 500 in exactly that gap.
+     */
+    { name: 'drafts (unauth)', path: '/v1/me/drafts', expect: [401] },
+    { name: 'save draft (unauth)', path: '/v1/me/drafts', method: 'POST', expect: [401] },
+    {
+      name: 'edit comment (unauth)',
+      path: '/v1/posts/none/comments/none',
+      method: 'PATCH',
+      expect: [401],
+    },
+    {
+      name: 'delete comment (unauth)',
+      path: '/v1/posts/none/comments/none',
+      method: 'DELETE',
+      expect: [401],
+    },
   ];
 
   let failed = 0;

@@ -258,6 +258,50 @@ describe('006/J-09 - the safety sheet on a short screen', () => {
       // point is measuring the half that was never in doubt.
       control: '[data-testid="share-to-person"]',
     },
+    /**
+     * 008/US7, Phase C. The REPLY control, on a thread that already has a
+     * comment.
+     *
+     * It sits under a `flex: 1` list, which is the arrangement 006 found
+     * absorbs a keyboard resize — the comment composer passed runs 34 and 37
+     * where sign-in did not. What is measured here is the other half: that at
+     * 130% text the control is still on the screen at all.
+     */
+    {
+      name: 'comment reply',
+      prepare: async (reader) => {
+        const interest = (await reader.data.interests.listTop({ limit: 1 })).items[0]!;
+        const postId = await publishReadyImage(reader, [interest.interestId], { caption: 'fit thread' });
+        await reader.data.engagement.comment(postId, 'a remark to reply to');
+        return { postId };
+      },
+      open: async (page, ctx) => {
+        await page.click('[data-testid="tab-profile"]');
+        await page.waitForSelector(`[data-testid="post-${ctx.postId}"]`, { timeout: 30_000 });
+        await page.click(`[data-testid="post-${ctx.postId}"]`);
+        await page.click('[data-testid="comments-button"]');
+        await page.waitForSelector('[data-testid="comment-0"]', { timeout: 30_000 });
+      },
+      control: '[data-testid="comment-reply-0"]',
+    },
+    /**
+     * 008/US11, Phase C. SAVE, in the compose header.
+     *
+     * Beside Share rather than below the fold: the whole point of the control
+     * is that somebody can leave, and one they have to scroll to find is one
+     * they leave without.
+     */
+    {
+      name: 'compose save draft',
+      open: async (page) => {
+        await page.click('[data-testid="open-compose"]');
+        await page.waitForSelector('[data-testid="media-picker-screen"]', { timeout: 30_000 });
+        await page.click('[data-testid="media-item-image-0"]');
+        await page.click('[data-testid="media-continue"]');
+        await page.waitForSelector('[data-testid="compose-screen"]', { timeout: 30_000 });
+      },
+      control: '[data-testid="save-draft"]',
+    },
   ];
 
   it.each(SCREENS)('$name keeps its primary control reachable at 130% text on a 640pt screen', async ({ prepare, open, control }) => {

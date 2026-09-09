@@ -418,7 +418,7 @@ source or the other (SC-011).
 
 ## Phase 16: Release gate — Phase C (US7–US11)
 
-- [ ] T157 Run the real CI step list, the visibility matrix with surface 15 and zero skipped rows, SC-011 and SC-017; dispatch the emulator workflow; write `docs/verification/runs/2026-09-09-008-phase-c.md`; check every Phase C box.
+- [X] T157 Run the real CI step list, the visibility matrix with surface 15 and zero skipped rows, SC-011 and SC-017; dispatch the emulator workflow; write `docs/verification/runs/2026-09-09-008-phase-c.md`; check every Phase C box.
 
 **Checkpoint — Phase C may ship.**
 
