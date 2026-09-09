@@ -264,6 +264,28 @@ survives deletion of the subject).
 `TransactWriteItems`**, so FR-051 cannot be violated by any path — a collection add is
 additive, never a move (research R15).
 
+### Moderation notice (US14, FR-046) — ADDED DURING IMPLEMENTATION
+
+| Field | Type | Notes |
+|---|---|---|
+| `pk` | `USER#<recipientId>` | The person the removal happened TO |
+| `sk` | `MODNOTICE#<timestamp>#<actionId>` | Newest first |
+| `subjectType`, `subjectId`, `action` | | What, and what was done to it |
+| `reason` | string | The reporter's CATEGORY — never their words, never the moderator's note |
+| `appealId` | string? | Set once the author appeals (FR-047) |
+
+**Not in the original design, and it is a gap the design had rather than a change of mind.**
+FR-046 says an author must be told what was removed and why. The append-only moderation log
+(`MODLOG#<yyyymm>`) is partitioned by MONTH, which is right for an audit trail and useless
+for "what was removed of mine" — answering that from it is a scan of every decision anybody
+ever made, filtered. So the same event is written twice: once to the log, once to the person
+it happened to, **by the same call**, so a removal that is logged and never explained cannot
+be expressed.
+
+| # | Access pattern | How |
+|---|---|---|
+| A57 | My moderation notices, newest first | Query `pk = USER#<id>`, `sk` begins `MODNOTICE#` |
+
 ---
 
 ## Item-count budget for `TransactWriteItems`

@@ -554,20 +554,31 @@ undifferentiated saved list**.
 
 ### Tests for User Story 15
 
-- [ ] T204 [P] [US15] Write `apps/e2e/journeys/collections.spec.ts`: a collection add is **additive**, not a move (FR-051), **and one post placed in two collections appears in both** (FR-049). The bug the first catches is a "move" nobody sees until they look for a post that was still saved; the second is the half of FR-049 that a single-collection fixture cannot exercise.
-- [ ] T205 [P] [US15] Write `apps/api/tests/integration/collection-privacy.spec.ts` driving the request **directly** with another person's collection id (FR-050, SC-015).
+- [x] T204 [P] [US15] Write `apps/e2e/journeys/collections.spec.ts`: a collection add is **additive**, not a move (FR-051), **and one post placed in two collections appears in both** (FR-049). The bug the first catches is a "move" nobody sees until they look for a post that was still saved; the second is the half of FR-049 that a single-collection fixture cannot exercise.
+- [x] T205 [P] [US15] Write `apps/api/tests/integration/collection-privacy.spec.ts` driving the request **directly** with another person's collection id (FR-050, SC-015).
 
 ### Implementation for User Story 15
 
-- [ ] T206 [US15] Add `collection` and `collectionItem` keys to `keys.ts` — private by key, no index (A55, A56).
-- [ ] T207 [US15] Create `apps/api/src/persistence/collection.repository.ts`.
-- [ ] T208 [US15] Create `apps/api/src/modules/saved/collection.service.ts` (FR-049), writing the membership row **and** the `savedPost` rows (A32/A33) in one `TransactWriteItems`, so FR-051 cannot be violated by any path.
-- [ ] T209 [US15] Add the collection CRUD and membership endpoints to `apps/api/src/modules/saved/saved.controller.ts`.
-- [ ] T210 [US15] Make collection names reportable and moderatable in `apps/api/src/modules/safety/report.service.ts` and the removal path in `apps/api/src/modules/moderation/moderation.controller.ts` — user-generated text is content (Constitution IV; 005 established this for conversation names).
-- [ ] T211 [US15] Register the collection posts read path as matrix surface 16 in `apps/api/tests/visibility/matrix.spec.ts` and add its assertion to `apps/api/tests/visibility/surface-routing.spec.ts`.
-- [ ] T212 [P] [US15] Add the endpoints to `specs/001-interest-media-sharing/contracts/openapi.yaml` and update the snapshot in `apps/api/tests/integration/auth-surface.spec.ts`.
-- [ ] T213 [US15] Add collections to `apps/mobile/src/features/profile/SavedScreen.tsx`.
-- [ ] T214 [US15] Add `testID`s, run `verify-maestro-ids.mjs`, and add `.maestro/36-collections.yaml` asserting `POST /v1/me/collections` **201** and a `PUT` membership **204**.
+- [x] T206 [US15] Add `collection` and `collectionItem` keys to `keys.ts` — private by key, no index (A55, A56).
+- [x] T207 [US15] Create `apps/api/src/persistence/collection.repository.ts`.
+- [x] T208 [US15] Create `apps/api/src/modules/saved/collection.service.ts` (FR-049), writing the membership row **and** the `savedPost` rows (A32/A33) in one `TransactWriteItems`, so FR-051 cannot be violated by any path.
+- [x] T209 [US15] Add the collection CRUD and membership endpoints to `apps/api/src/modules/saved/saved.controller.ts`.
+- [x] T210 [US15] ~~Make collection names reportable and moderatable~~ — **not done, and the
+  reason is the deliverable.** Writing it showed Constitution IV's rule does not reach here:
+  a collection is readable only by its owner (FR-050), so its name has an AUDIENCE OF ONE.
+  There is no reporter, and a report subject nobody but the owner can see would be an
+  undecidable item in the moderation queue — which is exactly why `report.service.ts` already
+  refuses a report against a conversation with no name. 005's conversation name is different
+  in the way that matters: every participant sees it.
+  `CollectionRepository` therefore has NO `removeName`, deliberately — a remover nothing can
+  call is the sixth "declared half with no other half" this feature exists to end.
+  `tests/unit/collections-are-not-reportable.spec.ts` pins all of it, including **the
+  condition under which it is wrong**: it fails the moment any collection route stops being
+  on `/me`, because that is when the audience stops being one.
+- [x] T211 [US15] Register the collection posts read path as matrix surface 16 in `apps/api/tests/visibility/matrix.spec.ts` and add its assertion to `apps/api/tests/visibility/surface-routing.spec.ts`.
+- [x] T212 [P] [US15] Add the endpoints to `specs/001-interest-media-sharing/contracts/openapi.yaml` and update the snapshot in `apps/api/tests/integration/auth-surface.spec.ts`.
+- [x] T213 [US15] Add collections to `apps/mobile/src/features/profile/SavedScreen.tsx`.
+- [x] T214 [US15] Add `testID`s, run `verify-maestro-ids.mjs`, and add `.maestro/36-collections.yaml` asserting `POST /v1/me/collections` **201** and a `PUT` membership **204**.
 
 ---
 

@@ -11,7 +11,7 @@ import { ConversationScreen } from '../features/conversations/ConversationScreen
 import { NewGroupScreen } from '../features/conversations/NewGroupScreen';
 import { PlaceScreen } from '../features/places/PlaceScreen';
 import { CreatePlaceScreen } from '../features/places/CreatePlaceScreen';
-import { SavedScreen } from '../features/profile/SavedScreen';
+import { SavedScreen, ALL_SAVED } from '../features/profile/SavedScreen';
 import { PlacePicker } from '../features/places/PlacePicker';
 import type {
   PublicProfile,
@@ -257,7 +257,7 @@ import { EngagementBar, type EngagementState } from '../features/engagement/Enga
 import { SafetyActions, type ReportSubject } from '../features/safety/SafetyActions';
 import { ModerationNoticesScreen } from '../features/safety/ModerationNoticesScreen';
 import { useData } from '../data-provider';
-import { DataError, type ModerationNotice, type Appeal } from '../data';
+import { DataError, type ModerationNotice, type Appeal, type Collection } from '../data';
 
 export function PostDetailContainer({
   postId,
@@ -361,6 +361,45 @@ export function PostDetailContainer({
   }, [data, post, postId, engagement.viewerHasReacted]);
 
   /**
+   * 008/FR-049. The shelves this post can be filed onto.
+   *
+   * Read here rather than on the Saved screen alone, because a collection you
+   * can create and never fill is this feature's own version of the defect 008
+   * exists to end. A failed read leaves the controls absent, never the screen
+   * broken.
+   */
+  const [collections, setCollections] = useState<Collection[]>([]);
+  useEffect(() => {
+    let live = true;
+    void data.saved
+      .collections({ limit: 50 })
+      .then((page) => live && setCollections(page.items))
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [data]);
+
+  /**
+   * FR-049, FR-051. Filing is ADDITIVE: the star stays lit, because the server
+   * writes the membership row and the save in one transaction. Setting `saved`
+   * here rather than leaving it is not optimism about the collection — it is the
+   * screen telling the truth about what the transaction did.
+   */
+  const fileInto = useCallback(
+    async (collectionId: string) => {
+      try {
+        await data.saved.addToCollection(collectionId, postId);
+        setSaved(true);
+      } catch {
+        // A post that cannot be seen cannot be filed; the control simply does
+        // not take, exactly as the star does not.
+      }
+    },
+    [data, postId],
+  );
+
+  /**
    * 004/FR-037. Optimistic, then reconciled against the server's refusal.
    *
    * Saving a post you cannot see is refused (404), so a failure has to put the
@@ -398,6 +437,8 @@ export function PostDetailContainer({
         onReact={react}
         onOpenComments={() => onOpenComments(postId)}
         onShare={() => onShare(postId)}
+        collections={collections.map((c) => ({ collectionId: c.collectionId, name: c.name }))}
+        onFile={(collectionId) => void fileInto(collectionId)}
         saved={saved}
         onToggleSave={() => void toggleSave()}
       />
@@ -2416,10 +2457,55 @@ export function CreatePlaceContainer({
 /** FR-038, FR-039. Surface 9 in the app. */
 export function SavedContainer({ onOpenPost }: { onOpenPost: (postId: string) => void }) {
   const data = useData();
+  // 008/FR-049. `all` is not a collection — see the note on `ALL_SAVED`.
+  const [selected, setSelected] = useState<string>(ALL_SAVED);
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [newName, setNewName] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [collectionsError, setCollectionsError] = useState<string | null>(null);
+  /**
+   * The SELECTED shelf is part of the paging identity, so switching shelves
+   * starts a new list rather than appending to the old one. `usePaged`'s deps
+   * array is what makes that true; leaving `selected` out of it is how a filter
+   * ends up showing two collections at once.
+   */
   const { state, error, loadMore } = usePaged(
-    (cursor) => data.saved.list(cursor ? { cursor } : {}),
-    [],
+    (cursor) =>
+      selected === ALL_SAVED
+        ? data.saved.list(cursor ? { cursor } : {})
+        : data.saved.collectionPosts(selected, cursor ? { cursor } : {}),
+    [selected],
   );
+
+  const loadCollections = useCallback(async () => {
+    setCollections((await data.saved.collections({ limit: 50 })).items);
+  }, [data]);
+
+  useEffect(() => {
+    let live = true;
+    void loadCollections().catch((e: unknown) => {
+      // A failed collection list must never stop the saved list rendering: the
+      // shelves are a filter over it, not the thing itself.
+      if (live) setCollectionsError(e instanceof DataError ? e.message : String(e));
+    });
+    return () => {
+      live = false;
+    };
+  }, [loadCollections]);
+
+  const createCollection = useCallback(async () => {
+    setCreating(true);
+    try {
+      await data.saved.createCollection(newName.trim());
+      setNewName('');
+      await loadCollections();
+    } catch (e: unknown) {
+      setCollectionsError(e instanceof DataError ? e.message : String(e));
+    } finally {
+      setCreating(false);
+    }
+  }, [data, newName, loadCollections]);
+
   if (error) return <Failed message={error} />;
   return (
     <SavedScreen
@@ -2428,6 +2514,18 @@ export function SavedContainer({ onOpenPost }: { onOpenPost: (postId: string) =>
       renderPost={(post) => (
         <PostCard post={post} onOpen={onOpenPost} />
       )}
+      collections={collections.map((c) => ({
+        collectionId: c.collectionId,
+        name: c.name,
+        itemCount: c.itemCount,
+      }))}
+      selected={selected}
+      onSelect={setSelected}
+      newCollectionName={newName}
+      onNewCollectionNameChange={setNewName}
+      onCreateCollection={() => void createCollection()}
+      creating={creating}
+      error={collectionsError}
     />
   );
 }

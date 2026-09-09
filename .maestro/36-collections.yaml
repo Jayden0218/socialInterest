@@ -1,0 +1,99 @@
+# 008/US15, T214 — SHELVES, NOT BOXES.
+#
+# WHAT TO READ IN THE RUN AGGREGATE:
+#   POST /v1/me/collections                                 201
+#   PUT  /v1/me/collections/:collectionId/posts/:postId      204
+#   GET  /v1/me/collections/:collectionId/posts              200
+#
+# The 204 is the line that matters. A screen that created a shelf and whose
+# file control did nothing would satisfy every assertion below except that one —
+# a collection you can create and never fill is this feature's own version of
+# the defect 008 exists to end.
+#
+# The flow cannot know the collectionId, so it selects by the ULID SHAPE — the
+# same convention the post selectors use — and reads the shelf's NAME AND COUNT
+# as text, which is what proves the count moved.
+#
+# Both navigation steps below were established in a browser first
+# (`browser/collections-ui.spec.ts`, 3.2 seconds): the first version of that
+# test reached for the tab bar from a PUSHED screen, twice, which is 005/J-21 —
+# and finding it there rather than here saved two device runs.
+appId: app.socialinterest
+---
+- runFlow: 04-publish-image.yaml
+
+- tapOn:
+    id: "tab-profile"
+- assertVisible:
+    id: "open-saved"
+- tapOn:
+    id: "open-saved"
+- assertVisible:
+    id: "saved-screen"
+
+# FR-049. A named shelf.
+- assertVisible:
+    id: "new-collection-name"
+- tapOn:
+    id: "new-collection-name"
+- inputText: "Recipes"
+- hideKeyboard
+- tapOn:
+    id: "create-collection"
+- extendedWaitUntil:
+    visible: "Recipes · 0"
+    timeout: 30000
+
+# Back to the post, and file it. The control sits beside the star rather than
+# instead of it: FR-051 says a filed post is still saved, and the screen has to
+# say the same thing.
+- tapOn:
+    id: "nav-back"
+- extendedWaitUntil:
+    visible:
+      id: "post-[0-9A-Z]{26}"
+    timeout: 30000
+- tapOn:
+    id: "post-[0-9A-Z]{26}"
+- assertVisible:
+    id: "post-detail-screen"
+# A COLLECTION ID IS A ULID, and the selector says so — the same convention the
+# post selectors use. `"+ Recipes"` would be a TEXT selector, and a Maestro text
+# selector is a REGEX in which `+` is a quantifier: run 50 lost a flow to a
+# pattern that matched something else, and this is that hazard in its other
+# form.
+- assertVisible:
+    id: "file-into-[0-9A-Z]{26}"
+- tapOn:
+    id: "file-into-[0-9A-Z]{26}"
+
+# FR-051, ON THE DEVICE. The star is lit — filing did not unsave — and the post
+# is in BOTH lists. "All" is asserted second on purpose: a "move" implementation
+# passes the collection assertion and fails only this one.
+- tapOn:
+    id: "nav-back"
+- tapOn:
+    id: "tab-profile"
+- tapOn:
+    id: "open-saved"
+- assertVisible:
+    id: "saved-screen"
+- extendedWaitUntil:
+    visible: "Recipes · 1"
+    timeout: 30000
+- tapOn:
+    id: "collection-tab-[0-9A-Z]{26}"
+- extendedWaitUntil:
+    visible:
+      id: "post-[0-9A-Z]{26}"
+    timeout: 30000
+
+- tapOn:
+    id: "collection-tab-all"
+- extendedWaitUntil:
+    visible:
+      id: "post-[0-9A-Z]{26}"
+    timeout: 30000
+
+- assertNotVisible:
+    id: "collections-error"

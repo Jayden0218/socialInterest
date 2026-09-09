@@ -12,6 +12,7 @@ import { FeedService } from '../../src/modules/feed/feed.service';
 import { MessagePresenter } from '../../src/modules/conversations/message-presenter';
 import { PlacePostsService } from '../../src/modules/places/place-posts.service';
 import { SavedService } from '../../src/modules/saved/saved.service';
+import { CollectionService } from '../../src/modules/saved/collection.service';
 import { SURFACES } from './surfaces';
 
 /**
@@ -319,6 +320,45 @@ const PROBES: Probe[] = [
         filter,
       );
       return service.list(VIEWER.userId);
+    },
+  },
+  {
+    surface: 'collection posts',
+    /**
+     * 008/US15, surface 16. THE SAME TWO CONSULTATIONS AS THE SAVED LIST.
+     *
+     * A collection is private BY KEY, so only its owner can ask — and that is
+     * the argument this probe exists to refuse. Private-by-key answers "whose
+     * list is this"; it answers nothing about what is IN it. A membership row is
+     * a bookmark, not a copy, and a post whose author has since gone private or
+     * blocked the owner must stop being readable here exactly as it does
+     * everywhere else.
+     *
+     * The `require` call is stubbed through the repository, so this probe fails
+     * if the read path ever returns membership rows directly — the defect this
+     * codebase has now shipped SEVEN times.
+     */
+    run: ({ queries, filter }) => {
+      const service = new CollectionService(
+        {
+          find: async () => ({
+            ownerId: VIEWER.userId,
+            collectionId: 'c1',
+            name: 'reading',
+            itemCount: 1,
+            createdAt: 'z',
+          }),
+          listPosts: async () => ({
+            items: [{ ...post, ownerId: VIEWER.userId, collectionId: 'c1', savedAt: 'z' }],
+            nextCursor: null,
+          }),
+        } as never,
+        { savedAt: async () => null } as never,
+        { listMedia: async () => [] } as never,
+        queries,
+        filter,
+      );
+      return service.listPosts(VIEWER.userId, 'c1');
     },
   },
   {

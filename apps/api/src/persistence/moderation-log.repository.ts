@@ -88,7 +88,7 @@ export class ModerationLogRepository extends BaseRepository {
     return entry;
   }
 
-  /** 008/FR-046, A55. Newest first — the most recent removal is the live question. */
+  /** 008/FR-046, A57. Newest first — the most recent removal is the live question. */
   async listNotices(
     recipientId: string,
     opts: { limit?: number; cursor?: string | null } = {},

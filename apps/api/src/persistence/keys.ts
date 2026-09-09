@@ -195,7 +195,7 @@ export const keys = {
   }),
 
   /**
-   * 008/A55, FR-046 — WHAT THE AUTHOR IS TOLD, IN THE AUTHOR'S OWN PARTITION.
+   * 008/A57, FR-046 — WHAT THE AUTHOR IS TOLD, IN THE AUTHOR'S OWN PARTITION.
    *
    * The append-only log is partitioned BY MONTH, which is right for an audit
    * trail and useless for "what was removed of mine": answering that from
@@ -319,6 +319,31 @@ export const keys = {
     sk: `SAVE#${savedAt}#${postId}`,
   }),
   /**
+   * A55, A56 - 008/FR-049 to FR-051. COLLECTIONS, PRIVATE BY KEY.
+   *
+   * The owner's own partition and no index, exactly like `savedPost` and
+   * `draft`: FR-050 says a collection is readable only by its owner, and the
+   * cheapest way to keep a promise like that is to make the query that would
+   * break it unwriteable. The service's authorisation check is the second lock,
+   * not the only one.
+   *
+   * THE MEMBERSHIP ROW CARRIES THE COLLECTION ID FIRST, so "posts in this
+   * collection" is one Query on a prefix. `savedAt` before `postId` gives
+   * newest-first within a collection, and putting the post id last means a post
+   * can sit in several collections without any of them colliding — which is
+   * FR-049's "a post MAY be in more than one" expressed in the key rather than
+   * enforced by a check.
+   */
+  collection: (ownerId: string, collectionId: string) => ({
+    pk: `USER#${ownerId}`,
+    sk: `COLLECTION#${collectionId}`,
+  }),
+  collectionItem: (ownerId: string, collectionId: string, savedAt: string, postId: string) => ({
+    pk: `USER#${ownerId}`,
+    sk: `COLLITEM#${collectionId}#${savedAt}#${postId}`,
+  }),
+
+  /**
    * A49 - 008/FR-037. AN UNFINISHED POST, PRIVATE BY KEY.
    *
    * The owner's own partition and no index, exactly like `savedPost` above: the
@@ -437,6 +462,7 @@ export const SK_PREFIX = {
   message: 'MSG#',
   placeFollow: 'PLFOLLOW#',
   savedPost: 'SAVE#',
+  collection: 'COLLECTION#',
   // feature 008
   draft: 'DRAFT#',
   mute: 'MUTE#',

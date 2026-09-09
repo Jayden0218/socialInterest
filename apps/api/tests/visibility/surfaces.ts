@@ -96,6 +96,19 @@ export const SURFACES: readonly Surface[] = [
    * leaked the existence of a post the viewer cannot open.
    */
   { name: 'comment replies', built: true, story: '008/US7 (T117)' },
+  /**
+   * Phase E, surface 16. A COLLECTION'S POSTS.
+   *
+   * A collection is private BY KEY, so the tempting reading is that the
+   * boundary has nothing left to do — the only person who can ask is the owner,
+   * and they saved these posts themselves. That is the saved list's argument
+   * and it was wrong there too: a collection entry is a BOOKMARK, NOT A COPY,
+   * and a post whose author has since gone private, or who has since blocked
+   * the owner, must stop being readable here exactly as it does everywhere
+   * else. Private-by-key answers "whose list is this"; it answers nothing about
+   * what is IN it.
+   */
+  { name: 'collection posts', built: true, story: '008/US15 (T211)' },
 ] as const;
 
 /**
@@ -132,8 +145,9 @@ export const EVER_BUILT: readonly string[] = [
   'following feed',
   'post search',
   'comment replies',
+  'collection posts',
 ];
 
 export const POST_STATE_COUNT = 7;
-export const VIEWER_COUNT = 6;
+export const VIEWER_COUNT = 7;
 export const TOTAL_ASSERTIONS = SURFACES.length * POST_STATE_COUNT * VIEWER_COUNT;

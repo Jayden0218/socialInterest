@@ -452,8 +452,8 @@ describe('SC-005 review visibility (005 addendum)', () => {
       // DELIBERATE, reviewable edit and is meant to be: a surface added without
       // touching it fails here, which is the only thing stopping the enumeration
       // silently falling behind the product.
-      expect(SURFACES.length).toBe(15);
-      expect(EVER_BUILT.length).toBe(15);
+      expect(SURFACES.length).toBe(16);
+      expect(EVER_BUILT.length).toBe(16);
     });
   });
 
@@ -463,8 +463,9 @@ describe('SC-005 review visibility (005 addendum)', () => {
    * 462 + 18 = 480 through 005. 008 adds three POST surfaces - the Following
    * feed (US3), post search (US6) and comment replies (US7) - and then US13 adds
    * TWO DIMENSIONS to every one of them: a `pending-follower` relationship and
-   * the author-privacy axis. 14 surfaces x 7 states x 7 viewers x 2 privacy
-   * settings = 1,372, plus the same 18 review assertions = 1,390.
+   * the author-privacy axis. Phase E then adds a collection's posts as the
+   * fifteenth POST surface: 15 x 7 states x 7 viewers x 2 privacy settings =
+   * 1,470, plus the same 18 review assertions = 1,488.
    *
    * The jump from 606 to 1,390 is the axis, not new surfaces, and it is the
    * shape this project keeps relearning: a rule that changes the answer on every
@@ -485,6 +486,6 @@ describe('SC-005 review visibility (005 addendum)', () => {
       console.log('\n  SC-005 is NOT closed: the review surface is still in progress.\n');
       return;
     }
-    expect(assertionsRun + reviewAssertionsRun).toBe(1390);
+    expect(assertionsRun + reviewAssertionsRun).toBe(1488);
   });
 });

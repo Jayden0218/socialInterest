@@ -1,12 +1,19 @@
 // GENERATED from specs/001-interest-media-sharing/contracts/openapi.yaml
 // Do not edit by hand. Run: pnpm --filter @sih/shared generate:client
 //
-// 84 operations across 62 paths.
+// 91 operations across 66 paths.
 
 export const operations = {
   getMe: { method: 'GET', path: '/me', auth: true }, // Current person's profile and preferences
   patchMe: { method: 'PATCH', path: '/me', auth: true }, // Update display name, avatar, bio, or notification preferences
   deleteMe: { method: 'DELETE', path: '/me', auth: true }, // Delete the current account
+  getMeCollections: { method: 'GET', path: '/me/collections', auth: true }, // My collections
+  postMeCollections: { method: 'POST', path: '/me/collections', auth: true }, // Create a collection
+  patchMeCollectionsByCollectionId: { method: 'PATCH', path: '/me/collections/{collectionId}', auth: true }, // Rename a collection
+  deleteMeCollectionsByCollectionId: { method: 'DELETE', path: '/me/collections/{collectionId}', auth: true }, // Delete a collection
+  getMeCollectionsByCollectionIdPosts: { method: 'GET', path: '/me/collections/{collectionId}/posts', auth: true }, // Posts in a collection
+  putMeCollectionsByCollectionIdPostsByPostId: { method: 'PUT', path: '/me/collections/{collectionId}/posts/{postId}', auth: true }, // Add a post to a collection
+  deleteMeCollectionsByCollectionIdPostsByPostId: { method: 'DELETE', path: '/me/collections/{collectionId}/posts/{postId}', auth: true }, // Remove a post from a collection
   getMeFollowRequests: { method: 'GET', path: '/me/follow-requests', auth: true }, // Follow requests waiting on me
   putMeFollowRequestsByHandle: { method: 'PUT', path: '/me/follow-requests/{handle}', auth: true }, // Approve a follow request
   deleteMeFollowRequestsByHandle: { method: 'DELETE', path: '/me/follow-requests/{handle}', auth: true }, // Decline a follow request

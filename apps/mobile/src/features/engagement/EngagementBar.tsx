@@ -31,6 +31,8 @@ export function EngagementBar({
   onShare,
   saved,
   onToggleSave,
+  collections,
+  onFile,
 }: {
   state: EngagementState;
   pending?: boolean;
@@ -40,6 +42,18 @@ export function EngagementBar({
   /** 004/FR-037. Comes from the SERVER, so the control reflects an answer. */
   saved?: boolean;
   onToggleSave?: () => void;
+  /**
+   * 008/FR-049 — WHERE A POST IS FILED, and it has to be somewhere.
+   *
+   * Collections that could be created and never filled would be this feature's
+   * own version of the defect 008 exists to end: a "Following" tab with no feed
+   * behind it, `readAt` with no writer, `avatarKey` with no writer. The control
+   * sits beside the star because filing is what saving becomes once there are
+   * shelves — and it is NOT instead of the star: FR-051 says a filed post is
+   * still saved, so both remain.
+   */
+  collections?: { collectionId: string; name: string }[];
+  onFile?: (collectionId: string) => void;
 }) {
   return (
     <Row style={{ gap: space.lg }}>
@@ -87,6 +101,23 @@ export function EngagementBar({
           </Text>
         </Pressable>
       ) : null}
+
+      {collections && onFile && collections.length > 0
+        ? collections.map((c) => (
+            <Pressable
+              key={c.collectionId}
+              style={touchTarget}
+              testID={`file-into-${c.collectionId}`}
+              accessibilityRole="button"
+              accessibilityLabel={`Add to ${c.name}`}
+              onPress={() => onFile(c.collectionId)}
+            >
+              <Text style={{ color: palette.text.muted, fontSize: type.body.size }}>
+                {`+ ${c.name}`}
+              </Text>
+            </Pressable>
+          ))
+        : null}
     </Row>
   );
 }

@@ -108,6 +108,23 @@ async function main(): Promise<void> {
      * `auth-surface.spec.ts`, which has a token to send.
      */
     { name: 'appeal queue (unauth)', path: '/v1/moderation/appeals', expect: [401] },
+    // Phase E. `CollectionService` is provided by `SavedModule` and depends on
+    // `PostQueryService` from `PostsModule` plus two global repositories —
+    // three modules deep, which is the arrangement that fails under tsx first.
+    { name: 'collections (unauth)', path: '/v1/me/collections', expect: [401] },
+    {
+      name: 'create collection (unauth)',
+      path: '/v1/me/collections',
+      method: 'POST',
+      expect: [401],
+    },
+    { name: 'collection posts (unauth)', path: '/v1/me/collections/none/posts', expect: [401] },
+    {
+      name: 'file into collection (unauth)',
+      path: '/v1/me/collections/none/posts/none',
+      method: 'PUT',
+      expect: [401],
+    },
   ];
 
   let failed = 0;

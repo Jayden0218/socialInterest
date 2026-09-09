@@ -90,6 +90,29 @@ function fakeData(over: Partial<Record<string, unknown>> = {}): AppData {
       search: async () => ({ items: [] }),
     },
     feed: { home: async () => page },
+    /**
+     * 008/US15. Post detail reads the collection list on mount so it can offer
+     * somewhere to file the post — a shelf you can create and never fill would
+     * be this feature's own version of the defect 008 exists to end.
+     *
+     * A stub without it is the STALE-STUB failure this repository has now seen
+     * four times: `surface-routing`, `following-feed`, `avatar-container`, here.
+     * It is always the same shape — a stub agreeing with an older version of the
+     * thing it stands in for — and it is always the test that finds it, which is
+     * the argument for the stubs being complete rather than minimal.
+     */
+    saved: {
+      list: async () => page,
+      save: async () => undefined,
+      unsave: async () => undefined,
+      collections: async () => ({ items: [], page: { nextCursor: null } }),
+      collectionPosts: async () => page,
+      createCollection: async () => ({ collectionId: 'c1', name: 'x', itemCount: 0, createdAt: 'z' }),
+      addToCollection: async () => undefined,
+      removeFromCollection: async () => undefined,
+      deleteCollection: async () => undefined,
+      ...(over.saved as object),
+    },
     engagement: { comments: async () => page, comment: async () => undefined },
     safety: { report: async () => undefined, block: async () => undefined },
     notifications: { list: async () => page },

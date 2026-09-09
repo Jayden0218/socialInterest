@@ -74,4 +74,5 @@ export type { UploadTarget } from './posts';
 export type { PostPage } from './interests';
 export type { CommentPage } from './engagement';
 export type { ReportReason, ModerationNotice, Appeal } from './safety';
+export type { Collection, CollectionPage } from './saved';
 export type { MyProfile } from './session';

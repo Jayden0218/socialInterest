@@ -64,9 +64,9 @@ paths:
 #     [x] POST   /appeals, GET /me/appeals        008/FR-047, FR-048
 #     [x] GET PATCH /moderation/appeals           008/FR-047
 #   Phase E
-#     [ ] POST GET PATCH DELETE /me/collections   008/FR-049, FR-050
-#     [ ] PUT DELETE /me/collections/{id}/posts/{postId}  008/FR-051
-#     [ ] GET    /me/collections/{id}/posts       008/FR-050
+#     [x] POST GET PATCH DELETE /me/collections   008/FR-049, FR-050
+#     [x] PUT DELETE /me/collections/{id}/posts/{postId}  008/FR-051
+#     [x] GET    /me/collections/{id}/posts       008/FR-050
 # ---------------------------------------------------------------------------
 
   /me:
@@ -110,6 +110,139 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/DeletionOutcome' }
+
+  /me/collections:
+    get:
+      tags: [Saved]
+      summary: My collections
+      description: >
+        008/FR-049, FR-050, access pattern A55. On `/me` for the reason the saved
+        list is: there is deliberately no endpoint that takes a person's handle,
+        because an endpoint that could is one an authorisation bug can expose.
+        A collection lives under `USER#<ownerId>` with no index projecting it, so
+        the privacy is a property of where the row lives rather than of a check.
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Collection' }
+                  page: { $ref: '#/components/schemas/PageMeta' }
+        '401': { $ref: '#/components/responses/Unauthorised' }
+    post:
+      tags: [Saved]
+      summary: Create a collection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 60 }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Collection' }
+        '409': { description: Collection limit reached }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /me/collections/{collectionId}:
+    patch:
+      tags: [Saved]
+      summary: Rename a collection
+      parameters:
+        - $ref: '#/components/parameters/CollectionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 60 }
+      responses:
+        '200':
+          description: Renamed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Collection' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Saved]
+      summary: Delete a collection
+      description: >
+        008/FR-051's converse. Deleting a collection removes its memberships and
+        NOT the saved posts: if adding to a collection cannot take a post out of
+        the saved list, neither can tidying the shelves.
+      parameters:
+        - $ref: '#/components/parameters/CollectionId'
+      responses:
+        '204': { description: Deleted }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /me/collections/{collectionId}/posts:
+    get:
+      tags: [Saved]
+      summary: Posts in a collection
+      description: >
+        008/FR-050, access pattern A56. **Visibility matrix surface 16.**
+
+        Private by key answers "whose list is this"; it answers nothing about
+        what is IN it. A membership row is a bookmark, not a copy, so each post
+        is resolved through the single boundary against its CURRENT state — a
+        post whose author has since gone private is simply not here.
+      parameters:
+        - $ref: '#/components/parameters/CollectionId'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PostPage' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /me/collections/{collectionId}/posts/{postId}:
+    put:
+      tags: [Saved]
+      summary: Add a post to a collection
+      description: >
+        008/FR-049, FR-051. **ADDITIVE, NEVER A MOVE.** The membership row and
+        the saved-post rows are written in ONE transaction, so a post cannot be
+        in a collection and absent from the undifferentiated saved list — FR-051
+        is unbreakable by any path rather than upheld by whichever call sites
+        remember to do both. Idempotent. Refused for a post the caller cannot
+        currently see, so a collection can never be a way to acquire access.
+      parameters:
+        - $ref: '#/components/parameters/CollectionId'
+        - $ref: '#/components/parameters/PostId'
+      responses:
+        '204': { description: Added }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Saved]
+      summary: Remove a post from a collection
+      description: 008/FR-051's converse — the SAVE stays.
+      parameters:
+        - $ref: '#/components/parameters/CollectionId'
+        - $ref: '#/components/parameters/PostId'
+      responses:
+        '204': { description: Removed }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   /me/follow-requests:
     get:
@@ -1112,7 +1245,7 @@ paths:
       tags: [Safety]
       summary: What was removed of mine, and why
       description: >
-        008/FR-046, access pattern A55. The append-only moderation log is
+        008/FR-046, access pattern A57. The append-only moderation log is
         partitioned by MONTH — right for an audit trail, useless for "what was
         removed of mine" — so the same event is also written to the recipient's
         own partition and read here.
@@ -1835,6 +1968,11 @@ components:
       in: path
       required: true
       schema: { type: string }
+    CollectionId:
+      name: collectionId
+      in: path
+      required: true
+      schema: { type: string }
     Cursor:
       name: cursor
       in: query
@@ -2066,6 +2204,24 @@ components:
             row. Flipping it changes what the single boundary answers on the next
             read, everywhere at once (FR-044), and the followers who already have
             access keep it (FR-045).
+
+    Collection:
+      type: object
+      required: [collectionId, name, itemCount, createdAt]
+      properties:
+        collectionId: { type: string }
+        name:
+          type: string
+          description: >
+            008/US15. User-generated text with an AUDIENCE OF ONE, which is why
+            it is the only user-generated text in this product that is NOT
+            reportable — there is no reader to report it and a subject nobody can
+            see would be an undecidable item in the moderation queue. If a
+            collection ever gains a second reader, this becomes reportable in the
+            same change; `collections-are-not-reportable.spec.ts` is what fails
+            to say so.
+        itemCount: { type: integer }
+        createdAt: { type: string, format: date-time }
 
     ModerationNotice:
       type: object

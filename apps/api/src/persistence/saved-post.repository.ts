@@ -33,6 +33,19 @@ export class SavedPostRepository extends BaseRepository {
     return (await this.getItem(keys.savedPostBy(userId, postId))) !== null;
   }
 
+  /**
+   * 008/US15. WHEN this post was saved, or null.
+   *
+   * A collection add reuses it rather than writing a fresh one: `SAVE#` is keyed
+   * by `savedAt`, so a new value would create a SECOND row while the `SAVEBY#`
+   * marker moved to it, leaving a duplicate in the saved list that no unsave can
+   * reach.
+   */
+  async savedAt(userId: string, postId: string): Promise<string | null> {
+    const marker = await this.getItem<{ savedAt: string }>(keys.savedPostBy(userId, postId));
+    return marker?.savedAt ?? null;
+  }
+
   async save(item: SavedPostItem): Promise<void> {
     await this.transact([
       {
