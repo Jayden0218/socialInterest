@@ -585,7 +585,7 @@ undifferentiated saved list**.
 ## Phase 22: Polish, cross-cutting, and the Phase E gate
 
 - [x] T215 Run the real CI step list from `.github/workflows/ci.yml`, in order, for Release E, and record it in `docs/verification/runs/2026-09-09-008-phase-e.md`. Release E previously had no CI task of its own — its gate was the polish phase, which covered two of the four things every other gate requires.
-- [ ] T216 Dispatch `.github/workflows/android-emulator.yml` for Release E's flows, read the whole-run API aggregate, and write the run record. Assert through the service — `POST /v1/me/collections` 201 — never through the view hierarchy.
+- [X] T216 Dispatch `.github/workflows/android-emulator.yml` for Release E's flows, read the whole-run API aggregate, and write the run record. Assert through the service — `POST /v1/me/collections` 201 — never through the view hierarchy.
 - [x] T217 Run `apps/api/tests/visibility/matrix.spec.ts` in full and confirm **zero skipped rows** across all ~~17~~ **16** surfaces (SC-016). **The task's own number was wrong**: the delta contract numbers the saved list as surface 17 while re-asserting it under the privacy axis, but it was already surface 9 — one surface counted twice. 12 before 008, plus the Following feed, post search, comment replies and collection posts, is 16. 1,488 assertions. A larger green number is not the goal — 004 recorded that 462 assertions all running the same `decide()` would mean one function tested 66 times.
 - [x] T218 Confirm every new surface appears in `surface-routing.spec.ts` (FR-052), not only in the matrix.
 - [x] T219 Measure SC-017 across every control this feature added, using the split from T056: `apps/e2e/browser/safety-fit.spec.ts` for viewport, and a device run or a scaled component test for font. A browser result alone does not close SC-017 and must not be reported as if it did. Do not infer a rule from one measurement and apply it to unmeasured screens — that cost a 27-minute run and took the product from 18/19 to 1/19.
@@ -595,7 +595,7 @@ undifferentiated saved list**.
 - [x] T223 [P] Update `specs/001-interest-media-sharing/contracts/openapi.yaml` to final and confirm the generated client builds (`pnpm --filter @sih/shared generate:client`).
 - [x] T224 Grep the **copy** across `apps/mobile/src/`, not only the code, for anything describing a behaviour this feature changed — the disabled-Following explanation above all. 007 shipped a follow hint describing a withdrawn requirement because only the code was updated.
 - [x] T225 Update `CLAUDE.md` with what 008 established, what it corrected, and **what remains unverified** — iOS, 002/SC-002, real usage, the datastore and hosting decisions. Report them plainly, never as met.
-- [ ] T226 Confirm every box in `specs/008-post-reach-and-depth/tasks.md` is checked before reporting the feature complete. In 007 the checklist was right and the summary was not.
+- [X] T226 Confirm every box in `specs/008-post-reach-and-depth/tasks.md` is checked before reporting the feature complete. In 007 the checklist was right and the summary was not.
 
 ---
 

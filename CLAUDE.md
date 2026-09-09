@@ -377,9 +377,10 @@ expired within a day.
 ## What spec 008 Phases A and B built (2026-09-09)
 
 `specs/008-post-reach-and-depth/` is **a complete-app scope**: 15 stories, 54 FRs, 17 SCs,
-in five release phases. **All five phases are implemented and every local gate is green.**
-The device runs are recorded separately and are the thing to check before believing any of
-it — see "Still not verified for 008" at the end of this section.
+in five release phases. **All five phases are implemented, every local gate is green, and
+008 RUNS ON ANDROID — run 59, 2026-09-09, every journey and every post-journey server
+check.** Record: `docs/verification/runs/2026-09-09-008-device-record.md`. What that run
+does NOT close is at the end of this section, and it is shorter than it was but not empty.
 
 ### THE PATTERN PHASE A EXISTS TO END: a declared half with no other half
 
@@ -683,13 +684,66 @@ believing a paging failure.** Two suites failed with 2,903 people accumulated ac
 Third occurrence; it is written down so the next one costs a count rather than an
 investigation.
 
+### 008 RUNS ON ANDROID: run 59, 2026-09-09 — every journey, every check
+
+Record: `docs/verification/runs/2026-09-09-008-device-record.md`. Booted in 63s, no retries,
+no device drop, and the runner's own closing line rather than a count I made up: *"PASS: the
+real APK ran on Android, exercised the real API, and completed the journeys."* Asserted
+through the SERVICE — `PUT /v1/posts/:postId/dismiss` 204 and `PUT /v1/people/:handle/mute`
+204 (US12), `PUT /v1/me/follow-requests/:handle` 204 (US13), `POST /v1/appeals` 201 (US14),
+`POST /v1/me/collections` 201 with `PUT .../posts/:postId` 204 (US15), `POST /v1/me/drafts`
+201 (US11), `PATCH` and `DELETE` on a comment (US8), `GET /v1/search/posts` 200 x11 (US6).
+
+**FR-040 is why the aggregate matters more here than anywhere else**: neither mute nor
+dismissal may leave a trace on any screen, so a control that set a local flag and sent
+nothing would satisfy every visible assertion in its flow. Those two 204s are the only
+observation that can tell them apart.
+
+**It took four runs and all four failures were mine, none the product.**
+
+- **Run 56 proved that evidence which prints only at the END may never print at all.** The
+  per-flow evidence block added the run before lived after the journeys loop; Maestro wedged
+  inside `30-edit-delete-comment` and the job's `timeout-minutes: 90` killed the step 47
+  minutes later, so the loop never finished and the block printed nothing — for the first
+  failure it existed for. Run 40's mistake in TIME rather than in space. `flow_evidence` is
+  called at the moment a flow fails now, and `maestro test` is bounded by
+  `timeout --kill-after=30s 480` so a wedge costs one flow instead of the run and the six
+  behind it. **The wedge itself is undiagnosed** and is written down as such.
+- **Run 58 passed every flow and failed anyway, correctly.** `34-private-account` turned the
+  device's account private and left it there; the post-journey place check asks with NO
+  TOKEN; a public post by a private account is evaluated by the `followers` rule (FR-044).
+  US13 working on a surface nobody had thought about it on — and invisible for six runs,
+  because the journeys block exits on the first failed flow and that check had not run since
+  run 51. The flow puts the account back now (a toggle is not idempotent and flows share ONE
+  SERVER, 005/J-20 again), which buys FR-043's other direction the way `27-set-avatar` covers
+  set AND removed. The anonymous check is the assertion for it: it cannot pass while the
+  account is still private.
+- **The three run-55 failures were settled without spending a run on any of them.** `33` never
+  left post detail (`onDone` is `pop`; `post-<ULID>` exists on `PostCard`/`PostTile` and the
+  detail screen renders neither — zero of them counted in a browser in 3.1s). `12` asserted a
+  post 466 points below the fold (recency-ordered interest space, y=1082 on a 616pt screen,
+  and `assertVisible` does not scroll). `57`'s `mute-person` sits at y=676 on 616 — run 35's
+  block control again.
+- **`23-multi-photo-post` is A MARGIN, NOT A CAUSE I OBSERVED.** `MediaPager` is a
+  `pagingEnabled` ScrollView with a 288pt pitch, so a release advances only past 144 — and an
+  element-relative swipe travels from the pager's centre to about its edge, which is 144.
+  Exactly the threshold is where pass, fail, pass, fail lives. No swipe of this flow has ever
+  been watched, and the record says so instead of inventing the observation.
+
+**And a miscount of my own: I reported run 57 as "35 of 36". It was 33 of 34.** There are 34
+flows — `05` and `07` do not exist — and I read the denominator off the highest flow NUMBER
+instead of counting the files. This file already records that exact habit from run 50. Second
+occurrence. **Count the flows.**
+
 ### Still not verified for 008, and must be reported that way
 - **Native font scaling.** `safety-fit.spec.ts` measures layout at 130% text in a browser and
   says so; react-native-web ignores the platform font setting entirely, which is why 006's
   `Avatar` overflow was invisible there. **A browser result does not close SC-017.** Every
   control the feature added is covered on the SCREEN-SIZE half only, and that has been the
-  position since 006.
+  position since 006 — including every fit measurement run 59 depended on.
 - **A mention link's tap on a device**, above.
+- **`23-multi-photo-post`'s swipe cause** and **run 56's wedge**: a margin was widened and a
+  timeout was added, and neither cause was observed.
 - iOS, 002/SC-002 (10,000 concurrent), real usage, and the datastore and hosting decisions
   are all unchanged by 008 and all still open.
 
