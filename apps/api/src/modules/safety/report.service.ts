@@ -86,6 +86,10 @@ export class ReportService {
       case 'interest':
       case 'interest-description':
         return this.catalogue.byId(id) !== undefined;
+      // 008/FR-026. `<postId>:<commentId>`, the same composite `message` and
+      // `review` use, and for the same reason: a comment id alone does not
+      // locate the row, which lives in its post's partition under a sort key
+      // carrying `createdAt`.
       case 'comment':
         return this.commentExists(id);
       case 'place':
@@ -137,9 +141,27 @@ export class ReportService {
     return (await this.messages.find(conversationId, messageId)) !== null;
   }
 
-  private async commentExists(commentId: string): Promise<boolean> {
-    // Comment ids are ULIDs scoped to a post; the id alone is enough to accept
-    // the report, and moderation resolves the full item when reviewing.
-    return /^[0-9A-HJKMNP-TV-Z]{26}$/i.test(commentId);
+  /**
+   * 008. THIS USED TO BE A REGEX, AND THAT MADE EVERY COMMENT REPORT
+   * UN-ACTIONABLE.
+   *
+   * It read: "the id alone is enough to accept the report, and moderation
+   * resolves the full item when reviewing". Moderation could not: a comment
+   * lives in its post's partition under `COMMENT#<createdAt>#<id>`, so the id
+   * alone locates nothing, and the removal branch for comments did not exist at
+   * all. A fabricated id was accepted too — in the same file whose next test
+   * says reporting something that does not exist is refused rather than
+   * silently queued.
+   *
+   * Composite and checked now, exactly like `message` and `review`. An
+   * already-removed comment is not reportable again, for the reason
+   * `reviewExists` gives: it would put an item in the queue whose subject is
+   * invisible to the moderator deciding on it.
+   */
+  private async commentExists(compositeId: string): Promise<boolean> {
+    const [postId, commentId] = compositeId.split(':');
+    if (!postId || !commentId) return false;
+    const comment = await this.comments.findById(postId, commentId);
+    return comment !== null && comment.moderationState !== 'removed' && !comment.deletedAt;
   }
 }

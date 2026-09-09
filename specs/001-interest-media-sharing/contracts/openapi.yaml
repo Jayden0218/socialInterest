@@ -1828,7 +1828,28 @@ components:
       properties:
         commentId: { type: string }
         author: { $ref: '#/components/schemas/PublicProfile' }
-        body: { type: string, minLength: 1, maxLength: 1000 }
+        body:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          nullable: true
+          description: >
+            008/FR-026. Null when a moderator removed the comment. The row survives so
+            the thread keeps its shape and every reply keeps its parent; the text does
+            not. Null rather than a placeholder sentence, so no two surfaces word the
+            removal differently.
+        moderationState:
+          type: string
+          enum: [removed]
+          nullable: true
+          description: 008/FR-026. Present and `removed` exactly when `body` is null for that reason.
+        parentCommentId:
+          type: string
+          nullable: true
+          description: >
+            008/FR-023. The comment this one answers, or null for a top-level one.
+            Nesting is bounded at ONE level for display (FR-025): a reply to a reply is
+            re-parented onto that reply's parent rather than refused.
         createdAt: { type: string, format: date-time }
 
     CommentCreate:
@@ -1836,6 +1857,12 @@ components:
       required: [body]
       properties:
         body: { type: string, minLength: 1, maxLength: 1000 }
+        parentCommentId:
+          type: string
+          description: >
+            008/FR-023. Optional. Must name a comment on the SAME post, or the request is
+            refused - a parent from another post would let a thread confirm the existence
+            of a comment on a post the viewer cannot open.
 
     ShareLink:
       type: object

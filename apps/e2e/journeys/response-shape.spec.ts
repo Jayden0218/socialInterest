@@ -355,6 +355,28 @@ const DECLARED_FIELDS: readonly DeclaredField[] = [
       return (await viewer.data.people.get(me.handle)).avatarUrl ?? null;
     },
   },
+  {
+    path: 'Comment.parentCommentId',
+    writer: '008/US7 (T113) - a reply names the comment it answers',
+    hasWriter: true,
+    /**
+     * Read back through the LISTING, not from the create response.
+     *
+     * A create echoing its own input would satisfy an assertion on the POST
+     * result while the field was never stored — which is the same shape as
+     * `avatarUrl` above being read from a different surface than the one that
+     * wrote it.
+     */
+    observe: async () => {
+      const author = await actor('replyField');
+      const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+      const postId = await publishReadyImage(author, [interest.interestId], { caption: 'a thread' });
+      const parent = await author.data.engagement.comment(postId, 'the first remark');
+      await author.data.engagement.comment(postId, 'an answer', parent.commentId);
+      const page = await author.data.engagement.comments(postId);
+      return page.items.find((c) => c.commentId !== parent.commentId)?.parentCommentId ?? null;
+    },
+  },
 ];
 
 describe('008/FR-054 every declared field has a writer', () => {

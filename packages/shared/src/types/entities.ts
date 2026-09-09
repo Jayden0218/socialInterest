@@ -169,7 +169,17 @@ export type Post = z.infer<typeof postSchema>;
 export const commentSchema = z.object({
   commentId: z.string(),
   author: publicProfileSchema,
-  body: z.string().min(1).max(1000),
+  /**
+   * 008/FR-026. NULL when a moderator removed it.
+   *
+   * The row survives so the thread keeps its shape and every reply keeps its
+   * parent; the body does not. Nullable rather than a placeholder sentence, so
+   * no two surfaces can word the removal differently.
+   */
+  body: z.string().min(1).max(1000).nullable(),
+  moderationState: z.enum(['removed']).nullable().optional(),
+  /** 008/FR-023. The comment this one answers; null for a top-level one. */
+  parentCommentId: z.string().nullable().optional(),
   createdAt: z.string(),
 });
 export type Comment = z.infer<typeof commentSchema>;

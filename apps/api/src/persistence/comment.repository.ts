@@ -10,6 +10,23 @@ export interface CommentItem {
   createdAt: string;
   deletedAt?: string | null;
   anonymisedAt?: string | null;
+  /**
+   * 008/FR-023. The comment this one answers, or null for a top-level one.
+   *
+   * THE SORT KEY DOES NOT CHANGE. `A15` lists a post's comments with one Query
+   * on `COMMENT#<createdAt>#<id>`, and encoding a thread into that key would
+   * cost the single-Query listing the whole design rests on. Grouping is done
+   * on the response (`groupWithParents`), which is where a DISPLAY rule belongs.
+   */
+  parentCommentId?: string | null;
+  /**
+   * 008/FR-026. Set when a moderator removes this comment.
+   *
+   * Removal WITHHOLDS the body and leaves the row, so the thread keeps its
+   * shape and the replies keep their parent — 005/FR-024's rule for a
+   * conversation name and a message, in a third place.
+   */
+  moderationState?: 'removed' | null;
 }
 
 /** A15. Comments share the post's partition, so listing is one Query. */
@@ -35,6 +52,33 @@ export class CommentRepository extends BaseRepository {
       authorId: 'ANONYMISED',
       anonymisedAt: new Date().toISOString(),
     });
+  }
+
+  /** Every comment on a post, for the reply-parent rule and for moderation. */
+  async findById(postId: string, commentId: string): Promise<CommentItem | null> {
+    const page = await this.query<CommentItem>(`POST#${postId}`, {
+      skPrefix: SK_PREFIX.comment,
+      ascending: true,
+      limit: 200,
+      cursor: null,
+    });
+    return page.items.find((c) => c.commentId === commentId) ?? null;
+  }
+
+  /**
+   * 008/FR-026. Withhold the body; keep the row.
+   *
+   * A read-modify-write, like `anonymise` above and for the same reason: the
+   * item's key carries `createdAt`, so an update needs the row it is updating.
+   */
+  async setModerationState(
+    ref: { postId: string; commentId: string; createdAt: string },
+    state: 'removed',
+  ): Promise<void> {
+    const key = keys.comment(ref.postId, ref.createdAt, ref.commentId);
+    const existing = await this.getItem<CommentItem>(key);
+    if (!existing) return;
+    await this.putItem({ ...key, type: 'Comment', ...existing, moderationState: state });
   }
 
   async list(

@@ -41,7 +41,11 @@ export class EngagementData {
     });
   }
 
-  comment(postId: string, body: string): Promise<Comment> {
-    return this.client.call<Comment>('postPostsByPostIdComments', { params: { postId }, body: { body } });
+  /** 008/FR-023. `parentCommentId` makes it a reply; the server resolves it. */
+  comment(postId: string, body: string, parentCommentId?: string | null): Promise<Comment> {
+    return this.client.call<Comment>('postPostsByPostIdComments', {
+      params: { postId },
+      body: { body, ...(parentCommentId ? { parentCommentId } : {}) },
+    });
   }
 }

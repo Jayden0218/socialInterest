@@ -301,21 +301,21 @@ ancestor) and a moderated parent whose replies stay readable.
 
 ### Tests for User Story 7
 
-- [ ] T108 [P] [US7] Write `apps/api/tests/integration/comment-replies.spec.ts`: replies grouped with their parent in 100% of cases, including a reply-to-a-reply (FR-025) and a moderated parent (FR-026), SC-010.
-- [ ] T109 [P] [US7] Write `apps/api/tests/unit/reply-parent-validation.spec.ts`: a `parentCommentId` naming a comment on a **different** post is refused.
-- [ ] T110 [P] [US7] Write `apps/api/tests/integration/moderation-does-not-cascade.spec.ts`: removing a parent leaves its replies readable, with the removal stated.
+- [X] T108 [P] [US7] Write `apps/api/tests/integration/comment-replies.spec.ts`: replies grouped with their parent in 100% of cases, including a reply-to-a-reply (FR-025) and a moderated parent (FR-026), SC-010.
+- [X] T109 [P] [US7] Write `apps/api/tests/unit/reply-parent-validation.spec.ts`: a `parentCommentId` naming a comment on a **different** post is refused.
+- [X] T110 [P] [US7] Write `apps/api/tests/integration/moderation-does-not-cascade.spec.ts`: removing a parent leaves its replies readable, with the removal stated.
 
 ### Implementation for User Story 7
 
-- [ ] T111 [US7] Add `parentCommentId` (FR-023) and `moderationState` to the comment item in `apps/api/src/persistence/comment.repository.ts`. **Do not change the sort key** — listing comments stays one Query (A48 reuses A15).
-- [ ] T112 [US7] Validate the parent is a comment on the same post, in `apps/api/src/modules/engagement/comment.service.ts`.
-- [ ] T113 [US7] Implement FR-025's attach-to-deepest-permitted-ancestor rule in `apps/api/src/modules/engagement/comment.service.ts`, so a deeper reply is re-parented rather than refused.
-- [ ] T114 [US7] Group replies with their parent in the list response in `apps/api/src/modules/engagement/comment.service.ts`, ordering parent-then-replies-by-time (FR-024).
-- [ ] T115 [US7] Make moderation of a comment **not** cascade to its replies (FR-026) in `apps/api/src/modules/moderation/moderation.controller.ts` and the removal path it calls — there is no `moderation.service.ts`; the parent renders as removed.
-- [ ] T116 [P] [US7] Add `parentCommentId` and `moderationState` to `packages/shared/src/types/entities.ts`'s `commentSchema`, and to the OpenAPI contract.
-- [ ] T117 [US7] Register the replies read path as matrix surface 15 in `apps/api/tests/visibility/matrix.spec.ts` and add its assertion to `apps/api/tests/visibility/surface-routing.spec.ts`.
-- [ ] T118 [US7] Add the reply affordance and the nested rendering to `apps/mobile/src/features/engagement/`. The composer may sit below the field here — it rides under a `flex: 1` list that absorbs the keyboard resize, which is why the comment composer passed runs 34 and 37 while sign-in did not.
-- [ ] T119 [US7] Add `testID`s, run `verify-maestro-ids.mjs`, and add `.maestro/29-reply-to-comment.yaml` asserting `POST /v1/posts/{id}/comments` **201** with a parent.
+- [X] T111 [US7] Add `parentCommentId` (FR-023) and `moderationState` to the comment item in `apps/api/src/persistence/comment.repository.ts`. **Do not change the sort key** — listing comments stays one Query (A48 reuses A15).
+- [X] T112 [US7] Validate the parent is a comment on the same post, in `apps/api/src/modules/engagement/comment.service.ts`.
+- [X] T113 [US7] Implement FR-025's attach-to-deepest-permitted-ancestor rule in `apps/api/src/modules/engagement/comment.service.ts`, so a deeper reply is re-parented rather than refused.
+- [X] T114 [US7] Group replies with their parent in the list response in `apps/api/src/modules/engagement/comment.service.ts`, ordering parent-then-replies-by-time (FR-024).
+- [X] T115 [US7] Make moderation of a comment **not** cascade to its replies (FR-026) in `apps/api/src/modules/moderation/moderation.controller.ts` and the removal path it calls — there is no `moderation.service.ts`; the parent renders as removed. **The task's premise was too narrow**: removing a reported comment did nothing to the comment at all. `report.service.ts` has accepted `subjectType: 'comment'` since 001 while the moderator's decision only transitioned the report and wrote the log, and a bare comment id could not locate the row (the key carries the post and `createdAt`). Comments are now reported as `<postId>:<commentId>` and existence-checked, like `message` and `review`.
+- [X] T116 [P] [US7] Add `parentCommentId` and `moderationState` to `packages/shared/src/types/entities.ts`'s `commentSchema`, and to the OpenAPI contract.
+- [X] T117 [US7] Register the replies read path as matrix surface 15 in `apps/api/tests/visibility/matrix.spec.ts` and add its assertion to `apps/api/tests/visibility/surface-routing.spec.ts`.
+- [X] T118 [US7] Add the reply affordance and the nested rendering to `apps/mobile/src/features/engagement/`. The composer may sit below the field here — it rides under a `flex: 1` list that absorbs the keyboard resize, which is why the comment composer passed runs 34 and 37 while sign-in did not.
+- [X] T119 [US7] Add `testID`s, run `verify-maestro-ids.mjs`, and add `.maestro/29-reply-to-comment.yaml` asserting `POST /v1/posts/{id}/comments` **201** with a parent.
 
 ---
 

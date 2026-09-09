@@ -200,6 +200,38 @@ const PROBES: Probe[] = [
     },
   },
   {
+    surface: 'comment replies',
+    /**
+     * 008/US7. The SAME endpoint, and that is exactly why this probe exists.
+     *
+     * A reply is listed through `CommentService.list` like any other comment, so
+     * the claim being proved is that a thread carrying REPLIES still gates on
+     * the post and never on the comment. The stub returns a reply whose parent
+     * is in the same page, which is the shape `groupWithParents` reorders — if
+     * grouping were ever moved to a path that read rows directly, this probe
+     * would stop seeing `PostQueryService` and fail.
+     */
+    run: ({ queries }) => {
+      const comments = new CommentService(
+        {
+          list: async () => ({
+            items: [
+              { commentId: 'c1', postId: 'p1', authorId: 'a1', body: 'parent', createdAt: '2026-01-01T00:00:00Z', parentCommentId: null },
+              { commentId: 'c2', postId: 'p1', authorId: 'a1', body: 'reply', createdAt: '2026-01-01T00:00:01Z', parentCommentId: 'c1' },
+            ],
+            nextCursor: null,
+          }),
+        } as never,
+        {} as never,
+        queries,
+        { findById: async () => null } as never,
+        { publish: async () => undefined } as never,
+        new ProfileProjection({ presignedGetUrl: async (k: string) => `http://store/signed/${k}` } as never),
+      );
+      return comments.list(VIEWER, 'p1');
+    },
+  },
+  {
     surface: 'notifications',
     // A notification must not reveal an unopenable post, and visibility can
     // change AFTER the notification was generated - so the stored list is

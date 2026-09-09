@@ -7,7 +7,11 @@ import { zodBody } from '../../common/http/validation';
 import { ReactionService } from './reaction.service';
 import { CommentService } from './comment.service';
 
-const commentSchema = z.object({ body: z.string().min(1).max(1000) });
+const commentSchema = z.object({
+  body: z.string().min(1).max(1000),
+  /** 008/FR-023. Absent means a top-level comment; the service resolves it. */
+  parentCommentId: z.string().optional(),
+});
 
 @Controller('posts')
 export class EngagementController {
@@ -47,6 +51,6 @@ export class EngagementController {
   @RateLimit({ capacity: 20, refillPerSecond: 0.3 })
   async comment(@Req() req: AppRequest, @Param('postId') postId: string, @Body() body: unknown) {
     const input = zodBody(commentSchema, body);
-    return this.comments.create(req.viewer!, postId, input.body);
+    return this.comments.create(req.viewer!, postId, input.body, input.parentCommentId ?? null);
   }
 }

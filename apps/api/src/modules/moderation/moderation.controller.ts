@@ -11,6 +11,7 @@ import { ConversationRepository } from '../../persistence/conversation.repositor
 import { RatingRepository } from '../../persistence/rating.repository';
 import { NotificationRepository } from '../../persistence/notification.repository';
 import { MessageRepository } from '../../persistence/message.repository';
+import { CommentRepository } from '../../persistence/comment.repository';
 
 const decisionSchema = z.object({
   state: z.enum(['under_review', 'actioned', 'dismissed']),
@@ -29,6 +30,7 @@ export class ModerationController {
     @Inject(NotificationRepository) private readonly notifications: NotificationRepository,
     @Inject(RatingRepository) private readonly ratings: RatingRepository,
     @Inject(ConversationRepository) private readonly conversations: ConversationRepository,
+    @Inject(CommentRepository) private readonly comments: CommentRepository,
   ) {}
 
   /**
@@ -96,6 +98,36 @@ export class ModerationController {
      */
     if (removing && report.subjectType === 'conversation-name') {
       await this.conversations.removeName(report.subjectId);
+    }
+    /**
+     * 008/FR-026 — AND THE HALF THAT DID NOT EXIST AT ALL.
+     *
+     * `report.service.ts` has accepted `subjectType: 'comment'` since 001, and
+     * a moderator's removal transitioned the report and wrote the audit log
+     * while THE COMMENT STAYED ON THE PAGE. Reporting existed, removal did not:
+     * the declared-half-with-no-other-half pattern 008 exists to end, on a
+     * Constitution IV release gate.
+     *
+     * Removal WITHHOLDS THE BODY and leaves the row, so replies keep their
+     * parent and the thread keeps its shape (FR-026) — the rule 005 set for a
+     * conversation name and for a message, now in a third place. A comment id
+     * alone does not locate the row (the key carries the post and `createdAt`),
+     * so the subject id carries the post: `<postId>:<commentId>`, the same
+     * composite `review` and `message` already use.
+     */
+    if (removing && report.subjectType === 'comment') {
+      const [postId, commentId] = report.subjectId.includes(':')
+        ? report.subjectId.split(':')
+        : [null, report.subjectId];
+      if (postId && commentId) {
+        const existing = await this.comments.findById(postId, commentId);
+        if (existing) {
+          await this.comments.setModerationState(
+            { postId, commentId, createdAt: existing.createdAt },
+            'removed',
+          );
+        }
+      }
     }
     if (removing && report.subjectType === 'message') {
       const [conversationId, messageId] = report.subjectId.split(':');

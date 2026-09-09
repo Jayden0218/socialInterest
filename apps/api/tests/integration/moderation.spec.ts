@@ -41,12 +41,21 @@ describe('moderation — reports, decisions, and the audit trail', () => {
     // to that space sees, and NamePolicy only catches the obvious.
     expect(interest.status).toBe(201);
 
+    /**
+     * 008. A COMMENT IS REPORTED AS `<postId>:<commentId>`, and the id is
+     * CHECKED.
+     *
+     * This used to pass a fabricated ULID and expect 201, because the check was
+     * a regex — in the same test file whose next case asserts that reporting
+     * something that does not exist is refused rather than silently queued. A
+     * bare id also located nothing, so no moderator could ever act on it.
+     */
     const comment = await report({
       subjectType: 'comment',
-      subjectId: '01JQQQQQQQQQQQQQQQQQQQQQQQ',
+      subjectId: `01JQQQQQQQQQQQQQQQQQQQQQQQ:01JQQQQQQQQQQQQQQQQQQQQQQQ`,
       reason: 'other',
     });
-    expect(comment.status).toBe(201);
+    expect(comment.status).toBe(404);
   }, 90_000);
 
   it('reporting something that does not exist is refused, not silently queued', async () => {

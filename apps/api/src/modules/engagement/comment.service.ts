@@ -8,6 +8,24 @@ import { PostQueryService } from '../posts/post-query.service';
 import { ProfileProjection } from '../people/profile.projection';
 import type { Viewer } from '../../visibility/visibility.filter';
 import { EVENT_BUS, type EventBus } from '../../ports';
+import { groupWithParents, validReplyParent } from './reply-parent';
+
+/**
+ * The response shape, named rather than `Record<string, unknown>`.
+ *
+ * `groupWithParents` needs `commentId` and `parentCommentId` to be more than
+ * "some key that might be there" — and a named shape is what stops the seventh
+ * instance of this codebase's oldest defect, a persistence row escaping as a
+ * response.
+ */
+export interface CommentResponse {
+  commentId: string;
+  author: unknown;
+  body: string | null;
+  moderationState: 'removed' | null;
+  parentCommentId: string | null;
+  createdAt: string;
+}
 
 /**
  * FR-040. A comment is readable EXACTLY when its post is - visibility is never
@@ -35,7 +53,7 @@ export class CommentService {
    * distinct id rather than once per comment, so a thread of fifty comments
    * from three people costs three reads.
    */
-  private async withAuthors(items: CommentItem[]): Promise<Record<string, unknown>[]> {
+  private async withAuthors(items: CommentItem[]): Promise<CommentResponse[]> {
     const ids = [...new Set(items.map((c) => c.authorId))];
     const profiles = new Map(
       (await Promise.all(ids.map((id) => this.people.findById(id)))).map((p, i) => [
@@ -48,7 +66,18 @@ export class CommentService {
         commentId: c.commentId,
         // 008/US5. One projection, so a comment author has a face too.
         author: await this.profiles.fromPerson(c.authorId, profiles.get(c.authorId) ?? null),
-        body: c.body,
+        /**
+         * 008/FR-026. A removed comment keeps its ROW and loses its BODY.
+         *
+         * `null` rather than a placeholder sentence, so the client decides how
+         * to say it and no two surfaces can word it differently. The row stays
+         * because deleting it would take the thread's shape with it and leave
+         * every reply an orphan — which reads as a bug to the people who wrote
+         * them.
+         */
+        body: c.moderationState === 'removed' ? null : c.body,
+        moderationState: c.moderationState ?? null,
+        parentCommentId: c.parentCommentId ?? null,
         createdAt: c.createdAt,
       })),
     );
@@ -68,8 +97,13 @@ export class CommentService {
   async list(viewer: Viewer, postId: string, opts: { limit?: number; cursor?: string | null } = {}) {
     await this.requireReadablePost(viewer, postId);
     const page = await this.comments.list(postId, opts);
+    /**
+     * 008/FR-024. Grouped AFTER the author hydration and BEFORE the response,
+     * so the ordering rule sees exactly what the client will.
+     */
+    const visible = page.items.filter((c) => !c.deletedAt);
     return {
-      items: await this.withAuthors(page.items.filter((c) => !c.deletedAt)),
+      items: groupWithParents(await this.withAuthors(visible)),
       nextCursor: page.nextCursor,
     };
   }
@@ -79,13 +113,40 @@ export class CommentService {
     viewer: { userId: string },
     postId: string,
     body: string,
-  ): Promise<Record<string, unknown>> {
+    parentCommentId?: string | null,
+  ): Promise<CommentResponse> {
     await this.requireReadablePost(viewer, postId);
+    /**
+     * 008/FR-023, FR-025. The parent is resolved against THIS POST's comments.
+     *
+     * The rows are read even when no parent was named — one Query, the same one
+     * the listing does — because a reply that named a parent on another post
+     * must be refused rather than stored, and a reply-to-a-reply must be
+     * re-parented rather than rejected.
+     */
+    let parent: string | null = null;
+    if (parentCommentId) {
+      const existing = await this.comments.list(postId, { limit: 200 });
+      const decision = validReplyParent(
+        existing.items.map((c) => ({
+          commentId: c.commentId,
+          postId: c.postId,
+          parentCommentId: c.parentCommentId ?? null,
+        })),
+        postId,
+        parentCommentId,
+      );
+      if (!decision.ok) {
+        throw new DomainError(HttpStatus.BAD_REQUEST, 'That comment is not on this post');
+      }
+      parent = decision.parentCommentId;
+    }
     const comment: CommentItem = {
       commentId: ulid(),
       postId,
       authorId: viewer.userId,
       body,
+      parentCommentId: parent,
       createdAt: new Date().toISOString(),
     };
     await this.comments.create(comment);

@@ -1,0 +1,96 @@
+# 008/US7, T119 — A REPLY LANDS UNDER THE COMMENT IT ANSWERS.
+#
+# WHAT TO READ IN THE RUN AGGREGATE:
+#   POST /v1/posts/:postId/comments  201  (twice: the comment, then the reply)
+# A reply that never reached the server would still render optimistically
+# nowhere and pass every on-screen assertion below.
+#
+# NOT CHAINED to `08-comment.yaml`. Flows share ONE SERVER and 08 leaves a
+# comment on a post 04 published; chaining would make this flow's first comment
+# a reply to whatever 08 left, which is a different test that fails for the
+# wrong reason. This publishes its own post.
+appId: app.socialinterest
+---
+- runFlow: 01-sign-in.yaml
+
+- tapOn:
+    id: "open-compose"
+- assertVisible:
+    id: "media-picker-screen"
+- tapOn:
+    id: "media-item-image-0"
+- tapOn:
+    id: "media-continue"
+- assertVisible:
+    id: "compose-screen"
+- tapOn:
+    id: "interest-option-0"
+- tapOn:
+    id: "caption-input"
+- inputText: "a post with a thread"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "publish-button"
+    direction: DOWN
+- extendedWaitUntil:
+    visible: "Uploaded"
+    timeout: 120000
+- tapOn:
+    id: "publish-button"
+- extendedWaitUntil:
+    notVisible:
+      id: "compose-screen"
+    timeout: 60000
+
+- tapOn:
+    id: "tab-profile"
+- extendedWaitUntil:
+    visible:
+      id: "post-[0-9A-Z]{26}"
+    timeout: 60000
+- tapOn:
+    id: "post-[0-9A-Z]{26}"
+- assertVisible:
+    id: "comments-button"
+- tapOn:
+    id: "comments-button"
+- assertVisible:
+    id: "comments-screen"
+
+# The parent.
+- tapOn:
+    id: "comment-input"
+- inputText: "the first remark"
+- hideKeyboard
+- tapOn:
+    id: "comment-submit"
+- extendedWaitUntil:
+    visible:
+      id: "comment-0"
+    timeout: 30000
+
+# The reply. `comment-reply-0` is offered on a TOP-LEVEL comment only: nesting
+# is bounded at one level (FR-025) and a control whose result is silently
+# re-parented would explain that bound as a surprise rather than a rule.
+- tapOn:
+    id: "comment-reply-0"
+- assertVisible:
+    id: "reply-banner"
+- tapOn:
+    id: "comment-input"
+- inputText: "an answer to it"
+- hideKeyboard
+- tapOn:
+    id: "comment-submit"
+
+# The banner clears on a successful send, which is the app's own statement that
+# the reply went as a reply rather than as another top-level comment.
+- extendedWaitUntil:
+    notVisible:
+      id: "reply-banner"
+    timeout: 30000
+- assertVisible:
+    id: "comment-1"
+- assertNotVisible:
+    id: "load-error"

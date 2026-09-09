@@ -245,7 +245,7 @@ export function NotificationsContainer({ onOpen }: { onOpen: (postId: string) =>
 
 /* --- post detail, comments, safety: the remaining screens, wired --- */
 
-import type { Interest, Post } from '@sih/shared';
+import type { Comment, Interest, Post } from '@sih/shared';
 import { PostDetailScreen } from '../features/posts/PostDetailScreen';
 import { EditPostScreen, type EditPostDraft } from '../features/posts/EditPostScreen';
 import { SharedPostScreen } from '../features/posts/SharedPostScreen';
@@ -429,12 +429,15 @@ export function CommentsContainer({ postId }: { postId: string }) {
   const [draft, setDraft] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState<number | undefined>(undefined);
+  // 008/FR-023. Which comment the composer is answering, if any.
+  const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
 
   const submit = useCallback(async () => {
     setSubmitting(true);
     try {
-      await data.engagement.comment(postId, draft);
+      await data.engagement.comment(postId, draft, replyingTo?.commentId ?? null);
       setDraft('');
+      setReplyingTo(null);
       setStatus(undefined);
       reload();
     } catch (err) {
@@ -445,7 +448,7 @@ export function CommentsContainer({ postId }: { postId: string }) {
     } finally {
       setSubmitting(false);
     }
-  }, [data, postId, draft, reload]);
+  }, [data, postId, draft, replyingTo, reload]);
 
   if (error) return <Failed message={error} />;
   return (
@@ -453,9 +456,11 @@ export function CommentsContainer({ postId }: { postId: string }) {
       comments={state.items}
       draft={draft}
       submitting={submitting}
+      replyingTo={replyingTo}
       {...(status !== undefined ? { status } : {})}
       onDraftChange={setDraft}
       onSubmit={() => void submit()}
+      onReplyTo={setReplyingTo}
     />
   );
 }

@@ -85,6 +85,17 @@ export const SURFACES: readonly Surface[] = [
   // same shape as `postInterestIndex` - so the boundary is what makes SC-009's
   // "unfindable by viewers who may not see it" true, not the index.
   { name: 'post search', built: true, story: '008/US6 (T098)' },
+  /**
+   * Phase C, surface 15. COMMENT REPLIES.
+   *
+   * The comments surface (6) has always been here, and a reply is read through
+   * the same endpoint — so this row is not a second boundary call, it is the
+   * assertion that the REPLY rows are gated by the post exactly as their
+   * parents are. Without it, a change that listed replies from a different path
+   * would leave the matrix reporting a green comments surface while a reply
+   * leaked the existence of a post the viewer cannot open.
+   */
+  { name: 'comment replies', built: true, story: '008/US7 (T117)' },
 ] as const;
 
 /**
@@ -120,6 +131,7 @@ export const EVER_BUILT: readonly string[] = [
   // 008
   'following feed',
   'post search',
+  'comment replies',
 ];
 
 export const POST_STATE_COUNT = 7;
