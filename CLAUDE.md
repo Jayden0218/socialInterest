@@ -536,11 +536,42 @@ both feed tabs live and a **`1/3` badge** on the multi-photo card.
   data-testid="media-pager">` — where the emulator took 36 minutes to say "not visible". The
   component tests fire `layout` explicitly now rather than hiding the dependency.
 
+### PHASE B RUNS ON ANDROID: 26/26, run 51, 2026-09-09
+
+Record: `docs/verification/runs/2026-09-09-008-phase-b-device-record.md`. Booted in 62s, no
+retries, no device drop. Read as DELTAS against run 50, because every one of them is the line
+a fixed flow was supposed to add and nothing else moved: **`POST /v1/media/uploads` 12 -> 13**
+(the avatar upload), **`PATCH /v1/me` 1 -> 3** (set AND removed, FR-017 both directions),
+**`PUT /v1/conversations/with/:handle` 2 -> 3** and **`POST .../messages` 4 -> 5** (a post sent
+to somebody never messaged), plus `GET /v1/search/posts` 200 x11, which passed in both runs.
+
+**It took two runs and both of run 50's failures were mine.** Run 50 was **24 of 26** — I
+first reported it as "22 of 24" WITHOUT COUNTING THE FLOWS, which is the same habit these
+records exist to check.
+
+- **A MAESTRO SELECTOR IS A REGEX, and mine matched a text field.** `share-person-.*` selects
+  a recipient whose handle the flow cannot know; the search field was `share-person-search`,
+  matched the same pattern, and renders FIRST. The tap focused the field, nothing was sent,
+  and the run showed **no 4xx on any path** because there was nothing to refuse.
+  **The browser settled it in 3.9 seconds** (`browser/share-sends.spec.ts`: publish, open,
+  share, tap a real recipient, sheet closes) where the device took 35 minutes to say
+  "still visible". The flow also claimed it was "sending to yourself", which
+  `PersonSearchService` makes impossible — **the same fact that had broken a journey of mine
+  an hour earlier**.
+- **The avatar handed off to a system window nothing could close.** `onChangeAvatar` awaited
+  `library.pick()`, which opens `com.android.documentsui` on a device. 12 uploads for 10 posts
+  said so before any theory did: no avatar upload was ever attempted. Compose never had this
+  problem because it shows the app's OWN picker with the gallery behind an explicit control;
+  setting a picture takes that route now. No browser journey could have caught it
+  (react-native-web has no native picker) and no screen test either — the container test does.
+- **`verify-maestro-ids` had been misreading selectors since it was written.** Its id capture
+  class excluded `*`, so `share-person-.*` was read as `share-person-.`. Fixed, then given the
+  check it was missing: a pattern may not also match a declared literal. It immediately found
+  `post-.*` matching `post-detail-screen`, `post-caption`, `post-media` and `post-image` in six
+  flows — working **by luck rather than by meaning**. A postId is a ULID and the selectors say
+  so now.
+
 ### Still not verified for 008, and must be reported that way
-- **Phase B on a device.** Run 50 is dispatched at the time of writing and its result is NOT
-  recorded here. Until it is, US4's send, US5's avatar and US6's search have never rendered a
-  frame on Android — Constitution V, and this file has twice carried a device claim that a
-  later run retracted.
 - **Native font scaling.** `safety-fit.spec.ts` measures layout at 130% text in a browser and
   says so; react-native-web ignores the platform font setting entirely, which is why 006's
   `Avatar` overflow was invisible there. **A browser result does not close SC-017**, and Phase

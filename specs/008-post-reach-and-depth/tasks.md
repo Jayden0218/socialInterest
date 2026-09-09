@@ -284,8 +284,8 @@ finds nothing; the signal profile is unchanged.
 
 ## Phase 10: Release gate — Phase B (US4–US6)
 
-- [ ] T106 Run the real CI step list, the visibility matrix with surfaces 13–14 and zero skipped rows, and SC-017 for Phase B's controls; record in `docs/verification/runs/2026-09-09-008-phase-b.md`.
-- [ ] T107 Dispatch `.github/workflows/android-emulator.yml` for Phase B's flows, read the aggregate, write the run record, and check every Phase B box in this file.
+- [X] T106 Run the real CI step list, the visibility matrix with surfaces 13–14 and zero skipped rows, and SC-017 for Phase B's controls; record in `docs/verification/runs/2026-09-09-008-phase-b.md`.
+- [X] T107 Dispatch `.github/workflows/android-emulator.yml` for Phase B's flows, read the aggregate, write the run record, and check every Phase B box in this file. **Run 51: 26/26**, `docs/verification/runs/2026-09-09-008-phase-b-device-record.md`. Run 50 was 24/26 and both failures were the flows, not the product — a Maestro selector that also matched a text field, and an avatar control that handed off to a system window nothing could close.
 
 **Checkpoint — Phase B may ship.**
 
