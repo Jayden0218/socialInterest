@@ -9,6 +9,14 @@ export type { Palette };
  * LIGHT, because the approved 007 design is warm paper. 006's default was dark
  * green and that was the right default for THAT design; this is not a setting
  * being flipped, it is a different product surface — see `tokens.ts`.
+ *
+ * A DOWNSTREAM FORK OVERRIDES THE BRAND IN `../overlay/palette.ts`, NOT HERE.
+ * This is the file you would look in first, so: `light` above is already the
+ * resolved palette — `tokens.ts` applies the overlay at the definition point,
+ * because the contrast, one-accent and interest-colour guards import from
+ * there. An override at this level would re-brand the app while leaving every
+ * accessibility check measuring upstream's colours, which is two sources of
+ * truth for one fact.
  */
 export const activePalette: Palette = light;
 

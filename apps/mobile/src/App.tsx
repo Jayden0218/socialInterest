@@ -32,6 +32,7 @@ import {
 } from './screens';
 import type { ReportSubject } from './features/safety/SafetyActions';
 import { API_BASE_URL } from './config';
+import { OVERLAY_SCREENS } from './overlay/screens';
 
 export type Tab = 'feed' | 'discover' | 'chats' | 'notifications' | 'profile';
 
@@ -137,7 +138,17 @@ export type Route =
   | { name: 'pick-interests' }
   | { name: 'safety'; subject: ReportSubject; subjectId: string; authorHandle?: string }
   // ---- feature 008
-  | { name: 'moderation-notices' };
+  | { name: 'moderation-notices' }
+  /**
+   * A downstream fork's own destination. Empty upstream — see
+   * ./overlay/README.md.
+   *
+   * ONE variant for all of them, rather than widening this union: `Route` stays
+   * a closed discriminated union, every existing case keeps its types, and a
+   * fork adding a screen never edits the lines upstream edits. `screen` is the
+   * key into `OVERLAY_SCREENS`.
+   */
+  | { name: 'overlay'; screen: string; params?: Record<string, unknown> };
 
 /**
  * The root fills the viewport AND paints the surface.
@@ -153,6 +164,19 @@ const appRootStyle = {
   minHeight: '100%',
   backgroundColor: palette.bg.base,
 } as const;
+
+/**
+ * The header's title.
+ *
+ * Every base route's `name` reads as its own title, which is why this was
+ * `top.name` inline. An overlay route's name is the literal `'overlay'` for all
+ * of them, so its title comes from the registry — without this every fork
+ * screen would head the bar with the word "overlay".
+ */
+function headerTitle(route: Route): string {
+  if (route.name !== 'overlay') return route.name;
+  return OVERLAY_SCREENS[route.screen]?.title ?? route.screen;
+}
 
 function Header({ title, onBack }: { title: string; onBack: () => void }) {
   return (
@@ -171,11 +195,20 @@ function Header({ title, onBack }: { title: string; onBack: () => void }) {
   );
 }
 
-/** Exported so the navigation between screens can be tested without the provider. */
-export function Shell() {
+/**
+ * Exported so the navigation between screens can be tested without the provider.
+ *
+ * `initialStack` is where the app starts, and it defaults to the tabs. It is the
+ * same capability the share-link effect below already uses — that one replaces
+ * the stack from the address — made explicit, because an OVERLAY route has no
+ * other way in: nothing upstream pushes one (a fork's own screen does), so
+ * without this the overlay case could not be reached to be tested at all, and an
+ * untested seam is one that is broken the first time a fork uses it.
+ */
+export function Shell({ initialStack = [] }: { initialStack?: Route[] } = {}) {
   const data = useData();
   const [tab, setTab] = useState<Tab>('feed');
-  const [stack, setStack] = useState<Route[]>([]);
+  const [stack, setStack] = useState<Route[]>(initialStack);
   const [signedIn, setSignedIn] = useState(false);
 
   useEffect(() => {
@@ -435,12 +468,40 @@ export function Shell() {
               onDone={pop}
             />
           );
+        /**
+         * A downstream fork's own screen. There are none upstream.
+         *
+         * An UNKNOWN key renders a visible notice rather than nothing. A blank
+         * body is the failure this codebase keeps finding — a tab with no feed
+         * behind it, a screen nothing mounts — and it looks identical to a
+         * screen that rendered and had nothing to say. This one names the key
+         * that is missing.
+         */
+        case 'overlay': {
+          const overlay = OVERLAY_SCREENS[top.screen];
+          if (!overlay) {
+            return (
+              <View testID="overlay-screen-missing" style={{ padding: space.md }}>
+                <Text style={{ ...textStyle.body, color: palette.intent.danger }}>
+                  No overlay screen is registered for “{top.screen}”.
+                </Text>
+              </View>
+            );
+          }
+          return overlay.render({
+            params: top.params ?? {},
+            push,
+            pop,
+            requireSignIn,
+            signedIn,
+          });
+        }
       }
     })();
 
     return (
       <View testID="app-root" style={appRootStyle}>
-        <Header title={top.name} onBack={pop} />
+        <Header title={headerTitle(top)} onBack={pop} />
         {body}
       </View>
     );

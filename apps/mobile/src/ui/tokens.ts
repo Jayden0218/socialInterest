@@ -1,4 +1,5 @@
 import { oklch } from './color';
+import { OVERLAY_PALETTES } from '../overlay/palette';
 
 /**
  * THE DESIGN SYSTEM — 007, rebuilt from `design/007-ui/_tokens.md`.
@@ -57,7 +58,7 @@ export interface Palette {
  * not a matter of taste. Anything that genuinely needs to recede further is a
  * spacing or weight decision, not a paler grey.
  */
-export const light: Palette = {
+const baseLight: Palette = {
   bg: {
     /** The page. Warm, so a white card reads as raised without a shadow. */
     base: '#FBFAF8',
@@ -108,7 +109,7 @@ export const light: Palette = {
  * to build its styles inside the component; that is a change of shape and is not
  * claimed here.
  */
-export const dark: Palette = {
+const baseDark: Palette = {
   bg: {
     base: '#121714',
     raised: '#1A211D',
@@ -134,6 +135,31 @@ export const dark: Palette = {
   },
   interest: { l: 0.82, c: 0.11 },
 };
+
+/**
+ * THE ACTIVE PALETTES: this repository's, unless a downstream fork replaces one.
+ *
+ * `OVERLAY_PALETTES` is empty here, so `light` is `baseLight` and `dark` is
+ * `baseDark` and nothing about this build changes. See ../overlay/README.md.
+ *
+ * RESOLVED HERE, at the definition point, and that is the whole design. Every
+ * consumer reads `light`/`dark` from this file — the 41 screens by way of
+ * `ui/theme`, `interest-colour.ts`, and the contrast, one-accent and
+ * interest-colour GUARDS. Overriding one level up in `theme.ts` would have left
+ * a fork's palette rendering in the app while every accessibility check still
+ * measured upstream's, which is two sources of truth for one fact.
+ *
+ * So a fork's palette is held to the same floor: `contrast.test.ts` enumerates
+ * the whole generated colour space of whatever is active, and
+ * `palette-overlay.test.ts` proves a failing overlay palette is caught rather
+ * than assuming it would be.
+ *
+ * `baseLight` and `baseDark` stay exported so a fork can spread one and change
+ * an accent rather than restating 40 values it does not care about.
+ */
+export const light: Palette = OVERLAY_PALETTES.light ?? baseLight;
+export const dark: Palette = OVERLAY_PALETTES.dark ?? baseDark;
+export { baseLight, baseDark };
 
 /**
  * TYPE: seven roles, never a number at a call site.
