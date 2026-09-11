@@ -1,4 +1,5 @@
-// GENERATED from specs/001-interest-media-sharing/contracts/openapi.yaml
+// GENERATED from the resolved contract: specs/001-interest-media-sharing/contracts/openapi.yaml
+// with contracts/openapi.overlay.yaml merged in (see contracts/README.md).
 // Do not edit by hand. Run: pnpm --filter @sih/shared generate:client
 //
 // 91 operations across 66 paths.

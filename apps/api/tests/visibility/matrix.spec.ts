@@ -4,7 +4,8 @@ import type { BlockRepository } from '../../src/persistence/block.repository';
 import type { PersonRepository } from '../../src/persistence/person.repository';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { EVER_BUILT, SURFACES } from './surfaces';
+import { BASE_EVER_BUILT, BASE_SURFACES, EVER_BUILT, SURFACES } from './surfaces';
+import { OVERLAY_SURFACES } from '../overlay/surfaces.overlay';
 
 /**
  * ===========================================================================
@@ -105,6 +106,20 @@ const TABLE: Record<PrivacyKey, Record<StateKey, Record<ViewerKey, boolean>>> = 
   open: EXPECTED,
   private: EXPECTED_PRIVATE_AUTHOR,
 };
+
+/**
+ * The size of one post surface's block of assertions, derived from the tables
+ * above rather than written down. 7 states x 7 viewers x 2 privacy settings.
+ *
+ * Derived on purpose: the counts below are about HOW MANY SURFACES run, and a
+ * second hand-written copy of the table dimensions is a number that can disagree
+ * with the tables it is counting.
+ */
+const ASSERTIONS_PER_POST_SURFACE =
+  Object.keys(POST_STATES).length * Object.keys(VIEWERS).length * PRIVACY.length;
+
+const postSurfacesIn = (list: readonly { kind?: string; built: boolean }[]) =>
+  list.filter((s) => (s.kind ?? 'post') === 'post');
 
 // The surface list lives in surfaces.ts so this suite and surface-routing.spec.ts
 // cannot drift. See that file for why.
@@ -452,8 +467,22 @@ describe('SC-005 review visibility (005 addendum)', () => {
       // DELIBERATE, reviewable edit and is meant to be: a surface added without
       // touching it fails here, which is the only thing stopping the enumeration
       // silently falling behind the product.
-      expect(SURFACES.length).toBe(16);
-      expect(EVER_BUILT.length).toBe(16);
+      //
+      // PINNED AGAINST THE BASE LIST, not the composed one. The deliberate-edit
+      // property is the point and is unchanged - this literal is still the thing
+      // somebody has to raise to add a surface HERE. What it no longer does is
+      // collide with a downstream fork raising it for a surface of their own:
+      // theirs lands in ../overlay/ and is counted below. See ../overlay/README.md.
+      expect(BASE_SURFACES.length).toBe(16);
+      expect(BASE_EVER_BUILT.length).toBe(16);
+      // And the composed list really is base plus overlay - so an overlay that
+      // dropped or duplicated an entry cannot pass the two checks above.
+      //
+      // Deliberately NOT `EVER_BUILT.length === 16 + OVERLAY_SURFACES.length`:
+      // a surface honestly in progress is in the surface list and NOT yet in the
+      // ratchet, and 004/T128 split those two lists apart precisely so that case
+      // is not a failure. The overlay's ratchet is its own size.
+      expect(SURFACES.length).toBe(BASE_SURFACES.length + OVERLAY_SURFACES.length);
     });
   });
 
@@ -486,6 +515,49 @@ describe('SC-005 review visibility (005 addendum)', () => {
       console.log('\n  SC-005 is NOT closed: the review surface is still in progress.\n');
       return;
     }
-    expect(assertionsRun + reviewAssertionsRun).toBe(1488);
+
+    const reviewAssertions =
+      Object.keys(REVIEW_STATES).length * Object.keys(REVIEW_VIEWERS).length + 2;
+
+    /**
+     * THIS REPOSITORY'S NUMBER, still pinned as a literal.
+     *
+     * Derived from the base surface list so the literal can be checked against
+     * something rather than restated: 15 built post surfaces x 98 + 18 = 1,488.
+     * Raising it is exactly as deliberate an edit as it was before.
+     */
+    const baseTotal =
+      postSurfacesIn(BASE_SURFACES).filter((s) => s.built).length * ASSERTIONS_PER_POST_SURFACE +
+      reviewAssertions;
+    expect(baseTotal).toBe(1488);
+
+    /**
+     * AND WHAT THIS BUILD ACTUALLY RAN: base plus the overlay's contribution.
+     * Upstream's overlay is empty, so this is the same 1,488 assertion it always
+     * was. A fork adding two post surfaces expects 1,684 without touching this
+     * file. See ../overlay/README.md.
+     */
+    const overlayTotal =
+      postSurfacesIn(OVERLAY_SURFACES).filter((s) => s.built).length * ASSERTIONS_PER_POST_SURFACE;
+    expect(assertionsRun + reviewAssertionsRun).toBe(baseTotal + overlayTotal);
+  });
+
+  /**
+   * AN OVERLAY REVIEW SURFACE WOULD BE SILENTLY UNCOVERED, SO REFUSE ONE.
+   *
+   * The review block above resolves its surface with `find(s => s.kind ===
+   * 'review')` - singular. A second review-kind surface would never be run, and
+   * it would contribute 0 to both the actual and the expected count, so the
+   * total above would still balance and the matrix would report green over a
+   * surface it had never asserted. That is the "a surface that looks covered"
+   * failure arriving through the enumeration.
+   *
+   * Post surfaces are what this seam supports. Adding a review-kind surface
+   * means generalising the review block to loop, exactly as the post block does
+   * - and this failure is what says so, instead of silence.
+   */
+  it('refuses an overlay review surface, which the review block would not run', () => {
+    const overlayReviews = OVERLAY_SURFACES.filter((s) => s.kind === 'review').map((s) => s.name);
+    expect(overlayReviews).toEqual([]);
   });
 });

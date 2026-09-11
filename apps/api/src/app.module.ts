@@ -23,6 +23,7 @@ import { AuthGuard } from './common/auth/auth.guard';
 import { RateLimitGuard } from './common/rate-limit/rate-limit.guard';
 import { LoggerMiddleware } from './common/logging/logger.middleware';
 import { HealthController } from './modules/health/health.controller';
+import { OVERLAY_MODULES } from './overlay/modules';
 
 @Module({
   imports: [
@@ -45,6 +46,10 @@ import { HealthController } from './modules/health/health.controller';
     ConversationsModule,
     PlacesModule,
     SavedModule,
+    // A downstream fork's feature modules. Empty here and meant to stay empty -
+    // see ./overlay/README.md. Last, so a fork's module can depend on anything
+    // above it and nothing above it can depend on a fork's module.
+    ...OVERLAY_MODULES,
   ],
   controllers: [HealthController],
   providers: [

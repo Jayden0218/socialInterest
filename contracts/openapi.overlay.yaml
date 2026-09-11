@@ -1,0 +1,22 @@
+# CONTRACT OVERLAY — empty upstream, filled in by a downstream fork.
+#
+# See ./README.md. This file is merged onto
+# specs/001-interest-media-sharing/contracts/openapi.yaml by
+# packages/shared/scripts/contract.ts, which both the API's contract suites and
+# the client generator read. Upstream never adds to it.
+#
+# It may contain ONLY `paths` and `components.schemas`, and may not redefine an
+# operation or a schema the base contract already declares — the resolver
+# refuses both, loudly, rather than silently overriding.
+#
+# Example of what a fork would put here:
+#
+#   paths:
+#     /fork/widgets:
+#       get:
+#         summary: List widgets
+#         security: []
+#         responses:
+#           '200': { description: OK }
+#
+paths: {}

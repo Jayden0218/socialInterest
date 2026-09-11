@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 
 /**
  * NO HOOK MAY BE DECLARED AFTER A CONTAINER'S `return`.
@@ -16,15 +16,49 @@ import { resolve } from 'node:path';
  *
  * This is the cheap half of the guard: a text check that costs nothing and
  * catches the whole class before it reaches a browser.
+ *
+ * ---------------------------------------------------------------------------
+ * IT READ ONE FILE, AND THAT FILE STOPPED HOLDING THE CONTAINERS.
+ *
+ * Until 2026-09-11 this opened `../screens/index.tsx` by name, because every
+ * container lived in it. Splitting them into one file each left that path
+ * pointing at a barrel of re-export lines - no `export function`, so no blocks,
+ * so no offenders, so GREEN. The guard did not fail when its subject moved; it
+ * passed while covering nothing, which is worse, and it passed on the very run
+ * that moved them.
+ *
+ * It reads the DIRECTORY now, and the coverage assertion below exists because
+ * of that hour: a guard that finds nothing to inspect must fail, not pass.
+ * ---------------------------------------------------------------------------
  */
 describe('containers declare their hooks before returning', () => {
-  const source = readFileSync(resolve(__dirname, '../screens/index.tsx'), 'utf8');
+  const SCREENS = resolve(__dirname, '../screens');
+  const files = readdirSync(SCREENS)
+    .filter((f) => f.endsWith('.tsx') && f !== 'index.tsx')
+    .sort();
+
+  const blocks = files.flatMap((file) => {
+    const source = readFileSync(join(SCREENS, file), 'utf8');
+    // Top-level function declarations, which all start at column 0.
+    return source.split(/\nexport function /).slice(1).map((block) => ({ file, block }));
+  });
+
+  /**
+   * THE GUARD IS ACTUALLY LOOKING AT SOMETHING.
+   *
+   * Not a count for its own sake: `expect(offenders).toEqual([])` is vacuously
+   * true over an empty list, so without this the whole suite reports success
+   * whenever the containers move, get renamed, or land in a subdirectory. That
+   * is precisely the failure the note above records.
+   */
+  it('finds the container files to scan', () => {
+    expect(files.length).toBeGreaterThan(20);
+    expect(blocks.length).toBeGreaterThan(20);
+  });
 
   it('no hook appears after ANY return in an exported container', () => {
     const offenders: string[] = [];
-    // Split on the top-level function declarations, which all start at column 0.
-    const blocks = source.split(/\nexport function /).slice(1);
-    for (const block of blocks) {
+    for (const { file, block } of blocks) {
       const name = block.slice(0, block.indexOf('(' as string));
       // ANY return, not the final one. The first version of this test looked
       // only for `return (` at the end, so it passed against a hook placed
@@ -35,7 +69,7 @@ describe('containers declare their hooks before returning', () => {
       if (returnAt === -1) continue;
       const tail = block.slice(returnAt);
       const hook = /\n  const \w+ = (useCallback|useMemo)\(|\n  use(Effect|State)\(/.exec(tail);
-      if (hook) offenders.push(`${name}: ${hook[0].trim()}`);
+      if (hook) offenders.push(`${file} ${name}: ${hook[0].trim()}`);
     }
     expect(offenders).toEqual([]);
   });

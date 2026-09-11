@@ -502,3 +502,79 @@ export const ITEM_TYPE_005 = {
   rating: 'rating',
   conversationMember: 'conversation-member',
 } as const;
+
+/**
+ * ===========================================================================
+ * THE OVERLAY NAMESPACE — RESERVED, SO UPSTREAM CAN NEVER ALLOCATE IT.
+ * ===========================================================================
+ *
+ * This is a SINGLE-TABLE design, and a downstream fork's entities live in the
+ * same table as upstream's. That is the right answer - a fork needs no second
+ * table, no migration and no separate stack - and it has exactly one hazard,
+ * which this namespace exists to remove.
+ *
+ * THE HAZARD. A fork adds a widget under its owner's partition and picks the
+ * obvious sort key, `WIDGET#<id>`. Some months later upstream adds a widget of
+ * its own and picks the same obvious prefix. Now two different entity kinds
+ * share one key shape in one partition: a prefix Query returns both, and each
+ * row is deserialised as whatever the reader expected. It is not a merge
+ * conflict - the two changes are in different files and merge cleanly - and it
+ * is not a test failure either, because each side's tests pass against its own
+ * data. It is silent corruption discovered later, in production, by a reader
+ * that got a row of the wrong shape.
+ *
+ * THE FIX. Every overlay key is namespaced under a leading `X#` token that
+ * upstream promises never to use, so `X#WIDGET#1` cannot collide with any
+ * `WIDGET#1` upstream ever invents. The promise is not a convention anybody has
+ * to remember: `overlay-key-namespace.spec.ts` calls EVERY builder in `keys`
+ * and fails if any of them emits a key in the reserved space. Enumerated rather
+ * than hand-listed, for the reason `auth-surface.spec.ts` records - a
+ * hand-picked list only ever covers the mistakes you have already made.
+ *
+ * It is short (`X#`, not `OVERLAY#`) because it is a prefix on every key of
+ * every overlay row, and DynamoDB charges for key bytes.
+ */
+export const OVERLAY_KEY_PREFIX = 'X#';
+
+/** The same reservation for the `type` discriminator attribute. */
+export const OVERLAY_ITEM_TYPE_PREFIX = 'x-';
+
+const OVERLAY_NAMESPACE_PATTERN = /^[A-Z][A-Z0-9]*$/;
+
+function assertNamespace(namespace: string): void {
+  if (!OVERLAY_NAMESPACE_PATTERN.test(namespace)) {
+    throw new Error(
+      `overlay key namespace must be uppercase alphanumeric, got ${JSON.stringify(namespace)}. ` +
+        'A namespace containing "#" would add a segment and break the key structure, which is ' +
+        'the silent kind of key defect this file exists to prevent.',
+    );
+  }
+}
+
+/**
+ * Build an overlay key value: `overlayKey('WIDGET', id)` -> `X#WIDGET#<id>`.
+ *
+ * Use it for both halves - a new top-level partition (`pk`) and a row under an
+ * existing partition (`sk`) - so a fork gets the namespace right by
+ * construction rather than by remembering it.
+ */
+export function overlayKey(namespace: string, ...parts: readonly string[]): string {
+  assertNamespace(namespace);
+  return [OVERLAY_KEY_PREFIX.replace('#', ''), namespace, ...parts].join('#');
+}
+
+/** The Query prefix for one overlay namespace: `X#WIDGET#`. */
+export function overlayKeyPrefix(namespace: string): string {
+  assertNamespace(namespace);
+  return `${overlayKey(namespace)}#`;
+}
+
+/** Build an overlay `type` discriminator: `overlayItemType('widget')` -> `x-widget`. */
+export function overlayItemType(name: string): string {
+  if (!/^[a-z][a-z0-9-]*$/.test(name)) {
+    throw new Error(
+      `overlay item type must be lowercase kebab-case, got ${JSON.stringify(name)}.`,
+    );
+  }
+  return `${OVERLAY_ITEM_TYPE_PREFIX}${name}`;
+}

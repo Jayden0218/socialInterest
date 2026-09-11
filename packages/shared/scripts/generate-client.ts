@@ -1,16 +1,16 @@
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
-import { parse } from 'yaml';
+import { resolveContract } from './contract';
 
-// Generates the operation map from contracts/openapi.yaml so the client and server
-// cannot drift: a path removed from the contract disappears from the generated file
-// and every caller stops compiling. Run via `pnpm --filter @sih/shared generate:client`.
-const SPEC = resolve(__dirname, '../../../specs/001-interest-media-sharing/contracts/openapi.yaml');
+// Generates the operation map from the RESOLVED contract - the base openapi.yaml
+// with contracts/openapi.overlay.yaml merged in - so the client and server cannot
+// drift: a path removed from the contract disappears from the generated file and
+// every caller stops compiling. Run via `pnpm --filter @sih/shared generate:client`.
+//
+// Reading through the resolver rather than opening openapi.yaml directly is what
+// keeps this generator and the API's contract suites reading the SAME document.
+// See contracts/README.md.
 const OUT = resolve(__dirname, '../src/client/operations.generated.ts');
-
-type Spec = {
-  paths: Record<string, Record<string, { summary?: string; security?: unknown[] }>>;
-};
 
 const VERBS = ['get', 'post', 'put', 'patch', 'delete'] as const;
 
@@ -24,7 +24,7 @@ const opName = (verb: string, path: string): string => {
 };
 
 function main(): void {
-  const spec = parse(readFileSync(SPEC, 'utf8')) as Spec;
+  const spec = resolveContract();
   const ops: string[] = [];
   for (const [path, item] of Object.entries(spec.paths)) {
     for (const verb of VERBS) {
@@ -37,7 +37,8 @@ function main(): void {
       );
     }
   }
-  const body = `// GENERATED from specs/001-interest-media-sharing/contracts/openapi.yaml
+  const body = `// GENERATED from the resolved contract: specs/001-interest-media-sharing/contracts/openapi.yaml
+// with contracts/openapi.overlay.yaml merged in (see contracts/README.md).
 // Do not edit by hand. Run: pnpm --filter @sih/shared generate:client
 //
 // ${ops.length} operations across ${Object.keys(spec.paths).length} paths.

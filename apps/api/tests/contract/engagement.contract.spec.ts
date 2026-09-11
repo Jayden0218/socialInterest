@@ -1,14 +1,10 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { parse } from 'yaml';
+import { resolveContract } from '../../../../packages/shared/scripts/contract';
 import { operations } from '@sih/shared';
 
-const spec = parse(
-  readFileSync(
-    resolve(__dirname, '../../../../specs/001-interest-media-sharing/contracts/openapi.yaml'),
-    'utf8',
-  ),
-) as { paths: Record<string, Record<string, { responses: Record<string, unknown> }>> };
+// The RESOLVED contract - base + contracts/openapi.overlay.yaml - read through the
+// one resolver the client generator also uses, so the two cannot read different
+// documents. See contracts/README.md.
+const spec = resolveContract();
 
 describe('contract — engagement operations', () => {
   it('reaction is PUT/DELETE, so it is idempotent by shape (FR-039)', () => {
@@ -28,17 +24,17 @@ describe('contract — engagement operations', () => {
 
 describe('contract — declared statuses match the implementation', () => {
   it('comments declare 403 for a post the viewer cannot open', () => {
-    const responses = spec.paths['/posts/{postId}/comments']!['get']!.responses;
+    const responses = spec.paths['/posts/{postId}/comments']!['get']!.responses!;
     expect(Object.keys(responses)).toEqual(expect.arrayContaining(['200', '403']));
   });
 
   it('share-link declares 403 for a post the caller cannot see', () => {
-    const responses = spec.paths['/posts/{postId}/share-link']!['post']!.responses;
+    const responses = spec.paths['/posts/{postId}/share-link']!['post']!.responses!;
     expect(Object.keys(responses)).toEqual(expect.arrayContaining(['201', '403']));
   });
 
   it('commenting declares 429, so the rate limit is part of the contract (FR-046)', () => {
-    const responses = spec.paths['/posts/{postId}/comments']!['post']!.responses;
+    const responses = spec.paths['/posts/{postId}/comments']!['post']!.responses!;
     expect(Object.keys(responses)).toEqual(expect.arrayContaining(['201', '403', '429']));
   });
 });

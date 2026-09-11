@@ -14,6 +14,8 @@ import { PlacePostsService } from '../../src/modules/places/place-posts.service'
 import { SavedService } from '../../src/modules/saved/saved.service';
 import { CollectionService } from '../../src/modules/saved/collection.service';
 import { SURFACES } from './surfaces';
+import type { Ctx, Probe } from './probe';
+import { OVERLAY_PROBES } from '../overlay/probes.overlay';
 
 /**
  * ===========================================================================
@@ -35,40 +37,9 @@ import { SURFACES } from './surfaces';
  * That is deliberate: the expensive mistake is a surface that looks covered.
  */
 
-interface Probe {
-  /** Must match a `name` in SURFACES exactly. */
-  surface: string;
-  /** Invokes the real read path. Returns nothing; the assertion is the spy. */
-  run: (ctx: Ctx) => Promise<unknown>;
-  /**
-   * A surface that returns no posts AT ALL proves its claim structurally rather
-   * than by calling the filter. Only `interest search` qualifies, and it must
-   * say why.
-   */
-  returnsNoPosts?: string;
-  /**
-   * 005. This surface reaches the boundary through the second entry point, so
-   * `filter.decide` is correctly never called - the probe asserts on the shared
-   * block check itself instead.
-   */
-  consultsSharedBlockCheck?: boolean;
-}
-
-interface Ctx {
-  filter: VisibilityFilter;
-  queries: PostQueryService;
-  decide: jest.SpyInstance;
-  filterMany: jest.SpyInstance;
-  getById: jest.SpyInstance;
-  /**
-   * 005. The block repository itself, spied.
-   *
-   * A review does not call `filter.decide` - it goes through the second entry
-   * point, which delegates to the shared rules. Watching the block repository is
-   * what proves BOTH paths end at the same question.
-   */
-  blocksSpy: jest.SpyInstance;
-}
+// `Probe` and `Ctx` moved to ./probe.ts, unchanged, so that
+// ../overlay/probes.overlay.ts can declare a probe against the same types
+// rather than restating them. See ../overlay/README.md.
 
 const VIEWER = { userId: 'viewer-1' };
 
@@ -129,7 +100,7 @@ function build(): Ctx {
   };
 }
 
-const PROBES: Probe[] = [
+const BASE_PROBES: Probe[] = [
   {
     surface: 'following feed',
     /**
@@ -464,6 +435,17 @@ const PROBES: Probe[] = [
     consultsSharedBlockCheck: true,
   },
 ];
+
+/**
+ * WHAT THIS SUITE ACTUALLY PROBES: base plus overlay.
+ *
+ * `OVERLAY_PROBES` is empty upstream. The composition is what lets a downstream
+ * fork add a surface without editing this file - and, more importantly, without
+ * weakening anything: the completeness check below runs over the COMPOSED list
+ * against the COMPOSED surfaces, so an overlay surface marked `built` with no
+ * probe fails here exactly as a base one does. See ../overlay/README.md.
+ */
+const PROBES: Probe[] = [...BASE_PROBES, ...OVERLAY_PROBES];
 
 describe('every enumerated surface consults the one visibility boundary', () => {
   const probed = new Set(PROBES.map((p) => p.surface));
