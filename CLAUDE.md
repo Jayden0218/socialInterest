@@ -16,6 +16,7 @@ Read before doing anything substantive:
 | `specs/001-interest-media-sharing/tasks.md` | 172 tasks, T001–T172, ordered |
 | `specs/007-ranked-feed-redesign/` | **The current feature.** Ranked feed + redesign; all 8 phases implemented |
 | `design/007-ui/` | The **approved** design, 20 artboards. Settled — implement, do not reopen |
+| the five seam READMEs — `apps/api/{src,tests}/overlay/`, `apps/mobile/src/overlay/`, `apps/mobile/src/screens/`, `contracts/` | **The overlay seams.** What a private downstream fork owns, and what that does not relax |
 
 Do not re-litigate a decision in `research.md` without reading why it was made. Several
 look arbitrary and are not — see "Decisions that look wrong but aren't" below.
@@ -69,6 +70,83 @@ describing a product that no longer exists:
    not polish. US1–US6 alone must not ship publicly.
 5. *Emulation Is Not Evidence* — a green local suite against a different implementation
    is not proof the production path works.
+
+## The overlay seams (2026-09-11) — a private fork tracks this repository
+
+The owner is carrying a **private downstream fork** with its own UI and its own backend
+features, while general work stays here and the fork syncs down. This repository is
+upstream and never pushes to it.
+
+**One rule, everywhere: upstream ships an EMPTY overlay, the fork fills it in, and the
+two sides never edit the same lines.**
+
+| Seam | A fork owns |
+|---|---|
+| `apps/api/tests/overlay/` | visibility surfaces, routing probes, public/operator route snapshots |
+| `apps/api/src/overlay/modules.ts` | Nest modules, spread into `AppModule.imports` |
+| `contracts/openapi.overlay.yaml` | added paths and schemas, merged by `packages/shared/scripts/contract.ts` |
+| `apps/mobile/src/overlay/palette.ts` | the brand |
+| `apps/mobile/src/overlay/screens.tsx` | added routes (`{ name: 'overlay', screen }`) |
+| `apps/mobile/src/screens/<Name>Container.tsx` | a replaced screen — swap the file, the barrel is untouched |
+| `keys.ts`'s `X#` namespace | every overlay row in the single table |
+
+**Where a literal stays pinned, it is pinned against the BASE and the composed
+expectation is derived.** `matrix.spec.ts` still asserts `BASE_SURFACES.length === 16`
+and a `baseTotal` of 1,488 — raising either is still a deliberate, reviewable edit. What
+it no longer does is collide with a fork raising the same literal for a surface of their
+own. Same for the route snapshot, which is still exact in BOTH directions.
+
+**Nothing here relaxes Constitution II.** An overlay surface is a row in the same
+decision table decided by the same `VisibilityFilter`, and `surface-routing.spec.ts`
+still demands a probe proving it consults the boundary before the matrix will count it.
+`visibility.filter.ts` is the one file where "just edit it in the fork" is off the table.
+
+**Three kinds of divergence, and the order matters.** (1) Adding behaviour → a new module
+in the overlay, near-zero conflict. (2) Changing behaviour → extract a port in
+`apps/api/src/ports/` here and bind a different adapter there; zero conflict, and the
+extraction improves this repository on its own merits. (3) Editing shared code → a
+permanent conflict on that file, bought deliberately. **Reach for 2 before 3.**
+
+**Principle V applies to the fork.** A green run here says nothing about the composed
+downstream build; a private overlay IS a second implementation selected by config, which
+is the shape the four AWS adapters were deleted for. The fork runs the suites against its
+own composition and registers the divergence.
+
+### Two lessons this cost, both general
+
+- **An empty overlay cannot tell a working seam from a broken one.** Upstream's overlays
+  are empty forever, so every seam would be green here and broken at the fork's first
+  use — the declared-half-with-no-other-half shape this file records six times already.
+  Five suites therefore drive the seams NON-EMPTY: `overlay-composes`, `contract-overlay`,
+  `overlay-modules`, `palette-overlay`, `screen-overlay`. Every refusal was also watched
+  RED (an unprobed surface, a name collision, a base key in `X#`, a removed
+  `...OVERLAY_MODULES`, a removed `case 'overlay'`, a palette override that did nothing).
+- **A GUARD CAN LOSE ITS SUBJECT AND PASS.** `hooks-before-return.test.ts` read
+  `screens/index.tsx` BY NAME. Splitting the containers out left that path pointing at a
+  barrel of re-export lines: no `export function`, so no blocks, so no offenders, so
+  GREEN — in the same run that reported 253 mobile tests passing. It did not fail when its
+  subject moved out from under it, which is worse than failing. It reads the directory now
+  and asserts it found more than twenty files, because `expect(offenders).toEqual([])` is
+  vacuously true over an empty list. **When you move files, check what named them.** Every
+  other source-scanning guard walks directories and followed the move on its own.
+
+### Where the palette override lives, and why not where you would look
+
+`ui/theme.ts` holds `activePalette` and is the obvious place. It is the WRONG layer: the
+contrast, one-accent and interest-colour guards import `light`/`dark` from `ui/tokens.ts`,
+so an override above that would leave a fork's palette rendering in the app while every
+accessibility check still measured this repository's. Two sources of truth for one fact —
+006's "white cards inside dark green chrome", by another route. It resolves in
+`tokens.ts`, at the definition point, so **a fork's palette is held to the same contrast
+floor** and `palette-overlay.test.ts` proves that by driving an illegible palette through
+the rule and asserting it FAILS.
+
+### Still open on the fork
+
+Port extraction is not done — it needs the list of backend behaviours the fork intends to
+change, because extracting a port nobody binds a second adapter to is just indirection.
+None of the seams has been exercised on a DEVICE; the empty overlay is a no-op, so run 59
+still stands for the product, but that is not evidence about a populated overlay.
 
 ## Decisions that look wrong but aren't
 
@@ -584,6 +662,10 @@ Phase A, 606 after C). Most of that growth is NOT new surfaces: US13 added two D
 a `pending-follower` relationship and an author-privacy axis — and both apply to every
 existing surface. A rule that changes the answer everywhere has to be asserted everywhere, or
 "it is one clause" is a claim rather than a measurement.
+
+Since 2026-09-11 those two numbers are pinned against `BASE_SURFACES` and a derived
+`baseTotal`, not against the composed list — raising either is still the same deliberate
+edit, it just no longer collides with a fork's own surfaces. See "The overlay seams" above.
 
 - **THE PLAN HAD EVERY SURFACE CARRY `authorPrivacy`, AND THAT WAS WRONG.** T181/T184 said to
   populate the field in each `toCandidate`. Privacy is a property of the AUTHOR, so that means
@@ -1462,9 +1544,12 @@ Measured from `tasks.md`, not guessed:
   |---|---|
   | `apps/e2e/support/client.ts` | The one place the journeys bind to the mobile data layer |
   | `apps/api/bench/harness.ts` | Shared by both benches |
-  | `apps/mobile/src/screens/index.tsx` | Every container lives here |
   | `docs/verification/divergence-register.md` | `verify:register` checks it; two writers will disagree |
   | `.github/workflows/ci.yml` | Every phase wants to add a step |
+
+  **`apps/mobile/src/screens/index.tsx` is no longer one of them** (2026-09-11). It held
+  all 25 containers in 2,726 lines; they are one file each beside it now and it is a
+  barrel. Two agents touching different screens no longer collide.
 
 - Lanes that are genuinely independent after Phase 2: `apps/api`, `apps/mobile`
   (once T018 generates the client), `apps/workers`, `infra`.
