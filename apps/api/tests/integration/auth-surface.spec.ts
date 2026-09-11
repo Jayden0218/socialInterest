@@ -4,6 +4,7 @@ import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { bootHarness, type Harness } from './harness';
 import { IS_PUBLIC } from '../../src/common/auth/auth.guard';
 import { OperatorGuard } from '../../src/common/auth/operator.guard';
+import { OVERLAY_OPERATOR_ROUTES, OVERLAY_PUBLIC_ROUTES } from '../overlay/routes.overlay';
 
 /**
  * WHICH ROUTES ARE PUBLIC, PINNED AS A SNAPSHOT.
@@ -59,6 +60,12 @@ describe('the public/authenticated boundary', () => {
     // second read path, and the link would then be the thing granting access
     // rather than the post's own visibility. Writing this list from memory put
     // one here; the snapshot is what said otherwise.
+    //
+    // A downstream fork's public routes go in ../overlay/routes.overlay.ts, not
+    // here, so this snapshot and theirs never collide on a sync. The check is
+    // unchanged in strength: it is still an exact comparison in BOTH
+    // directions over the composed list. See ../overlay/README.md.
+    ...OVERLAY_PUBLIC_ROUTES,
   ].sort();
 
   /**
@@ -84,6 +91,8 @@ describe('the public/authenticated boundary', () => {
     // 008/US14.
     'GET /moderation/appeals',
     'PATCH /moderation/appeals/:appealId',
+    // A downstream fork's operator routes, for the same reason as above.
+    ...OVERLAY_OPERATOR_ROUTES,
   ].sort();
 
   /**

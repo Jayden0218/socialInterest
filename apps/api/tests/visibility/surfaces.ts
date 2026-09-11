@@ -9,7 +9,18 @@
  *
  * Sources: 001/contracts/visibility-matrix.md and
  * 004/contracts/visibility-matrix-addendum.md Part 1.
+ *
+ * ---------------------------------------------------------------------------
+ * BASE + OVERLAY. `BASE_SURFACES` is this repository's list and is the one the
+ * pinned literal in matrix.spec.ts counts. `SURFACES` is what the suites run:
+ * base plus whatever `../overlay/surfaces.overlay.ts` adds, which is nothing
+ * here and is meant to stay nothing here. See ../overlay/README.md for why the
+ * split exists - briefly, it is so a downstream fork and this repository never
+ * have to raise the same literal.
+ * ---------------------------------------------------------------------------
  */
+import { OVERLAY_EVER_BUILT, OVERLAY_SURFACES } from '../overlay/surfaces.overlay';
+
 export interface Surface {
   readonly name: string;
   /** Enabled by the story that builds it. `false` means SKIPPED, never passed. */
@@ -29,7 +40,7 @@ export interface Surface {
   readonly kind?: 'post' | 'review';
 }
 
-export const SURFACES: readonly Surface[] = [
+export const BASE_SURFACES: readonly Surface[] = [
   // ---- feature 001's seven.
   { name: 'interest space', built: true, story: '001/US1 (T063)' },
   { name: 'profile', built: true, story: '001/US1 (T063)' },
@@ -127,7 +138,7 @@ export const SURFACES: readonly Surface[] = [
  * be `false` until its work lands. Removing a name from this list to quiet a
  * failure is a deliberate, reviewable edit rather than a one-word flip.
  */
-export const EVER_BUILT: readonly string[] = [
+export const BASE_EVER_BUILT: readonly string[] = [
   'interest space',
   'profile',
   'interest search',
@@ -148,6 +159,55 @@ export const EVER_BUILT: readonly string[] = [
   'collection posts',
 ];
 
-export const POST_STATE_COUNT = 7;
-export const VIEWER_COUNT = 7;
-export const TOTAL_ASSERTIONS = SURFACES.length * POST_STATE_COUNT * VIEWER_COUNT;
+/**
+ * WHAT THE SUITES ACTUALLY RUN: base plus overlay.
+ *
+ * Upstream's `OVERLAY_SURFACES` is empty, so `SURFACES` is `BASE_SURFACES` and
+ * every existing count is unchanged. The composition exists so that a fork
+ * adding a surface edits ../overlay/ and nothing else.
+ */
+export const SURFACES: readonly Surface[] = [...BASE_SURFACES, ...OVERLAY_SURFACES];
+
+export const EVER_BUILT: readonly string[] = [...BASE_EVER_BUILT, ...OVERLAY_EVER_BUILT];
+
+/**
+ * TWO SURFACES MAY NOT SHARE A NAME, and this is why it is worth checking.
+ *
+ * Every guard downstream of this list matches surfaces to probes BY NAME:
+ * `surface-routing.spec.ts` looks a probe up with `find(p => p.surface ===
+ * s.name)` and its completeness check asks whether the name is in a Set. So two
+ * surfaces called the same thing would share one probe - the second surface
+ * would report as routed while nothing had ever checked that anything calls the
+ * boundary on it. That is precisely the "a surface that looks covered" failure
+ * the routing suite exists to prevent, arriving through the enumeration instead
+ * of through the code.
+ *
+ * It cannot happen while the overlay is empty. It becomes reachable the moment
+ * a fork adds a surface, and the natural collision is the likely one: a fork
+ * redefining `home feed` rather than adding a name of its own.
+ */
+export function duplicateSurfaceNames(list: readonly Surface[]): string[] {
+  const seen = new Set<string>();
+  const duplicates = new Set<string>();
+  for (const { name } of list) {
+    if (seen.has(name)) duplicates.add(name);
+    seen.add(name);
+  }
+  return [...duplicates];
+}
+
+/**
+ * Thrown at import rather than asserted in one suite: a collision makes the
+ * whole enumeration meaningless, and every consumer of this list should stop
+ * rather than the one suite somebody remembered to put the assertion in.
+ */
+const collisions = duplicateSurfaceNames(SURFACES);
+if (collisions.length > 0) {
+  throw new Error(
+    `surfaces.ts: duplicate surface name(s) in the composed list: ${collisions.join(', ')}. ` +
+      'Surfaces are matched to routing probes by name, so two surfaces sharing one ' +
+      'would leave the second reporting as covered while nothing probed it. ' +
+      'Give each surface its own name. (Both cases reach here: an overlay surface ' +
+      'reusing a base name, and two overlay surfaces sharing one.)',
+  );
+}
