@@ -26,7 +26,37 @@ services:
     ports: ["8000:8000"]
 
   s3:
-    image: minio/minio:latest
+    # MINIO IS NO LONGER ON DOCKER HUB AT ALL, and the first fix for this was
+    # wrong in a way worth recording.
+    #
+    # CI died on `docker compose up -d` with typecheck and lint already green:
+    #
+    #   pull access denied for minio/minio, repository does not exist or may
+    #   require 'docker login'
+    #
+    # Note what that message does NOT contain: a tag. It is Docker Hub's answer
+    # for an inaccessible REPOSITORY, not for a missing tag (which reads
+    # `manifest for ...:TAG not found`). Checked directly:
+    # `hub.docker.com/v2/repositories/minio/minio/` answers 404, and the
+    # `minio` namespace lists 20 repositories of which none is `minio`. The
+    # server image was withdrawn from Docker Hub; MinIO publishes to quay.io.
+    #
+    # THE FIRST ATTEMPT PINNED A DOCKER HUB RELEASE TAG AND WAS VERIFIED IN
+    # THIS SANDBOX, WHERE IT PULLED. That proved nothing: the sandbox sets
+    # `registry-mirrors: [mirror.gcr.io]` (CLAUDE.md, Environment), so the pull
+    # was served from the MIRROR'S CACHE of a repository that no longer exists
+    # upstream. CI has no mirror and goes direct, so it failed identically on
+    # the "fix". Principle V, exactly: a green local result against a different
+    # configuration is not evidence about the one that ships.
+    #
+    # quay.io is UNREACHABLE from the sandbox (egress denies it — same table),
+    # so this line cannot be verified locally by anything. CI is the only
+    # instrument that can, and that is stated rather than papered over.
+    #
+    # Pinned rather than floating for the original reason: a moving tag on a
+    # registry somebody else controls puts CI's ability to START outside this
+    # repository's control.
+    image: quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z
     command: ["server", "/data", "--console-address", ":9001"]
     environment:
       MINIO_ROOT_USER: localkey
