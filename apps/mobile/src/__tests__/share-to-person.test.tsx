@@ -111,10 +111,16 @@ describe('008/FR-011 the recipient picker', () => {
  * platform mechanism at all — which it did not, for four features.
  *
  * The device flow `26-send-post.yaml` is what exercises the rest.
+ *
+ * Reads `ShareContainer.tsx` rather than the barrel, and is STRICTER for it.
+ * While every container shared one 2,726-line file this assertion passed if
+ * ANY of the twenty-five reached for `Share.share(` - it could have been the
+ * compose screen's and this would have been green. Now it has to be this
+ * container's.
  */
 describe('008/FR-015 the share exit is wired to the platform', () => {
   it('ShareContainer calls the platform Share API', () => {
-    const src = readFileSync(join(__dirname, '../screens/index.tsx'), 'utf8')
+    const src = readFileSync(join(__dirname, '../screens/ShareContainer.tsx'), 'utf8')
       // Comments blanked, for the reason this repository has learned three
       // times: prose describes the intention, not the build.
       .replace(/\/\*[\s\S]*?\*\//g, ' ')
