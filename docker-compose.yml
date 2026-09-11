@@ -26,7 +26,24 @@ services:
     ports: ["8000:8000"]
 
   s3:
-    image: minio/minio:latest
+    # PINNED, because `minio/minio:latest` was WITHDRAWN from Docker Hub and
+    # every run of this compose file started failing at the pull:
+    #
+    #   pull access denied for minio/minio, repository does not exist or may
+    #   require 'docker login'
+    #
+    # That message is Docker Hub's for "no such tag" AND for "not authorised",
+    # which is why it reads like a credentials problem and is not one. Measured
+    # against the same registry seconds apart: `minio/minio:latest` is not
+    # found, `RELEASE.2025-04-22T22-12-26Z` pulls, and `amazon/dynamodb-local:
+    # latest` above is unaffected — so it is neither rate limiting nor a
+    # registry outage, and only the tag is gone.
+    #
+    # The version is not the point; the PIN is. A floating tag on a dependency
+    # somebody else can unpublish means CI's ability to start is outside this
+    # repository's control, and it took the whole build down with typecheck and
+    # lint already green. Moving this forward is a deliberate edit from now on.
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
     command: ["server", "/data", "--console-address", ":9001"]
     environment:
       MINIO_ROOT_USER: localkey
