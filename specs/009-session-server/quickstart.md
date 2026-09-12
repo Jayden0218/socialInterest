@@ -53,7 +53,7 @@ the 2-hour default.
 
 Wait. Expect a descriptor in the **run summary** — not buried in the log — carrying:
 
-- an application address
+- an backend address
 - a **different** media address
 - a credential
 - an absolute expiry time, and the lifetime you chose
@@ -75,10 +75,11 @@ On mobile data, or any network unrelated to anything:
 
 | Step | Expect | Proves |
 |---|---|---|
-| Enter the application address and credential | Signed in | FR-010, FR-011, FR-014 |
+| Enter the backend address and credential | Signed in | FR-010, FR-011, FR-014 |
 | Look at the feed | The interest catalogue is there; the feed is **empty** | FR-013, and that empty works |
 | Publish a post with a photograph | It publishes | — |
 | Look at it | **The photograph renders** | SC-004, and contract §1 |
+| Open the safety sheet on a post and file a report | It is accepted | FR-018, Constitution IV |
 
 > **The photograph is the whole test.** It is the only step that exercises presigned upload,
 > the media pipeline, and presigned read-back — which is every piece the bring-up order can

@@ -64,6 +64,10 @@ and the plan's gate forbids claiming the feature works before then.
 `contracts/session-descriptor.md` is written against *addresses*, not against Cloudflare, so
 swapping the provider changes one script and nothing else.
 
+**Any fallback must preserve FR-011.** `localtunnel` and self-hosted alternatives can serve
+plaintext; the bring-up asserts encryption rather than trusting the provider, so swapping one
+in cannot quietly drop the guarantee.
+
 **Pin the version.** Quick tunnels are explicitly a temporary-use, rate-limited facility, and
 recent `cloudflared` releases have broken older configurations. A floating version puts the
 ability to start a session outside this repository's control — the same argument

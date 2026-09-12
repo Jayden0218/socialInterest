@@ -69,7 +69,7 @@ once, by the descriptor it emits — see
 
 | Attribute | Value |
 |---|---|
-| Application address | Assigned at bring-up; not knowable in advance |
+| Backend address | Assigned at bring-up; not knowable in advance |
 | Media address | Assigned at bring-up, **before the application starts** (research R3) |
 | Signing secret | Generated per session; never stored in the repository |
 | Credential | At least one, minted through the API's own `PersonRepository` |

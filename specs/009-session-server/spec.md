@@ -146,7 +146,7 @@ credential on that phone, without opening a laptop and without downloading a fil
 ### Key Entities
 
 - **Session**: A temporary, self-contained running instance of the product. Has a lifetime, an expiry time, its own signing secret, a populated interest catalogue, and an empty datastore at birth. Independent of every other session.
-- **Backend address**: The pointer the app holds to the backend it talks to. Settable by a person, persisted on the device, replaceable. Two are needed per session — one for the application, one for the media it serves.
+- **Backend address**: The **single** pointer the app holds to the backend it talks to. Settable by a person, persisted on the device, replaceable. A session also serves media from a second address, but **nobody types that one** — it reaches the app inside the links the backend issues, which is why the two must be established in the right order.
 - **Session credential**: A sign-in credential issued by one session and meaningless to any other.
 
 ## Success Criteria *(mandatory)*

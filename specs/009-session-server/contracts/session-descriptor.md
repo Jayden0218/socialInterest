@@ -59,8 +59,8 @@ name this step. It MUST NOT emit a descriptor.
 
 | Field | Requirement |
 |---|---|
-| Application address | The address the app talks to. Full base address including scheme and version prefix, interchangeable with the app's built-in default |
-| Media address | The address media is served from. Distinct from the application address |
+| Backend address | The address the app talks to. Full base address including scheme and version prefix, interchangeable with the app's built-in default |
+| Media address | The address media is served from. Distinct from the backend address |
 | Credential | At least one, valid for **this** session only |
 | Expiry | An absolute time, not a duration. "2 hours" read forty minutes later is a lie |
 | Lifetime as chosen | So the owner can see that the dispatch input took effect (FR-017) |
@@ -70,6 +70,16 @@ self-service sign-up, so a correctly-signed credential whose profile row does no
 `404 No such person` and sign-in fails on the device. A descriptor carrying such a credential
 satisfies this contract's letter and fails its purpose; the credential MUST be minted through
 the application's own person repository, as `apps/api/scripts/mint-device-token.ts` does.
+
+**Both addresses MUST be reachable over an encrypted connection (FR-011), and the bring-up
+MUST verify it rather than assume it.**
+
+The chosen provider gives this for free, because its edge terminates TLS — which is exactly
+why it needs a check. A property that holds by accident stops holding silently when the thing
+it depends on is swapped, and research R2 names three fallback providers that are **not**
+equivalent on this point: a self-hosted tunnel can serve plaintext perfectly happily.
+
+A bring-up MUST fail, and name this clause, if either captured address is not encrypted.
 
 ---
 
