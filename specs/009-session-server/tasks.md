@@ -113,14 +113,14 @@ session and reach its address from a phone on an unrelated network.
 
 ### Implementation for User Story 2
 
-- [ ] T020 [US2] Create `scripts/session-up.sh` implementing the fixed bring-up order from `contracts/session-descriptor.md` §1 — backing services, media tunnel, **then** the API with `S3_PUBLIC_ENDPOINT` set to the media address, then the API tunnel. Reuse the readiness wait and seed sequence already proven in `.github/workflows/android-emulator.yml`
-- [ ] T021 [US2] Implement the ordering check inside `scripts/session-up.sh`: before emitting a descriptor, verify a presigned URL issued by the running API is addressed to the captured media address; fail and name step 3 if not. **Then verify it RED** by starting the API before the tunnel, and record what it said — this is the only meaningful red for this guard
-- [ ] T022 [US2] Install a **pinned** `cloudflared` version in `scripts/session-up.sh` and open two quick tunnels, capturing both addresses by parsing the client's own output, and **asserting both are encrypted before either is used** (contract §2, FR-011) — a floating version puts the ability to start a session outside this repository's control, and an unencrypted fallback would satisfy every other clause silently (research R2)
-- [ ] T023 [US2] Generate a per-session `LOCAL_JWT_SECRET` in `scripts/session-up.sh` and seed via `pnpm --filter @sih/infra db:create-local`, `s3:create-local`, `seed:catalogue` (FR-013, FR-015)
-- [ ] T024 [US2] Mint at least one credential through `apps/api/scripts/mint-device-token.ts` — **not** a hand-rolled JWT; a signed token whose profile row does not exist gets `404 No such person` and sign-in fails on the device (contract §2, FR-014)
-- [ ] T025 [US2] Create `.github/workflows/session-server.yml` as `workflow_dispatch` with a `lifetime` input defaulting to **2 hours** and capped at the platform's hard 6, calling `scripts/session-up.sh` and keeping the YAML thin
-- [ ] T026 [US2] Implement lifetime enforcement and teardown in `session-server.yml` — the job ends itself at the stated expiry (FR-016), and bounds the bring-up with a timeout so a wedge costs one step rather than the whole job
-- [ ] T027 [US2] Make every failure path in `scripts/session-up.sh` name its step **at the moment it fails**, not at the end of the job — run 56's evidence lived after a loop that was killed first and printed nothing at all (FR-021, research R8)
+- [X] T020 [US2] Create `scripts/session-up.sh` implementing the fixed bring-up order from `contracts/session-descriptor.md` §1 — backing services, media tunnel, **then** the API with `S3_PUBLIC_ENDPOINT` set to the media address, then the API tunnel. Reuse the readiness wait and seed sequence already proven in `.github/workflows/android-emulator.yml`
+- [X] T021 [US2] Implement the ordering check inside `scripts/session-up.sh`: before emitting a descriptor, verify a presigned URL issued by the running API is addressed to the captured media address; fail and name step 3 if not. **Then verify it RED** by starting the API before the tunnel, and record what it said — this is the only meaningful red for this guard
+- [X] T022 [US2] Install a **pinned** `cloudflared` version in `scripts/session-up.sh` and open two quick tunnels, capturing both addresses by parsing the client's own output, and **asserting both are encrypted before either is used** (contract §2, FR-011) — a floating version puts the ability to start a session outside this repository's control, and an unencrypted fallback would satisfy every other clause silently (research R2)
+- [X] T023 [US2] Generate a per-session `LOCAL_JWT_SECRET` in `scripts/session-up.sh` and seed via `pnpm --filter @sih/infra db:create-local`, `s3:create-local`, `seed:catalogue` (FR-013, FR-015)
+- [X] T024 [US2] Mint at least one credential through `apps/api/scripts/mint-device-token.ts` — **not** a hand-rolled JWT; a signed token whose profile row does not exist gets `404 No such person` and sign-in fails on the device (contract §2, FR-014)
+- [X] T025 [US2] Create `.github/workflows/session-server.yml` as `workflow_dispatch` with a `lifetime` input defaulting to **2 hours** and capped at the platform's hard 6, calling `scripts/session-up.sh` and keeping the YAML thin
+- [X] T026 [US2] Implement lifetime enforcement and teardown in `session-server.yml` — the job ends itself at the stated expiry (FR-016), and bounds the bring-up with a timeout so a wedge costs one step rather than the whole job
+- [X] T027 [US2] Make every failure path in `scripts/session-up.sh` name its step **at the moment it fails**, not at the end of the job — run 56's evidence lived after a loop that was killed first and printed nothing at all (FR-021, research R8)
 
 **Checkpoint**: A session can be started and reached. US1 + US2 together are the working
 product on a phone.
@@ -134,9 +134,9 @@ product on a phone.
 **Independent Test**: Start a session using only a phone; obtain both addresses and the
 credential there, without a laptop and without downloading a file.
 
-- [ ] T028 [US3] Write the descriptor to `$GITHUB_STEP_SUMMARY` in `scripts/session-up.sh` **at the moment its contents are known**, not accumulated for the end — job logs come back only as a tail and the artifact host is denied by this environment's egress (contract §3, research R8)
-- [ ] T029 [US3] Include an **absolute** expiry time and the lifetime as chosen in the descriptor — "2 hours" read forty minutes later is a lie (contract §2, FR-017)
-- [ ] T030 [US3] Make a running session observable through the existing public health endpoint in `apps/api/src/modules/health/health.controller.ts` — add nothing new (contract §5, FR-022)
+- [X] T028 [US3] Write the descriptor to `$GITHUB_STEP_SUMMARY` in `scripts/session-up.sh` **at the moment its contents are known**, not accumulated for the end — job logs come back only as a tail and the artifact host is denied by this environment's egress (contract §3, research R8)
+- [X] T029 [US3] Include an **absolute** expiry time and the lifetime as chosen in the descriptor — "2 hours" read forty minutes later is a lie (contract §2, FR-017)
+- [X] T030 [US3] Make a running session observable through the existing public health endpoint in `apps/api/src/modules/health/health.controller.ts` — add nothing new (contract §5, FR-022)
 
 **Checkpoint**: All three stories independently functional.
 

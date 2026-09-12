@@ -25,15 +25,25 @@ change one script and nothing in this document.
 
 ```
 1. backing services up, and proven ready
-2. media tunnel up      → capture MEDIA ADDRESS
-3. START THE APPLICATION, with its public media address set to MEDIA ADDRESS
-4. application tunnel up → capture APPLICATION ADDRESS
-5. seed the interest catalogue
+2. create the table and bucket, and seed the interest catalogue
+3. media tunnel up       → capture MEDIA ADDRESS
+4. START THE APPLICATION, with its public media address set to MEDIA ADDRESS
+5. application tunnel up → capture BACKEND ADDRESS
 6. mint at least one credential
-7. emit the descriptor
+7. verify the media address actually took (below)
+8. emit the descriptor
 ```
 
-**Step 3 may not precede step 2.** This is the clause the whole document exists for.
+**Step 4 may not precede step 3.** This is the clause the whole document exists for.
+
+**Step 2 may not follow step 4 either, and that was a correction made while
+implementing this.** The first version of this contract seeded the catalogue
+AFTER the application started, which reads fine and is wrong: the catalogue is
+loaded into an in-memory cache by `onModuleInit`, so an application started
+against an empty table holds an empty catalogue and nothing can be posted to.
+`android-emulator.yml` has always seeded first, and the order there is the tested
+one. A sequence that looks reasonable is not evidence; the sequence that has run
+is.
 
 The application signs every media URL it issues against the address a client will use, and
 **a presigned signature covers the host** — so a URL signed against the wrong address cannot

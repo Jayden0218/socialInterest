@@ -1,0 +1,99 @@
+# 009/US2. A disposable session server, on demand, for free.
+#
+# WHAT THIS IS: a temporary development environment so the app can be used on a
+# real phone. It is NOT a deployment of the product. It starts from an empty
+# datastore, it is gone when the lifetime below elapses, and nothing in it is
+# durable. See specs/009-session-server/spec.md, "Out of Scope".
+#
+# workflow_dispatch only, and deliberately. The runner holds the whole stack and
+# two tunnels; nothing about that should start on a push.
+name: Session server
+
+on:
+  workflow_dispatch:
+    inputs:
+      lifetime_minutes:
+        description: 'How long the session should live (minutes)'
+        required: true
+        default: '120'
+        type: choice
+        options: ['30', '60', '120', '240', '350']
+
+# One at a time. Two sessions would fight over ports 3000/8000/9000 on their own
+# runners quite happily, but not over the account's concurrency - and a person
+# reading a descriptor wants to know which session it belongs to.
+concurrency:
+  group: session-server
+  cancel-in-progress: false
+
+jobs:
+  session:
+    runs-on: ubuntu-22.04
+    # The platform caps a job at 6 hours and the cap is hard, so the ceiling on
+    # the input above is not ours to raise. +10 leaves room for bring-up and
+    # teardown around the chosen lifetime.
+    timeout-minutes: 360
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # Everything ordered lives in the script, not here. A script can be run and
+      # watched locally for nothing; a workflow step costs a dispatch to observe.
+      # The failure-naming path was verified that way rather than by guessing.
+      - name: Bring the session up
+        id: up
+        run: scripts/session-up.sh "${{ inputs.lifetime_minutes }}"
+
+      # ---------------------------------------------------------------------
+      # FR-016, FR-022. The session lives, and says so periodically.
+      #
+      # The health endpoint is the product's own and already public; nothing new
+      # was added for this. Each tick is one line so the log stays readable, and
+      # the descriptor is already in the summary where a phone can reach it.
+      # ---------------------------------------------------------------------
+      - name: Hold the session open
+        run: |
+          set -uo pipefail
+          END=$(( $(date +%s) + ${{ inputs.lifetime_minutes }} * 60 ))
+          while [ "$(date +%s)" -lt "$END" ]; do
+            LEFT=$(( (END - $(date +%s)) / 60 ))
+            if curl -sf -o /dev/null --max-time 10 http://127.0.0.1:3000/v1/health; then
+              echo "alive; ${LEFT}m remaining"
+            else
+              # Not fatal on its own - a single missed probe is not a dead
+              # server - but it is the only trace a person would ever get, so it
+              # is said plainly rather than swallowed.
+              echo "WARNING: the application did not answer its health check; ${LEFT}m remaining"
+            fi
+            sleep 60
+          done
+          echo "lifetime elapsed"
+
+      - name: Say the session has ended
+        if: always()
+        run: |
+          {
+            printf '\n---\n\n**This session has ended.** Its addresses no longer resolve and its\n'
+            printf 'data is gone. Dispatch the workflow again for a new one; the app keeps\n'
+            printf 'working against any address you point it at.\n'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Tunnels die with the job, but the API and the containers are left
+      # holding a runner that is about to be reclaimed anyway. Tidied explicitly
+      # so a failure here is visible rather than implicit.
+      - name: Tear down
+        if: always()
+        run: |
+          pkill -f cloudflared || true
+          [ -f "${RUNNER_TEMP}/sih-session/api.pid" ] && kill "$(cat "${RUNNER_TEMP}/sih-session/api.pid")" 2>/dev/null || true
+          docker compose down -v || true
+
+      - name: Application log
+        if: failure()
+        run: cat "${RUNNER_TEMP}/sih-session/api.log" 2>/dev/null || echo "no application log"

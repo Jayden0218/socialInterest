@@ -59,6 +59,32 @@ I expect it to work. **I have not observed it**, and Principle V says a green re
 elsewhere is not evidence about the path that ships. The first dispatch is the experiment,
 and the plan's gate forbids claiming the feature works before then.
 
+**Observed here 2026-09-12, and it sharpens the claim rather than settling it.** Running the
+pinned client in this sandbox:
+
+```
+14:29:40 INF Requesting new quick Tunnel on trycloudflare.com...
+14:29:43 INF |  https://issue-fort-browsers-hope.trycloudflare.com  |
+14:29:59 ERR Unable to establish connection with Cloudflare edge
+             error="DialContext error: dial tcp 198.41.192.227:7844: i/o timeout"
+```
+
+Two facts worth separating, because `CLAUDE.md` runs them together. **Provisioning works**:
+the HTTPS call to `trycloudflare.com` goes through the agent proxy and returns a real
+address. **The edge dial does not**: it is raw TCP to port 7844, cannot use an HTTPS proxy,
+goes direct, and times out — then retries forever. `--protocol http2` does not help, because
+that governs the transport *inside* the edge connection, not how it is dialled. A runner has
+no such proxy and no such restriction, which is why this is evidence about the sandbox and
+not about GitHub.
+
+**It also found a defect in the bring-up, which is the whole argument for looking.** The
+address is issued in three seconds and the edge fails sixteen seconds later. The first
+version of `open_tunnel` returned as soon as it saw a URL, so it would have emitted a
+descriptor naming an address that never becomes reachable — a session that looks ready and
+is not, which is the failure the descriptor contract exists to prevent, arriving by a route
+the contract did not name. It now requires a registered connection **and** an end-to-end
+fetch through the public address before it returns.
+
 **Fallbacks, in order, if the first dispatch fails**: `localtunnel` (npm, no account),
 `pinggy`, then `ngrok` (free account, still no card). The contract in
 `contracts/session-descriptor.md` is written against *addresses*, not against Cloudflare, so
