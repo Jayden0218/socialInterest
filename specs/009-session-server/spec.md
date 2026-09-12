@@ -167,10 +167,11 @@ credential on that phone, without opening a laptop and without downloading a fil
 Recorded because the feature description did not settle them and a reasonable default
 exists. Each is a decision, not an oversight.
 
-- **Default session lifetime is 2 hours, selectable up to a stated maximum.** The owner was
-  asked whether to default to 2 or 6 and did not answer before work began. Two is chosen as
-  the smaller commitment: a session is cheap to start again, and a long-running idle session
-  is the part of this arrangement least clearly within the terms of whatever runs it.
+- **Default session lifetime is 30 minutes, selectable up to a stated maximum.** Originally
+  2 hours, chosen when the compute behind a session was believed to be unlimited. It is not:
+  the repository is private, so the monthly allowance is finite and shared with other work,
+  and a 2-hour default spent four times what a person actually uses. Confirmed with the owner
+  on 2026-09-12. Longer remains one choice away, and a session is cheap to start again.
 - **Session data is disposable.** Each session starts from an empty datastore. Carrying data
   between sessions is out of scope; the product is expected to be usable from empty, which is
   a property worth having anyway.

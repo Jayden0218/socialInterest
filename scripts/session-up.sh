@@ -15,7 +15,7 @@
 #
 set -Eeuo pipefail
 
-LIFETIME_MINUTES="${1:-120}"
+LIFETIME_MINUTES="${1:-30}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RUN_DIR="${RUNNER_TEMP:-/tmp}/sih-session"
 mkdir -p "$RUN_DIR"

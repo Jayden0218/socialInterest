@@ -13,9 +13,15 @@ on:
   workflow_dispatch:
     inputs:
       lifetime_minutes:
+        # 30, chosen after finding that Actions minutes are metered here rather
+        # than free: this repository is PRIVATE, so the allowance is 2,000 Linux
+        # minutes a month, shared with CI and the emulator job. A session is
+        # opened to look at the app for twenty minutes, not to be left running —
+        # and the longer options are one tap away when a session needs to
+        # outlast a conversation. See research R1.
         description: 'How long the session should live (minutes)'
         required: true
-        default: '120'
+        default: '30'
         type: choice
         options: ['30', '60', '120', '240', '350']
 
