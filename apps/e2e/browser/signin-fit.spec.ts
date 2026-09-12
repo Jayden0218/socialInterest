@@ -109,6 +109,47 @@ describe('sign-in fits with the keyboard up', () => {
    * field" — it is that a screen with nothing to absorb the resize cannot put a
    * control where a keyboard can reach it.**
    */
+  /**
+   * 009/T017. A SECOND FIELD ARRIVED, AND THE INVARIANT IS WHY THAT WAS SAFE.
+   *
+   * US1 put a server-address field on this screen, above the token field. Adding
+   * a field moves the fold — which is exactly the change that broke this screen
+   * before — but it cannot move a control that sits above BOTH fields.
+   *
+   * Measured 2026-09-12 at 320 wide, at heights 640, 616 and 390, all three
+   * identical because the column is top-aligned:
+   *
+   *   submit   top  77  bottom 121
+   *   address  top 313  bottom 358
+   *   token    top 370  bottom 436
+   *
+   * Those numbers are the CONSEQUENCE and are recorded, not asserted. A guard
+   * that pins 121 passes again the moment a control shrinks; the ordering is
+   * what actually protects the screen. The token field moved down ~57 points to
+   * make room, which is the honest cost of the field and is fine precisely
+   * because the submit did not move.
+   */
+  it('the submit stays above BOTH fields once the address field is added', async () => {
+    await open(FULL);
+    const submit = await box('sign-in-submit');
+    const address = await box('sign-in-address');
+    const token = await box('sign-in-token');
+
+    expect({
+      submitBottom: Math.round(submit.y + submit.height),
+      addressTop: Math.round(address.y),
+      tokenTop: Math.round(token.y),
+      submitAboveAddress: submit.y + submit.height <= address.y,
+      submitAboveToken: submit.y + submit.height <= token.y,
+    }).toMatchObject({ submitAboveAddress: true, submitAboveToken: true });
+
+    // The address field is ABOVE the token field: a person names the server
+    // before pasting a credential issued by it, and reading them in the other
+    // order invites pasting a token for the backend you are about to leave.
+    expect(address.y).toBeLessThan(token.y);
+    await page.close();
+  }, 180_000);
+
   it('the submit button is ABOVE the field, so no keyboard height can hide it', async () => {
     await open(FULL);
     const submit = await box('sign-in-submit');

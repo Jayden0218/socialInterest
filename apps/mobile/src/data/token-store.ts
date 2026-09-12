@@ -57,3 +57,38 @@ export function browserKeyValueStore(): KeyValueStore | null {
   const ls = (globalThis as { localStorage?: KeyValueStore }).localStorage;
   return ls ?? null;
 }
+
+/**
+ * Device backing store — 009/FR-002.
+ *
+ * THE HALF THAT WAS MISSING. Until this existed, `browserKeyValueStore()` was
+ * the ONLY implementation of `KeyValueStore`: it reads `globalThis.localStorage`
+ * and returns null anywhere else, so on a device `defaultTokenStore()` returned
+ * undefined, the token store fell back to memory, and the app signed out on
+ * every relaunch. `data-provider.tsx` carried that as a known gap in its own
+ * comment for five features. A persistence interface with a web half and no
+ * device half is the declared-half-with-no-other-half shape this project keeps
+ * paying for.
+ *
+ * REQUIRED LAZILY, INSIDE A TRY, for the reason `useMediaLibrary.loadPicker`
+ * does the same: the module is native, so a runtime without it — the jest
+ * preset, react-native-web, the browser journeys — must degrade to "no backing
+ * store" rather than fail to load. Returning null here is honest and already
+ * handled: `PersistentTokenStore` treats a missing store as signed out rather
+ * than throwing, because a storage failure must break one read and not every
+ * request.
+ *
+ * AsyncStorage's methods return promises, which `KeyValueStore` already allows —
+ * the interface was written that way before anything needed it.
+ */
+export function deviceKeyValueStore(): KeyValueStore | null {
+  try {
+    const mod = require('@react-native-async-storage/async-storage') as {
+      default?: KeyValueStore;
+    };
+    const store = mod?.default;
+    return store && typeof store.getItem === 'function' ? store : null;
+  } catch {
+    return null;
+  }
+}

@@ -169,6 +169,16 @@ runtime profile, unchanged, running somewhere else. Nothing about it is a manage
 - *Honest reporting* — R2's unverified status, and the device-token persistence bug being a
   pre-existing defect rather than something this feature introduced. ✅
 
+### Gate baselines, measured before any code changed (T004, 2026-09-12)
+
+| Gate | Baseline | Command |
+|---|---|---|
+| Visibility | **1522 tests, 3 suites, all passing**; `BASE_SURFACES.length === 16`, `baseTotal === 1488` | `pnpm --filter @sih/api test:visibility` |
+| Public/operator route snapshot | **5 tests passing**, including *exactly these routes are public — no more, no fewer* | `pnpm --filter @sih/api test:integration -- auth-surface` |
+
+Recorded here rather than in `quickstart.md`, which is a guide for the owner and not a place
+to keep measurements (analyze finding U2).
+
 ### Post-design re-check
 
 Re-evaluated after Phase 1. **No principle is violated and the Complexity Tracking table is

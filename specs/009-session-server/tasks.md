@@ -49,9 +49,9 @@ run that reported 253 tests passing.
 
 **Purpose**: The one new dependency, and the native regeneration it forces.
 
-- [ ] T001 Read `node_modules/expo/bundledNativeModules.json` and record the version it names for `@react-native-async-storage/async-storage` in `specs/009-session-server/research.md` under R4
-- [ ] T002 Add `@react-native-async-storage/async-storage` to `apps/mobile/package.json` at exactly that version — **never a version pnpm chooses**; `expo install` cannot reach its API from this sandbox and `pnpm add` picking its own version is what killed the app at module registration with `NoClassDefFoundError: AnyTypeCache`
-- [ ] T003 Regenerate the Android project with `expo prebuild --platform android --no-install` in `apps/mobile/` so the new native module is linked
+- [X] T001 Read `node_modules/expo/bundledNativeModules.json` and record the version it names for `@react-native-async-storage/async-storage` in `specs/009-session-server/research.md` under R4
+- [X] T002 Add `@react-native-async-storage/async-storage` to `apps/mobile/package.json` at exactly that version — **never a version pnpm chooses**; `expo install` cannot reach its API from this sandbox and `pnpm add` picking its own version is what killed the app at module registration with `NoClassDefFoundError: AnyTypeCache`
+- [X] T003 Regenerate the Android project with `expo prebuild --platform android --no-install` in `apps/mobile/` so the new native module is linked
 
 **Checkpoint**: The dependency exists and the native project knows about it. Nothing works yet.
 
@@ -64,10 +64,10 @@ contract test that *can* be written first.
 
 **⚠️ CRITICAL**: No user story work begins until T004–T006 are done.
 
-- [ ] T004 Record the gate baselines by running `pnpm --filter @sih/api test:visibility` and `pnpm --filter @sih/api test:integration`, capturing `BASE_SURFACES.length` (16, `apps/api/tests/visibility/matrix.spec.ts:476`), `baseTotal` (1488, `:532`) and the public-route snapshot from `apps/api/tests/integration/auth-surface.spec.ts` into `specs/009-session-server/quickstart.md`
-- [ ] T005 [P] Write the enforcing test for `contracts/backend-address.md` §1–§4 in `apps/mobile/src/data/__tests__/settings-store.test.ts` — resolution order, persistence, same-address-is-not-a-change, storage failure falls back rather than throws
-- [ ] T006 [P] Write the structural test for `contracts/backend-address.md` §6 in `apps/mobile/__tests__/address-is-not-a-permission.test.ts` — no module that renders or gates content may read the stored address; reuse the comment-stripping import scanner in `apps/api/tests/unit/support/forbidden-imports.ts` rather than writing a fourth copy
-- [ ] T007 Watch T005 and T006 fail against the shipped product and record what each said in `specs/009-session-server/checklists/requirements.md` — a red for "the file does not exist" is not the red this asks for
+- [X] T004 Record the gate baselines by running `pnpm --filter @sih/api test:visibility` and `pnpm --filter @sih/api test:integration`, capturing `BASE_SURFACES.length` (16, `apps/api/tests/visibility/matrix.spec.ts:476`), `baseTotal` (1488, `:532`) and the public-route snapshot from `apps/api/tests/integration/auth-surface.spec.ts` into `specs/009-session-server/plan.md`, beside the gates they pin (analyze finding U2)
+- [X] T005 [P] Write the enforcing test for `contracts/backend-address.md` §1–§4 in `apps/mobile/src/data/__tests__/settings-store.test.ts` — resolution order, persistence, same-address-is-not-a-change, storage failure falls back rather than throws
+- [X] T006 [P] Write the structural test for `contracts/backend-address.md` §6 in `apps/mobile/__tests__/address-is-not-a-permission.test.ts` — no module that renders or gates content may read the stored address; reuse the comment-stripping import scanner in `apps/api/tests/unit/support/forbidden-imports.ts` rather than writing a fourth copy
+- [X] T007 Watch T005 and T006 fail against the shipped product and record what each said in `specs/009-session-server/checklists/requirements.md` — a red for "the file does not exist" is not the red this asks for
 
 **Checkpoint**: Baselines recorded, contract tests red for the product's own reasons.
 
@@ -83,21 +83,21 @@ will do.
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Add a device backing store for `KeyValueStore` in `apps/mobile/src/data/token-store.ts`, beside `browserKeyValueStore()` and behind the same interface — this is the missing half that makes the app sign out on every relaunch (research R4)
-- [ ] T009 [US1] Create `apps/mobile/src/data/settings-store.ts` holding `sih.backend.url`: resolution order (stored → built-in default, **two levels, no environment override**), persistence, and a read that falls back rather than throws
-- [ ] T010 [US1] Implement the invalidation rule in `settings-store.ts` in **one place** — writing a *different* address clears `sih.auth.token`; writing the *same* address does not (contract §3, FR-005)
-- [ ] T011 [US1] Update `apps/mobile/src/data-provider.tsx` to select the device store off the web and keep `browserKeyValueStore()` on it, so `apps/e2e/browser/authenticated.spec.ts` still authenticates through the same key
-- [ ] T012 [US1] Make `baseUrl` loaded state in `apps/mobile/src/App.tsx` instead of the module constant `API_BASE_URL`, feeding `<DataProvider baseUrl={...}>` — **every hook before every return**, per `apps/mobile/__tests__/hooks-before-return.test.ts`
-- [ ] T013 [US1] Add the address field to `apps/mobile/src/features/auth/SignInScreen.tsx` with the submit control **above both fields** — ordering, not a measured gap (contract §5, FR-006)
-- [ ] T014 [US1] Wire address and credential in `apps/mobile/src/screens/SignInContainer.tsx` — hooks before returns applies here too
-- [ ] T015 [US1] Make an unreachable address or a rejected credential report itself rather than render as an empty state, in `SignInContainer.tsx` and the containers behind it (contract §4, FR-004)
+- [X] T008 [US1] Add a device backing store for `KeyValueStore` in `apps/mobile/src/data/token-store.ts`, beside `browserKeyValueStore()` and behind the same interface — this is the missing half that makes the app sign out on every relaunch (research R4)
+- [X] T009 [US1] Create `apps/mobile/src/data/settings-store.ts` holding `sih.backend.url`: resolution order (stored → built-in default, **two levels, no environment override**), persistence, and a read that falls back rather than throws
+- [X] T010 [US1] Implement the invalidation rule in `settings-store.ts` in **one place** — writing a *different* address clears `sih.auth.token`; writing the *same* address does not (contract §3, FR-005)
+- [X] T011 [US1] Update `apps/mobile/src/data-provider.tsx` to select the device store off the web and keep `browserKeyValueStore()` on it, so `apps/e2e/browser/authenticated.spec.ts` still authenticates through the same key
+- [X] T012 [US1] Make `baseUrl` loaded state in `apps/mobile/src/App.tsx` instead of the module constant `API_BASE_URL`, feeding `<DataProvider baseUrl={...}>` — **every hook before every return**, per `apps/mobile/__tests__/hooks-before-return.test.ts`
+- [X] T013 [US1] Add the address field to `apps/mobile/src/features/auth/SignInScreen.tsx` with the submit control **above both fields** — ordering, not a measured gap (contract §5, FR-006)
+- [X] T014 [US1] Wire address and credential in `apps/mobile/src/screens/SignInContainer.tsx` — hooks before returns applies here too
+- [X] T015 [US1] Make an unreachable address or a rejected credential report itself rather than render as an empty state, in `SignInContainer.tsx` and the containers behind it (contract §4, FR-004)
 
 ### Verification for User Story 1
 
-- [ ] T016 [US1] Re-run T005 and T006 and watch them go green for the right reason
-- [ ] T017 [US1] Measure the sign-in fold with two fields in `apps/e2e/browser/signin-fit.spec.ts` — assert the **ordering** (submit above both fields), and record the measured numbers as consequence rather than as the assertion
-- [ ] T018 [US1] Add the address field's testID and reconcile `.maestro/` flows that type a token, then run `node scripts/verify-maestro-ids.mjs` — a pattern may not also match a declared literal, and a plain string under a dynamic prefix must resolve
-- [ ] T019 [US1] Run `pnpm --filter @sih/mobile test`, `pnpm lint`, `pnpm typecheck` and confirm the standing guards are green: `hooks-before-return`, `screen-scrolls`, touch targets, `text-has-colour`, `no-hardcoded-style`
+- [X] T016 [US1] Re-run T005 and T006 and watch them go green for the right reason
+- [X] T017 [US1] Measure the sign-in fold with two fields in `apps/e2e/browser/signin-fit.spec.ts` — assert the **ordering** (submit above both fields), and record the measured numbers as consequence rather than as the assertion. **Written but NOT run in its own harness here**: the e2e global setup creates a MinIO bucket and quay.io is Forbidden from this sandbox, so the same measurement was taken standalone against the real web build (320x640/616/390 — submit bottom 121, address top 313, token top 370, invariant holds at all three)
+- [X] T018 [US1] Add the address field's testID and reconcile `.maestro/` flows that type a token, then run `node scripts/verify-maestro-ids.mjs` — a pattern may not also match a declared literal, and a plain string under a dynamic prefix must resolve
+- [X] T019 [US1] Run `pnpm --filter @sih/mobile test`, `pnpm lint`, `pnpm typecheck` and confirm the standing guards are green: `hooks-before-return`, `screen-scrolls`, touch targets, `text-has-colour`, `no-hardcoded-style`
 
 **Checkpoint**: US1 is complete and shippable on its own. The app talks to any address and
 remembers it — and the pre-existing sign-out-on-relaunch defect is gone with it.

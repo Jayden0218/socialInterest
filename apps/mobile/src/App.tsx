@@ -1,8 +1,8 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, SafeAreaView, StatusBar, Text, View } from 'react-native';
 import { activePalette as palette, radius, space, textStyle, MIN_TOUCH_TARGET } from './ui/theme';
 import { Button, Row } from './ui/primitives';
-import { DataProvider, useData } from './data-provider';
+import { DataProvider, createStores, useData } from './data-provider';
 import {
   HomeFeedContainer,
   DiscoverContainer,
@@ -205,7 +205,22 @@ function Header({ title, onBack }: { title: string; onBack: () => void }) {
  * without this the overlay case could not be reached to be tested at all, and an
  * untested seam is one that is broken the first time a fork uses it.
  */
-export function Shell({ initialStack = [] }: { initialStack?: Route[] } = {}) {
+export function Shell({
+  initialStack = [],
+  backend,
+}: {
+  initialStack?: Route[];
+  /**
+   * The address the app is pointed at, and the way to change it (009/US1).
+   *
+   * OPTIONAL, and absent means the sign-in screen shows no address field. That
+   * is deliberate: a field with no handler behind it would be a control that
+   * does nothing, which is the declared-half-with-no-other-half shape this
+   * project has now found seven times. Tests that render `Shell` to exercise
+   * navigation pass nothing and correctly see no field.
+   */
+  backend?: { address: string; onChange: (next: string) => Promise<void> };
+} = {}) {
   const data = useData();
   const [tab, setTab] = useState<Tab>('feed');
   const [stack, setStack] = useState<Route[]>(initialStack);
@@ -251,6 +266,7 @@ export function Shell({ initialStack = [] }: { initialStack?: Route[] } = {}) {
         case 'sign-in':
           return (
             <SignInContainer
+              {...(backend ? { address: backend.address, onAddressChange: backend.onChange } : {})}
               onSignedIn={() => {
                 setSignedIn(true);
                 /**
@@ -670,11 +686,68 @@ export function Shell({ initialStack = [] }: { initialStack?: Route[] } = {}) {
  * the same machine. A physical device needs an address it can actually route to.
  */
 export default function App() {
+  /**
+   * 009/US1. The address is no longer a constant compiled into the build.
+   *
+   * THE ADDRESS IS PASSED AS A GETTER, not as a value. `ApiClient` reads
+   * `baseUrl` when it builds each request, so a getter means a change takes
+   * effect on the very next call with nothing rebuilt. Passing the string
+   * instead would replace `AppData` on every change, and the sign-in that
+   * follows an address change would run against the object it just replaced.
+   *
+   * `addressRef` exists for that getter alone: `useCallback` with no deps keeps
+   * one stable function so `DataProvider`'s memo never re-runs, while the ref
+   * carries the current value. The state copy beside it is what RENDERS.
+   *
+   * Every hook is above every return, per `hooks-before-return.test.ts`.
+   */
+  const stores = useMemo(() => createStores(API_BASE_URL), []);
+  const addressRef = useRef(API_BASE_URL);
+  // Synchronous where the backing store allows it (localStorage, and no store at
+  // all); null only where a real await is unavoidable, which is a device.
+  const [address, setAddress] = useState<string | null>(
+    () => stores.settings?.peekBaseUrl() ?? (stores.settings ? null : API_BASE_URL),
+  );
+  const getBaseUrl = useCallback(() => addressRef.current, []);
+
+  useEffect(() => {
+    let live = true;
+    const load = async () => {
+      const stored = (await stores.settings?.getBaseUrl()) ?? API_BASE_URL;
+      addressRef.current = stored;
+      if (live) setAddress(stored);
+    };
+    void load();
+    return () => {
+      live = false;
+    };
+  }, [stores]);
+
+  const changeAddress = useCallback(
+    async (next: string) => {
+      // The store decides whether this is a change, and clears the credential
+      // if it is. Reading back what it stored means the normalised value is
+      // what renders, so the field cannot disagree with what requests use.
+      await stores.settings?.setBaseUrl(next);
+      const applied = (await stores.settings?.getBaseUrl()) ?? next;
+      addressRef.current = applied;
+      setAddress(applied);
+    },
+    [stores],
+  );
+
+  // Nothing is rendered until the stored address is known. Rendering the
+  // built-in default first would fire the feed's opening requests at the wrong
+  // backend and show a person an error about a server they never chose.
+  if (address === null) {
+    return <SafeAreaView style={{ flex: 1, backgroundColor: palette.bg.base }} />;
+  }
+
   return (
-    <DataProvider baseUrl={API_BASE_URL}>
+    <DataProvider baseUrl={getBaseUrl} tokens={stores.tokens}>
       <SafeAreaView style={{ flex: 1, backgroundColor: palette.bg.base }}>
         <StatusBar />
-        <Shell />
+        <Shell backend={{ address, onChange: changeAddress }} />
       </SafeAreaView>
     </DataProvider>
   );

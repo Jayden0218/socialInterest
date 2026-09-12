@@ -33,7 +33,21 @@ await build({
    * runtime and the try/catch takes the fallback path. That is the intended
    * behaviour on web, reached by the intended route.
    */
-  external: ['expo-image-picker'],
+  /**
+   * 009: AsyncStorage joins the picker here, for the identical reason and with
+   * the identical intended outcome.
+   *
+   * `deviceKeyValueStore()` requires it lazily inside a try so a runtime without
+   * it degrades to "no backing store". But esbuild resolves a literal require at
+   * BUILD time wherever it sits, so without this the web bundle would pull in a
+   * native module it never uses — and `browserKeyValueStore()` is tried first on
+   * web anyway, so it could never be reached.
+   *
+   * Marking it external keeps the require in the output, where it throws at
+   * runtime and the try takes the fallback. That is the intended behaviour on
+   * web, reached by the intended route.
+   */
+  external: ['expo-image-picker', '@react-native-async-storage/async-storage'],
   define: {
     'process.env.NODE_ENV': '"development"',
     __DEV__: 'true',

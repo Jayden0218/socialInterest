@@ -68,7 +68,8 @@ export type { Signal, SignalKind, SignalReceipt, FeedSignalDisclosure } from './
 export { DataClient, MemoryTokenStore, SessionData, PeopleData, InterestsData, PostsData, FeedData, EngagementData, SafetyData, NotificationsData };
 export type { DataClientOptions, TokenStore };
 export * from './errors';
-export { PersistentTokenStore, browserKeyValueStore } from './token-store';
+export { PersistentTokenStore, browserKeyValueStore, deviceKeyValueStore } from './token-store';
+export { PersistentSettingsStore, BACKEND_URL_KEY } from './settings-store';
 export type { KeyValueStore } from './token-store';
 export type { UploadTarget } from './posts';
 export type { PostPage } from './interests';

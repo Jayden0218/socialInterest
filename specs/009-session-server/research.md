@@ -133,6 +133,10 @@ other half in this codebase.
 
 **Two notes that will matter at implementation time**, both from `CLAUDE.md`:
 
+- **The version is `2.2.0`, exactly.** Read from
+  `node_modules/expo/bundledNativeModules.json` under SDK 54 on 2026-09-12 (T001). The
+  bundled value carries no range prefix, so it is pinned exact rather than caret- or
+  tilde-ranged. `expo-secure-store` sits beside it at `~15.0.8` and was rejected above.
 - **Install it with `expo install`, never `pnpm add`.** The latter took
   `expo-image-picker@57` against SDK 54 and killed the app at module registration with
   `NoClassDefFoundError`. `expo install` cannot reach its API from this sandbox, so read

@@ -28,7 +28,20 @@ export class MemoryTokenStore implements TokenStore {
 }
 
 export interface DataClientOptions {
-  baseUrl: string;
+  /**
+   * Where the API lives — a fixed address, or a function resolved per request.
+   *
+   * 009/US1 made the address something a person can change while the app is
+   * running. Passing a FUNCTION here mirrors what `getToken` has always done,
+   * and it matters for a reason that is not style: `ApiClient` reads
+   * `opts.baseUrl` when it builds each request, so a live getter means changing
+   * the address takes effect on the next call with nothing rebuilt.
+   *
+   * Rebuilding the data layer instead would replace `AppData` mid-flight, and
+   * the sign-in that follows an address change would run against the object it
+   * just replaced — signing in to the old backend, or to nothing.
+   */
+  baseUrl: string | (() => string);
   tokens?: TokenStore;
   fetch?: typeof globalThis.fetch;
 }
@@ -39,8 +52,13 @@ export class DataClient {
 
   constructor(opts: DataClientOptions) {
     this.tokens = opts.tokens ?? new MemoryTokenStore();
+    const resolve = typeof opts.baseUrl === 'function' ? opts.baseUrl : () => opts.baseUrl as string;
     this.api = new ApiClient({
-      baseUrl: opts.baseUrl,
+      // A getter, not a value: read afresh for every request, the same way the
+      // token is. Nothing in `@sih/shared` changes for this.
+      get baseUrl() {
+        return resolve();
+      },
       getToken: () => this.tokens.get(),
       ...(opts.fetch ? { fetch: opts.fetch } : {}),
     });

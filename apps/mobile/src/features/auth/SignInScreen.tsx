@@ -22,9 +22,34 @@ export interface SignInScreenProps {
   error?: string | null;
   onTokenChange: (next: string) => void;
   onSubmit: () => void;
+  /**
+   * The backend this app talks to (009/US1, FR-001).
+   *
+   * Both are optional TOGETHER: no handler means no field. A field with nothing
+   * behind it would be a control that does nothing, which is the exact shape
+   * this project keeps finding — a "Following" tab with no feed, a `readAt`
+   * nothing writes, a follow button wired to `() => undefined`.
+   *
+   * The screen takes it as a PROP and never reads it from a store. The address
+   * is read where the data layer is constructed and nowhere else
+   * (`contracts/backend-address.md` §6), and
+   * `address-is-not-a-permission.test.ts` scans this file to prove it.
+   */
+  address?: string;
+  onAddressChange?: (next: string) => void;
 }
 
-export function SignInScreen({ token, submitting, error, onTokenChange, onSubmit }: SignInScreenProps) {
+export function SignInScreen({
+  token,
+  submitting,
+  error,
+  onTokenChange,
+  onSubmit,
+  address,
+  onAddressChange,
+}: SignInScreenProps) {
+  const configurable = typeof onAddressChange === 'function';
+  const addressReady = !configurable || (address ?? '').trim().length > 0;
   return (
     /**
      * NOT `scroll`, and that is a measured decision rather than a default.
@@ -92,7 +117,7 @@ export function SignInScreen({ token, submitting, error, onTokenChange, onSubmit
         <Button
           testID="sign-in-submit"
           label={submitting ? 'Signing in…' : 'Get started'}
-          disabled={submitting || token.trim().length === 0}
+          disabled={submitting || token.trim().length === 0 || !addressReady}
           onPress={onSubmit}
         />
       </View>
@@ -118,8 +143,37 @@ export function SignInScreen({ token, submitting, error, onTokenChange, onSubmit
         </Text>
 
         <Text style={{ ...textStyle.caption, color: palette.text.muted }}>
-          This build talks to a local API. Paste a token to continue.
+          {configurable
+            ? 'Point this app at a server, then paste a token from it.'
+            : 'This build talks to a local API. Paste a token to continue.'}
         </Text>
+
+        {/*
+          THE SUBMIT IS STILL ABOVE BOTH FIELDS, and adding a field here is
+          exactly why that invariant was worth having.
+
+          Runs 39, 40 and 41 each spent about twenty minutes signed out because
+          the submit sat below the fold once the soft keyboard opened, on a
+          screen that deliberately does not scroll. The guard written to catch it
+          measured against an INVENTED constant — "a keyboard takes 250 points" —
+          and passed through two of those runs while the device failed
+          identically, because react-native-web has no soft keyboard and no
+          browser measurement can ever supply that number.
+
+          A control above the fields cannot be covered by a keyboard that opens
+          below them, at any keyboard height, under `adjustResize` and
+          `adjustPan` alike. Adding a second field moves the fold; it cannot move
+          a control that is above both.
+        */}
+        {configurable ? (
+          <Field
+            testID="sign-in-address"
+            accessibilityLabel="Server address"
+            value={address ?? ''}
+            onChangeText={onAddressChange}
+            placeholder="https://example.trycloudflare.com/v1"
+          />
+        ) : null}
 
         <Field
           testID="sign-in-token"

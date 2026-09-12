@@ -59,3 +59,30 @@ are all measurable by observation on a device or by inspection. None of them cla
 about durability, production readiness, or the open hosting question — see Out of Scope,
 which names those explicitly so a future reader does not read this feature as having
 closed them.
+
+## T007 — what the reds actually said (2026-09-12)
+
+Recorded because the task asks for it, and because "watched it fail" is a claim that should
+carry its evidence.
+
+- **`settings-store.test.ts` was red for the WRONG REASON**, exactly as the note at the top
+  of `tasks.md` predicted for the other contract: `Cannot find module '../data/settings-store'`.
+  A missing file, not a product fact.
+- **Worse, it hid the one red that mattered.** The meaningful assertion — that the data layer
+  offers a device backing store — was written as a `describe` inside that same file, so the
+  suite failed to load and the assertion never ran at all. Evidence that exists and cannot be
+  reached is run 40 and run 56 in a third place, and it happened here in the same session that
+  wrote those sentences down. It lives in `device-storage.test.ts` now, importing only code
+  that already existed, and was then observed red against the shipped product:
+  `deviceKeyValueStore` → `Expected: "function" / Received: "undefined"`.
+- **`address-is-not-a-permission.test.ts` PASSED on its first run**, which is not evidence of
+  anything. It was verified by injecting a real violation — an `API_BASE_URL` import into
+  `screens/SavedContainer.tsx` — and observed red naming the offending file, then green again
+  on revert.
+
+## What could not be run in this environment
+
+`apps/e2e`'s browser suite cannot start here: its global setup creates a MinIO bucket, and
+`quay.io` answers `Forbidden` from this sandbox (the dead-ends table records this; confirmed
+again by `docker pull`). T017's measurement was therefore taken standalone against the real
+web build rather than through the harness. The assertion is committed and will run in CI.
