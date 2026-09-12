@@ -84,27 +84,37 @@ jobs:
           EAS_PROJECT_ID: ${{ vars.EAS_PROJECT_ID }}
         run: |
           cd apps/mobile
-          # --wait so this job's summary can carry the download link, rather than
-          # ending with "queued" and leaving you to find it. --json so the URL is
-          # parsed rather than scraped out of prose.
+          # NO --wait, and that is a cost decision rather than a style one.
+          #
+          # `--wait` holds this job open until Expo's machines finish, which is
+          # ten to thirty minutes including free-tier queue time — all of it
+          # spent idling against a 2,000-minute monthly allowance this private
+          # repository shares with CI and the emulator job. The first version of
+          # this step did exactly that, to make the summary carry a download
+          # link. A link is not worth twenty minutes of the budget.
+          #
+          # Submitting and exiting costs about two minutes. The build page below
+          # carries the download link when it finishes, and Expo emails you.
           npx eas-cli@24.3.0 build \
             --platform android \
             --profile "${{ inputs.profile }}" \
-            --non-interactive --wait --json > /tmp/build.json 2> >(tee /tmp/build.err >&2) || true
+            --non-interactive --no-wait --json > /tmp/build.json 2> >(tee /tmp/build.err >&2) || true
 
-          URL="$(node -e 'try{const b=require("/tmp/build.json");const a=Array.isArray(b)?b[0]:b;process.stdout.write(a?.artifacts?.buildUrl||a?.artifacts?.applicationArchiveUrl||"")}catch{process.stdout.write("")}')"
+          URL="$(node -e 'try{const b=require("/tmp/build.json");const a=Array.isArray(b)?b[0]:b;process.stdout.write(a?.buildDetailsPageUrl||a?.artifacts?.buildUrl||"")}catch{process.stdout.write("")}')"
           {
-            printf '## APK build\n\n'
+            printf '## APK build submitted\n\n'
             if [ -n "$URL" ]; then
-              printf '**Open this on your phone and install it:**\n\n%s\n\n' "$URL"
+              printf 'It is building on Expo now. **Open this when it finishes and install from it:**\n\n%s\n\n' "$URL"
+              printf 'Expo will also email you. This job did not wait for it, so it spent about two\n'
+              printf 'minutes of the Actions allowance rather than thirty.\n\n'
               printf -- '---\n\n'
               printf 'This build is **not tied to any backend**. Since 009/US1 the server address is\n'
               printf 'typed on the sign-in screen and remembered, so this one APK works against every\n'
               printf 'session you ever start. You should not need to build it again.\n'
             else
-              printf 'The build did not return a download URL. Error output:\n\n```\n'
+              printf 'The build was not submitted. Error output:\n\n```\n'
               tail -40 /tmp/build.err 2>/dev/null || echo '(none captured)'
               printf '\n```\n'
             fi
           } >> "$GITHUB_STEP_SUMMARY"
-          [ -n "$URL" ] || { echo "no APK URL"; exit 1; }
+          [ -n "$URL" ] || { echo "build not submitted"; exit 1; }
