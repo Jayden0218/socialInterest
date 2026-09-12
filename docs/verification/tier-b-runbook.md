@@ -303,3 +303,19 @@ npx expo config --type public --json | ... -> sdkVersion: 54.0.0
 The config is correct and eas-cli's own check is misreading it — most likely pnpm's symlinked
 `node_modules`. Answering **Y** is right, and the build re-reads the config on Expo's machines
 anyway. **Verify the SDK version before answering, not the warning's wording.**
+
+**A fourth snag, and it was the config's fault.** The first `eas.json` carried
+`"channel": "preview"`. `channel` is an **EAS Update** concept, so eas-cli correctly offered
+to install `expo-updates` and configure over-the-air updates — then failed, because it cannot
+write `updates.url` into a dynamic `app.config.ts`:
+
+```
+Cannot automatically write to dynamic config at: app.config.ts
+    Error: build command failed.
+```
+
+**We do not want EAS Update.** It is a native module and an update check at every launch, for
+a build that is installed by hand and replaced by rebuilding. The `channel` keys are gone, so
+the prompt does not appear. If a future change does want OTA updates, the `updates` and
+`runtimeVersion` keys have to be added to `app.config.ts` BY HAND — a dynamic config is never
+written to automatically, and that is the trade for having one.
