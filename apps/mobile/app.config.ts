@@ -51,7 +51,14 @@ export default {
    */
   extra: {
     eas: {
-      ...(process.env['EAS_PROJECT_ID'] ? { projectId: process.env['EAS_PROJECT_ID'] } : {}),
+      // Created by `eas init` on 2026-09-12 and committed deliberately. A project
+      // id is an IDENTIFIER, not a credential — it appears in every build's URL
+      // and in Expo's dashboard — so it belongs in the repository rather than in
+      // a shell export that dies with the terminal it was typed into.
+      //
+      // The environment still wins, so a fork or a second Expo account can point
+      // the same source at its own project without editing this file.
+      projectId: process.env['EAS_PROJECT_ID'] ?? 'ec4c46a7-7c75-478b-8d34-b6cb4d8b30b9',
     },
   },
 

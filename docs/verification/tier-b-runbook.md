@@ -250,7 +250,7 @@ workflow tells you about each one the first time it is missing rather than faili
 | What | Where | Why there |
 |---|---|---|
 | `EXPO_TOKEN` | repository **secret** | A credential. It must never reach a terminal history, a transcript, or an agent session — which is the whole reason this is a workflow and not a command someone runs |
-| `EAS_PROJECT_ID` | repository **variable** | An identifier, not a credential. A dynamic `app.config.ts` cannot be rewritten by `eas init`, so the id is carried in the environment and read in `extra.eas.projectId` |
+| `EAS_PROJECT_ID` | **committed** in `app.config.ts` | An identifier, not a credential. `eas init` cannot rewrite a dynamic config, so the id was read back with `expo config` and committed as the default. The environment still overrides it, so a second Expo account needs no edit. A repository variable is no longer required |
 
 The first dispatch links the project and prints the id with instructions. The second builds
 and puts the download link in the job summary, where a phone can reach it.
@@ -268,3 +268,38 @@ made.
 screen and persisted, so `EXPO_PUBLIC_API_BASE_URL` is only a starting default and one APK
 serves every session. That is what makes a once-off cloud build sensible where a per-session
 rebuild would not have been.
+
+
+### Two things the first real run taught, 2026-09-12
+
+**`eas` is not a global command and does not need to be.** `npx eas-cli@24.3.0 <cmd>` runs it
+without installing anything, and it must be run from `apps/mobile/` — EAS reads
+`app.config.ts` and `eas.json` from the working directory, so running it from a home folder
+fails with no project found.
+
+**Dependencies must be installed locally first, even though the build happens on Expo's
+machines.** `eas init` resolves the config plugins (`expo-build-properties`,
+`expo-image-picker`) from `node_modules` before it will read the config at all:
+
+```
+Failed to resolve plugin for module "expo-build-properties" ... Do you have node modules installed?
+```
+
+`pnpm install --filter @sih/mobile...` is enough and skips NestJS, the AWS SDK and Playwright.
+
+**And a warning that is a MISFIRE, worth not panicking about.** eas-cli asks:
+
+```
+EAS Build does not officially support building managed project with Expo SDK < 41. Do you want to proceed?
+```
+
+This project is SDK 54. Checked before answering rather than after, because a build spends one
+of fifteen a month:
+
+```
+npx expo config --type public --json | ... -> sdkVersion: 54.0.0
+```
+
+The config is correct and eas-cli's own check is misreading it — most likely pnpm's symlinked
+`node_modules`. Answering **Y** is right, and the build re-reads the config on Expo's machines
+anyway. **Verify the SDK version before answering, not the warning's wording.**
