@@ -447,7 +447,20 @@ On 2026-09-06 every workflow failed ~6 seconds in with `recent account payments 
 failed or your spending limit needs to be increased`, blocking ordinary CI as well as the
 emulator job.
 
-**That is over.** The repository is **public** (`visibility: public`, checked 2026-09-07),
+**RE-CHECKED 2026-09-12: THE REPOSITORY IS PRIVATE AGAIN** (`visibility: private`,
+`private: true`, from the API). So the allowance below applies once more: GitHub Free
+includes 2,000 Linux minutes a month on a private repository, and with no payment method the
+default spending limit is $0, so jobs STOP rather than bill. Budget accordingly — 009's
+session server spends real minutes (a 2-hour session is 120 of them) and so does the
+emulator job at ~20-25 each. **This is the third time the paragraph below has been true and
+then not.** Check the API, never this file, before relying on either claim.
+
+Also worth knowing while it is private: Actions logs and job summaries are NOT world-readable
+here. 009's session descriptor carries a live credential in its job summary and is safe only
+because of that. **If this repository is ever made public, that descriptor must stop carrying
+the token.**
+
+The paragraph as written on 2026-09-07, now stale: The repository is **public** (`visibility: public`, checked 2026-09-07),
 so GitHub-hosted standard runners are free on it, and CI runs 169-176 plus emulator runs
 26-29 all executed normally. The cost rule in `plan.md` is a rule about SPEND, and a run
 on this repository does not spend - so dispatching the emulator job is not the owner's

@@ -15,9 +15,35 @@ about it, and those are marked. One is **unverified** and says so.
 hosting option evaluated, because each of the serious ones requires a card even where it
 never charges — Oracle takes one for identity verification and refuses prepaid cards,
 Cloudflare requires one to enable object storage even on the free tier, and AWS requires one.
-What remains is compute the owner already has, and the repository is **public**, so
-GitHub-hosted runners cost nothing on it. `CLAUDE.md` records this as checked on 2026-09-07
-after the allowance scare, with CI runs 169–176 executing normally.
+What remains is compute the owner already has: GitHub Actions.
+
+**CORRECTED 2026-09-12, and the first version of this paragraph was wrong.** It said the
+repository is public and that runners therefore cost nothing, taken from `CLAUDE.md`'s note
+of 2026-09-07 — a note whose own closing line is *"check the facts before repeating either
+claim; both halves of this one expired within a day."* They expired again. The API answers
+`visibility: private`, `private: true`.
+
+So a session is **free but metered**: GitHub Free includes **2,000 Linux minutes a month** on
+private repositories, and with no payment method on file the default spending limit is $0, so
+jobs **stop** rather than bill. FR-009 still holds — nothing is charged and no card is needed
+— but the resource is finite and shared with CI and the emulator job:
+
+| Session length | Minutes | Roughly per month, if nothing else ran |
+|---|---|---|
+| 30 minutes | 30 | 66 |
+| 1 hour | 60 | 33 |
+| 2 hours | 120 | 16 |
+
+This is not a hypothetical constraint. `CLAUDE.md` records every workflow failing on
+2026-09-06 with *"spending limit needs to be increased"* — which happened while the
+repository was private, which it is again.
+
+**Private also removes a leak this design would otherwise have had, and that was luck rather
+than judgement.** Actions logs and job summaries on a PUBLIC repository are readable by
+anyone. The descriptor is written to `$GITHUB_STEP_SUMMARY` and carries a working credential,
+so on a public repository it would have been visible to anyone watching the Actions tab for
+as long as the session lived. Nothing in the design noticed; the repository's visibility is
+doing that work. If it is ever made public, the descriptor must stop carrying the token.
 
 The runner is also the only candidate that needs **no code changes at all**: the media
 adapter shells out to `docker run`, which needs a Docker daemon. Every platform-as-a-service
