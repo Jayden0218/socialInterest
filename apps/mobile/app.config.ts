@@ -39,10 +39,29 @@ export default {
       },
     ],
   ],
+  /**
+   * EAS needs to know WHICH Expo project this is, and a dynamic config cannot be
+   * rewritten by `eas init` the way a static app.json can — so the id comes from
+   * the environment and is stored as a repository VARIABLE (not a secret: a
+   * project id is an identifier, not a credential).
+   *
+   * `.github/workflows/apk.yml` prints the id on its first run and tells you
+   * where to put it. Until then this is undefined and EAS says so plainly rather
+   * than building the wrong project.
+   */
+  extra: {
+    eas: {
+      ...(process.env['EAS_PROJECT_ID'] ? { projectId: process.env['EAS_PROJECT_ID'] } : {}),
+    },
+  },
+
   // The API base URL comes from EXPO_PUBLIC_API_BASE_URL, which Expo inlines at
   // build time and src/config.ts reads. It deliberately does NOT live in `extra`:
   // it was in both, under different names, and nothing read the `extra` copy.
   //
-  // Set it at build time to whatever the device can reach - a LAN address, or a
-  // tunnel URL when the device is not on your network.
+  // SINCE 009/US1 THIS NO LONGER PINS THE BUILD TO ONE BACKEND. The address is
+  // settable on the sign-in screen and persisted on the device, so what is
+  // compiled in is only a starting default. One APK now works against every
+  // session, which is what makes a cloud build worth doing once rather than
+  // per session.
 };

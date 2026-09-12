@@ -146,7 +146,7 @@ credential there, without a laptop and without downloading a file.
 
 **Purpose**: Build it, run it, and report it honestly.
 
-- [ ] T031 [P] Build the arm64 release APK per `docs/verification/tier-b-runbook.md` and hand it to the owner — with the address now runtime-settable, **this build is not tied to any backend** and does not need rebuilding per session
+- [ ] T031 [P] Build the APK **on EAS** via `.github/workflows/apk.yml` (the owner's choice over the local recipe, which stays documented and working). Needs an `EXPO_TOKEN` repository secret and, after the first dispatch, an `EAS_PROJECT_ID` repository variable — neither of which an agent can create — with the address now runtime-settable, **this build is not tied to any backend** and does not need rebuilding per session
 - [ ] T032 **Dispatch the first session. This is the experiment, not a validation.** Research R2 records the tunnel as unverified on a runner; if it fails, fall back through the providers R2 names in order and record which worked
 - [ ] T033 Run the device pass on the owner's phone per [quickstart.md](./quickstart.md) sections B–D, publishing a post carrying a photograph and confirming it renders
 - [ ] T034 Re-run the gates from T004 and confirm `BASE_SURFACES` is still 16, `baseTotal` still 1488, and the public-route snapshot unchanged — if either moved, this feature added a visibility surface and the design is wrong. Also confirm the session runs the unchanged product build with **no safety surface disabled**: a session that could not accept a report would fail Constitution IV while passing every gate above it (contract §6, FR-018)

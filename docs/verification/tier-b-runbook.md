@@ -235,3 +235,36 @@ on it.
 - <https://firebase.google.com/docs/test-lab/android/robo-ux-test> — Robo test captures logcat, screenshots, video
 - <https://firebase.google.com/docs/test-lab/usage-quotas-pricing> — Test Lab quotas (not reachable from this sandbox)
 - <https://testgrid.io/blog/best-device-farms/> — device farm comparison and pricing
+
+
+---
+
+## Building the APK on EAS instead (2026-09-12)
+
+The local recipe above still works and needs no account. EAS is the owner's choice for
+009/T031, and both paths are recorded rather than one quietly replacing the other.
+
+**Dispatch `.github/workflows/apk.yml`.** It needs two things from the repository, and the
+workflow tells you about each one the first time it is missing rather than failing obscurely:
+
+| What | Where | Why there |
+|---|---|---|
+| `EXPO_TOKEN` | repository **secret** | A credential. It must never reach a terminal history, a transcript, or an agent session — which is the whole reason this is a workflow and not a command someone runs |
+| `EAS_PROJECT_ID` | repository **variable** | An identifier, not a credential. A dynamic `app.config.ts` cannot be rewritten by `eas init`, so the id is carried in the environment and read in `extra.eas.projectId` |
+
+The first dispatch links the project and prints the id with instructions. The second builds
+and puts the download link in the job summary, where a phone can reach it.
+
+**Cost**: EAS Free is 15 Android builds a month, no card, no overage — builds stop until the
+quota resets. The workflow only triggers the build, so it spends about two GitHub Actions
+minutes of the 2,000 this private repository gets.
+
+**What choosing EAS costs, stated once.** The build runs on Expo's machines, so the source of
+a private repository is uploaded to a third party. That is inherent to a cloud build and not
+a criticism of it; the local recipe does not have this property, which is the trade being
+made.
+
+**Since 009/US1 this build is not tied to any backend.** The address is typed on the sign-in
+screen and persisted, so `EXPO_PUBLIC_API_BASE_URL` is only a starting default and one APK
+serves every session. That is what makes a once-off cloud build sensible where a per-session
+rebuild would not have been.

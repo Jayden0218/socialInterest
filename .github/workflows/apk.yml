@@ -1,0 +1,110 @@
+# 009/T031. Build the installable APK on EAS, Expo's cloud build service.
+#
+# WHY A WORKFLOW AND NOT A LOCAL BUILD. The owner chose EAS over the local
+# toolchain (which is verified and documented in docs/verification/tier-b-runbook.md
+# and needs no account). EAS needs an Expo credential, and a credential belongs in
+# a repository secret rather than in anyone's terminal history or an agent's
+# session — so the build is dispatched from here, where GitHub holds the secret
+# and nothing else ever sees it.
+#
+# COST: EAS Free is 15 Android builds a month, no card, and no overage — builds
+# simply stop until the quota resets. This workflow itself only *triggers* the
+# build, so it costs a couple of GitHub Actions minutes; the build runs on Expo's
+# machines.
+name: Build APK (EAS)
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'EAS build profile'
+        required: true
+        default: 'preview'
+        type: choice
+        options: ['preview', 'production']
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Check the Expo credential is present
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "${EXPO_TOKEN}" ]; then
+            {
+              printf '## No Expo credential\n\n'
+              printf 'Add a repository **secret** named `EXPO_TOKEN`, then dispatch again.\n\n'
+              printf '1. Create a free Expo account at https://expo.dev (no card).\n'
+              printf '2. Account settings to Access tokens to **Create token**.\n'
+              printf '3. This repo to Settings to Secrets and variables to Actions to **New repository secret**.\n'
+              printf '   Name it `EXPO_TOKEN` and paste the token as the value.\n'
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "EXPO_TOKEN is not set"; exit 1
+          fi
+
+      # A dynamic app.config.ts cannot be rewritten by `eas init`, so the project
+      # id is carried in a repository variable. The first dispatch creates the
+      # project and tells you the id; the second and every one after it builds.
+      - name: Link the Expo project
+        if: vars.EAS_PROJECT_ID == ''
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          cd apps/mobile
+          npx eas-cli@24.3.0 init --non-interactive --force 2>&1 | tee /tmp/init.log || true
+          ID="$(grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' /tmp/init.log | head -1)"
+          {
+            printf '## One more step\n\n'
+            if [ -n "$ID" ]; then
+              printf 'Your Expo project id is:\n\n```\n%s\n```\n\n' "$ID"
+              printf 'Add it as a repository **variable** (not a secret — it is an identifier):\n\n'
+              printf 'Settings to Secrets and variables to Actions to **Variables** to **New repository variable**,\n'
+              printf 'named `EAS_PROJECT_ID`. Then dispatch this workflow again and it will build.\n'
+            else
+              printf 'Could not read a project id back from `eas init`. Its output:\n\n```\n'
+              tail -30 /tmp/init.log
+              printf '\n```\n'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "project linked; set EAS_PROJECT_ID and dispatch again"; exit 1
+
+      - name: Build the APK on EAS
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EAS_PROJECT_ID: ${{ vars.EAS_PROJECT_ID }}
+        run: |
+          cd apps/mobile
+          # --wait so this job's summary can carry the download link, rather than
+          # ending with "queued" and leaving you to find it. --json so the URL is
+          # parsed rather than scraped out of prose.
+          npx eas-cli@24.3.0 build \
+            --platform android \
+            --profile "${{ inputs.profile }}" \
+            --non-interactive --wait --json > /tmp/build.json 2> >(tee /tmp/build.err >&2) || true
+
+          URL="$(node -e 'try{const b=require("/tmp/build.json");const a=Array.isArray(b)?b[0]:b;process.stdout.write(a?.artifacts?.buildUrl||a?.artifacts?.applicationArchiveUrl||"")}catch{process.stdout.write("")}')"
+          {
+            printf '## APK build\n\n'
+            if [ -n "$URL" ]; then
+              printf '**Open this on your phone and install it:**\n\n%s\n\n' "$URL"
+              printf -- '---\n\n'
+              printf 'This build is **not tied to any backend**. Since 009/US1 the server address is\n'
+              printf 'typed on the sign-in screen and remembered, so this one APK works against every\n'
+              printf 'session you ever start. You should not need to build it again.\n'
+            else
+              printf 'The build did not return a download URL. Error output:\n\n```\n'
+              tail -40 /tmp/build.err 2>/dev/null || echo '(none captured)'
+              printf '\n```\n'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          [ -n "$URL" ] || { echo "no APK URL"; exit 1; }
