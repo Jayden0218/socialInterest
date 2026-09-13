@@ -36,6 +36,15 @@ jobs:
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 17 }
       - run: pnpm install --frozen-lockfile
+      # 010/T026. The API executes `ffmpeg` and `ffprobe` as BINARIES now; it used
+      # to shell out to `docker run`, which no managed host allows. A runner has
+      # working Debian repos (this project's development sandbox does not, which
+      # is what `scripts/ffmpeg-shim/` is for), so it installs the real thing
+      # rather than relying on whatever the runner image happens to ship — a
+      # dependency on an image's contents is a dependency on somebody else's
+      # release notes.
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
       # LOCAL_JWT_SECRET has no default any more (003/FR-007): the old one was a
       # constant in this repository, so anyone who read it could mint a token the

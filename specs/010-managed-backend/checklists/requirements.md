@@ -231,3 +231,55 @@ matches", and past that many accounts a real match was invisible with the endpoi
 200 OK and an empty list. That is why `people-search-scale` has failed on a grown local table
 three times, and a fourth during this feature. **SQL applies `where` before `limit`.** The whole
 class of false regression is gone.
+
+---
+
+## T026 — ffmpeg as a binary, and the sixth grown-table false regression
+
+**2026-09-13.** `FfmpegMediaProcessor` executed `docker run --rm -v <tmp>:/w <image>`, which needs
+a container runtime the API can reach and a temp directory the DAEMON can bind-mount. Neither
+holds on a managed host (no Docker socket; a host path mounted from inside a container is the
+host's path, not the container's) nor on a laptop that would otherwise need Docker Desktop
+running to resize an image.
+
+**One implementation, not a switch.** Keeping both and choosing with an env var is the shape the
+four AWS adapters were deleted for. The code runs `ffmpeg`; an environment with no native binary
+supplies one — `scripts/ffmpeg-shim/`, five lines that call docker — so the variation lives
+outside the code where it can be read, rather than inside it behind a flag nobody exercises.
+Verified through the shim here: `ffmpeg` produced a 2,161-byte JPEG and `ffprobe` read `64,64`
+back off it, and `us1-exif`'s fixture builder went from failing to green in 549ms.
+
+CI, the emulator job and `session-up.sh` install the real thing rather than relying on the runner
+image shipping it — a dependency on an image's contents is a dependency on somebody else's
+release notes.
+
+### And two false regressions in one afternoon, both the same shape
+
+The full suite went from 3 failures to 5. Neither new one was T026.
+
+| Surface | Held | Page size | Order |
+|---|---|---|---|
+| `MODLOG#2026-09` (audit trail) | **105** | 100 | ascending |
+| `RSTATE#open` (report queue) | **32** | 25 | ascending |
+
+Both tests wrote one row and asserted it appeared in the FIRST PAGE of an ascending list over a
+datastore shared across runs. True until the list outgrows the page, false forever after, and it
+fails looking exactly like a product defect.
+
+**The product is right in both cases.** An append-only audit read chronologically and a queue
+showing the oldest open report first are both correct — an operator works a backlog from the
+front. What was wrong is a test making a claim about a PAGE while meaning a claim about the LIST.
+
+**This is the sixth occurrence** — `people-search-scale` ×3, `review-moderation` once before, and
+these two. Three of the six were investigated as product defects before anyone counted the rows.
+CLAUDE.md's rule, "count the table before believing a paging failure", is what makes each one cost
+a minute instead of an investigation. `tests/integration/paging.ts` is the next step: **not needing
+to count.** One `findAcrossPages` helper, shared rather than copied — four copies of a thing is
+four places to get it wrong, which is the argument `forbidden-imports.ts` already makes for itself.
+
+**And the fix was watched fail first, which is the only reason it is finished.** The first version
+passed on a cleared partition and was about to be called done; padding the partition to 303 rows
+put it straight back to red, and that run is what found the report queue as a *second* surface with
+the same defect. A fix that passes on a clean table is not a fix. Final state: 13/13 against
+**307** audit rows and **32** open reports, and the whole API suite back at its baseline — 2,018 of
+2,021, the three failures being MinIO, which cannot run in this sandbox.

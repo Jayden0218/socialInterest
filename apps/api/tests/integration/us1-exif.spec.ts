@@ -53,11 +53,14 @@ describe('FR-010 — location metadata is stripped server-side', () => {
 
   /** Builds a JPEG carrying a GPS-bearing EXIF APP1 segment, as a camera would. */
   const makeTaggedImage = (): Buffer => {
-    execFileSync('docker', [
-      'run', '--rm', '-v', `${dir}:/w`, '-w', '/w', config.media.ffmpegImage,
-      '-f', 'lavfi', '-i', 'testsrc=size=64x64:rate=1:duration=1', '-vframes', '1',
-      '-y', 'plain.jpg',
-    ]);
+    execFileSync(
+      config.media.ffmpegPath,
+      [
+        '-f', 'lavfi', '-i', 'testsrc=size=64x64:rate=1:duration=1', '-vframes', '1',
+        '-y', 'plain.jpg',
+      ],
+      { cwd: dir },
+    );
     return spliceExifApp1(readFileSync(join(dir, 'plain.jpg')));
   };
 

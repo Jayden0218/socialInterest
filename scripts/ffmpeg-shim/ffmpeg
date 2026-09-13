@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+#
+# 010/T026. An `ffmpeg` for an environment that has no native one.
+#
+# THE PRODUCT CODE KNOWS ONE WAY TO TRANSCODE: run `ffmpeg`. It used to shell
+# out to `docker run` itself, which needs a container runtime the API can reach
+# and a temp directory the DAEMON can bind-mount — neither of which holds on a
+# managed host or on a laptop without Docker Desktop.
+#
+# Keeping both and choosing with an env var is the shape the four AWS adapters
+# were deleted for ("four untested implementations selected by an env var is how
+# a defect hides"). So the variation lives HERE, outside the code, where it is a
+# five-line script anyone can read, rather than inside it behind a flag nobody
+# exercises.
+#
+# Use it only where `apt-get install ffmpeg` is unavailable — this project's
+# development sandbox, where Debian repos are blocked by egress policy. A
+# laptop, a CI runner and a container image should all install the real thing.
+#
+#   export PATH="$PWD/scripts/ffmpeg-shim:$PATH"
+#
+set -Eeuo pipefail
+exec docker run --rm -v "$PWD:/w" -w /w \
+  --entrypoint ffmpeg "${FFMPEG_IMAGE:-linuxserver/ffmpeg:latest}" "$@"

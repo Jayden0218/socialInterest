@@ -10,9 +10,29 @@ import type { MediaJob, MediaProcessor, ObjectStore } from '../../ports';
 const run = promisify(execFile);
 
 /**
- * ffmpeg via container. NOT an emulation of MediaConvert (research D9) - it is a
- * different implementation of the same port. Do not treat a pass here as evidence
- * the AWS path works.
+ * ffmpeg, executed as a BINARY. NOT an emulation of a managed transcoder
+ * (research D9) - it is a different implementation of the same port.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * 010/T026 — WHY THIS STOPPED SHELLING OUT TO `docker run`
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * It ran `docker run --rm -v <tmp>:/w <image> ...`, which needs a container
+ * runtime with a socket the API can reach and a tmp directory the DAEMON can
+ * bind-mount. Neither holds anywhere this is going:
+ *
+ *   - no managed host gives a container a Docker socket, and mounting a host
+ *     path from inside a container mounts the HOST's path, not the container's
+ *   - a laptop would need Docker Desktop running purely to resize an image
+ *
+ * THERE IS EXACTLY ONE IMPLEMENTATION, and that is deliberate. The obvious
+ * alternative - keep both and choose with an env var - is precisely the shape
+ * the four AWS adapters were deleted for: "four untested implementations
+ * selected by an env var is how a defect hides". So the code knows one thing,
+ * running `ffmpeg`, and an environment without a native binary supplies one
+ * (`scripts/ffmpeg-shim/`, which is a two-line script that calls docker). The
+ * variation lives outside the code, where it can be seen, rather than inside it
+ * behind a flag nobody exercises.
  */
 export class FfmpegMediaProcessor implements MediaProcessor {
   private readonly jobs = new Map<string, MediaJob>();
@@ -22,10 +42,13 @@ export class FfmpegMediaProcessor implements MediaProcessor {
     private readonly store: ObjectStore,
   ) {}
 
+  /**
+   * `cwd` rather than a bind mount: the working directory IS the temp directory,
+   * so every path in `args` stays relative and nothing has to be translated
+   * between a host path and a container path.
+   */
   private async ffmpeg(dir: string, args: string[]): Promise<void> {
-    await run('docker', [
-      'run', '--rm', '-v', `${dir}:/w`, '-w', '/w', this.config.media.ffmpegImage, ...args,
-    ]);
+    await run(this.config.media.ffmpegPath, args, { cwd: dir });
   }
 
   async submitVideoJob(input: { sourceKey: string; outputPrefix: string }): Promise<MediaJob> {
@@ -122,12 +145,14 @@ export class FfmpegMediaProcessor implements MediaProcessor {
       args.push('-y', 'out.jpg');
       await this.ffmpeg(dir, args);
 
-      const { stdout } = await run('docker', [
-        'run', '--rm', '-v', `${dir}:/w`, '-w', '/w', '--entrypoint', 'ffprobe',
-        this.config.media.ffmpegImage,
-        '-v', 'error', '-select_streams', 'v:0',
-        '-show_entries', 'stream=width,height', '-of', 'csv=p=0', 'out.jpg',
-      ]);
+      const { stdout } = await run(
+        this.config.media.ffprobePath,
+        [
+          '-v', 'error', '-select_streams', 'v:0',
+          '-show_entries', 'stream=width,height', '-of', 'csv=p=0', 'out.jpg',
+        ],
+        { cwd: dir },
+      );
       const [w, h] = stdout.trim().split(',').map(Number);
 
       return {

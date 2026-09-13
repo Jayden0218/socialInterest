@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# The companion to ./ffmpeg — see that file for why this exists at all.
+set -Eeuo pipefail
+exec docker run --rm -v "$PWD:/w" -w /w \
+  --entrypoint ffprobe "${FFMPEG_IMAGE:-linuxserver/ffmpeg:latest}" "$@"

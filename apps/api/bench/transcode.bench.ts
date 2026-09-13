@@ -38,11 +38,14 @@ async function main(): Promise<void> {
 
   try {
     for (const seconds of DURATIONS_S) {
-      execFileSync('docker', [
-        'run', '--rm', '-v', `${dir}:/w`, '-w', '/w', config.media.ffmpegImage,
-        '-f', 'lavfi', '-i', `testsrc=size=1280x720:rate=30:duration=${seconds}`,
-        '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-y', 'src.mp4',
-      ]);
+      execFileSync(
+        config.media.ffmpegPath,
+        [
+          '-f', 'lavfi', '-i', `testsrc=size=1280x720:rate=30:duration=${seconds}`,
+          '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-y', 'src.mp4',
+        ],
+        { cwd: dir },
+      );
       const source = readFileSync(join(dir, 'src.mp4'));
       const key = `bench/video-${seconds}s.mp4`;
       await store.putObject(key, source, 'video/mp4');

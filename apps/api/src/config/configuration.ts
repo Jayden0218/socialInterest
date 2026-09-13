@@ -42,7 +42,14 @@ export interface AppConfig {
     credentials?: { accessKeyId: string; secretAccessKey: string };
   };
   identity: { jwtSecret: string; issuer: string };
-  media: { ffmpegImage: string; dispatchOnCreate: boolean };
+  /**
+   * 010/T026. The media tools, as BINARIES on PATH.
+   *
+   * `ffmpegImage` is gone with the `docker run` it named. An environment with no
+   * native ffmpeg puts `scripts/ffmpeg-shim/` on PATH instead of the code
+   * carrying a second way to invoke it.
+   */
+  media: { ffmpegPath: string; ffprobePath: string; dispatchOnCreate: boolean };
 }
 
 /**
@@ -140,7 +147,8 @@ export function loadConfig(): AppConfig {
       issuer: str('JWT_ISSUER', 'sih-local'),
     },
     media: {
-      ffmpegImage: str('FFMPEG_IMAGE', 'linuxserver/ffmpeg:latest'),
+      ffmpegPath: str('FFMPEG_PATH', 'ffmpeg'),
+      ffprobePath: str('FFPROBE_PATH', 'ffprobe'),
       /**
        * Run the media pipeline when a post is created. On everywhere a real
        * client talks to the API. The integration suites turn it off because they

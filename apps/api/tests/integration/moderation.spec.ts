@@ -1,4 +1,5 @@
 import request from 'supertest';
+import { findAcrossPages } from './paging';
 import { bootHarness, type Harness } from './harness';
 
 /** FR-043, FR-045, FR-047, and the ordering SC-010 depends on. */
@@ -115,8 +116,12 @@ describe('moderation — reports, decisions, and the audit trail', () => {
     const { ModerationLogRepository } = await import('../../src/persistence/moderation-log.repository');
     const log = h.module.get(ModerationLogRepository);
     const month = new Date().toISOString().slice(0, 7);
-    const entries = await log.listMonth(month, { limit: 100 });
-    expect(entries.items.some((e) => e.reportId === reportId && e.action === 'remove_content')).toBe(true);
+    expect(
+      await findAcrossPages<{ reportId?: string; action?: string }>(
+        (cursor) => log.listMonth(month, { limit: 100, cursor }),
+        (e) => e.reportId === reportId && e.action === 'remove_content',
+      ),
+    ).toBe(true);
   }, 120_000);
 
   it('the audit entry SURVIVES deletion of its subject (FR-047)', async () => {
@@ -126,10 +131,14 @@ describe('moderation — reports, decisions, and the audit trail', () => {
     await h.module.get(PostRepository).setDeleted(postId, new Date().toISOString());
 
     const { ModerationLogRepository } = await import('../../src/persistence/moderation-log.repository');
-    const entries = await h.module
-      .get(ModerationLogRepository)
-      .listMonth(new Date().toISOString().slice(0, 7), { limit: 100 });
-    expect(entries.items.some((e) => e.subjectId === postId)).toBe(true);
+    const log = h.module.get(ModerationLogRepository);
+    const month = new Date().toISOString().slice(0, 7);
+    expect(
+      await findAcrossPages<{ subjectId?: string }>(
+        (cursor) => log.listMonth(month, { limit: 100, cursor }),
+        (e) => e.subjectId === postId,
+      ),
+    ).toBe(true);
   }, 60_000);
 
   it('reporting requires authentication', async () => {

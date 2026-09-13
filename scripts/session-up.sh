@@ -86,6 +86,16 @@ export DATABASE_URL="postgres://sih:localsecret@127.0.0.1:5432/sih"
 # application started against an empty table holds an empty catalogue and
 # nothing can be posted to. android-emulator.yml has always seeded first.
 # ---------------------------------------------------------------------------
+# 010/T026. The API executes `ffmpeg` and `ffprobe` directly now. Installed here
+# rather than assumed present: a session that starts fine and then fails on the
+# first photograph is a debugging session about the wrong thing.
+STEP="1b. install ffmpeg"
+say "==> $STEP"
+command -v ffmpeg >/dev/null 2>&1 || {
+  sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+} || fail "could not install ffmpeg"
+say "ffmpeg: $(ffmpeg -version 2>&1 | head -1)"
+
 STEP="2. create the table and bucket, seed the catalogue"
 say "==> $STEP"
 pnpm --filter @sih/infra db:create-local-pg

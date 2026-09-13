@@ -1,4 +1,5 @@
 import request from 'supertest';
+import { findAcrossPages } from './paging';
 import { randomUUID } from 'node:crypto';
 import { bootHarness, type Harness } from './harness';
 
@@ -116,11 +117,24 @@ describe('005/US2 — reporting and removing a review', () => {
       .send({ subjectType: 'review', subjectId: `${placeId}:${authorId}`, reason: 'harassment' });
     expect(report.status).toBe(201);
 
-    const queue = await request(h.app.getHttpServer())
-      .get('/v1/moderation/reports')
-      .set('authorization', `Bearer ${operatorToken}`);
-    expect(queue.status).toBe(200);
-    expect(queue.body.items.some((r: { reportId: string }) => r.reportId === report.body.reportId)).toBe(true);
+    /**
+     * The queue is oldest-open-first and bounded, which is right for a backlog
+     * an operator works from the front. So this pages rather than asserting the
+     * new report landed in the first 25 — see ./paging.ts for the six times
+     * that assumption has failed as a false regression.
+     */
+    expect(
+      await findAcrossPages<{ reportId: string }>(async (cursor) => {
+        const queue = await request(h.app.getHttpServer())
+          .get(`/v1/moderation/reports${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`)
+          .set('authorization', `Bearer ${operatorToken}`);
+        expect(queue.status).toBe(200);
+        return {
+          items: queue.body.items as { reportId: string }[],
+          nextCursor: (queue.body.page?.nextCursor as string | null) ?? null,
+        };
+      }, (r) => r.reportId === report.body.reportId),
+    ).toBe(true);
 
     const decided = await request(h.app.getHttpServer())
       .patch(`/v1/moderation/reports/${report.body.reportId}`)
