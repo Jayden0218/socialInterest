@@ -23,14 +23,34 @@ import { SignInScreen } from '../features/auth/SignInScreen';
  * A wrong address is the single likeliest mistake here: it is typed by hand, on
  * a phone, from a string somebody read off another screen.
  */
-function describeFailure(e: unknown, address: string | undefined): string {
-  if (e instanceof DataError) return e.message;
+export function describeFailure(e: unknown, address: string | undefined): string {
+  const unreachable = address
+    ? `Could not reach ${address}. Check the server address — and that the session is still running.`
+    : 'Could not reach the server. Check that it is running.';
+
+  /**
+   * STATUS 0 IS THE SIGNAL, not the wording.
+   *
+   * The first version of this function tested `e instanceof DataError` FIRST and
+   * returned `e.message`, with the network branch below it. That branch was
+   * unreachable for the only case it was written for: `toDataError` wraps a
+   * failed fetch as `DataError(0, { detail: 'Network request failed' })`, so the
+   * DataError check matched first and the friendly message was dead code. The
+   * app showed React Native's raw string on the first real device launch.
+   *
+   * Fixed by reading the STRUCTURED signal the data layer already provides —
+   * status 0 means no HTTP response happened at all — rather than by matching
+   * prose. `errors.ts` says so in its own comment: "Offline, DNS failure, TLS —
+   * no HTTP status exists". Matching on message text would also break the moment
+   * a platform reworded it, which is how a guard ends up describing an intention
+   * instead of a build.
+   */
+  if (e instanceof DataError) return e.status === 0 ? unreachable : e.message;
+
+  // A throw that never reached the data layer at all. The pattern stays as a
+  // backstop, but nothing routine depends on it any more.
   const raw = e instanceof Error ? e.message : String(e);
-  if (/network request failed|failed to fetch|load failed|networkerror/i.test(raw)) {
-    return address
-      ? `Could not reach ${address}. Check the server address — and that the session is still running.`
-      : 'Could not reach the server. Check that it is running.';
-  }
+  if (/network request failed|failed to fetch|load failed|networkerror/i.test(raw)) return unreachable;
   return raw;
 }
 
