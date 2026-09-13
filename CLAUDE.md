@@ -447,20 +447,30 @@ On 2026-09-06 every workflow failed ~6 seconds in with `recent account payments 
 failed or your spending limit needs to be increased`, blocking ordinary CI as well as the
 emulator job.
 
-**RE-CHECKED 2026-09-12: THE REPOSITORY IS PRIVATE AGAIN** (`visibility: private`,
-`private: true`, from the API). So the allowance below applies once more: GitHub Free
-includes 2,000 Linux minutes a month on a private repository, and with no payment method the
-default spending limit is $0, so jobs STOP rather than bill. Budget accordingly — 009's
-session server spends real minutes (a 2-hour session is 120 of them) and so does the
-emulator job at ~20-25 each. **This is the third time the paragraph below has been true and
-then not.** Check the API, never this file, before relying on either claim.
+**THIS PARAGRAPH HAS BEEN TRUE AND THEN FALSE THREE TIMES. CHECK THE API, NEVER THIS FILE.**
 
-Also worth knowing while it is private: Actions logs and job summaries are NOT world-readable
-here. 009's session descriptor carries a live credential in its job summary and is safe only
-because of that. **If this repository is ever made public, that descriptor must stop carrying
-the token.**
+```
+curl -s https://api.github.com/repos/<owner>/<repo> | grep '"visibility"'
+```
 
-The paragraph as written on 2026-09-07, now stale: The repository is **public** (`visibility: public`, checked 2026-09-07),
+The history, because the pattern matters more than any one reading: public on 2026-09-07
+(free runners), then a private fork was taken and `visibility: private` applied to IT on
+2026-09-12 (2,000 shared minutes, jobs STOP rather than bill at a $0 spending limit), and the
+claim was repeated from this file both times instead of checked. It takes one request.
+
+**Which repository you are in decides the answer, and they differ.** `socialInterest` is the
+public upstream: runners are free, and general product work belongs here.
+`SocialLetInterest` is the private fork carrying its own UI and backend features through the
+overlay seams; its Actions draw on an account-wide 2,000-minute allowance shared with every
+other private repository the owner has, which is why the heavy jobs live upstream.
+
+**WHERE THIS REPOSITORY IS PUBLIC, ACTIONS LOGS AND JOB SUMMARIES ARE WORLD-READABLE.**
+009's session descriptor prints a live credential into its job summary. It dies with the
+session (30 minutes, against a random tunnel address) but anyone reading the Actions tab in
+that window has it. **That exposure ends when email/password identity lands and a session
+hands out only an address** — until then it is a known, bounded risk rather than an oversight.
+
+The paragraph as written on 2026-09-07: The repository is **public** (`visibility: public`, checked 2026-09-07),
 so GitHub-hosted standard runners are free on it, and CI runs 169-176 plus emulator runs
 26-29 all executed normally. The cost rule in `plan.md` is a rule about SPEND, and a run
 on this repository does not spend - so dispatching the emulator job is not the owner's
