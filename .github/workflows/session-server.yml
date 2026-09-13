@@ -25,12 +25,21 @@ on:
         type: choice
         options: ['30', '60', '120', '240', '350']
 
-# One at a time. Two sessions would fight over ports 3000/8000/9000 on their own
-# runners quite happily, but not over the account's concurrency - and a person
-# reading a descriptor wants to know which session it belongs to.
+# One at a time, and a NEW DISPATCH REPLACES THE OLD SESSION rather than queuing
+# behind it.
+#
+# `cancel-in-progress: false` was the first version and it was wrong in a way
+# that is invisible from the outside: dispatching a second session while one was
+# running left the second QUEUED, with no descriptor, for as long as the first
+# one's lifetime — up to 350 minutes. Waiting on a run that has not started looks
+# exactly like waiting on a run that is failing to start, which is the "looked
+# like evidence and answered nothing" shape again.
+#
+# Replacing is also what the thing IS. A session is disposable by definition and
+# only the newest descriptor is any use, so asking for one is asking for that.
 concurrency:
   group: session-server
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   session:
@@ -103,3 +112,10 @@ jobs:
       - name: Application log
         if: failure()
         run: cat "${RUNNER_TEMP}/sih-session/api.log" 2>/dev/null || echo "no application log"
+
+      # Seeding does not fail the session (scripts/session-up.sh, step 7b), so
+      # its log would otherwise be written nowhere on the one path where it is
+      # the thing anyone wants to read.
+      - name: Seed log
+        if: always()
+        run: tail -40 "${RUNNER_TEMP}/sih-session/seed.log" 2>/dev/null || echo "no seed log"

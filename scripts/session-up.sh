@@ -250,6 +250,35 @@ case "$ISSUED" in
 esac
 
 # ---------------------------------------------------------------------------
+# Step 7b — fill the session with a product somebody can use
+#
+# A session came up with twelve catalogue interests and NOTHING ELSE, so the
+# first screen after signing in was an empty feed. That reads as a broken app
+# and is not one — the same "no screen captured empty and pretending to be the
+# product" argument capture-screens.ts already makes, applied to the one
+# environment a person actually holds in their hands.
+#
+# A SEEDING FAILURE DOES NOT FAIL THE SESSION, and that is deliberate. The
+# tunnels are up, the credential works and the product runs; killing all of that
+# over a failed image render would trade a usable session for none. What it must
+# never do is stay quiet — an empty session that says nothing is exactly the
+# "reads as a defect in the product and is not one" failure step 7 exists to
+# prevent — so the descriptor says so, in the same table the person reads.
+# ---------------------------------------------------------------------------
+STEP="7b. seed the session with demo content"
+say "==> $STEP"
+SEED_STATE="ok"
+SEED_LOG="$RUN_DIR/seed.log"
+if ( cd "$REPO_ROOT/apps/e2e" && E2E_BASE_URL="http://127.0.0.1:3000" \
+       npx tsx scripts/seed-demo.ts "$TOKEN" ) > "$SEED_LOG" 2>&1; then
+  say "seeded: $(tail -3 "$SEED_LOG" | tr '\n' ' ')"
+else
+  SEED_STATE="failed"
+  say "seeding FAILED — the session is up but empty"
+  tail -20 "$SEED_LOG" >&2 || true
+fi
+
+# ---------------------------------------------------------------------------
 # Step 8 — the descriptor, where a phone can read it
 #
 # Contract §3. To the RENDERED SUMMARY, at the moment it is known. Job logs come
@@ -267,6 +296,11 @@ EXPIRES_AT="$(date -u -d "+${LIFETIME_MINUTES} minutes" '+%Y-%m-%d %H:%M UTC')"
   printf '| **Server address** | `%s/v1` |\n' "$BACKEND_ADDRESS"
   printf '| **Expires** | %s (%s minutes) |\n' "$EXPIRES_AT" "$LIFETIME_MINUTES"
   printf '| Media is served from | `%s` — you never type this one |\n' "$MEDIA_ADDRESS"
+  if [ "$SEED_STATE" = ok ]; then
+    printf '| Content | six people, posts, comments, places and two conversations are already here |\n'
+  else
+    printf '| Content | **none — seeding failed.** The app works; the feed is empty because this session holds no posts, not because the product is broken. |\n'
+  fi
   printf '\n**Token**\n\n```\n%s\n```\n\n' "$TOKEN"
   printf -- '---\n\n'
   printf 'This is a temporary development environment, not a deployment of the product.\n'

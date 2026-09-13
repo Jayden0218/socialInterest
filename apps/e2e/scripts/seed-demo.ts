@@ -1,0 +1,432 @@
+/**
+ * Fills a fresh session with a product somebody can actually use.
+ *
+ * A session server comes up with an EMPTY datastore — twelve catalogue
+ * interests and nothing else — so the first thing anyone sees after signing in
+ * is a feed with no posts in it. That reads as a broken app and is not one, and
+ * it is the same failure shape `capture-screens.ts` already guards against with
+ * its "so no screen is captured empty and pretending to be the product" note.
+ * This script is that note applied to the session server.
+ *
+ * What it builds: six people with names, bios and photographs, posts across
+ * every catalogue interest, comments, reactions, follows in both directions,
+ * two places with reviews, a saved collection, and two conversations waiting in
+ * the device person's inbox.
+ *
+ * WHAT IT DELIBERATELY DOES NOT DO is declare the device person's interests.
+ * `coldStartComplete` is `seeds.asked(userId)` and nothing else, so leaving the
+ * seed-interests call unmade means the person signing in still meets the cold
+ * start (007/FR-014) — a real product surface, and the one that puts the first
+ * screen of the app in their hands rather than in a fixture's. The feed is
+ * populated whatever they pick, because every catalogue interest carries posts.
+ *
+ * Usage: npx tsx apps/e2e/scripts/seed-demo.ts <device-token>
+ * Prints a short summary on stderr; stdout stays empty so a caller can ignore it.
+ */
+import { execFileSync } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import jwt from 'jsonwebtoken';
+import { createAppData, MemoryTokenStore, type AppData } from '@sih/mobile/data';
+import { PersonRepository } from '../../api/src/persistence/person.repository';
+import { baseUrl } from '../support/base-url';
+import { e2eEnv } from '../support/env';
+import { publishReadyImage } from '../support/publish';
+
+const argToken = process.argv[2];
+if (!argToken) {
+  process.stderr.write('usage: seed-demo.ts <device-token>\n');
+  process.exit(2);
+}
+const deviceToken: string = argToken;
+
+const say = (line: string): void => void process.stderr.write(`${line}\n`);
+
+// ---------------------------------------------------------------------------
+// People
+//
+// Written through the API's OWN repository, for the reason support/people.ts
+// gives: the local profile has no signup endpoint, and a second copy of the key
+// schema here would drift from data-model.md in silence.
+//
+// The handles are CLEAN — `mayaokonkwo`, not `demo3f8a2c11`. A demo whose
+// people are named after their fixtures is a demo of the fixtures. Uniqueness
+// is not free that way, so a taken handle takes a suffix rather than colliding:
+// a fresh session (the case this exists for) gets the clean name every time,
+// and a re-run against a local table that already holds one stays unambiguous.
+// ---------------------------------------------------------------------------
+const doc = DynamoDBDocumentClient.from(
+  new DynamoDBClient({
+    endpoint: e2eEnv.dynamoEndpoint,
+    region: e2eEnv.region,
+    credentials: e2eEnv.creds,
+  }),
+  { marshallOptions: { removeUndefinedValues: true } },
+);
+const people = new PersonRepository(doc, e2eEnv.tableName);
+
+/**
+ * Structurally an `Actor` — `token` included — because `publishReadyImage`
+ * takes one. Adding the field here is cheaper than widening a helper thirty
+ * tests depend on, and it keeps this script's people the same kind of thing the
+ * rest of the suite's people are.
+ */
+interface Person {
+  userId: string;
+  handle: string;
+  displayName: string;
+  token: string;
+  data: AppData;
+}
+
+async function person(handle: string, displayName: string, bio: string): Promise<Person> {
+  const userId = `demo-${randomUUID()}`;
+  const taken = await people.findByHandle(handle);
+  const finalHandle = taken ? `${handle}${userId.slice(-4)}` : handle;
+
+  await people.create({
+    userId,
+    handle: finalHandle,
+    displayName,
+    bio,
+    followerCount: 0,
+    followingCount: 0,
+    interestFollowCount: 0,
+    notificationPrefs: { reaction: true, comment: true, follow: true, message: true, mention: true },
+    status: 'active',
+    createdAt: new Date().toISOString(),
+  });
+
+  const token = jwt.sign({ sub: userId, operator: false }, e2eEnv.jwtSecret, {
+    issuer: e2eEnv.jwtIssuer,
+    expiresIn: '4h',
+  });
+  const tokens = new MemoryTokenStore();
+  tokens.set(token);
+  return {
+    userId,
+    handle: finalHandle,
+    displayName,
+    token,
+    data: createAppData({ baseUrl: `${baseUrl()}/v1`, tokens }),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Photographs
+//
+// The suite's `jpegPlain()` is one black pixel — right for asserting a byte
+// reached storage, useless for a feed anyone looks at. These are generated by
+// the ffmpeg container for the reason `capture-screens.ts` gives: the host has
+// no ffmpeg and `apt-get install ffmpeg` is blocked in this project's sandbox.
+//
+// TWO ARGUMENTS THIS HELPER MAY NOT CARRY, both found by running it:
+//
+//   - NO `-ss` SEEK. Seeking to 00:00:0N in a one-second source writes nothing
+//     and the run dies with "Conversion failed!" — character for character the
+//     defect CLAUDE.md records for the video poster frame.
+//   - NO `duration` ON `mandelbrot`. `gradients` accepts `duration=1`; passing
+//     the same argument to `mandelbrot` fails outright, and it is a one-frame
+//     capture either way. That is the SECOND argument assumption to bite this
+//     exact helper, so the sources carry their own full argument string rather
+//     than sharing a template that has to be right for both.
+//
+// The gradients get grain and a slight blur so a card reads as a photograph at
+// thumbnail size instead of as a colour swatch.
+const FFMPEG_IMAGE = process.env['FFMPEG_IMAGE'] ?? 'linuxserver/ffmpeg:latest';
+
+function render(source: string, filters: string | null): Buffer {
+  try {
+    return execFileSync(
+      'docker',
+      [
+        'run', '--rm', '-i', '--entrypoint', 'ffmpeg', FFMPEG_IMAGE,
+        '-f', 'lavfi', '-i', source,
+        ...(filters ? ['-vf', filters] : []),
+        '-frames:v', '1', '-f', 'mjpeg', '-',
+      ],
+      // stderr CAPTURED, not inherited. ffmpeg writes its banner and its whole
+      // build configuration to stderr on every invocation - twenty-one lines,
+      // twenty-two times - which buried the one line that mattered when this
+      // run actually failed. Captured here and re-raised below, so a real
+      // ffmpeg error is the only ffmpeg output anyone ever reads.
+      { maxBuffer: 32 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] },
+    );
+  } catch (err: unknown) {
+    const stderr = (err as { stderr?: Buffer }).stderr?.toString() ?? '';
+    throw new Error(`ffmpeg could not render ${source}\n${stderr.split('\n').slice(-12).join('\n')}`);
+  }
+}
+
+/** A two-tone gradient, grained and softened. The angle varies with the seed. */
+function gradient(c0: string, c1: string, seed: number): Buffer {
+  const x0 = 60 + ((seed * 137) % 900);
+  const y0 = 40 + ((seed * 89) % 700);
+  return render(
+    `gradients=size=1200x900:c0=${c0}:c1=${c1}:n=2:duration=1:rate=1:x0=${x0}:y0=${y0}:x1=${1200 - x0}:y1=${900 - y0}`,
+    'noise=alls=16:allf=t+u,gblur=sigma=1.1',
+  );
+}
+
+/** A fractal, for the two posts whose captions are about pattern. No duration. */
+function fractal(scale: number): Buffer {
+  return render(`mandelbrot=size=1200x900:rate=1:start_scale=${scale}:inner=period`, null);
+}
+
+/** A small square for an avatar. Same treatment, cheaper. */
+function avatar(c0: string, c1: string, seed: number): Buffer {
+  const x0 = 20 + ((seed * 53) % 300);
+  return render(
+    `gradients=size=400x400:c0=${c0}:c1=${c1}:n=2:duration=1:rate=1:x0=${x0}:y0=20:x1=${400 - x0}:y1=380`,
+    'noise=alls=10:allf=t+u,gblur=sigma=0.8',
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Bounded concurrency. Fourteen publishes each wait for the media pipeline, and
+// a session bring-up that takes four minutes is a session nobody waits for.
+// Three at a time, because the pipeline is one ffmpeg container per item.
+// ---------------------------------------------------------------------------
+async function inBatches<T, R>(items: T[], size: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = [];
+  for (let i = 0; i < items.length; i += size) {
+    out.push(...(await Promise.all(items.slice(i, i + size).map(fn))));
+  }
+  return out;
+}
+
+async function main(): Promise<void> {
+  const tokens = new MemoryTokenStore();
+  tokens.set(deviceToken);
+  const me = createAppData({ baseUrl: `${baseUrl()}/v1`, tokens });
+  const myProfile = await me.session.me();
+
+  const catalogue = await me.interests.listTop({ limit: 25 });
+  if (catalogue.items.length === 0) throw new Error('the catalogue is empty; seed it first');
+  const id = (name: string): string => {
+    const found = catalogue.items.find((i) => i.name === name);
+    if (!found) throw new Error(`the catalogue has no interest named ${name}`);
+    return found.interestId;
+  };
+
+  say('creating people...');
+  const [maya, tomas, ingrid, rafael, noor, jonas] = await Promise.all([
+    person('mayaokonkwo', 'Maya Okonkwo', 'Birds at dawn, mostly. Lagos, then Lisbon.'),
+    person('tomasherrera', 'Tomás Herrera', 'Climbing anything with a view. Slowly getting faster.'),
+    person('ingridsandvik', 'Ingrid Sandvik', 'Ceramics and small paintings. Bergen.'),
+    person('rafaellim', 'Rafael Lim', 'Cooking whatever the garden gives me.'),
+    person('noorhaddad', 'Noor Haddad', 'Long rides at short notice. Amman.'),
+    person('jonasweber', 'Jonas Weber', 'Hand tools, old wood, loud records.'),
+  ]);
+  const cast = [maya, tomas, ingrid, rafael, noor, jonas] as Person[];
+
+  /**
+   * ORDERED SO EVERY STEP THAT NEEDS NO MEDIA RUNS FIRST.
+   *
+   * Not for tidiness. MinIO cannot be pulled in the sandbox this project is
+   * developed in — quay.io is denied by egress and the Docker Hub mirror has
+   * no cache of a repository that no longer exists upstream — so the only
+   * free observation available here is a run against DynamoDB and a live API
+   * with no object store behind it. In that order this script verifies nine
+   * of its steps locally and stops at the first upload with a connection
+   * refused, instead of stopping at the second step and verifying nothing.
+   *
+   * Prefer the free observation to the expensive guess: the alternative was a
+   * twenty-minute dispatch per typo.
+   */
+  // ---- the device person. "Device pass" is a fixture's name, not a person's.
+  await me.session.updateProfile({
+    displayName: 'Demo account',
+    bio: 'This is you. Change the name and picture from Edit profile.',
+  });
+
+  // ---- interests each person cares about, so a profile means something
+  say('following interests...');
+  const declared: [Person, string[]][] = [
+    [maya!, ['Photography', 'Birding']],
+    [tomas!, ['Climbing', 'Running']],
+    [ingrid!, ['Ceramics', 'Painting']],
+    [rafael!, ['Cooking', 'Gardening']],
+    [noor!, ['Cycling', 'Travel']],
+    [jonas!, ['Woodworking', 'Music']],
+  ];
+  for (const [who, names] of declared) {
+    for (const name of names) await who.data.interests.follow(id(name));
+  }
+
+  // ---- follows, in both directions, so counts are real on every profile
+  say('following people...');
+  for (const who of cast) {
+    await me.people.follow(who.handle);
+    await who.data.people.follow(myProfile.handle);
+  }
+  await maya!.data.people.follow(tomas!.handle);
+  await tomas!.data.people.follow(maya!.handle);
+  await ingrid!.data.people.follow(rafael!.handle);
+  await rafael!.data.people.follow(jonas!.handle);
+  await noor!.data.people.follow(tomas!.handle);
+  await jonas!.data.people.follow(ingrid!.handle);
+
+  // ---- places, with reviews
+  //
+  // ATTACHED, NOT ONLY CREATED. `places.create` answers 409 for a name that
+  // already exists in the locality, and the 409 CARRIES the existing place -
+  // `places.ts` says so in as many words: "the dedupe is a response, not an
+  // error". A fresh session never meets it; the second run against a local
+  // table met it immediately and died at step four with every post unseeded.
+  // Doing what the product prescribes is both the fix and cheaper than nonced
+  // place names, which would leave a demo full of "Café do Rio 4f2a".
+  say('creating places...');
+  const locality = 'Lisbon';
+  const placeNamed = async (
+    who: Person,
+    name: string,
+    category: 'cafe' | 'venue',
+  ): Promise<{ placeId: string }> => {
+    try {
+      return await who.data.places.create({ name, category, locality });
+    } catch (err: unknown) {
+      const problem = err as { status?: number; problem?: { placeId?: string } };
+      const existing = problem.status === 409 ? problem.problem?.placeId : undefined;
+      if (!existing) throw err;
+      return { placeId: existing };
+    }
+  };
+  const cafe = await placeNamed(maya!, 'Café do Rio', 'cafe');
+  await maya!.data.places.rate(cafe.placeId, { score: 5, body: 'Open at six, which is the only thing I ask of a café.' });
+  await rafael!.data.places.rate(cafe.placeId, { score: 4, body: 'Good coffee, slow service, nice light.' });
+  const gym = await placeNamed(tomas!, 'Bloc Climbing', 'venue');
+  await tomas!.data.places.rate(gym.placeId, { score: 5, body: 'Resets every fortnight and the setters are cruel in a good way.' });
+  await noor!.data.places.rate(gym.placeId, { score: 4, body: 'Crowded after six but the coffee is decent.' });
+  await me.places.follow(cafe.placeId);
+  await me.places.follow(gym.placeId);
+
+  // ---- two conversations waiting in the inbox
+  say('opening conversations...');
+  const fromMaya = await maya!.data.conversations.open(myProfile.handle);
+  await maya!.data.conversations.send(fromMaya.conversationId, { body: 'Hello! Saw you followed me — are you shooting birds too?' });
+  const fromTomas = await tomas!.data.conversations.open(myProfile.handle);
+  await tomas!.data.conversations.send(fromTomas.conversationId, { body: 'Climbing Thursday if you fancy it.' });
+
+  // ---- avatars, so the feed is faces rather than initials
+  say('setting avatars...');
+  const avatarColours: [string, string][] = [
+    ['0x1F6B3F', '0xE8C44A'],
+    ['0x2C4A5E', '0xE0A458'],
+    ['0x6B3A5E', '0xE8B4C4'],
+    ['0x8B3A2F', '0xE8C44A'],
+    ['0x1B4E5E', '0x7FD4C1'],
+    ['0x3E3A2F', '0xC9A227'],
+  ];
+  await inBatches(cast, 3, async (who) => {
+    const i = cast.indexOf(who);
+    const bytes = avatar(avatarColours[i]![0], avatarColours[i]![1], i + 1);
+    const target = await who.data.posts.createUploadTarget({
+      kind: 'avatar',
+      contentType: 'image/jpeg',
+      sizeBytes: bytes.byteLength,
+    });
+    await who.data.posts.uploadBytes(target, bytes, 'image/jpeg');
+    await who.data.session.updateProfile({ avatarUploadId: target.uploadId });
+  });
+
+  // ---- posts. Every catalogue interest carries at least one, so the feed is
+  // populated whatever the cold start is answered with — including "nothing",
+  // which is the case 007/FR-015 is about and the one that used to come up empty.
+  say('publishing posts...');
+  interface Draft {
+    who: Person;
+    interest: string;
+    caption: string;
+    bytes: () => Buffer;
+    /** 004/FR-015. Optional — most posts have no place, two of these do. */
+    placeId?: string;
+  }
+  const drafts: Draft[] = [
+    { who: maya!, interest: 'Birding', caption: 'Kingfisher, third morning of waiting. Worth every one of them.', bytes: () => gradient('0x1B4E5E', '0x7FD4C1', 1) },
+    { who: maya!, interest: 'Photography', caption: 'Fog came in over the estuary and turned everything into a shape.', bytes: () => gradient('0x4A5568', '0xE2E8F0', 2) },
+    { who: maya!, interest: 'Photography', caption: 'Same hide, forty minutes later. The light does all the work.', bytes: () => fractal(0.03) },
+    { who: tomas!, interest: 'Climbing', caption: 'Finally sent the blue problem in the cave. Took eleven sessions.', bytes: () => gradient('0x8B3A2F', '0xE8C44A', 3), placeId: gym.placeId },
+    { who: tomas!, interest: 'Running', caption: 'Ten miles before work. Cold enough that my hands stopped arguing.', bytes: () => gradient('0x1F3A5E', '0xF0A868', 4) },
+    { who: ingrid!, interest: 'Ceramics', caption: 'Glaze test tiles. The one on the left is the accident I want to repeat.', bytes: () => gradient('0x6B3A5E', '0xE8B4C4', 5) },
+    { who: ingrid!, interest: 'Painting', caption: 'Small study, twenty minutes, bad light. Keeping it anyway.', bytes: () => fractal(0.008) },
+    { who: rafael!, interest: 'Cooking', caption: 'Tomatoes from the balcony, bread from Tuesday. Lunch solved.', bytes: () => gradient('0xA8322D', '0xF2C14E', 6), placeId: cafe.placeId },
+    { who: rafael!, interest: 'Gardening', caption: 'The chillies finally turned. Six months of nothing, then all at once.', bytes: () => gradient('0x1F6B3F', '0xE8C44A', 7) },
+    { who: noor!, interest: 'Cycling', caption: 'Ninety kilometres into a headwind. I would do it again tomorrow.', bytes: () => gradient('0x2C4A5E', '0xE0A458', 8) },
+    { who: noor!, interest: 'Travel', caption: 'Slept on a roof in Wadi Rum. The sky is not the same colour there.', bytes: () => gradient('0x2A1B3D', '0xE8A87C', 9) },
+    { who: jonas!, interest: 'Woodworking', caption: 'Dovetails, attempt four. Attempts one to three are firewood.', bytes: () => gradient('0x3E2F23', '0xD4A574', 10) },
+    { who: jonas!, interest: 'Music', caption: 'Bench radio rebuilt. Sounds better than anything I own.', bytes: () => gradient('0x2E1F3E', '0xC9A227', 11) },
+    { who: maya!, interest: 'Birding', caption: 'Heron, absolutely unbothered by me.', bytes: () => gradient('0x24413A', '0xA8C686', 12) },
+  ];
+
+  const postIds = await inBatches(drafts, 3, (d) =>
+    publishReadyImage(d.who, [id(d.interest)], {
+      caption: d.caption,
+      bytes: d.bytes(),
+      ...(d.placeId ? { placeId: d.placeId } : {}),
+    }),
+  );
+
+  say(`published ${postIds.length} posts`);
+
+  // ---- the device person's own two posts, so their profile is not empty
+  const mine = await publishReadyImage(
+    { data: me, handle: myProfile.handle, userId: myProfile.userId, token: deviceToken },
+    [id('Photography')],
+    { caption: 'First post from the phone.', bytes: gradient('0x1F6B3F', '0xF5E6C8', 13) },
+  );
+
+  // ---- comments and reactions, so a post detail screen has something below it
+  say('adding comments and reactions...');
+  const conversationsOnPosts: [Person, number, string][] = [
+    [tomas!, 0, 'That is a ridiculous photograph. What lens?'],
+    [rafael!, 0, 'Third morning is dedication.'],
+    [maya!, 3, 'Eleven sessions and you make it sound routine.'],
+    [noor!, 4, 'Which route do you take out of town?'],
+    [rafael!, 5, 'The left one. Definitely the left one.'],
+    [ingrid!, 7, 'Balcony tomatoes are the best tomatoes.'],
+    [jonas!, 9, 'Headwind both ways, knowing you.'],
+    [tomas!, 11, 'Attempt four looks like attempt forty. Well done.'],
+    [maya!, 12, 'I want to hear it.'],
+  ];
+  for (const [who, index, body] of conversationsOnPosts) {
+    const postId = postIds[index];
+    if (postId) await who.data.engagement.comment(postId, body);
+  }
+  await ingrid!.data.engagement.comment(mine, 'Welcome!');
+
+  for (const [i, postId] of postIds.entries()) {
+    for (const who of cast.slice(0, (i % 4) + 1)) {
+      if (who.handle !== drafts[i]!.who.handle) await who.data.engagement.react(postId);
+    }
+    if (i % 3 === 0) await me.engagement.react(postId);
+  }
+
+  // ---- saved, and a collection, so those tabs are not empty either
+  say('saving posts...');
+  const collection = await me.saved.createCollection('Worth another look');
+  for (const postId of [postIds[0], postIds[5], postIds[10]]) {
+    if (!postId) continue;
+    await me.saved.save(postId);
+    await me.saved.addToCollection(collection.collectionId, postId);
+  }
+
+  say('');
+  say(`seeded: ${cast.length} people, ${postIds.length + 1} posts, 2 places, 2 conversations`);
+  say(`you are @${myProfile.handle}`);
+}
+
+main().catch((err: unknown) => {
+  /**
+   * THE CAUSE, NOT ONLY THE ERROR. An upload to an object store that is not
+   * running throws `TypeError: fetch failed` and nothing else - undici puts the
+   * connection refused in `cause`, and `String(err)` drops it. That message
+   * names no host, no port and no step, which is the "looked like evidence and
+   * answered nothing" shape this project has paid for more than once.
+   */
+  const cause = (err as { cause?: unknown }).cause;
+  process.stderr.write(`seed-demo failed: ${String(err)}\n`);
+  if (cause) process.stderr.write(`  cause: ${String(cause)}\n`);
+  process.exit(1);
+});
