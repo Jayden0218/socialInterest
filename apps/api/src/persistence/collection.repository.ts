@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { TransactWriteCommandInput } from '@aws-sdk/lib-dynamodb';
+import type { TransactionItems } from './transactor';
 import type { ProcessingState, Visibility } from '@sih/shared';
 import { BaseRepository, type Page } from './base.repository';
 import { keys, SK_PREFIX } from './keys';
@@ -121,7 +121,7 @@ export class CollectionRepository extends BaseRepository {
    */
   async addPost(item: CollectionMembership, existingSavedAt: string | null): Promise<void> {
     const savedAt = existingSavedAt ?? item.savedAt;
-    const writes: NonNullable<TransactWriteCommandInput['TransactItems']> = [
+    const writes: TransactionItems = [
       {
         Put: {
           TableName: this.tableName,

@@ -52,10 +52,28 @@ import { BaseRepository, type Page, type QueryOptions } from '../../src/persiste
  * CODE the twenty-nine repositories run, not a copy of it.
  */
 class Primitives extends BaseRepository {
+  /**
+   * EVERY KEY THIS FILE WRITES, SO IT CAN TAKE THEM BACK OUT.
+   *
+   * The local table is shared across runs, and a bounded scan over a grown one
+   * is this project's most-repeated false regression: `people-search-scale`
+   * walks a page of the directory, and past enough accumulated people a real
+   * match falls outside it. It has been diagnosed as a product defect three
+   * times and has been the table every time — and it happened a FOURTH time on
+   * this very suite's first full run, with 7,605 items in a table that held
+   * 1,596 an hour earlier.
+   *
+   * So this file cleans up after itself. Roughly fifty items a run is not much
+   * on its own; it is the "not much" of five suites that adds up to a table
+   * nobody can page.
+   */
+  readonly written: { pk: string; sk: string }[] = [];
+
   read<T>(key: Record<string, string>): Promise<T | null> {
     return this.getItem<T>(key);
   }
   write(item: Record<string, unknown>, condition?: string): Promise<void> {
+    this.written.push({ pk: String(item['pk']), sk: String(item['sk']) });
     return this.putItem(item, condition);
   }
   remove(key: Record<string, string>): Promise<void> {
@@ -75,6 +93,10 @@ class Primitives extends BaseRepository {
     return this.query<T>(partitionKey, opts);
   }
   atomically(items: TransactWriteCommandInput['TransactItems']): Promise<void> {
+    for (const one of items ?? []) {
+      const key = one.Put?.Item ?? one.Delete?.Key;
+      if (key) this.written.push({ pk: String(key['pk']), sk: String(key['sk']) });
+    }
     return this.transact(items);
   }
 }
@@ -125,6 +147,18 @@ describe.each(ENGINES)('datastore primitives — $name', ({ make }) => {
    * asserts can be perturbed by what any other run left behind.
    */
   const partition = (): string => `TEST#PRIMITIVES#${ulid()}`;
+
+  /**
+   * Deleted at the end, never at the start.
+   *
+   * Clearing up front would leave the items behind whenever a run failed — and
+   * a failing run is precisely when the next person needs the table not to have
+   * grown. `deleteItem` is idempotent by contract, so this cannot fail on a key
+   * a conditional write never created.
+   */
+  afterAll(async () => {
+    for (const key of db.written) await db.remove(key);
+  });
 
   // ── 1. getItem ───────────────────────────────────────────────────────────
   describe('getItem', () => {

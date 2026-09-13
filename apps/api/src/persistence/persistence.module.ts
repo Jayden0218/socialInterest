@@ -2,6 +2,7 @@ import { Global, Module, type Provider } from '@nestjs/common';
 import type { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { CONFIG, type AppConfig } from '../config/configuration';
 import { createDocumentClient, DOC_CLIENT } from './dynamo-client';
+import { Transactor } from './transactor';
 import { PersonRepository } from './person.repository';
 import { InterestRepository } from './interest.repository';
 import { PersonFollowRepository } from './person-follow.repository';
@@ -44,6 +45,8 @@ const repo = <T>(
 
 const providers: Provider[] = [
   { provide: DOC_CLIENT, inject: [CONFIG], useFactory: createDocumentClient },
+  // 010. The one place a multi-item write is executed — see ./transactor.ts.
+  Transactor,
   repo(PersonRepository),
   repo(InterestRepository),
   repo(PersonFollowRepository),
@@ -82,6 +85,7 @@ const providers: Provider[] = [
   providers,
   exports: [
     DOC_CLIENT,
+    Transactor,
     PersonRepository,
     InterestRepository,
     PersonFollowRepository,

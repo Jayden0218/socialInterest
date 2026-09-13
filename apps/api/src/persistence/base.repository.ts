@@ -6,8 +6,8 @@ import {
   TransactWriteCommand,
   UpdateCommand,
   type DynamoDBDocumentClient,
-  type TransactWriteCommandInput,
 } from '@aws-sdk/lib-dynamodb';
+import type { TransactionItems } from './transactor';
 import { decodeCursor, encodeCursor } from './cursor';
 
 /**
@@ -170,7 +170,7 @@ export abstract class BaseRepository {
    * Atomic multi-item write. This is what makes FR-017 possible: a visibility
    * change lands on the post item and every one of its index items, or on none.
    */
-  protected async transact(items: TransactWriteCommandInput['TransactItems']): Promise<void> {
+  protected async transact(items: TransactionItems | undefined): Promise<void> {
     if (!items || items.length === 0) return;
     await this.doc.send(new TransactWriteCommand({ TransactItems: items }));
   }

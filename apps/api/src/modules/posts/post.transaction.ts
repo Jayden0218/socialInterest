@@ -1,11 +1,15 @@
-import { Inject, Injectable } from '@nestjs/common';
-import type { DynamoDBDocumentClient, TransactWriteCommandInput } from '@aws-sdk/lib-dynamodb';
-import { TransactWriteCommand } from '@aws-sdk/lib-dynamodb';
-import { CONFIG, type AppConfig } from '../../config/configuration';
-import { DOC_CLIENT } from '../../persistence/dynamo-client';
-import { keys } from '../../persistence/keys';
-import { tokenise } from '../search/tokeniser';
-import type { MediaItemRecord, PostItem } from '../../persistence/post.repository';
+import { Inject, Injectable } from "@nestjs/common";
+import { CONFIG, type AppConfig } from "../../config/configuration";
+import {
+  Transactor,
+  type TransactionItems,
+} from "../../persistence/transactor";
+import { keys } from "../../persistence/keys";
+import { tokenise } from "../search/tokeniser";
+import type {
+  MediaItemRecord,
+  PostItem,
+} from "../../persistence/post.repository";
 
 /**
  * Atomic post writes.
@@ -28,7 +32,7 @@ import type { MediaItemRecord, PostItem } from '../../persistence/post.repositor
 @Injectable()
 export class PostTransaction {
   constructor(
-    @Inject(DOC_CLIENT) private readonly doc: DynamoDBDocumentClient,
+    @Inject(Transactor) private readonly transactor: Transactor,
     @Inject(CONFIG) private readonly config: AppConfig,
   ) {}
 
@@ -50,23 +54,27 @@ export class PostTransaction {
     const { post, media, expandedInterestIds, draftId } = input;
     const table = this.config.dynamo.tableName;
 
-    const items: NonNullable<TransactWriteCommandInput['TransactItems']> = [
+    const items: TransactionItems = [
       {
         Put: {
           TableName: table,
           Item: {
             ...keys.post(post.postId),
             ...keys.postByAuthor(post.authorId, post.createdAt, post.postId),
-            type: 'Post',
+            type: "Post",
             ...post,
           },
-          ConditionExpression: 'attribute_not_exists(pk)',
+          ConditionExpression: "attribute_not_exists(pk)",
         },
       },
       ...media.map((m) => ({
         Put: {
           TableName: table,
-          Item: { ...keys.mediaItem(post.postId, m.ordinal), type: 'MediaItem', ...m },
+          Item: {
+            ...keys.mediaItem(post.postId, m.ordinal),
+            type: "MediaItem",
+            ...m,
+          },
         },
       })),
       ...expandedInterestIds.map((interestId) => ({
@@ -74,7 +82,7 @@ export class PostTransaction {
           TableName: table,
           Item: {
             ...keys.postInterestIndex(interestId, post.createdAt, post.postId),
-            type: 'PostInterestIndex',
+            type: "PostInterestIndex",
             postId: post.postId,
             authorId: post.authorId,
             interestId,
@@ -99,7 +107,7 @@ export class PostTransaction {
           TableName: table,
           Item: {
             ...keys.postTermIndex(token, post.createdAt, post.postId),
-            type: 'PostTermIndex',
+            type: "PostTermIndex",
             postId: post.postId,
             authorId: post.authorId,
             token,
@@ -118,8 +126,12 @@ export class PostTransaction {
               Put: {
                 TableName: table,
                 Item: {
-                  ...keys.postPlaceIndex(post.placeId, post.createdAt, post.postId),
-                  type: 'PostPlaceIndex',
+                  ...keys.postPlaceIndex(
+                    post.placeId,
+                    post.createdAt,
+                    post.postId,
+                  ),
+                  type: "PostPlaceIndex",
                   postId: post.postId,
                   authorId: post.authorId,
                   placeId: post.placeId,
@@ -142,7 +154,7 @@ export class PostTransaction {
       });
     }
 
-    await this.doc.send(new TransactWriteCommand({ TransactItems: items }));
+    await this.transactor.run(items);
   }
 
   /**
@@ -152,50 +164,53 @@ export class PostTransaction {
   async updateVisibility(input: {
     post: PostItem;
     expandedInterestIds: string[];
-    visibility: PostItem['visibility'];
+    visibility: PostItem["visibility"];
   }): Promise<void> {
     const table = this.config.dynamo.tableName;
     const updatedAt = new Date().toISOString();
-    await this.doc.send(
-      new TransactWriteCommand({
-        TransactItems: [
-          {
-            Update: {
-              TableName: table,
-              Key: keys.post(input.post.postId),
-              UpdateExpression: 'SET visibility = :v, updatedAt = :u',
-              ExpressionAttributeValues: { ':v': input.visibility, ':u': updatedAt },
-            },
+    await this.transactor.run([
+      {
+        Update: {
+          TableName: table,
+          Key: keys.post(input.post.postId),
+          UpdateExpression: "SET visibility = :v, updatedAt = :u",
+          ExpressionAttributeValues: {
+            ":v": input.visibility,
+            ":u": updatedAt,
           },
-          ...input.expandedInterestIds.map((interestId) => ({
-            Update: {
-              TableName: table,
-              Key: keys.postInterestIndex(interestId, input.post.createdAt, input.post.postId),
-              UpdateExpression: 'SET visibility = :v',
-              ExpressionAttributeValues: { ':v': input.visibility },
+        },
+      },
+      ...input.expandedInterestIds.map((interestId) => ({
+        Update: {
+          TableName: table,
+          Key: keys.postInterestIndex(
+            interestId,
+            input.post.createdAt,
+            input.post.postId,
+          ),
+          UpdateExpression: "SET visibility = :v",
+          ExpressionAttributeValues: { ":v": input.visibility },
+        },
+      })),
+      // 004/FR-017. Missing this one would leave a private post visible on
+      // its place page - a leak on exactly the surface this feature added.
+      ...(input.post.placeId
+        ? [
+            {
+              Update: {
+                TableName: table,
+                Key: keys.postPlaceIndex(
+                  input.post.placeId,
+                  input.post.createdAt,
+                  input.post.postId,
+                ),
+                UpdateExpression: "SET visibility = :v",
+                ExpressionAttributeValues: { ":v": input.visibility },
+              },
             },
-          })),
-          // 004/FR-017. Missing this one would leave a private post visible on
-          // its place page - a leak on exactly the surface this feature added.
-          ...(input.post.placeId
-            ? [
-                {
-                  Update: {
-                    TableName: table,
-                    Key: keys.postPlaceIndex(
-                      input.post.placeId,
-                      input.post.createdAt,
-                      input.post.postId,
-                    ),
-                    UpdateExpression: 'SET visibility = :v',
-                    ExpressionAttributeValues: { ':v': input.visibility },
-                  },
-                },
-              ]
-            : []),
-        ],
-      }),
-    );
+          ]
+        : []),
+    ]);
   }
 
   /**
@@ -215,57 +230,61 @@ export class PostTransaction {
   async updateProcessingState(input: {
     post: PostItem;
     expandedInterestIds: string[];
-    processingState: PostItem['processingState'];
+    processingState: PostItem["processingState"];
   }): Promise<void> {
     const table = this.config.dynamo.tableName;
-    await this.doc.send(
-      new TransactWriteCommand({
-        TransactItems: [
-          {
-            Update: {
-              TableName: table,
-              Key: keys.post(input.post.postId),
-              UpdateExpression: 'SET processingState = :s, updatedAt = :u',
-              ExpressionAttributeValues: {
-                ':s': input.processingState,
-                ':u': new Date().toISOString(),
+    await this.transactor.run([
+      {
+        Update: {
+          TableName: table,
+          Key: keys.post(input.post.postId),
+          UpdateExpression: "SET processingState = :s, updatedAt = :u",
+          ExpressionAttributeValues: {
+            ":s": input.processingState,
+            ":u": new Date().toISOString(),
+          },
+        },
+      },
+      ...(input.post.placeId
+        ? [
+            {
+              Update: {
+                TableName: table,
+                Key: keys.postPlaceIndex(
+                  input.post.placeId,
+                  input.post.createdAt,
+                  input.post.postId,
+                ),
+                UpdateExpression: "SET processingState = :s",
+                ExpressionAttributeValues: { ":s": input.processingState },
               },
             },
-          },
-          ...(input.post.placeId
-            ? [
-                {
-                  Update: {
-                    TableName: table,
-                    Key: keys.postPlaceIndex(
-                      input.post.placeId,
-                      input.post.createdAt,
-                      input.post.postId,
-                    ),
-                    UpdateExpression: 'SET processingState = :s',
-                    ExpressionAttributeValues: { ':s': input.processingState },
-                  },
-                },
-              ]
-            : []),
-          ...input.expandedInterestIds.map((interestId) => ({
-            Update: {
-              TableName: table,
-              Key: keys.postInterestIndex(interestId, input.post.createdAt, input.post.postId),
-              UpdateExpression: 'SET processingState = :s',
-              ExpressionAttributeValues: { ':s': input.processingState },
-            },
-          })),
-          ...tokenise(input.post.caption).map((token) => ({
-            Update: {
-              TableName: table,
-              Key: keys.postTermIndex(token, input.post.createdAt, input.post.postId),
-              UpdateExpression: 'SET processingState = :s',
-              ExpressionAttributeValues: { ':s': input.processingState },
-            },
-          })),
-        ],
-      }),
-    );
+          ]
+        : []),
+      ...input.expandedInterestIds.map((interestId) => ({
+        Update: {
+          TableName: table,
+          Key: keys.postInterestIndex(
+            interestId,
+            input.post.createdAt,
+            input.post.postId,
+          ),
+          UpdateExpression: "SET processingState = :s",
+          ExpressionAttributeValues: { ":s": input.processingState },
+        },
+      })),
+      ...tokenise(input.post.caption).map((token) => ({
+        Update: {
+          TableName: table,
+          Key: keys.postTermIndex(
+            token,
+            input.post.createdAt,
+            input.post.postId,
+          ),
+          UpdateExpression: "SET processingState = :s",
+          ExpressionAttributeValues: { ":s": input.processingState },
+        },
+      })),
+    ]);
   }
 }

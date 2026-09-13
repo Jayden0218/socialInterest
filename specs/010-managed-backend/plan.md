@@ -288,3 +288,54 @@ destroyed the instrument T007 depends on.**
 - **T003 said "rewrite `create-local-table.ts`".** Same problem — rewriting it leaves no way to
   create the table the old engine needs. A new `create-local-schema.ts` sits beside it, and the
   old one goes with the service it creates against.
+
+## The seam was NOT already in the right place (found executing T008)
+
+**This plan's Summary says the migration is contained by "seven methods on `base.repository.ts`
+— four files, 554 lines". That is wrong, and the whole feature was sized on it.**
+
+Five files outside `persistence/` build and send their own `TransactWriteCommand` against the
+injected document client, at **ten call sites**, bypassing `BaseRepository.transact` entirely:
+
+| File | Sites | What it writes atomically |
+|---|---|---|
+| `modules/posts/post.transaction.ts` | 3 | publish, visibility change, removal |
+| `modules/posts/post-update.transaction.ts` | 2 | caption and visibility edits, with their index fan-out |
+| `modules/engagement/reaction.service.ts` | 2 | react and unreact, with the count |
+| `modules/engagement/comment-update.transaction.ts` | 1 | comment edit/delete, with the count |
+| `modules/safety/block.service.ts` | 1 | block severance |
+
+**Why this is worse than an undercount.** The seven-primitive contract proves
+`BaseRepository.transact` applies all-or-none — which is what makes 001/FR-017 possible, a
+visibility change landing on the post item and every index item or on none. It says nothing
+about ten sites that never call it. A migration could have ported the base class, watched a
+green contract, and shipped five unported transaction sites.
+
+It is also a shape this project keeps paying for: **a declared seam with work happening on both
+sides of it.** A feed with a second hand-rolled responder. A `VisibilityFilter` with six
+hand-written predicates beside it. A notification category added to the list that *describes*
+notifications and not the one that *renders* them. The seam existed; it was simply never the
+only way through.
+
+**Resolved by T007a**, added during execution: one `Transactor` inside `persistence/`, and
+`one-datastore-seam.spec.ts` fails the build if anything outside that directory names the
+DynamoDB SDK. Verified RED first, naming all five files, then green. `adapters/local/minio-object-store.ts`
+is deliberately out of scope — it speaks `@aws-sdk/client-s3` to an S3-compatible endpoint,
+which is a different service and, per R6, needs no change.
+
+**The refactor moved no number**, which is the only reason it is safe to do before the engine
+swap: visibility `1470/1470` post assertions across 15 surfaces plus `18/18` review assertions,
+1,522 of 1,522 — identical to the T004 baseline.
+
+### And the grown table caught this project for the fourth time
+
+The first full-suite run after the contract test landed showed `people-search-scale` failing:
+a real match falling outside a bounded page of the directory. The table held **7,605 items**,
+against 1,596 an hour earlier. Dropped, recreated, reseeded — and it passes.
+
+CLAUDE.md already records this exact failure three times and says to count the table before
+believing a paging failure. It was counted this time, which cost a minute rather than an
+investigation. **What is new is the other half**: `datastore-primitives.spec.ts` now deletes
+every key it writes, because roughly fifty items a run is only "not much" until five suites do
+it. Cleanup runs at the END rather than up front — clearing beforehand would leave items behind
+on exactly the failing runs where the next person most needs the table not to have grown.

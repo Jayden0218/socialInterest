@@ -1,12 +1,10 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from "@nestjs/common";
+import { CONFIG, type AppConfig } from "../../config/configuration";
 import {
-  TransactWriteCommand,
-  type DynamoDBDocumentClient,
-  type TransactWriteCommandInput,
-} from '@aws-sdk/lib-dynamodb';
-import { CONFIG, type AppConfig } from '../../config/configuration';
-import { DOC_CLIENT } from '../../persistence/dynamo-client';
-import { keys } from '../../persistence/keys';
+  Transactor,
+  type TransactionItems,
+} from "../../persistence/transactor";
+import { keys } from "../../persistence/keys";
 
 /**
  * 008/T123, US8 — FR-028. THE ROW AND THE COUNT MOVE TOGETHER, OR NEITHER DOES.
@@ -26,7 +24,7 @@ import { keys } from '../../persistence/keys';
 @Injectable()
 export class CommentUpdateTransaction {
   constructor(
-    @Inject(DOC_CLIENT) private readonly doc: DynamoDBDocumentClient,
+    @Inject(Transactor) private readonly transactor: Transactor,
     @Inject(CONFIG) private readonly config: AppConfig,
   ) {}
 
@@ -36,27 +34,31 @@ export class CommentUpdateTransaction {
     createdAt: string;
   }): Promise<void> {
     const table = this.config.dynamo.tableName;
-    const items: NonNullable<TransactWriteCommandInput['TransactItems']> = [
+    const items: TransactionItems = [
       {
         Update: {
           TableName: table,
           Key: keys.comment(ref.postId, ref.createdAt, ref.commentId),
-          UpdateExpression: 'SET deletedAt = :now',
+          UpdateExpression: "SET deletedAt = :now",
           // `attribute_not_exists` OR null: a row written before this field
           // existed carries neither, and both mean "not deleted".
-          ConditionExpression: 'attribute_not_exists(deletedAt) OR deletedAt = :null',
-          ExpressionAttributeValues: { ':now': new Date().toISOString(), ':null': null },
+          ConditionExpression:
+            "attribute_not_exists(deletedAt) OR deletedAt = :null",
+          ExpressionAttributeValues: {
+            ":now": new Date().toISOString(),
+            ":null": null,
+          },
         },
       },
       {
         Update: {
           TableName: table,
           Key: keys.post(ref.postId),
-          UpdateExpression: 'ADD commentCount :minus',
-          ExpressionAttributeValues: { ':minus': -1 },
+          UpdateExpression: "ADD commentCount :minus",
+          ExpressionAttributeValues: { ":minus": -1 },
         },
       },
     ];
-    await this.doc.send(new TransactWriteCommand({ TransactItems: items }));
+    await this.transactor.run(items);
   }
 }

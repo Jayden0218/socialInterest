@@ -1,11 +1,13 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { TransactWriteCommand, type DynamoDBDocumentClient, type TransactWriteCommandInput } from '@aws-sdk/lib-dynamodb';
-import type { Visibility } from '@sih/shared';
-import { CONFIG, type AppConfig } from '../../config/configuration';
-import { DOC_CLIENT } from '../../persistence/dynamo-client';
-import { keys } from '../../persistence/keys';
-import { tokenise } from '../search/tokeniser';
-import type { PostItem } from '../../persistence/post.repository';
+import { Inject, Injectable } from "@nestjs/common";
+import type { Visibility } from "@sih/shared";
+import { CONFIG, type AppConfig } from "../../config/configuration";
+import {
+  Transactor,
+  type TransactionItems,
+} from "../../persistence/transactor";
+import { keys } from "../../persistence/keys";
+import { tokenise } from "../search/tokeniser";
+import type { PostItem } from "../../persistence/post.repository";
 
 export interface PostUpdate {
   caption?: string;
@@ -35,7 +37,7 @@ export interface PostUpdate {
 @Injectable()
 export class PostUpdateTransaction {
   constructor(
-    @Inject(DOC_CLIENT) private readonly doc: DynamoDBDocumentClient,
+    @Inject(Transactor) private readonly transactor: Transactor,
     @Inject(CONFIG) private readonly config: AppConfig,
   ) {}
 
@@ -48,7 +50,8 @@ export class PostUpdateTransaction {
     const { post, currentExpandedInterestIds, update } = input;
     const now = new Date().toISOString();
 
-    const nextInterestIds = update.expandedInterestIds ?? currentExpandedInterestIds;
+    const nextInterestIds =
+      update.expandedInterestIds ?? currentExpandedInterestIds;
     const visibility = update.visibility ?? post.visibility;
     const caption = update.caption ?? post.caption;
 
@@ -64,12 +67,16 @@ export class PostUpdateTransaction {
       ...post,
       ...(caption !== undefined ? { caption } : {}),
       visibility,
-      ...(update.expandedInterestIds ? { interestIds: update.expandedInterestIds } : {}),
+      ...(update.expandedInterestIds
+        ? { interestIds: update.expandedInterestIds }
+        : {}),
       placeId: nextPlaceId,
       updatedAt: now,
     };
 
-    const removed = currentExpandedInterestIds.filter((id) => !nextInterestIds.includes(id));
+    const removed = currentExpandedInterestIds.filter(
+      (id) => !nextInterestIds.includes(id),
+    );
 
     /**
      * 008/US6 — THE TERM ROWS FOLLOW THE CAPTION AND THE VISIBILITY.
@@ -93,14 +100,14 @@ export class PostUpdateTransaction {
     const nextTerms = tokenise(caption);
     const removedTerms = currentTerms.filter((t) => !nextTerms.includes(t));
 
-    const items: NonNullable<TransactWriteCommandInput['TransactItems']> = [
+    const items: TransactionItems = [
       {
         Put: {
           TableName: table,
           Item: {
             ...keys.post(post.postId),
             ...keys.postByAuthor(post.authorId, post.createdAt, post.postId),
-            type: 'Post',
+            type: "Post",
             ...updated,
           },
         },
@@ -118,7 +125,7 @@ export class PostUpdateTransaction {
           TableName: table,
           Item: {
             ...keys.postInterestIndex(interestId, post.createdAt, post.postId),
-            type: 'PostInterestIndex',
+            type: "PostInterestIndex",
             postId: post.postId,
             authorId: post.authorId,
             interestId,
@@ -141,7 +148,7 @@ export class PostUpdateTransaction {
           TableName: table,
           Item: {
             ...keys.postTermIndex(token, post.createdAt, post.postId),
-            type: 'PostTermIndex',
+            type: "PostTermIndex",
             postId: post.postId,
             authorId: post.authorId,
             token,
@@ -159,7 +166,11 @@ export class PostUpdateTransaction {
             {
               Delete: {
                 TableName: table,
-                Key: keys.postPlaceIndex(post.placeId, post.createdAt, post.postId),
+                Key: keys.postPlaceIndex(
+                  post.placeId,
+                  post.createdAt,
+                  post.postId,
+                ),
               },
             },
           ]
@@ -170,8 +181,12 @@ export class PostUpdateTransaction {
               Put: {
                 TableName: table,
                 Item: {
-                  ...keys.postPlaceIndex(nextPlaceId, post.createdAt, post.postId),
-                  type: 'PostPlaceIndex',
+                  ...keys.postPlaceIndex(
+                    nextPlaceId,
+                    post.createdAt,
+                    post.postId,
+                  ),
+                  type: "PostPlaceIndex",
                   postId: post.postId,
                   authorId: post.authorId,
                   placeId: nextPlaceId,
@@ -185,60 +200,63 @@ export class PostUpdateTransaction {
         : []),
     ];
 
-    await this.doc.send(new TransactWriteCommand({ TransactItems: items }));
+    await this.transactor.run(items);
     return updated;
   }
 
   /** FR-012: the post and every index item leave together. */
-  async softDelete(post: PostItem, expandedInterestIds: string[]): Promise<void> {
+  async softDelete(
+    post: PostItem,
+    expandedInterestIds: string[],
+  ): Promise<void> {
     const table = this.config.dynamo.tableName;
     const deletedAt = new Date().toISOString();
-    await this.doc.send(
-      new TransactWriteCommand({
-        TransactItems: [
-          {
-            Put: {
-              TableName: table,
-              Item: {
-                ...keys.post(post.postId),
-                ...keys.postByAuthor(post.authorId, post.createdAt, post.postId),
-                type: 'Post',
-                ...post,
-                deletedAt,
-                updatedAt: deletedAt,
+    await this.transactor.run([
+      {
+        Put: {
+          TableName: table,
+          Item: {
+            ...keys.post(post.postId),
+            ...keys.postByAuthor(post.authorId, post.createdAt, post.postId),
+            type: "Post",
+            ...post,
+            deletedAt,
+            updatedAt: deletedAt,
+          },
+        },
+      },
+      // Hard-removed from every interest space: a soft-deleted post must not
+      // linger in a listing waiting to be filtered out on read.
+      ...expandedInterestIds.map((interestId) => ({
+        Delete: {
+          TableName: table,
+          Key: keys.postInterestIndex(interestId, post.createdAt, post.postId),
+        },
+      })),
+      // 008/US6. And from every term partition, for exactly the same
+      // reason: a deleted post lingering in a search index is a row the
+      // filter would have to remove on every query forever.
+      ...tokenise(post.caption).map((token) => ({
+        Delete: {
+          TableName: table,
+          Key: keys.postTermIndex(token, post.createdAt, post.postId),
+        },
+      })),
+      // 004/FR-016. And from its place page, for exactly the same reason.
+      ...(post.placeId
+        ? [
+            {
+              Delete: {
+                TableName: table,
+                Key: keys.postPlaceIndex(
+                  post.placeId,
+                  post.createdAt,
+                  post.postId,
+                ),
               },
             },
-          },
-          // Hard-removed from every interest space: a soft-deleted post must not
-          // linger in a listing waiting to be filtered out on read.
-          ...expandedInterestIds.map((interestId) => ({
-            Delete: {
-              TableName: table,
-              Key: keys.postInterestIndex(interestId, post.createdAt, post.postId),
-            },
-          })),
-          // 008/US6. And from every term partition, for exactly the same
-          // reason: a deleted post lingering in a search index is a row the
-          // filter would have to remove on every query forever.
-          ...tokenise(post.caption).map((token) => ({
-            Delete: {
-              TableName: table,
-              Key: keys.postTermIndex(token, post.createdAt, post.postId),
-            },
-          })),
-          // 004/FR-016. And from its place page, for exactly the same reason.
-          ...(post.placeId
-            ? [
-                {
-                  Delete: {
-                    TableName: table,
-                    Key: keys.postPlaceIndex(post.placeId, post.createdAt, post.postId),
-                  },
-                },
-              ]
-            : []),
-        ],
-      }),
-    );
+          ]
+        : []),
+    ]);
   }
 }

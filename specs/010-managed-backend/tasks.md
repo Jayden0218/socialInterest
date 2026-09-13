@@ -69,6 +69,7 @@ its media references and its counts are unchanged.
 
 ### Implementation
 
+- [x] T007a **[ADDED DURING EXECUTION — the plan's seam was not the only way through]** Route every multi-item write through one `Transactor` inside `persistence/`, and guard it with `apps/api/tests/unit/one-datastore-seam.spec.ts`. Five files outside `persistence/` built and sent their own `TransactWriteCommand` at ten call sites, bypassing `BaseRepository.transact` entirely — so the seven-primitive contract proved an all-or-none guarantee for a method a third of the transaction sites never called
 - [ ] T008 [US1] Replace `apps/api/src/persistence/dynamo-client.ts` with a Postgres pool, reading its connection string from the environment and never from a file
 - [ ] T009 [US1] Implement `getItem`, `putItem` and `deleteItem` in `apps/api/src/persistence/base.repository.ts` — `putItem`'s condition MUST be one atomic statement, because a read-then-write passes every test and fails only under the simultaneous requests it exists for
 - [ ] T010 [US1] Implement `updateItem` in `base.repository.ts` as a **merge**, never a replace — an unnamed attribute must survive, which is the shape of 008's `avatarUrl` defect that survived in seven of nine places
