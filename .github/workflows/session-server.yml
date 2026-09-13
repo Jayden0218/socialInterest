@@ -13,12 +13,20 @@ on:
   workflow_dispatch:
     inputs:
       lifetime_minutes:
-        # 30, chosen after finding that Actions minutes are metered here rather
-        # than free: this repository is PRIVATE, so the allowance is 2,000 Linux
-        # minutes a month, shared with CI and the emulator job. A session is
-        # opened to look at the app for twenty minutes, not to be left running —
-        # and the longer options are one tap away when a session needs to
-        # outlast a conversation. See research R1.
+        # 30 by default, because a session is opened to look at the app for
+        # twenty minutes rather than left running — the longer options are one
+        # tap away when one needs to outlast a conversation. See research R1.
+        #
+        # WHAT A SESSION COSTS DEPENDS ON WHICH REPOSITORY THIS FILE IS IN, AND
+        # THE ANSWER IS NOT WRITTEN DOWN ANYWHERE THAT STAYS TRUE. A public
+        # repository gets free standard runners; a private one draws on an
+        # account-wide 2,000 Linux minutes a month shared with every other
+        # private repository the owner has. This comment claimed PRIVATE and was
+        # wrong for where the workflow actually runs — the fourth time that
+        # claim has been repeated from a file instead of checked. It takes one
+        # request:
+        #
+        #   curl -s https://api.github.com/repos/<owner>/<repo> | grep '"visibility"'
         description: 'How long the session should live (minutes)'
         required: true
         default: '30'
