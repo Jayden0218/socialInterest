@@ -225,12 +225,34 @@ own toolchain download is blocked), then `assembleRelease`. See
 `docs/verification/tier-b-runbook.md` for the exact recipe. Sizes: 104 MB debug with
 all ABIs, 35 MB arm64 debug, **20 MB arm64 release**.
 
-**The tunnel still does not work, and not for the reason you would guess.** There are
-two enforcement layers: through the agent proxy `api.trycloudflare.com` answers 200,
-but a direct connection returns `403 x-deny-reason: host_not_allowed`. cloudflared's
-edge link is raw TCP/QUIC rather than an HTTP request, so it cannot use the proxy,
-goes direct, and is denied. Allowlisting the host does not fix it. A tunnel agent that
-honours `HTTPS_PROXY` for its transport (ngrok is the candidate) might.
+**The tunnel still does not work — RE-MEASURED 2026-09-13, and half of what this
+paragraph used to say has expired.**
+
+What changed: `api.trycloudflare.com` answers **405** on a DIRECT connection now, not
+`403 x-deny-reason: host_not_allowed`. 405 is Cloudflare's own answer to a `GET` on
+that endpoint, so the request reached the real server — **the host allowlist opened**.
+
+What did not change, and is the whole blocker: cloudflared's edge link is a raw TCP
+dial to **port 7844**, which it makes with `--protocol http2` exactly as it does with
+QUIC. Run here on 2026-09-13:
+
+```
+13:38:06  address issued: https://sun-tier-losses-nokia.trycloudflare.com
+13:38:21  ERR Unable to establish connection with Cloudflare edge
+          error="DialContext error: dial tcp 198.41.200.13:7844: i/o timeout"
+```
+
+Fifteen seconds between a usable-looking address and the failure — which is why
+`open_tunnel` in `scripts/session-up.sh` waits for a registered connection and then
+probes end to end. An address nobody has reached is not an address.
+
+**And the ngrok candidate this paragraph used to name is ruled out too**, by the same
+measurement: `connect.ngrok-agent.com` and `localtunnel.me` both answer `000` through
+the proxy and direct. The hosts are not reachable at all, so an agent that honours
+`HTTPS_PROXY` has nothing to honour it towards.
+
+**So: nothing can tunnel out of this sandbox, and the reason is a PORT, not a host.**
+Tunnels work fine on a GitHub runner, which is why 009's session server lives there.
 
 Historical note, for an emulator: `dl.google.com` was blocked by the default allowlist, so
 the SDK would not even download. If it were allowed, the emulator would still have no
