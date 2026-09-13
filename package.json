@@ -7,6 +7,7 @@
   },
   "scripts": {
     "typecheck": "pnpm -r typecheck",
+    "laptop": "scripts/laptop-up.sh",
     "lint": "eslint .",
     "test": "pnpm --filter @sih/api test && pnpm --filter @sih/mobile test",
     "test:unit": "pnpm --filter @sih/api test:unit",
