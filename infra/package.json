@@ -5,6 +5,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "db:create-local": "tsx scripts/create-local-table.ts",
+    "db:create-local-pg": "tsx scripts/create-local-schema.ts",
     "s3:create-local": "tsx scripts/create-local-bucket.ts",
     "seed:catalogue": "tsx scripts/seed-catalogue.ts",
     "verify:local": "tsx scripts/verify-local.ts",
@@ -19,11 +20,13 @@
     "@aws-sdk/client-s3": "^3.712.0",
     "@aws-sdk/lib-dynamodb": "^3.712.0",
     "@aws-sdk/s3-request-presigner": "^3.712.0",
+    "pg": "^8.16.3",
     "jsonwebtoken": "^9.0.2",
     "ulid": "^2.3.0"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.7",
+    "@types/pg": "^8.15.5",
     "@types/node": "^22.10.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"

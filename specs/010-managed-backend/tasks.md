@@ -39,9 +39,9 @@ on the old engine is what gives them authority.
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-- [ ] T001 Add `pg` and `@types/pg` to `apps/api/package.json`; leave `@aws-sdk/client-s3` and `@aws-sdk/s3-request-presigner` in place — they speak to any S3-compatible endpoint and R6 expects them to be unchanged
-- [ ] T002 Replace the DynamoDB Local service with Postgres in `docker-compose.yml`, keeping the named volume so data survives `docker compose down` — and note in a comment that Postgres is on Docker Hub, which removes the quay.io dependency the dead-ends table records as unreachable from the development sandbox
-- [ ] T003 Rewrite `infra/scripts/create-local-table.ts` to create the `items` table and five **partial** GSI indexes per [data-model.md](./data-model.md) — partial because a GSI is sparse, and a plain index would materialise a row per item per index for items that never use them
+- [x] T001 Add `pg` and `@types/pg` to `apps/api/package.json`; leave `@aws-sdk/client-s3` and `@aws-sdk/s3-request-presigner` in place — they speak to any S3-compatible endpoint and R6 expects them to be unchanged
+- [x] T002 Replace the DynamoDB Local service with Postgres in `docker-compose.yml`, keeping the named volume so data survives `docker compose down` — and note in a comment that Postgres is on Docker Hub, which removes the quay.io dependency the dead-ends table records as unreachable from the development sandbox
+- [x] T003 Rewrite `infra/scripts/create-local-table.ts` to create the `items` table and five **partial** GSI indexes per [data-model.md](./data-model.md) — partial because a GSI is sparse, and a plain index would materialise a row per item per index for items that never use them
 
 **Checkpoint**: Postgres runs locally. Nothing uses it yet.
 
@@ -51,10 +51,10 @@ on the old engine is what gives them authority.
 
 **⚠️ No user story work begins until T004–T007 are done.**
 
-- [ ] T004 Record the gate baselines by running `pnpm --filter @sih/api test:visibility` and `test:integration` **against the current engine**, capturing `BASE_SURFACES.length` (16), `baseTotal` (1488, `apps/api/tests/visibility/matrix.spec.ts:476` and `:529`) and the public/operator route snapshots into `specs/010-managed-backend/plan.md`
-- [ ] T005 **Confirm there is nothing to migrate** — check every datastore this product has been pointed at and record the finding in `specs/010-managed-backend/research.md`. The spec lists this as a thing to confirm rather than assume, because if it is wrong it is catastrophically wrong and checking costs minutes
-- [ ] T006 Write the contract test for all seven primitives in `apps/api/tests/integration/datastore-primitives.spec.ts`, covering every MUST in [contracts/datastore-primitives.md](./contracts/datastore-primitives.md) — written against the abstract behaviour, never against either engine's quirks
-- [ ] T007 **Run T006 against the engine being replaced and watch it GREEN.** Record the output in `specs/010-managed-backend/checklists/requirements.md`. A red here means the test is wrong, not the product — fix the test before touching the engine
+- [x] T004 Record the gate baselines by running `pnpm --filter @sih/api test:visibility` and `test:integration` **against the current engine**, capturing `BASE_SURFACES.length` (16), `baseTotal` (1488, `apps/api/tests/visibility/matrix.spec.ts:476` and `:529`) and the public/operator route snapshots into `specs/010-managed-backend/plan.md`
+- [x] T005 **Confirm there is nothing to migrate** — check every datastore this product has been pointed at and record the finding in `specs/010-managed-backend/research.md`. The spec lists this as a thing to confirm rather than assume, because if it is wrong it is catastrophically wrong and checking costs minutes
+- [x] T006 Write the contract test for all seven primitives in `apps/api/tests/integration/datastore-primitives.spec.ts`, covering every MUST in [contracts/datastore-primitives.md](./contracts/datastore-primitives.md) — written against the abstract behaviour, never against either engine's quirks
+- [x] T007 **Run T006 against the engine being replaced and watch it GREEN.** Record the output in `specs/010-managed-backend/checklists/requirements.md`. A red here means the test is wrong, not the product — fix the test before touching the engine
 
 **Checkpoint**: The contract is a description of behaviour the product already has, proven.
 

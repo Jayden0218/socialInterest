@@ -224,3 +224,67 @@ lands green, the rest follows.
 |---|---|---|
 | **512 MB on the free host may not transcode video** | Photographs are the product's centre of gravity and will fit comfortably. The limit is **unmeasured**, and Phase D measures it rather than assuming either way | A host with more memory needs a payment method, which fails FR-014. If video does not fit, the honest outcomes are a documented limit or a different processing path — not a quiet failure |
 | **500 MB / 1 GB free ceilings** | Sized for the owner and a few people, which is what the spec asks for | Anything larger needs a card. The spec's Assumptions state the ceiling rather than hiding it, and the edge cases require the product to fail legibly when it is reached |
+
+## The gate baselines (T004) — measured against the engine being replaced
+
+Recorded **2026-09-13**, against DynamoDB Local, before any code moved. These are the numbers
+any failure after the swap is measured against, and the correct response to one of them moving
+is to find out why — never to update the number.
+
+| Gate | Reading | Instrument |
+|---|---|---|
+| `matrix.spec.ts` post assertions | **1,470 across 15 post surfaces** | `pnpm --filter @sih/api test:visibility` |
+| `matrix.spec.ts` review assertions | **18 on 1 review surface** | same |
+| `BASE_SURFACES.length` / `baseTotal` | **16** / **1,488** | `matrix.spec.ts:476`, `:529` |
+| Visibility suite, whole | **1,522 passed, 1,522 total**, 3 suites, 6.8s | `test:visibility` |
+| Integration suite | **204 passed of 205**, 48 suites of 49, 50.9s | `test:integration` |
+
+**The one integration failure is the environment, not the product, and it is recorded rather
+than rounded away.** `us1-exif.spec.ts` fails inside `MinioObjectStore.putObject` because MinIO
+is not running: it is published to quay.io, which this project's development sandbox denies by
+egress, and the Docker Hub mirror holds no cache of a repository that no longer exists upstream
+(CLAUDE.md, dead ends). **204/205 is therefore the baseline to compare against here, and 205/205
+is the baseline in CI**, which has full egress. Calling this a pass would hide the one suite that
+most needs re-checking once US2 moves object storage.
+
+### The route snapshots, verbatim
+
+Public (13 base routes, plus whatever a fork adds through `OVERLAY_PUBLIC_ROUTES`):
+
+```
+GET /health                        GET /places
+GET /interests                     GET /places/:placeId
+GET /interests/similar             GET /places/:placeId/posts
+GET /interests/:interestId         GET /places/:placeId/reviews
+GET /interests/:interestId/posts   GET /posts/:postId
+GET /people/:handle                GET /posts/:postId/comments
+GET /people/:handle/posts
+```
+
+Operator (5 base routes, plus `OVERLAY_OPERATOR_ROUTES`):
+
+```
+GET   /moderation/reports        GET   /moderation/appeals
+PATCH /moderation/reports/:reportId   PATCH /moderation/appeals/:appealId
+PATCH /moderation/interests/:interestId
+```
+
+There is deliberately **no** `GET /share/:postId`: a share link resolves through the already
+public `GET /posts/{postId}`, which re-checks visibility on every read. A separate resolution
+route would be a second read path, and the link would then be the thing granting access rather
+than the post's own visibility.
+
+## Two corrections to the task list, made while executing it
+
+Both are the same mistake and it is worth naming once: **T002 and T003 as written would have
+destroyed the instrument T007 depends on.**
+
+- **T002 said "replace the DynamoDB Local service with Postgres".** T007 requires the contract
+  test to be run against the engine being replaced and watched GREEN there first, and an engine
+  that cannot be started cannot be watched. `contracts/datastore-primitives.md` says as much in
+  its own enforcement section: "the same test file runs against both engines where both can
+  still be started". Postgres is therefore added **alongside** DynamoDB Local; the removal is
+  Phase 6's business.
+- **T003 said "rewrite `create-local-table.ts`".** Same problem — rewriting it leaves no way to
+  create the table the old engine needs. A new `create-local-schema.ts` sits beside it, and the
+  old one goes with the service it creates against.

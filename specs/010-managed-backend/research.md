@@ -178,3 +178,31 @@ development story gets better as a side effect of a change made for other reason
 Supabase Postgres are the same software with different configuration — much stronger evidence
 than DynamoDB Local ever provided, and still not proof. Hence the divergence-register entry
 required by the plan's Principle V gate.
+
+## T005 — confirming there is nothing to migrate
+
+**Checked 2026-09-13, not assumed.** The spec lists this under Edge Cases as a thing to confirm
+because if it is wrong it is catastrophically wrong, and checking costs minutes.
+
+**Finding: there is no data to migrate.** Every datastore this product has ever been pointed at
+is either a development volume or a container that is destroyed by design.
+
+| Where the product has stored data | State | Evidence |
+|---|---|---|
+| **AWS (DynamoDB, S3, MediaConvert, Cognito, CloudFront)** | **Never existed.** No account, no deploy | The four `aws` adapters "had never been executed once, so they were deleted" (CLAUDE.md). `infra/` has only ever been `cdk synth`'d, which is free and needs no credentials; applying it "is never an implicit part of a task" (001/plan.md:91) and no task ever did |
+| **DynamoDB Local, this sandbox** | Development data. 1,596 items, 532 KB, table created 2026-09-12 | Test fixtures from suite runs. The sandbox container is itself ephemeral — "commit and push, or lose it" — and this project has already dropped and reseeded this table twice when it grew enough to break a paging assertion |
+| **CI runs** | Fresh container per run | `docker compose up -d` on a clean runner; nothing persists past the job |
+| **Session servers (009)** | Destroyed by the job's own teardown | `.github/workflows/session-server.yml` runs `docker compose down -v`. The `-v` takes the named volumes with it, which is the difference between "stopped" and "gone" |
+
+**And the decisive fact, which is recorded in four features' verification sections already:
+nobody has used the product.** 003, 005, 007 and 008 each close with "Real usage: nobody has
+used the product" under *Still not verified*. There are no accounts but test accounts, no posts
+but fixture posts, and no photographs but generated ones.
+
+So the migration is a **schema cutover, not a data move**. The local table is not migrated
+either — it is recreated, the same way `db:create-local --recreate` already recreates it.
+
+> **What this does NOT license.** "No data to migrate" is a fact about today, and it expires the
+> first time a person who is not the owner puts a post into a deployment that stays up — which
+> is precisely what this feature exists to build. A later engine change does not get to reuse
+> this finding; it gets to re-check it.

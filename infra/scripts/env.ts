@@ -21,6 +21,15 @@ export const env = {
   tableName: process.env.TABLE_NAME ?? 'sih-main',
   bucket: process.env.MEDIA_BUCKET ?? 'sih-media',
   dynamoEndpoint: process.env.DYNAMO_ENDPOINT ?? 'http://127.0.0.1:8000',
+  /**
+   * 010. The engine the datastore is moving to.
+   *
+   * A default for the LOCAL stack only, matching docker-compose.yml. The hosted
+   * deployment supplies DATABASE_URL from its environment and never from here -
+   * FR-016, and a guard fails the build if a credential-shaped string appears
+   * anywhere in this tree.
+   */
+  postgresUrl: process.env.DATABASE_URL ?? 'postgres://sih:localsecret@127.0.0.1:5432/sih',
   s3Endpoint: process.env.S3_ENDPOINT ?? 'http://127.0.0.1:9000',
   region: process.env.DYNAMO_REGION ?? 'local',
   creds: {

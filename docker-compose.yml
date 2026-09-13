@@ -25,6 +25,49 @@ services:
     volumes: ["sih-dynamodb:/data"]
     ports: ["8000:8000"]
 
+  # 010/T002. Postgres, the engine the datastore is moving TO.
+  #
+  # ADDED ALONGSIDE DYNAMODB LOCAL RATHER THAN REPLACING IT, which is a
+  # deliberate correction to 010/T002 as written. The task said "replace", but
+  # T007 — the step the whole migration's provability rests on — requires the
+  # seven-primitive contract test to be run against the engine being REPLACED
+  # and watched green there first. An engine that cannot be started cannot be
+  # watched. `contracts/datastore-primitives.md` says so itself: "the same test
+  # file runs against both engines where both can still be started".
+  #
+  # DynamoDB Local goes when the swap is done and the contract has been proven
+  # on both sides, which is 010 Phase 6's business, not Phase 1's.
+  #
+  # On Docker Hub, and that matters here: `postgres` is an official library
+  # image, so this removes the quay.io dependency the dead-ends table in
+  # CLAUDE.md records as unreachable from the development sandbox — for the
+  # datastore path. Object storage still reaches for quay.io until US2 moves it.
+  #
+  # Pulled here 2026-09-13 and that is evidence ABOUT THE MIRROR, not about
+  # Docker Hub: this sandbox sets registry-mirrors: [mirror.gcr.io]. CI goes
+  # direct and is the only instrument that can confirm it, exactly as the MinIO
+  # note below records.
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: sih
+      POSTGRES_PASSWORD: localsecret
+      POSTGRES_DB: sih
+    # A named volume for the same reason the two below have one: without it the
+    # datastore loses every post when the container is recreated, which is the
+    # defect 003's durability work exists to have ended.
+    volumes: ["sih-postgres:/var/lib/postgresql/data"]
+    ports: ["5432:5432"]
+    # `pg_isready` rather than a port probe. DynamoDB Local taught this project
+    # that a process answering its socket is not a process that can serve a
+    # request — it answered 400 to a bare GET while unable to open its own
+    # database file, so the health probe passed and every real request hung.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sih -d sih"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
   s3:
     # MINIO IS NO LONGER ON DOCKER HUB AT ALL, and the first fix for this was
     # wrong in a way worth recording.
@@ -65,5 +108,6 @@ services:
     ports: ["9000:9000", "9001:9001"]
 
 volumes:
+  sih-postgres:
   sih-dynamodb:
   sih-minio:
