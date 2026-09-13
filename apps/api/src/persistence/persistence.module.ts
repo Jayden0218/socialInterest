@@ -1,7 +1,7 @@
-import { Global, Module, type Provider } from '@nestjs/common';
-import type { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import { Global, Inject, Module, type OnModuleDestroy, type Provider } from '@nestjs/common';
+import type { Pool } from 'pg';
 import { CONFIG, type AppConfig } from '../config/configuration';
-import { createDocumentClient, DOC_CLIENT } from './dynamo-client';
+import { createPool, PG_POOL } from './pg-pool';
 import { Transactor } from './transactor';
 import { PersonRepository } from './person.repository';
 import { InterestRepository } from './interest.repository';
@@ -34,17 +34,14 @@ import { SavedPostRepository } from './saved-post.repository';
 // feature 007
 import { SignalRepository } from './signal.repository';
 
-const repo = <T>(
-  cls: new (doc: DynamoDBDocumentClient, table: string) => T,
-): Provider => ({
+const repo = <T>(cls: new (pool: Pool, table: string) => T): Provider => ({
   provide: cls,
-  inject: [DOC_CLIENT, CONFIG],
-  useFactory: (doc: DynamoDBDocumentClient, config: AppConfig) =>
-    new cls(doc, config.dynamo.tableName),
+  inject: [PG_POOL, CONFIG],
+  useFactory: (pool: Pool, config: AppConfig) => new cls(pool, config.dynamo.tableName),
 });
 
 const providers: Provider[] = [
-  { provide: DOC_CLIENT, inject: [CONFIG], useFactory: createDocumentClient },
+  { provide: PG_POOL, inject: [CONFIG], useFactory: createPool },
   // 010. The one place a multi-item write is executed — see ./transactor.ts.
   Transactor,
   repo(PersonRepository),
@@ -84,7 +81,7 @@ const providers: Provider[] = [
 @Module({
   providers,
   exports: [
-    DOC_CLIENT,
+    PG_POOL,
     Transactor,
     PersonRepository,
     InterestRepository,
@@ -117,4 +114,23 @@ const providers: Provider[] = [
     SignalRepository,
   ],
 })
-export class PersistenceModule {}
+export class PersistenceModule implements OnModuleDestroy {
+  constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
+
+  /**
+   * 010. THE POOL IS CLOSED WHEN THE MODULE IS.
+   *
+   * The old engine spoke HTTP and had nothing to leak; a connection pool does.
+   * Without this, every test suite that boots the application leaves eight
+   * connections open, and Postgres starts refusing with "sorry, too many
+   * clients already" — which surfaced as 224 failures across 31 suites and
+   * looks exactly like a broken datastore rather than an unclosed handle.
+   *
+   * It matters beyond the suite: a process that restarts its Nest application
+   * leaks the same way, and the free managed tier this is going to has a
+   * connection ceiling low enough to reach.
+   */
+  async onModuleDestroy(): Promise<void> {
+    await this.pool.end();
+  }
+}

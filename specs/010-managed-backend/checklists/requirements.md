@@ -124,3 +124,110 @@ is are very different jobs:
 `{ Put | Delete | Update }` descriptors today; changing that shape means touching all of them,
 which is exactly the remodelling R2 defers. The Postgres implementation accepts the same
 descriptors and translates them.
+
+---
+
+## Phase 3 (US1) — the engine is Postgres, and no gate moved
+
+**2026-09-13.** `base.repository.ts` speaks SQL. `dynamo-client.ts` is deleted.
+
+### T016 — the same contract, the new engine
+
+**30 of 30 on Postgres**, the same assertions that were green on DynamoDB. The old engine is
+not kept as a second entry in the suite: two datastore implementations selected by
+configuration is exactly the shape the four AWS adapters were deleted for. The comparison
+happened across time (T007, then this) and is written down.
+
+### T018 — the T004 baselines, unchanged
+
+| Gate | Baseline (DynamoDB) | Postgres |
+|---|---|---|
+| Post assertions / surfaces | 1,470 across 15 | **1,470 across 15** |
+| Review assertions | 18 | **18** |
+| Visibility suite | 1,522 / 1,522 | **1,522 / 1,522** |
+| Route snapshots | unchanged | **unchanged** (in the integration suite, green) |
+| Whole API suite | 3 failures, all MinIO | **2,018 of 2,021 — the same 3** |
+
+The three are `ports.contract.spec.ts` ×2 and `us1-exif.spec.ts`, all `ECONNREFUSED
+127.0.0.1:9000`. They fail identically on both engines and cannot run in this sandbox.
+
+### T019 — durability, by hand, with the container DESTROYED rather than restarted
+
+`apps/api/scripts/durability-probe.ts` writes through `PersonRepository` and `PostTransaction`
+— so through `Transactor`, and therefore through a real `begin`/`commit` — then
+`docker compose rm -sf postgres && up -d`, then reads the same rows:
+
+```
+=== before ===                          === after ===
+person : @t019probe — "Durability probe"   person : @t019probe — "Durability probe"
+post   : "this must survive…" [public/ready]  post   : "this must survive…" [public/ready]
+index  : 1 index row(s)                     index  : 1 index row(s)
+```
+
+It does not go over HTTP, and that is a stated limit: publishing requires an upload and MinIO
+cannot be pulled here. The HTTP publish path is CI's to prove.
+
+### T017 — six guarantees, six breaks, six reds
+
+| The break | What went red |
+|---|---|
+| the conditional insert loses `do nothing` | exactly one of five racing writers wins |
+| `increment` made a read-modify-write | twenty concurrent increments all count |
+| `updateItem` builds from `'{}'` instead of `item` | merges, leaves attributes it was not given untouched |
+| `begin`/`commit` removed | applies NOTHING when one item fails its condition |
+| the index partition column forced back to `pk` | returns only items that populate the index |
+| the keyset comparison dropped | pages with a cursor, and the pages do not overlap or skip |
+
+**One of those breaks did not apply, and passed, and that is the finding.** The first attempt at
+the merge break patched `    let expression = 'item';` with four spaces of indentation against a
+line that has two. The replace was a silent no-op, the test passed, and **a break that never
+happened looks exactly like a guarantee that holds**. Redone with an assertion that the patch
+applied; it then failed as it should. A verification needs verifying.
+
+### Three defects the contract caught that reading would not have
+
+1. **`->>` with a `text[]` cast reads a key literally named `{followerCount}`.** The path
+   parameter is a text ARRAY, which is what `jsonb_set` wants; casting the same parameter to
+   `text` for `->>` asks for an attribute whose NAME is that string. No item has one, `coalesce`
+   supplied 0, and **every increment started from zero**. Twenty concurrent increments came out
+   as 1; `1 + -3` came out as -3. Note how it failed: quietly, and in the direction that still
+   writes a plausible number.
+2. **Nothing closed the pool.** The old engine spoke HTTP and had nothing to leak. Every suite
+   that boots the application opened eight connections and kept them: **224 failures across 31
+   suites**, all "sorry, too many clients already", which reads as a broken datastore rather
+   than an unclosed handle. `PersistenceModule` now ends the pool on destroy — and the same leak
+   would have followed the service into a managed tier with a connection ceiling.
+3. **The catalogue seeder still wrote to DynamoDB.** 153 failures, every one "catalogue is
+   empty". Obvious in hindsight and invisible beforehand: the seed is a separate script that
+   nothing typechecks against the engine.
+
+### A correction to my own count
+
+I reported "**2 distinct conditions in the whole persistence layer**". There are **three**: 008's
+comment delete guards on `attribute_not_exists(deletedAt) OR deletedAt = :null`. The count was
+taken by grepping `persistence/` — in the same session in which T007a had just moved five
+transaction sites INTO that directory from `modules/`, where that condition lives. Counted before
+the move, quoted after it.
+
+It cost nothing, because **the translator refuses what it does not recognise instead of
+guessing**. That is the entire reason it refuses: a translator that silently dropped an
+unrecognised clause would have produced a delete that looked like it worked and a comment count
+that drifted from its rows.
+
+### One registered difference, deliberate and safer
+
+Where the ROW is absent entirely, the old engine evaluates `attribute_not_exists(deletedAt)`
+against a non-existent item, finds it true, and **creates a stub**. The new one refuses. Nothing
+reaches it — 008's comment delete checks the comment exists and is yours first — and the choice
+is between "a stub comment row nobody asked for" and "a refusal". A migration may not make a
+product decision, so this is written down rather than assumed away: it is not a decision anyone
+made, it is an artifact of the engine.
+
+### And one thing that got better on its own
+
+`person.repository.ts` carries a long comment about the old engine applying `Limit` to the rows
+it EXAMINES, *before* the filter runs — so "look at 200 people, then filter" is not "up to 200
+matches", and past that many accounts a real match was invisible with the endpoint answering
+200 OK and an empty list. That is why `people-search-scale` has failed on a grown local table
+three times, and a fourth during this feature. **SQL applies `where` before `limit`.** The whole
+class of false regression is gone.

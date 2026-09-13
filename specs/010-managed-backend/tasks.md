@@ -70,23 +70,23 @@ its media references and its counts are unchanged.
 ### Implementation
 
 - [x] T007a **[ADDED DURING EXECUTION — the plan's seam was not the only way through]** Route every multi-item write through one `Transactor` inside `persistence/`, and guard it with `apps/api/tests/unit/one-datastore-seam.spec.ts`. Five files outside `persistence/` built and sent their own `TransactWriteCommand` at ten call sites, bypassing `BaseRepository.transact` entirely — so the seven-primitive contract proved an all-or-none guarantee for a method a third of the transaction sites never called
-- [ ] T008 [US1] Replace `apps/api/src/persistence/dynamo-client.ts` with a Postgres pool, reading its connection string from the environment and never from a file
-- [ ] T009 [US1] Implement `getItem`, `putItem` and `deleteItem` in `apps/api/src/persistence/base.repository.ts` — `putItem`'s condition MUST be one atomic statement, because a read-then-write passes every test and fails only under the simultaneous requests it exists for
-- [ ] T010 [US1] Implement `updateItem` in `base.repository.ts` as a **merge**, never a replace — an unnamed attribute must survive, which is the shape of 008's `avatarUrl` defect that survived in seven of nine places
-- [ ] T011 [US1] Implement `increment` in `base.repository.ts` as a **single statement**, closing the read-modify-write that 007 found documented as atomic and implemented as not
-- [ ] T012 [US1] Implement `query` in `base.repository.ts` with sort-key prefix matching, GSI variants and **keyset pagination** — and preserve sparse-index behaviour: an item that does not populate an index key MUST NOT appear in that index
-- [ ] T013 [US1] Implement `transact` in `base.repository.ts` as a real database transaction, replacing the batch primitive
-- [ ] T014 [US1] Port `apps/api/src/persistence/collection.repository.ts`, which reaches past the base class and is the reason four files rather than three touch the datastore
-- [ ] T015 [US1] Update `apps/api/src/persistence/persistence.module.ts` to provide the pool
+- [x] T008 [US1] Replace `apps/api/src/persistence/dynamo-client.ts` with a Postgres pool, reading its connection string from the environment and never from a file
+- [x] T009 [US1] Implement `getItem`, `putItem` and `deleteItem` in `apps/api/src/persistence/base.repository.ts` — `putItem`'s condition MUST be one atomic statement, because a read-then-write passes every test and fails only under the simultaneous requests it exists for
+- [x] T010 [US1] Implement `updateItem` in `base.repository.ts` as a **merge**, never a replace — an unnamed attribute must survive, which is the shape of 008's `avatarUrl` defect that survived in seven of nine places
+- [x] T011 [US1] Implement `increment` in `base.repository.ts` as a **single statement**, closing the read-modify-write that 007 found documented as atomic and implemented as not
+- [x] T012 [US1] Implement `query` in `base.repository.ts` with sort-key prefix matching, GSI variants and **keyset pagination** — and preserve sparse-index behaviour: an item that does not populate an index key MUST NOT appear in that index
+- [x] T013 [US1] Implement `transact` in `base.repository.ts` as a real database transaction, replacing the batch primitive
+- [x] T014 [US1] Port `apps/api/src/persistence/collection.repository.ts`, which reaches past the base class and is the reason four files rather than three touch the datastore
+- [x] T015 [US1] Update `apps/api/src/persistence/persistence.module.ts` to provide the pool
 
 ### Verification
 
-- [ ] T016 [US1] Run T006 against Postgres and watch every guarantee go green for the same reasons it did on the old engine
-- [ ] T017 [US1] **Verify each guarantee by breaking it**: `putItem`'s condition under concurrency, `increment` under concurrency, `updateItem` dropping an unnamed field, and a sparse index returning an item that does not populate it. Record what each said — a guard that has only ever passed is not a guard
-- [ ] T018 [US1] Run the full API suite and confirm the T004 baselines are **unchanged**: 16 surfaces, 1,488 assertions, route snapshots identical. **If a number moved, find out why — never update the number**
-- [ ] T019 [US1] Prove FR-001 by hand: publish a post, `docker compose down && up`, read it back. No unit test substitutes for this
-- [ ] T020 [US1] Assert the **20-person group cap is unchanged** in `apps/api/tests/unit/`, with a comment explaining that its technical reason disappeared here and the product decision has not been made
-- [ ] T021 [US1] Run `pnpm lint` and `pnpm typecheck` across all packages
+- [x] T016 [US1] Run T006 against Postgres and watch every guarantee go green for the same reasons it did on the old engine
+- [x] T017 [US1] **Verify each guarantee by breaking it**: `putItem`'s condition under concurrency, `increment` under concurrency, `updateItem` dropping an unnamed field, and a sparse index returning an item that does not populate it. Record what each said — a guard that has only ever passed is not a guard
+- [x] T018 [US1] Run the full API suite and confirm the T004 baselines are **unchanged**: 16 surfaces, 1,488 assertions, route snapshots identical. **If a number moved, find out why — never update the number**
+- [x] T019 [US1] Prove FR-001 by hand: publish a post, `docker compose down && up`, read it back. No unit test substitutes for this
+- [x] T020 [US1] Assert the **20-person group cap is unchanged** in `apps/api/tests/unit/`, with a comment explaining that its technical reason disappeared here and the product decision has not been made
+- [x] T021 [US1] Run `pnpm lint` and `pnpm typecheck` across all packages
 
 **Checkpoint**: US1 is complete and shippable. Data persists locally, with nothing deployed.
 

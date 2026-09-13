@@ -1,11 +1,11 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { ScanCommand, type DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import type { Pool } from 'pg';
 import { AppModule } from '../src/app.module';
 import { FeedService } from '../src/modules/feed/feed.service';
 import { RankingService } from '../src/modules/ranking/ranking.service';
 import { PersonFollowService } from '../src/modules/people/person-follow.service';
-import { DOC_CLIENT } from '../src/persistence/dynamo-client';
+import { PG_POOL } from '../src/persistence/pg-pool';
 import { CONFIG, type AppConfig } from '../src/config/configuration';
 import { percentiles, report, timed, type Percentiles } from './harness';
 
@@ -42,44 +42,41 @@ const ITERATIONS = 25;
  * headroom being spent.
  */
 /** Groups seeded people by their follow count, so the curve can be reported. */
-async function bucketUsersByFollowCount(
-  doc: DynamoDBDocumentClient,
-  tableName: string,
-): Promise<Map<number, string[]>> {
+async function bucketUsersByFollowCount(pool: Pool): Promise<Map<number, string[]>> {
+  /**
+   * 010. WAS A PAGED `Scan` WITH A FILTER; is one statement now.
+   *
+   * The old engine had no way to ask "every item of this type" except to read
+   * the whole table and discard most of it, a page at a time. This is the same
+   * question asked once. It is a bench rather than a read path, so it was never
+   * a correctness problem — but it is a fair illustration of what the engine
+   * change buys where a question does not fit a key.
+   */
+  const { rows } = await pool.query<{ userid: string }>(
+    `select item->>'userId' as userid from items where item->>'type' = 'InterestFollow'`,
+  );
+
   const counts = new Map<string, number>();
-  let cursor: Record<string, unknown> | undefined;
-  do {
-    const page = await doc.send(
-      new ScanCommand({
-        TableName: tableName,
-        FilterExpression: '#t = :t',
-        ExpressionAttributeNames: { '#t': 'type' },
-        ExpressionAttributeValues: { ':t': 'InterestFollow' },
-        ProjectionExpression: 'userId',
-        ExclusiveStartKey: cursor,
-      }),
-    );
-    for (const item of page.Items ?? []) {
-      const userId = item['userId'] as string;
-      counts.set(userId, (counts.get(userId) ?? 0) + 1);
-    }
-    cursor = page.LastEvaluatedKey;
-  } while (cursor);
+  for (const row of rows) {
+    if (row.userid) counts.set(row.userid, (counts.get(row.userid) ?? 0) + 1);
+  }
 
   const buckets = new Map<number, string[]>();
   for (const [userId, count] of counts) {
-    buckets.set(count, [...(buckets.get(count) ?? []), userId]);
+    const bucket = buckets.get(count) ?? [];
+    bucket.push(userId);
+    buckets.set(count, bucket);
   }
-  return new Map([...buckets.entries()].sort((a, b) => a[0] - b[0]));
+  return buckets;
 }
 
 async function main(): Promise<void> {
   const app = await NestFactory.createApplicationContext(AppModule, { logger: false });
   const feed = app.get(FeedService);
-  const doc = app.get<DynamoDBDocumentClient>(DOC_CLIENT);
+  const pool = app.get<Pool>(PG_POOL);
   const config = app.get<AppConfig>(CONFIG);
 
-  const buckets = await bucketUsersByFollowCount(doc, config.dynamo.tableName);
+  const buckets = await bucketUsersByFollowCount(pool);
   if (buckets.size === 0) {
     console.log('\nNo seeded follows found. Run: pnpm --filter @sih/infra seed:load\n');
     await app.close();

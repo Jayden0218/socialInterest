@@ -22,6 +22,16 @@ const bool = (k: string, fallback: boolean): boolean => {
 export interface AppConfig {
   profile: RuntimeProfile;
   port: number;
+  /**
+   * 010. The datastore.
+   *
+   * `dynamo` is kept as a NAME for one release rather than renamed across
+   * twenty-nine repositories in the same change that replaces the engine
+   * underneath them — two large diffs at once is how a review stops being a
+   * review. `tableName` is still passed to every repository and is unused by
+   * the Postgres engine, which has one table; Phase 6 removes both.
+   */
+  datastore: { url: string };
   dynamo: { endpoint?: string; region: string; tableName: string };
   objectStore: {
     endpoint?: string;
@@ -81,6 +91,14 @@ export function loadConfig(): AppConfig {
   return {
     profile,
     port: Number(process.env['API_PORT'] ?? 3000),
+    datastore: {
+      /**
+       * No default, and no fallback to a local value either. A service that
+       * silently starts against a developer's machine when its real connection
+       * string is missing is a service that answers 200 with the wrong data.
+       */
+      url: process.env['DATABASE_URL'] ?? '',
+    },
     dynamo: {
       // In `aws` the SDK resolves the real endpoint; only local overrides it.
       endpoint: isLocal ? str('DYNAMO_ENDPOINT', 'http://127.0.0.1:8000') : undefined,

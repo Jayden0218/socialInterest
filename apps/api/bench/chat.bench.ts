@@ -109,18 +109,13 @@ async function main(): Promise<void> {
      * caught this bench too - seed through the API's OWN repository, the same
      * thing mint-device-token.ts and apps/e2e/support/people.ts do.
      */
-    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-    const { DynamoDBDocumentClient } = await import('@aws-sdk/lib-dynamodb');
+    const { Pool } = await import('pg');
     const { PersonRepository } = await import('../src/persistence/person.repository');
-    const doc = DynamoDBDocumentClient.from(
-      new DynamoDBClient({
-        endpoint: process.env['DYNAMO_ENDPOINT'] ?? 'http://127.0.0.1:8000',
-        region: process.env['DYNAMO_REGION'] ?? 'local',
-        credentials: { accessKeyId: 'local', secretAccessKey: 'local' },
-      }),
-      { marshallOptions: { removeUndefinedValues: true } },
-    );
-    const people = new PersonRepository(doc, process.env['TABLE_NAME'] ?? 'sih-main');
+    const pool = new Pool({
+      connectionString:
+        process.env['DATABASE_URL'] ?? 'postgres://sih:localsecret@127.0.0.1:5432/sih',
+    });
+    const people = new PersonRepository(pool, process.env['TABLE_NAME'] ?? 'items');
     const seed = async (userId: string, handle: string): Promise<string> => {
       await people.create({
         userId,

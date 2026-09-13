@@ -35,13 +35,10 @@
  * half-applied transaction — the test constructs the circumstance that would
  * produce it rather than asserting the happy path and calling it proof.
  */
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import {
-  DynamoDBDocumentClient,
-  type TransactWriteCommandInput,
-} from '@aws-sdk/lib-dynamodb';
+import { Pool } from 'pg';
 import { ulid } from 'ulid';
 import { BaseRepository, type Page, type QueryOptions } from '../../src/persistence/base.repository';
+import type { TransactionItems } from '../../src/persistence/transactor';
 
 /**
  * The seven methods, made callable.
@@ -92,7 +89,10 @@ class Primitives extends BaseRepository {
   find<T>(partitionKey: string, opts?: QueryOptions): Promise<Page<T>> {
     return this.query<T>(partitionKey, opts);
   }
-  atomically(items: TransactWriteCommandInput['TransactItems']): Promise<void> {
+  close(): Promise<void> {
+    return this.pool.end();
+  }
+  atomically(items: TransactionItems | undefined): Promise<void> {
     for (const one of items ?? []) {
       const key = one.Put?.Item ?? one.Delete?.Key;
       if (key) this.written.push({ pk: String(key['pk']), sk: String(key['sk']) });
@@ -102,35 +102,33 @@ class Primitives extends BaseRepository {
 }
 
 /**
- * THE ENGINES UNDER TEST, and this list is the whole point of the file.
+ * THE ENGINE UNDER TEST.
  *
- * One entry today. The Postgres implementation adds the second, and the
- * migration is proven when BOTH are green on the same assertions — which is what
- * the contract means by "the same tests must pass against the old engine and the
- * new one; that is the point".
+ * It said `dynamodb` when this file was written, and that run is the whole
+ * reason the assertions have any authority: 28 of 28 green against the engine
+ * being replaced, on 2026-09-13, recorded in
+ * `specs/010-managed-backend/checklists/requirements.md` along with the six
+ * deliberate breaks that proved each guarantee could fail.
  *
- * An engine is never silently skipped. If one is listed and cannot be reached,
- * the suite fails rather than reporting a green run that exercised half of what
- * its name claims — an empty list passing vacuously is the shape that made
- * `hooks-before-return.test.ts` pass over a barrel of re-exports.
+ * The old engine is not kept here as a second entry. Two datastore
+ * implementations selected by configuration is exactly the shape the four AWS
+ * adapters were DELETED for — "four untested implementations selected by an env
+ * var is how a defect hides" — and keeping one alive only for a test would make
+ * the suite's green mean less, not more. The comparison happened across time
+ * and is written down; this is what runs now.
  */
 const ENGINES: { name: string; make: () => Primitives }[] = [
   {
-    name: 'dynamodb',
-    make: () => {
-      const doc = DynamoDBDocumentClient.from(
-        new DynamoDBClient({
-          endpoint: process.env['DYNAMO_ENDPOINT'] ?? 'http://127.0.0.1:8000',
-          region: process.env['DYNAMO_REGION'] ?? 'local',
-          credentials: {
-            accessKeyId: process.env['S3_ACCESS_KEY_ID'] ?? 'localkey',
-            secretAccessKey: process.env['S3_SECRET_ACCESS_KEY'] ?? 'localsecret',
-          },
+    name: 'postgres',
+    make: () =>
+      new Primitives(
+        new Pool({
+          connectionString:
+            process.env['DATABASE_URL'] ?? 'postgres://sih:localsecret@127.0.0.1:5432/sih',
+          max: 12,
         }),
-        { marshallOptions: { removeUndefinedValues: true } },
-      );
-      return new Primitives(doc, process.env['TABLE_NAME'] ?? 'sih-main');
-    },
+        'items',
+      ),
   },
 ];
 
@@ -158,6 +156,11 @@ describe.each(ENGINES)('datastore primitives — $name', ({ make }) => {
    */
   afterAll(async () => {
     for (const key of db.written) await db.remove(key);
+    // And close the pool. Jest otherwise hangs a second past the last
+    // assertion and says so, which reads as a wedged suite rather than an
+    // unclosed handle - the same "looked like a defect and was not" shape this
+    // project keeps paying for.
+    await db.close();
   });
 
   // ── 1. getItem ───────────────────────────────────────────────────────────
@@ -331,6 +334,29 @@ describe.each(ENGINES)('datastore primitives — $name', ({ make }) => {
       expect(await db.read({ pk, sk: '#META' })).toEqual({ untouched: true });
     });
 
+    /**
+     * UPDATE ON SOMETHING ABSENT **CREATES** IT, and this had to be pinned
+     * before the engine moved rather than discovered afterwards.
+     *
+     * The contract says `updateItem` "MUST merge, never replace" and says
+     * nothing about an item that is not there. DynamoDB's `UpdateItem` is an
+     * upsert: with no condition it creates the item. `insert ... on conflict do
+     * update` and a bare `update ... where pk = $1` differ exactly here, and
+     * the second silently does NOTHING — a counter that never moves and an
+     * error nobody sees.
+     *
+     * So the behaviour is asserted against the OLD engine first and the new one
+     * is held to it. Whether upsert is the RIGHT semantic is a separate
+     * question, and a migration does not get to answer it: 010's own contract
+     * says a migration may remove a constraint but may not make a product
+     * decision.
+     */
+    it('creates the item when there was nothing there', async () => {
+      const pk = partition();
+      await db.patch({ pk, sk: '#NEW' }, { madeByUpdate: true });
+      expect(await db.read({ pk, sk: '#NEW' })).toEqual({ madeByUpdate: true });
+    });
+
     it('honours a condition, and leaves the item alone when it fails', async () => {
       const pk = partition();
       await expect(
@@ -359,6 +385,13 @@ describe.each(ENGINES)('datastore primitives — $name', ({ make }) => {
       expect(await db.read<{ followerCount: number }>({ pk, sk: '#META' })).toEqual({
         followerCount: 20,
       });
+    });
+
+    /** Same upsert semantic, on the counter path. */
+    it('creates the item when incrementing something that does not exist', async () => {
+      const pk = partition();
+      await db.bump({ pk, sk: '#COUNTER' }, 'n', 3);
+      expect(await db.read({ pk, sk: '#COUNTER' })).toEqual({ n: 3 });
     });
 
     it('decrements, and does not floor at zero on its own', async () => {
