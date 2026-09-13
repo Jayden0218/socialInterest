@@ -19,7 +19,7 @@ const run = (script: string, args: string[] = []): void => {
 };
 
 export function resetStore(): void {
-  run('db:create-local', ['--recreate']);
+  run('db:create-local-pg', ['--recreate']);
   run('s3:create-local');
   run('seed:catalogue');
 }

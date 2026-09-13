@@ -37,6 +37,12 @@ jobs:
           # API on a runner with no public route.
           echo "::add-mask::$SECRET"
           echo "LOCAL_JWT_SECRET=$SECRET" >> "$GITHUB_ENV"
+          # 010. The datastore. NOT masked and not a secret: it is the local
+          # container's connection string, written in docker-compose.yml where
+          # anybody reading this repository can already see it. `createPool` has
+          # no default for the reason LOCAL_JWT_SECRET has none, so every job
+          # that starts the application has to supply one.
+          echo "DATABASE_URL=postgres://sih:localsecret@127.0.0.1:5432/sih" >> "$GITHUB_ENV"
       - run: pnpm typecheck
       - run: pnpm lint
       # The same compose file the local profile uses, so CI runs the configuration
@@ -44,18 +50,22 @@ jobs:
       # images need one: DynamoDB Local needs `-sharedDb`, MinIO needs `server /data`
       # (without it the entrypoint prints usage and exits).
       - run: docker compose up -d
-      - name: Wait for DynamoDB Local and MinIO
+      - name: Wait for Postgres and MinIO
         run: |
+          # `pg_isready`, not a port probe. DynamoDB Local taught this project
+          # that a process answering its socket is not one that can serve a
+          # request: it answered 400 to a bare GET while unable to open its own
+          # database file, so the probe passed and every request hung.
           for _ in $(seq 1 60); do
             if curl -sf http://127.0.0.1:9000/minio/health/live \
-               && curl -so /dev/null http://127.0.0.1:8000; then
+               && docker compose exec -T postgres pg_isready -U sih -d sih; then
               exit 0
             fi
             sleep 2
           done
           docker compose logs
           exit 1
-      - run: pnpm --filter @sih/infra db:create-local
+      - run: pnpm --filter @sih/infra db:create-local-pg
       - run: pnpm --filter @sih/infra s3:create-local
       - run: pnpm --filter @sih/infra seed:catalogue
       - run: pnpm --filter @sih/api test

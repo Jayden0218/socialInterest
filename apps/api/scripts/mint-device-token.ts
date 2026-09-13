@@ -18,8 +18,7 @@
  *
  * Usage: npx tsx apps/api/scripts/mint-device-token.ts [handle]
  */
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import { Pool } from 'pg';
 import jwt from 'jsonwebtoken';
 import { randomUUID } from 'node:crypto';
 import { PersonRepository } from '../src/persistence/person.repository';
@@ -34,27 +33,22 @@ if (!secret) {
   process.exit(2);
 }
 const issuer = process.env['JWT_ISSUER'] ?? 'sih-local';
-const tableName = process.env['TABLE_NAME'] ?? 'sih-main';
-const endpoint = process.env['DYNAMO_ENDPOINT'] ?? 'http://127.0.0.1:8000';
-const region = process.env['DYNAMO_REGION'] ?? 'local';
+const tableName = process.env['TABLE_NAME'] ?? 'items';
+
+// 010. The datastore, and no default: a default connection string is a password
+// in the repository, which is 003/FR-007 in a second place.
+if (!process.env['DATABASE_URL']) {
+  process.stderr.write('DATABASE_URL is not set. Use the value the API was started with.\n');
+  process.exit(2);
+}
 
 async function main(): Promise<void> {
   const userId = `device-${randomUUID()}`;
   const handle = `${process.argv[2] ?? 'device'}${userId.slice(-8)}`.toLowerCase();
 
-  const doc = DynamoDBDocumentClient.from(
-    new DynamoDBClient({
-      endpoint,
-      region,
-      credentials: {
-        accessKeyId: process.env['S3_ACCESS_KEY_ID'] ?? 'localkey',
-        secretAccessKey: process.env['S3_SECRET_ACCESS_KEY'] ?? 'localsecret',
-      },
-    }),
-    { marshallOptions: { removeUndefinedValues: true } },
-  );
+  const pool = new Pool({ connectionString: process.env['DATABASE_URL'] ?? '' });
 
-  await new PersonRepository(doc, tableName).create({
+  await new PersonRepository(pool, tableName).create({
     userId,
     handle,
     displayName: 'Device pass',
@@ -66,6 +60,7 @@ async function main(): Promise<void> {
     createdAt: new Date().toISOString(),
   });
 
+  await pool.end();
   process.stderr.write(`provisioned ${userId} as @${handle}\n`);
   process.stdout.write(jwt.sign({ sub: userId, operator: false }, secret, { issuer, expiresIn: '2h' }));
 }

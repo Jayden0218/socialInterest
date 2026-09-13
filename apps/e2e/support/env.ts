@@ -3,6 +3,8 @@ export const e2eEnv = {
   tableName: process.env['TABLE_NAME'] ?? 'sih-main',
   bucket: process.env['MEDIA_BUCKET'] ?? 'sih-media',
   dynamoEndpoint: process.env['DYNAMO_ENDPOINT'] ?? 'http://127.0.0.1:8000',
+  /** 010. The datastore. Local default only; the hosted one sets DATABASE_URL. */
+  postgresUrl: process.env['DATABASE_URL'] ?? 'postgres://sih:localsecret@127.0.0.1:5432/sih',
   s3Endpoint: process.env['S3_ENDPOINT'] ?? 'http://127.0.0.1:9000',
   region: process.env['DYNAMO_REGION'] ?? 'local',
   creds: {

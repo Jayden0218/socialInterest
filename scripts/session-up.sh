@@ -59,17 +59,25 @@ trap 'fail "command failed: ${BASH_COMMAND}"' ERR
 STEP="1. backing services up and ready"
 say "==> $STEP"
 cd "$REPO_ROOT"
-docker compose up -d
+docker compose up -d postgres s3
 for _ in $(seq 1 60); do
-  # No -f on the DynamoDB probe: it answers a bare GET / with 400, and -f would
-  # turn that documented answer into a failure. That mistake cost a real run.
+  # `pg_isready`, not a port probe. DynamoDB Local taught this project that a
+  # process answering its socket is not a process that can serve a request: it
+  # answered 400 to a bare GET while unable to open its own database file, so
+  # the health probe passed and every real request hung forever.
   if curl -sf -o /dev/null http://127.0.0.1:9000/minio/health/live \
-     && curl -so /dev/null http://127.0.0.1:8000; then
+     && docker compose exec -T postgres pg_isready -U sih -d sih >/dev/null 2>&1; then
     ready=yes; break
   fi
   sleep 2
 done
 [ "${ready:-}" = yes ] || { docker compose logs >&2 || true; fail "backing services never became ready"; }
+
+# 010. The datastore is Postgres. The value is the local container's, written in
+# docker-compose.yml where anybody working here can read it — `createPool` has no
+# default for exactly the reason `LOCAL_JWT_SECRET` has none, so it is supplied
+# rather than defaulted.
+export DATABASE_URL="postgres://sih:localsecret@127.0.0.1:5432/sih"
 
 # ---------------------------------------------------------------------------
 # Step 2 — table, bucket, catalogue. BEFORE the application starts.
@@ -80,7 +88,7 @@ done
 # ---------------------------------------------------------------------------
 STEP="2. create the table and bucket, seed the catalogue"
 say "==> $STEP"
-pnpm --filter @sih/infra db:create-local
+pnpm --filter @sih/infra db:create-local-pg
 pnpm --filter @sih/infra s3:create-local
 pnpm --filter @sih/infra seed:catalogue
 

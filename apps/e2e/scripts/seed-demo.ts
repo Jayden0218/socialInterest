@@ -25,8 +25,7 @@
  */
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import { Pool } from 'pg';
 import jwt from 'jsonwebtoken';
 import { createAppData, MemoryTokenStore, type AppData } from '@sih/mobile/data';
 import { PersonRepository } from '../../api/src/persistence/person.repository';
@@ -56,15 +55,8 @@ const say = (line: string): void => void process.stderr.write(`${line}\n`);
 // a fresh session (the case this exists for) gets the clean name every time,
 // and a re-run against a local table that already holds one stays unambiguous.
 // ---------------------------------------------------------------------------
-const doc = DynamoDBDocumentClient.from(
-  new DynamoDBClient({
-    endpoint: e2eEnv.dynamoEndpoint,
-    region: e2eEnv.region,
-    credentials: e2eEnv.creds,
-  }),
-  { marshallOptions: { removeUndefinedValues: true } },
-);
-const people = new PersonRepository(doc, e2eEnv.tableName);
+const pool = new Pool({ connectionString: e2eEnv.postgresUrl });
+const people = new PersonRepository(pool, e2eEnv.tableName);
 
 /**
  * Structurally an `Actor` — `token` included — because `publishReadyImage`

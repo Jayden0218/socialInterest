@@ -1,5 +1,4 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import { Pool } from 'pg';
 import { PersonRepository } from '../../api/src/persistence/person.repository';
 import { e2eEnv } from './env';
 
@@ -13,16 +12,9 @@ import { e2eEnv } from './env';
  * data-model.md silently and the suite would be exercising a shape the product
  * does not use.
  */
-const doc = DynamoDBDocumentClient.from(
-  new DynamoDBClient({
-    endpoint: e2eEnv.dynamoEndpoint,
-    region: e2eEnv.region,
-    credentials: e2eEnv.creds,
-  }),
-  { marshallOptions: { removeUndefinedValues: true } },
-);
+const pool = new Pool({ connectionString: e2eEnv.postgresUrl });
 
-const people = new PersonRepository(doc, e2eEnv.tableName);
+const people = new PersonRepository(pool, e2eEnv.tableName);
 
 export async function createProfile(userId: string, handle: string): Promise<string> {
   const unique = `${handle}${userId.slice(-8).replace(/[^a-z0-9]/gi, '').toLowerCase()}`;

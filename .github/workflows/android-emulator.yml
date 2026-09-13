@@ -57,6 +57,12 @@ jobs:
           # API on a runner with no public route.
           echo "::add-mask::$SECRET"
           echo "LOCAL_JWT_SECRET=$SECRET" >> "$GITHUB_ENV"
+          # 010. The datastore. NOT masked and not a secret: it is the local
+          # container's connection string, written in docker-compose.yml where
+          # anybody reading this repository can already see it. `createPool` has
+          # no default for the reason LOCAL_JWT_SECRET has none, so every job
+          # that starts the application has to supply one.
+          echo "DATABASE_URL=postgres://sih:localsecret@127.0.0.1:5432/sih" >> "$GITHUB_ENV"
 
       # The emulator and the API run on ONE machine, so the app reaches the
       # server at 10.0.2.2 with no inbound route, no tunnel and no allowlist.
@@ -70,7 +76,7 @@ jobs:
             sleep 2
           done
           echo "backing services never became ready"; docker compose logs; exit 1
-      - run: pnpm --filter @sih/infra db:create-local
+      - run: pnpm --filter @sih/infra db:create-local-pg
       - run: pnpm --filter @sih/infra s3:create-local
       - run: pnpm --filter @sih/infra seed:catalogue
 
