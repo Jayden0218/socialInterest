@@ -143,6 +143,11 @@ here so it is not discovered as a broken build.
 
 ## R8 — The API runs on a free container host
 
+> **SUPERSEDED 2026-09-13, THE DAY AFTER IT WAS WRITTEN. See R8a below.** Koyeb was acquired by
+> Mistral AI and **closed its free Starter tier to new sign-ups**. The decision below was correct
+> when made and is unavailable now. It is left standing rather than edited, because the
+> replacement is worse in a specific way and the reader needs to see what was given up.
+
 **Decision**: Koyeb. Free tier, always-on, **no card**.
 
 **Rationale**: It satisfies FR-014 and FR-015 together — free without a card, and it does not
@@ -206,3 +211,51 @@ either — it is recreated, the same way `db:create-local --recreate` already re
 > first time a person who is not the owner puts a post into a deployment that stays up — which
 > is precisely what this feature exists to build. A later engine change does not get to reuse
 > this finding; it gets to re-check it.
+
+
+## R8a — Koyeb is gone; the API runs on Render, and it sleeps
+
+**Decision**: Render's free web service. Free, **no card**, 512 MB — and it **spins down after
+15 minutes of inactivity**, taking 30–60 seconds to come back.
+
+**What happened**: Mistral AI acquired Koyeb (announced February 2026) and the platform moved to
+enterprise and GPU inference. The free Starter tier is closed to new sign-ups; existing
+organisations keep theirs. The owner signed up on 2026-09-13 and the dashboard offered nothing to
+create — which is how this was found, rather than from a document.
+
+**This is the third time a claim in this project expired between being written and being used**,
+after the repository-visibility paragraph (three flips) and the MinIO image disappearing from
+Docker Hub. The pattern is not carelessness about facts; it is that *facts about other people's
+free tiers are not durable*, and a decision resting on one needs a recorded expiry rather than a
+recorded rationale. R8 was written on 2026-09-13 and was false by the time anyone acted on it.
+
+**Alternatives re-checked on the day, not remembered**:
+
+| Option | Why not |
+|---|---|
+| Koyeb | free tier closed to new sign-ups |
+| Hugging Face Spaces | Docker Spaces now require a paid plan; only static Spaces are free |
+| Fly.io | no free tier since 2024 |
+| Oracle Cloud Always Free | requires a payment method — the owner's binding constraint, stated three times |
+| Google Cloud Run, Railway, Northflank | payment method required |
+| Vercel / Cloudflare Workers | serverless, and **D-004-1 already records that chat's long-poll transport does not survive a managed edge**; ffmpeg does not fit either |
+| Staying on 009's session server | thirty minutes, which is the problem this feature exists to solve |
+
+**What is given up, stated rather than glossed**:
+
+- **SC-008 is now MARGINAL, not met.** The criterion is "after 24 hours of no use, the first
+  request is served in under 60 seconds". Render's documented spin-up is 30–60 seconds, so the
+  criterion is satisfied *at its boundary* by a platform's own figure. That is not a measurement.
+  It must be measured on the deployed service and reported as a number, and if it comes in over
+  60 seconds the honest outcome is a failed criterion, not a rounded one.
+- **0.1 vCPU is a real risk to SC-007** ("publishing a post carrying a photograph completes in
+  under 30 seconds"). Koyeb's 512 MB was a memory worry; Render's is a *throughput* worry, and
+  ffmpeg is the thing that will feel it. Unmeasured, and Phase D measures it.
+- **Every first open of the app after a quiet period costs the person up to a minute.** That is a
+  product cost, and it is the owner's to accept — it is why R8 rejected Render in the first place.
+
+**Why it is still the right call**: the constraint that rules everything else out is *no payment
+method*, and it is the owner's standing instruction rather than a preference. Within that
+constraint Render is the only remaining platform that runs a real always-resident process — which
+matters because the alternative shapes (serverless, edge) break chat's transport and media
+processing, and would turn an engine migration into an architecture rewrite.

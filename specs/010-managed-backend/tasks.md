@@ -116,11 +116,11 @@ its media references and its counts are unchanged.
 - [ ] T026 [US3] Change `apps/api/src/adapters/local/ffmpeg-media-processor.ts` to execute the `ffmpeg` binary directly instead of `docker run` — no managed host provides a container runtime, and this is the only code change outside `persistence/` the move strictly requires
 - [ ] T027 [US3] Add a `Dockerfile` for the API that provides the `ffmpeg` binary — built in CI or on the host, because `apt-get install ffmpeg` is in the dead-ends table as blocked in the development sandbox
 - [ ] T028 [US3] Verify a **short** video transcodes with no Docker socket available — short because `-ss 00:00:01` seeks past the end of a sub-second clip and leaves the post `failed` forever, which is the defect the `thumbnail` filter exists for
-- [ ] T029 [US3] Deploy the API to the chosen host and record the address in `docs/verification/hosted-runbook.md`
+- [ ] T029 [US3] Deploy the API to **Render** (R8a — Koyeb's free tier closed to new sign-ups on acquisition) and record the address in `docs/verification/hosted-runbook.md`
 - [ ] T030 [US3] Confirm the address is encrypted and reachable from a phone on an unrelated network (FR-011, FR-012)
 - [ ] T031 [US3] Measure SC-007 from the phone: publishing a post carrying a photograph completes in **under 30 seconds**
-- [ ] T032 [US3] Measure SC-008: after 24 hours of no use, the first request is served in **under 60 seconds**
-- [ ] T033 [US3] **Measure whether 512 MB transcodes video.** Complexity Tracking records this as unmeasured. Record the answer either way — a documented limit is an acceptable outcome; a silent failure is not
+- [ ] T032 [US3] Measure SC-008: after 24 hours of no use, the first request is served in **under 60 seconds**. **R8a makes this marginal rather than comfortable** — the host spins down after 15 idle minutes and documents a 30–60s spin-up, so this is now a real measurement with a real chance of failing. Report the number, and a failure as a failure
+- [ ] T033 [US3] **Measure whether 512 MB AND 0.1 vCPU transcode video** — R8a changed the worry from memory to throughput, and SC-007's 30-second publish is what feels it. Complexity Tracking records this as unmeasured. Record the answer either way — a documented limit is an acceptable outcome; a silent failure is not
 
 **Checkpoint**: All three stories functional. The product has an address that does not change.
 
