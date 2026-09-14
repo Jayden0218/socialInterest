@@ -225,10 +225,48 @@ export function Shell({
   const [tab, setTab] = useState<Tab>('feed');
   const [stack, setStack] = useState<Route[]>(initialStack);
   const [signedIn, setSignedIn] = useState(false);
+  /**
+   * 011/FR-013. Why the app is showing sign-in, when it has a reason worth
+   * saying. Empty on an ordinary signed-out launch.
+   */
+  const [sessionNotice, setSessionNotice] = useState<string | null>(null);
 
   useEffect(() => {
     let live = true;
-    void data.session.isSignedIn().then((yes) => live && setSignedIn(yes));
+    /**
+     * 011/FR-013. ASKS WHETHER THE CREDENTIAL WORKS, not whether one is stored.
+     *
+     * This used to call `isSignedIn`, which answers "is there a token in the
+     * store". A credential that has expired, been revoked by a password reset,
+     * or belongs to a backend the app no longer points at passes that check —
+     * and then every screen 401s and the person sees an empty product with no
+     * explanation. "The feed is empty" and "you are signed out" look identical,
+     * and only one of them is something they can act on.
+     *
+     * `resume` clears a rejected credential before returning, so the next launch
+     * is an ordinary signed-out one rather than a repeat of this.
+     */
+    void data.session
+      .resume()
+      .then((result) => {
+        if (!live) return;
+        setSignedIn(result !== null && result !== 'rejected');
+        if (result === 'rejected') {
+          setSessionNotice('You were signed out. Sign in again to continue.');
+        }
+      })
+      .catch(() => {
+        /**
+         * A NETWORK FAILURE IS NOT A REJECTION, and `resume` rethrows it rather
+         * than discarding the credential. The app opens signed-out for this
+         * launch and says nothing about the account, because it does not know
+         * anything about the account — the backend did not answer.
+         *
+         * Signing somebody out for being in a tunnel, and throwing away their
+         * credential to do it, is the failure mode this branch exists to avoid.
+         */
+        if (live) setSignedIn(false);
+      });
     return () => {
       live = false;
     };
@@ -266,6 +304,11 @@ export function Shell({
         case 'sign-in':
           return (
             <SignInContainer
+              // 011/FR-013. Says WHY, when there is a why. Cleared as soon as it
+              // is shown: a notice that outlives its cause reappears on a later
+              // visit and describes something that is no longer true.
+              {...(sessionNotice ? { notice: sessionNotice } : {})}
+              onNoticeShown={() => setSessionNotice(null)}
               {...(backend
                 ? {
                     address: backend.address,

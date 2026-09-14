@@ -191,6 +191,24 @@ export function EditProfileContainer({
     }
   }, [data, draft, onDone]);
 
+  /**
+   * 011/FR-012. SIGNS OUT, and the app is left with no credential.
+   *
+   * `session.signOut` clears the persistent store, so the next LAUNCH shows the
+   * sign-in screen — that is the half FR-012 names, and it works because the
+   * store 009 added is the same one the app reads at startup.
+   *
+   * `onDone()` afterwards, so this launch leaves the settings screen too. Not
+   * calling it would leave somebody looking at their own profile editor while
+   * holding no credential: every field still filled in from the state this
+   * screen already had, and every save failing 401. That is the empty-or-partial
+   * product FR-013 forbids, arrived at from the other direction.
+   */
+  const signOut = useCallback(async () => {
+    await data.session.signOut();
+    onDone();
+  }, [data, onDone]);
+
   const deleteAccount = useCallback(async () => {
     setSaving(true);
     try {
@@ -279,6 +297,7 @@ export function EditProfileContainer({
       onChange={setDraft}
       onSave={() => void save()}
       onClearFeedSignals={() => void clearFeedSignals()}
+      onSignOut={() => void signOut()}
       onDeleteAccount={() => void deleteAccount()}
       followRequests={followRequests.map((p) => ({
         userId: p.userId,

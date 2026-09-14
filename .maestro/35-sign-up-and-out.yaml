@@ -1,0 +1,120 @@
+# 011/US3, T040. CREATE AN ACCOUNT, SIGN OUT, SIGN BACK IN.
+#
+# The journey this whole feature exists for, and the one no flow could perform
+# before it: until 011 the only way into the app was pasting a token a developer
+# had minted, which is not something a person does.
+#
+# ITS OWN ACCOUNT, CREATED BY THIS FLOW. Every other flow signs in as the
+# device-pass account the runner provisions; this one must not, because it signs
+# OUT and a flow that signs the shared account out would take the rest of the
+# suite with it. Flows share one server (005/J-20) — `clearState` clears the
+# device, not the server.
+#
+# THE ADDRESS IS A NONCE, and that is not decoration. The local table is shared
+# across runs, so a fixed address would be taken by the first run and every run
+# afterwards would fail on a refusal that is the product working correctly. This
+# project has recorded three "regressions" that were a grown table.
+appId: app.socialinterest
+---
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: "app-root"
+- tapOn:
+    id: "open-sign-in"
+- assertVisible:
+    id: "sign-in-screen"
+
+# US1. Across to the sign-up screen, which is the control FR-028 puts on the
+# sign-in screen so somebody with no account is not stuck at a form.
+- tapOn:
+    id: "sign-in-create-account"
+- assertVisible:
+    id: "sign-up-screen"
+
+# FR-005: the floor is stated BEFORE anything is submitted, not only in a
+# refusal. Asserted here because "shown before submission" is the half that gets
+# dropped — the refusal path is the one everybody remembers to build.
+- assertVisible:
+    id: "sign-up-password-hint"
+
+- tapOn:
+    id: "sign-up-email"
+- inputText: ${SIGNUP_EMAIL}
+- tapOn:
+    id: "sign-up-password"
+- inputText: ${SIGNUP_PASSWORD}
+- tapOn:
+    id: "sign-up-handle"
+- inputText: ${SIGNUP_HANDLE}
+- tapOn:
+    id: "sign-up-display-name"
+- inputText: "Maestro Newcomer"
+- tapOn:
+    id: "sign-up-submit"
+
+# The sign-up screen closing is the assertion: the data layer calls GET /v1/me
+# with the new credential before returning, so this only happens if the API both
+# issued one and accepted it.
+- assertNotVisible:
+    id: "sign-up-screen"
+
+# 007/FR-014. A BRAND NEW ACCOUNT LANDS ON THE COLD START, which is a PUSHED
+# screen with no tab bar — 005/J-21, and the thing that broke fifteen browser
+# journeys in one commit. Dismissed rather than picked from: what the cold start
+# DOES with picks is 22-cold-start.yaml's job.
+- runFlow:
+    when:
+      visible:
+        id: "pick-skip"
+    commands:
+      - tapOn:
+          id: "pick-skip"
+
+# Signed in: the sign-in affordance is gone.
+- assertNotVisible:
+    id: "open-sign-in"
+
+# US3 / FR-012. SIGNING OUT, which did not exist as a deliberate act until 011.
+# A session that cannot be ended is a problem on a shared or a lost phone, and
+# the only previous remedy was deleting the account.
+- tapOn:
+    id: "tab-profile"
+- tapOn:
+    id: "open-edit-profile"
+- assertVisible:
+    id: "sign-out"
+- tapOn:
+    id: "sign-out"
+
+# The credential is gone, so the app is signed out and offers the way back in.
+- assertVisible:
+    id: "open-sign-in"
+
+# US2. Back in with the SAME email address and password — which is the whole
+# point of an account, and the half a product without sign-in does not have.
+- tapOn:
+    id: "open-sign-in"
+- tapOn:
+    id: "sign-in-email"
+- inputText: ${SIGNUP_EMAIL}
+- tapOn:
+    id: "sign-in-password"
+- inputText: ${SIGNUP_PASSWORD}
+- tapOn:
+    id: "sign-in-submit"
+- assertNotVisible:
+    id: "sign-in-screen"
+
+# The cold start is asked once per ACCOUNT (007/FR-014), and this account has
+# answered. `optional` anyway: the flow must not depend on which branch it takes.
+- runFlow:
+    when:
+      visible:
+        id: "pick-skip"
+    commands:
+      - tapOn:
+          id: "pick-skip"
+
+- assertNotVisible:
+    id: "open-sign-in"

@@ -356,6 +356,7 @@ describe('EditProfileScreen — FR-049 partial preference patch', () => {
         onChange={onChange}
         onSave={() => undefined}
         onDeleteAccount={() => undefined}
+        onSignOut={() => undefined}
       />,
     );
     fireEvent(screen.getByTestId('pref-reaction'), 'valueChange', false);
@@ -391,6 +392,7 @@ describe('EditProfileScreen — FR-049 partial preference patch', () => {
         onChange={() => undefined}
         onSave={() => undefined}
         onDeleteAccount={() => undefined}
+        onSignOut={() => undefined}
       />,
     );
     const missing = Object.keys(prefs).filter((key) => screen.queryByTestId(`pref-${key}`) === null);

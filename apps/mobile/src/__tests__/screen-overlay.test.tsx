@@ -49,12 +49,24 @@ jest.mock('../overlay/screens', () => ({
 
 /**
  * The overlay screen is the FORK's component and touches no data. Shell itself
- * only reads `session.isSignedIn`, so this is deliberately the smallest stub
+ * only reads the session at launch, so this is deliberately the smallest stub
  * that lets it mount rather than a copy of the full fake data layer - which
  * would be a second thing to keep in step with the real one.
+ *
+ * 011 CHANGED WHICH METHOD THAT IS, and this stub went red — correctly.
+ * `Shell` now calls `resume()`, which asks whether the credential WORKS rather
+ * than whether one is stored (FR-013). A minimal stub is minimal against a
+ * particular version of the thing it stands in for, and that is the trade this
+ * comment already accepted: it stays small, and it pays for it exactly when the
+ * real dependency moves. Better than the alternative, where six suites carry a
+ * copy of the full data layer and the drift is silent instead of loud.
+ *
+ * `isSignedIn` is kept because it is still on the interface and still used
+ * elsewhere; removing it here would make this stub a claim about the API that
+ * is not true.
  */
 const minimalData = {
-  session: { isSignedIn: async () => false },
+  session: { isSignedIn: async () => false, resume: async () => null },
 } as unknown as AppData;
 
 const renderShell = (initialStack?: Route[]) =>

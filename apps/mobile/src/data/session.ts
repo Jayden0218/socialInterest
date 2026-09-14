@@ -179,4 +179,45 @@ export class SessionData {
   async isSignedIn(): Promise<boolean> {
     return (await this.tokens.get()) !== null;
   }
+
+  /**
+   * 011/FR-013. WHAT THE APP SHOULD ASK AT LAUNCH, AND DID NOT.
+   *
+   * `isSignedIn` answers "is there a credential in the store", which is not the
+   * same question as "may this person act". A credential that has expired, been
+   * revoked by a password reset (FR-021), or was issued by a backend the app no
+   * longer points at satisfies `isSignedIn` perfectly — and then every screen
+   * 401s and renders empty.
+   *
+   * That is the defect this product has now shipped in six places under a
+   * different name: a surface rendering nothing instead of saying what is wrong.
+   * Here it is worse than usual, because "the feed is empty" and "you are
+   * signed out" look identical and only one of them is something a person can
+   * act on.
+   *
+   * Returns:
+   *   - the profile, when the credential works
+   *   - `null` when there was no credential — an ordinary signed-out launch
+   *   - `'rejected'` when there WAS one and the server refused it; the
+   *     credential is cleared first, so the next launch is an ordinary
+   *     signed-out one rather than a repeat of this
+   *
+   * A network failure is NOT a rejection and is deliberately rethrown. Treating
+   * an unreachable backend as "your credential is bad" would sign somebody out
+   * of a working account because their train went into a tunnel, and it would
+   * discard the credential to do it.
+   */
+  async resume(): Promise<MyProfile | null | 'rejected'> {
+    if ((await this.tokens.get()) === null) return null;
+    try {
+      return await this.me();
+    } catch (err) {
+      const status = (err as { status?: number }).status;
+      if (status === 401 || status === 403 || status === 404) {
+        await this.tokens.set(null);
+        return 'rejected';
+      }
+      throw err;
+    }
+  }
 }

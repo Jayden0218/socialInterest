@@ -215,6 +215,22 @@ rm -f "$MINT_ERR"
 # A real password for a real account, in a job log that is world-readable on a
 # public repository. Masked for the same reason the token is.
 echo "::add-mask::$PASSWORD"
+
+# 011/T040. `35-sign-up-and-out.yaml` CREATES ITS OWN ACCOUNT through the UI.
+#
+# It must not use the device-pass account: it signs OUT, and flows share one
+# server (005/J-20), so signing the shared account out would take every flow
+# after it. Nothing is provisioned here — the flow's own sign-up creates it,
+# which is the point of the journey.
+#
+# A NONCE, because the local table is shared across runs. A fixed address would
+# be taken by the first run and refused on every run after it, and that refusal
+# is the product working correctly — the most expensive kind of red.
+SIGNUP_NONCE="$(date +%s)$RANDOM"
+SIGNUP_HANDLE="newcomer${SIGNUP_NONCE}"
+SIGNUP_EMAIL="${SIGNUP_HANDLE}@device.local"
+SIGNUP_PASSWORD="maestro-${SIGNUP_NONCE}-pw"
+echo "::add-mask::$SIGNUP_PASSWORD"
 # A real two-hour credential, in a job log that is now world-readable. Nothing
 # here prints it deliberately, but the failure paths dump a UI hierarchy and
 # Maestro's own log, and "nothing prints it deliberately" is not a guarantee.
@@ -443,6 +459,8 @@ MAESTRO_ENV=(
   -e TOKEN="$TOKEN" -e PRESENT="$PRESENT" -e INTEREST="$INTEREST"
   -e AUTHOR="$AUTHOR" -e COLD_TOKEN="$COLD_TOKEN"
   -e EMAIL="$EMAIL" -e PASSWORD="$PASSWORD"
+  -e SIGNUP_EMAIL="$SIGNUP_EMAIL" -e SIGNUP_PASSWORD="$SIGNUP_PASSWORD"
+  -e SIGNUP_HANDLE="$SIGNUP_HANDLE"
   -e COLD_EMAIL="$COLD_EMAIL" -e COLD_PASSWORD="$COLD_PASSWORD"
   -e REQUESTER="$REQUESTER" -e FRIEND="$FRIEND" -e FRIEND_NAME="$FRIEND_NAME"
   -e FRIEND_PREFIX="$FRIEND_PREFIX"

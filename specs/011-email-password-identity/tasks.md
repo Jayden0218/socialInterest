@@ -141,10 +141,10 @@ the same posts.
 
 **Goal**: yesterday's sign-in still holds; signing out is a deliberate act.
 
-- [ ] T037 [US3] Confirm the credential survives a relaunch, using the device key-value store 009 added — and confirm it by **relaunching**, not by asserting the store was called
-- [ ] T038 [US3] Add a sign-out control that removes the stored credential, and confirm the next launch asks for sign-in (FR-012)
-- [ ] T039 [US3] On a rejected credential, return to sign-in **with an explanation** rather than rendering an empty feed (FR-013). This is the step that gets skipped and the one people hit
-- [ ] T040 [US3] Add a Maestro flow covering sign-up, sign-out and sign-in, and run `node scripts/verify-maestro-ids.mjs` — a selector that matches nothing fails as a thirty-second timeout twenty minutes into a device run. It asserts the **path is populated at every step** (SC-001, SC-003); SC-002's sixty seconds needs a person, because a stopwatch on a runner times the machine, and it is recorded **not run** rather than claimed
+- [X] T037 [US3] Confirm the credential survives a relaunch, using the device key-value store 009 added — and confirm it by **relaunching**, not by asserting the store was called
+- [X] T038 [US3] Add a sign-out control that removes the stored credential, and confirm the next launch asks for sign-in (FR-012)
+- [X] T039 [US3] On a rejected credential, return to sign-in **with an explanation** rather than rendering an empty feed (FR-013). This is the step that gets skipped and the one people hit
+- [X] T040 [US3] Add a Maestro flow covering sign-up, sign-out and sign-in, and run `node scripts/verify-maestro-ids.mjs` — a selector that matches nothing fails as a thirty-second timeout twenty minutes into a device run. It asserts the **path is populated at every step** (SC-001, SC-003); SC-002's sixty seconds needs a person, because a stopwatch on a runner times the machine, and it is recorded **not run** rather than claimed
 
 **Checkpoint**: the session behaves like a session.
 

@@ -1,7 +1,23 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import type { AppData } from '../data';
 import { DataProvider } from '../data-provider';
+import { fakeData } from './fixtures/app-data';
 import { Shell } from '../App';
+
+/**
+ * 011/FR-013. WHAT "SIGNED IN" MEANS TO THE SHELL NOW.
+ *
+ * `Shell` used to ask `session.isSignedIn()` — "is there a token in the store".
+ * It asks `resume()` instead, which asks whether the credential WORKS, because
+ * a stale one passed the old check and then every screen 401'd into an empty
+ * product with no explanation.
+ *
+ * So a test that wants a signed-in shell has to say so with a credential that
+ * resolves, not merely with a token that exists. The shell only uses the result
+ * to decide — non-null and not `'rejected'` — so any resolved person will do;
+ * the profile each test returns from `me` is what its own assertions read.
+ */
+const signedInAs = { handle: 'me', displayName: 'Me' };
 
 /**
  * The wiring, not the screens.
@@ -19,112 +35,6 @@ import { Shell } from '../App';
  */
 
 /** A data layer that answers, so containers reach a rendered state. */
-function fakeData(over: Partial<Record<string, unknown>> = {}): AppData {
-  /**
-   * THE SERVER'S SHAPE, not the one the data layer used to declare.
-   *
-   * These stubs said `{ items, nextCursor }` — matching a type that was wrong —
-   * so the app's paging bug (007) was invisible here: the stubs and the code
-   * agreed with each other and neither agreed with the API.
-   */
-  const page = { items: [], page: { nextCursor: null, emptyStateHint: null } };
-  const me = {
-    handle: 'me',
-    displayName: 'Me',
-    bio: null,
-    interestFollowCount: 0,
-    followerCount: 0,
-    followingCount: 0,
-    topInterests: [],
-    notificationPrefs: { reaction: true, comment: true, follow: true },
-  };
-  return {
-    client: { call: async () => ({}) },
-    session: {
-      isSignedIn: async () => false,
-      // 011 split the one `signIn` into the product path and the developer one.
-      // Both are stubbed: a stub that agrees with an older shape is the
-      // `ApiPage<T>` failure in miniature — it agrees with the test and not with
-      // the server, and 007 shipped five features of green tests that way.
-      signInWithPassword: async () => me,
-      signUp: async () => me,
-      signInWithToken: async () => me,
-      me: async () => me,
-      signOut: async () => undefined,
-      updateProfile: async () => me,
-      ...(over.session as object),
-    },
-    interests: {
-      search: async () => page,
-      suggested: async () => page,
-      listTop: async () => page,
-      listChildren: async () => page,
-      get: async () => ({
-        interestId: 'i1',
-        name: 'Bouldering',
-        slug: 'bouldering',
-        level: 'top',
-        postCount: 0,
-        followerCount: 0,
-        state: 'active',
-      }),
-      posts: async () => page,
-      follow: async () => undefined,
-      unfollow: async () => undefined,
-    },
-    posts: { get: async () => null, publish: async () => ({ postId: 'p1' }), byHandle: async () => page },
-    /**
-     * 007. `seedInterests` non-empty by default, so signing in does NOT land on
-     * the cold-start screen in tests about something else. The cold start is
-     * exercised deliberately, where it is the subject.
-     */
-    signals: {
-      record: async () => ({ accepted: 0, rejected: 0 }),
-      disclosure: async () => ({ interests: [], seedInterests: ['i1'], collected: [] }),
-      clear: async () => ({ cleared: true }),
-      chooseSeedInterests: async () => ({ seedInterests: [] }),
-      ...(over.signals as object),
-    },
-    people: {
-      get: async () => ({ userId: 'u2', handle: 'someone', displayName: 'Someone', bio: null,
-        followerCount: 3, followingCount: 1, topInterests: [], viewerIsFollowing: false }),
-      posts: async () => page,
-      follow: async () => undefined,
-      unfollow: async () => undefined,
-      // 004/FR-034. Discover queries people alongside interests; a stub without
-      // it makes the whole search screen throw, which is what happened.
-      search: async () => ({ items: [] }),
-    },
-    feed: { home: async () => page },
-    /**
-     * 008/US15. Post detail reads the collection list on mount so it can offer
-     * somewhere to file the post — a shelf you can create and never fill would
-     * be this feature's own version of the defect 008 exists to end.
-     *
-     * A stub without it is the STALE-STUB failure this repository has now seen
-     * four times: `surface-routing`, `following-feed`, `avatar-container`, here.
-     * It is always the same shape — a stub agreeing with an older version of the
-     * thing it stands in for — and it is always the test that finds it, which is
-     * the argument for the stubs being complete rather than minimal.
-     */
-    saved: {
-      list: async () => page,
-      save: async () => undefined,
-      unsave: async () => undefined,
-      collections: async () => ({ items: [], page: { nextCursor: null } }),
-      collectionPosts: async () => page,
-      createCollection: async () => ({ collectionId: 'c1', name: 'x', itemCount: 0, createdAt: 'z' }),
-      addToCollection: async () => undefined,
-      removeFromCollection: async () => undefined,
-      deleteCollection: async () => undefined,
-      ...(over.saved as object),
-    },
-    engagement: { comments: async () => page, comment: async () => undefined },
-    safety: { report: async () => undefined, block: async () => undefined },
-    notifications: { list: async () => page },
-    ...over,
-  } as unknown as AppData;
-}
 
 const renderShell = (data: AppData = fakeData()) =>
   render(
@@ -211,7 +121,7 @@ describe('the shell reaches every screen', () => {
   });
 
   it('reaches compose, comments and safety once signed in', async () => {
-    const data = fakeData({ session: { isSignedIn: async () => true, me: async () => ({
+    const data = fakeData({ session: { isSignedIn: async () => true, resume: async () => signedInAs, me: async () => ({
       handle: 'me', displayName: 'Me', bio: null, interestFollowCount: 0,
       followerCount: 0, followingCount: 0, topInterests: [],
       notificationPrefs: { reaction: true, comment: true, follow: true },
@@ -240,7 +150,7 @@ describe('the shell reaches every screen', () => {
   });
 
   it('explains a refused photo permission rather than looking broken (FR-012)', async () => {
-    const data = fakeData({ session: { isSignedIn: async () => true, me: async () => ({
+    const data = fakeData({ session: { isSignedIn: async () => true, resume: async () => signedInAs, me: async () => ({
       handle: 'me', displayName: 'Me', bio: null, interestFollowCount: 0,
       followerCount: 0, followingCount: 0, topInterests: [],
       notificationPrefs: { reaction: true, comment: true, follow: true },
@@ -280,7 +190,7 @@ describe('the shell reaches every screen', () => {
     let followed: string | null = null;
     let viewerIsFollowing = false;
     const data = fakeData({
-      session: { isSignedIn: async () => true, me: async () => ({
+      session: { isSignedIn: async () => true, resume: async () => signedInAs, me: async () => ({
         userId: 'u1', handle: 'me', displayName: 'Me', bio: null, interestFollowCount: 0,
         followerCount: 0, followingCount: 0, topInterests: [],
         notificationPrefs: { reaction: true, comment: true, follow: true },
@@ -407,7 +317,7 @@ describe('the shell reaches every screen', () => {
   it('loads your own posts on your own profile, by real handle (not "me")', async () => {
     const asked: string[] = [];
     const data = fakeData({
-      session: { isSignedIn: async () => true, me: async () => ({
+      session: { isSignedIn: async () => true, resume: async () => signedInAs, me: async () => ({
         userId: 'u1', handle: 'realhandle', displayName: 'Me', bio: null,
         interestFollowCount: 0, followerCount: 0, followingCount: 0, topInterests: [],
         notificationPrefs: { reaction: true, comment: true, follow: true },

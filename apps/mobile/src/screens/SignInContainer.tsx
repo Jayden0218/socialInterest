@@ -96,8 +96,16 @@ export function SignInContainer({
   address,
   onAddressChange,
   addressFixed,
+  notice,
+  onNoticeShown,
 }: {
   onSignedIn: () => void;
+  /**
+   * 011/FR-013. Why the app is asking, when it has a reason — a credential the
+   * server rejected, rather than an ordinary signed-out launch.
+   */
+  notice?: string;
+  onNoticeShown?: () => void;
   address?: string;
   onAddressChange?: (next: string) => Promise<void> | void;
   /** 010. True when the build already knows its backend — see `config.ts`. */
@@ -120,6 +128,27 @@ export function SignInContainer({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  /**
+   * The notice becomes the screen's error banner, once.
+   *
+   * Consumed rather than rendered from the prop each time: a person who then
+   * mistypes their password should see THAT, not still be told about the
+   * session that ended before they arrived. `onNoticeShown` lets the owner
+   * forget it too, so leaving and returning does not resurrect it.
+   */
+  useEffect(() => {
+    if (!notice) return;
+    setError(notice);
+    onNoticeShown?.();
+    // Deliberately keyed on the notice alone. Including `onNoticeShown` would
+    // re-run this whenever the parent re-rendered with a fresh closure, which
+    // would put the message back after the person had typed past it.
+    //
+    // No eslint-disable here: this project does not enable `react-hooks`'s
+    // exhaustive-deps rule, so disabling it by name is an error in itself — the
+    // rule does not exist to be disabled. The reasoning above is the control.
+  }, [notice]);
 
   // The stored address arrives asynchronously, so the draft follows it until the
   // person edits it. Seeding state once from a prop that is still loading is how

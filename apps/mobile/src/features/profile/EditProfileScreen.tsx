@@ -88,6 +88,7 @@ export function EditProfileScreen({
   onSave,
   onClearFeedSignals,
   onDeleteAccount,
+  onSignOut,
   avatarUrl,
   onChangeAvatar,
   onRemoveAvatar,
@@ -111,6 +112,8 @@ export function EditProfileScreen({
   onSave: () => void;
   onClearFeedSignals?: () => void;
   onDeleteAccount: () => void;
+  /** 011/FR-012. Removes the stored credential; the next launch asks to sign in. */
+  onSignOut: () => void;
   /**
    * 008/FR-043 — THE OTHER HALF OF THE TOGGLE.
    *
@@ -386,6 +389,26 @@ export function EditProfileScreen({
           />
         </View>
       ) : null}
+
+      {/*
+        011/FR-012. SIGNING OUT, and until 011 THERE WAS NO WAY TO DO IT.
+
+        The app has persisted a credential across relaunches since 009 and has
+        never offered a way to stop. On a shared or a lost phone that is not a
+        missing convenience — the session simply cannot be ended, and the only
+        remedy was deleting the account, which is the control immediately below
+        this one and is irreversible.
+
+        ABOVE the delete-account block and visually separate from it, because
+        the two are next to each other and one of them cannot be undone. A
+        `secondary` button rather than `danger`: signing out is ordinary, and
+        making it look dangerous next to a control that really is teaches people
+        to read past the red.
+      */}
+      <View style={{ paddingHorizontal: space.lg, paddingTop: space.lg, gap: space.sm }}>
+        <Text style={{ ...textStyle.caption, color: palette.text.muted }}>Account</Text>
+        <Button testID="sign-out" label="Sign out" variant="secondary" onPress={onSignOut} />
+      </View>
 
       <View style={{ paddingHorizontal: space.lg, paddingTop: space.lg, gap: space.sm }}>
         <Banner tone="danger" testID="delete-account-warning">{DELETE_ACCOUNT_CONFIRMATION}</Banner>
