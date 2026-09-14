@@ -150,6 +150,11 @@ arrives, set a new password, and sign in with it.
   and `jo@example.com` are one address for the purpose of uniqueness and sign-in.
 - **A person who signs up, then signs up again with the same address on another device.**
   Refused as already in use; this is not a second account.
+- **A handle already held by an account that predates this feature.** Uniqueness is
+  enforced by a claim record, and accounts predating this feature hold none — so the first
+  human ever to choose a handle could take one that is already in use, which is the exact
+  defect the constraint exists to prevent, reintroduced by the constraint's own rollout.
+  FR-003 requires the existing set to be covered.
 - **An account created by the device-token script**, which has no email and no password.
   It MUST keep working — the emulator journeys and the laptop runbook both depend on it —
   and it MUST NOT be reachable through sign-in, which has nothing to check.
@@ -171,7 +176,12 @@ arrives, set a new password, and sign in with it.
   address, a password they choose, a handle and a display name.
 - **FR-002**: An email address MUST identify at most one account. Two simultaneous
   attempts to claim one address MUST NOT both succeed.
-- **FR-003**: Handles MUST remain unique, under the same guarantee they have today.
+- **FR-003**: Handles MUST be unique. This **establishes** a guarantee rather than
+  preserving one: research R1 proved by running it that nothing enforces handle uniqueness
+  today, and that a duplicate *shadows* the original across thirteen call sites in six
+  services. The constraint MUST cover handles that **already exist**, not only handles
+  chosen from here on — a constraint that binds one half of the set does not make the set
+  unique.
 - **FR-004**: Email addresses MUST be compared for uniqueness and sign-in after trimming
   surrounding whitespace and folding case.
 - **FR-005**: A password MUST meet a stated minimum length, and the requirement MUST be
@@ -222,15 +232,23 @@ arrives, set a new password, and sign in with it.
 
 #### Not changing what a credential may see
 
-- **FR-023**: Sign-up and sign-in MUST be the only routes this feature makes reachable
-  without a credential. The existing public route snapshot MUST NOT otherwise move.
+- **FR-023**: This feature MUST make exactly **two** routes reachable without a credential
+  through the MVP — sign-up and sign-in — and exactly **two more** when US4 ships:
+  requesting a reset and completing one. Those two are necessarily public: a person who has
+  forgotten their password holds no credential, so a reset route that demanded one could
+  never be used by the only person who needs it. **No other route may move, in either
+  direction, at any point.**
 - **FR-024**: The visibility matrix MUST come out with the same surfaces and the same
   assertion count. This feature adds a way to obtain a credential; it changes nothing
   about what one permits.
 - **FR-025**: The operator route snapshot MUST be unchanged. Creating an account MUST NOT
   be able to produce an operator.
 - **FR-026**: Accounts created by the existing device-token tool MUST continue to work
-  unchanged.
+  unchanged — **including after US4**, whose credential epoch has no value to compare for
+  an account that holds no credential record. Verification MUST treat an absent epoch, on
+  either side of the comparison, as verifying. Failing closed here would sign out the
+  emulator journeys and the laptop runbook in one commit, which is the one population of
+  accounts the product currently depends on.
 
 #### The app
 
@@ -269,8 +287,9 @@ arrives, set a new password, and sign in with it.
   account, demonstrated under genuine concurrency rather than in sequence.
 - **SC-006**: The visibility matrix reports the **same surface count and the same assertion
   count** as before this feature.
-- **SC-007**: The public route snapshot gains **exactly two** entries and loses none; the
-  operator snapshot is unchanged.
+- **SC-007**: The public route snapshot gains **exactly two** entries through the MVP and
+  **exactly four** once US4 ships, and loses none at any point; the operator snapshot is
+  unchanged throughout.
 - **SC-008**: No password, and no stored form of one, appears anywhere in the application's
   output — searched for, not assumed.
 - **SC-009** *(US4)*: A person who has forgotten their password can be signing in again

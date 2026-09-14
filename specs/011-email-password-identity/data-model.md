@@ -35,6 +35,11 @@ makes `putItem` atomic. Not a lookup followed by a write: that passes every sequ
 and fails under the two simultaneous requests it exists for, which is FR-002 and SC-005.
 
 **`epoch`** is an integer, compared during verification. A reset advances it (R4, FR-021).
+**An absent epoch verifies** — on either side of the comparison. Accounts created by the
+device-token tool hold no credential row at all, and their credentials predate the claim, so
+both absences are ordinary rather than exceptional. Failing closed here signs out every
+emulator journey and the laptop runbook, and defends nothing: an account with no credential
+row has no password, so it has no reset, so it has nothing an epoch could revoke.
 
 ### 2. The handle claim — **new, and it is a fix**
 
@@ -52,6 +57,10 @@ It has never bitten because no human has ever chosen a handle.
 Written in the **same transaction** as the person, so a handle cannot be claimed by an
 account that failed to be created, and an account cannot exist holding a handle it did not
 claim. All-or-none is what `transact` is for.
+
+**Handles that already exist are claimed too, in one bounded pass** — see "What a migration
+has to do" below. A constraint consulting only rows written from here on leaves every
+existing handle undefended, and the first human to choose one could take it.
 
 ### 3. The reset request — *US4 only*
 
@@ -89,11 +98,28 @@ Sign-up being one transaction is the whole of FR-002 and FR-003. A person create
 their handle claim leaves the handle free for somebody else; a claim written without the
 person leaves a handle nobody can ever use. Either half alone is worse than failing.
 
-## What a migration would have to do, and why there is none
+## What a migration has to do, and what it must not
 
-Existing accounts have no credential row and no handle claim. They keep working (FR-026):
-their credential was issued directly and verification does not require a credential row.
+Existing accounts have no credential row, and they never get one. They keep working
+(FR-026): their credential was issued directly, verification does not require a credential
+row, and after US4 an absent epoch verifies. They are also **unreachable through sign-in**,
+which needs no enforcing — sign-in resolves an account by its credential row, and there is
+none to find.
 
-**They are not back-filled**, and a task checks rather than assumes that no two existing
-handles already collide — the property holds because every handle in existence carries a
-generated suffix, which is an argument, not a measurement.
+**Their handle claims ARE back-filled**, in one bounded pass, and this is a correction: the
+first version of this document said they were not, which would have left every existing
+handle with nothing defending it while the feature that lets people choose handles shipped.
+
+Order matters, and it is the cheap-observation-first order this project keeps relearning:
+
+1. **Measure** that no two existing handles already collide. The property is believed to
+   hold because every handle in existence carries a generated suffix — `createProfile`
+   appends eight characters of the user id, `mint-device-token` eight more — and that is an
+   argument, not a measurement.
+2. **Back-fill** a claim per handle, only if (1) holds.
+3. If (1) does **not** hold, stop. A collision is for a person to resolve; a script
+   choosing which of two accounts keeps its name is the same silent wrong-person outcome
+   R1 found, performed deliberately.
+
+**No existing handle is renamed by any of this.** Claiming a handle and changing one are
+different operations, and conflating them is what the first version of R1 did.

@@ -37,6 +37,11 @@ the new person.
 > exactly one of N simultaneous attempts on one address may succeed. The test drives them
 > genuinely in parallel; a sequential version of it proves nothing.
 
+> **And it is a property of the WHOLE SET, not of the rows this feature writes.** Handle
+> uniqueness is enforced by a claim record; accounts predating this feature hold none, so
+> the existing set is claimed in one bounded pass before any human may choose a handle. A
+> constraint binding half a set does not make the set unique.
+
 ## 2. Sign in
 
 Takes an email address and a password. Returns a credential.
@@ -52,6 +57,10 @@ Takes an email address and a password. Returns a credential.
 - MUST survive the app closing and reopening (FR-011) — a property of where the client
   stores it, asserted from the client's side.
 - MUST stop verifying once the account's epoch has advanced (FR-021, US4).
+- MUST continue to verify when there is **no epoch to compare** — an account with no
+  credential record, or a credential issued before the claim existed. Both absences are
+  ordinary; failing closed on them breaks FR-026 and defends nothing, because an account
+  with no password has nothing a reset could revoke.
 
 ## 4. Refusals are indistinguishable
 
@@ -78,8 +87,12 @@ Stated mechanically so it can be checked rather than asserted:
 
 - `matrix.spec.ts`: the same surfaces, the same assertion total
 - `surface-routing.spec.ts`: unchanged
-- `auth-surface.spec.ts`: the public snapshot gains **exactly two** entries and loses none;
-  the operator snapshot is **unchanged**
+- `auth-surface.spec.ts`: the public snapshot gains **exactly two** entries through the MVP
+  (sign-up, sign-in) and **exactly four** once US4 ships (requesting a reset, completing
+  one), and loses none at any point; the operator snapshot is **unchanged** throughout.
+  US4's two are necessarily public — a person who cannot sign in holds no credential — and
+  saying "exactly two" full stop, as this contract first did, forbids the feature it
+  specifies four sections above
 - every existing suite: the same tests, passing for the same reasons
 
 > This feature adds a way to obtain a credential. If any of the above moves, it changed

@@ -127,14 +127,44 @@ apps/api/tests/
 screens. Nothing existing is restructured. The module boundary matters: `auth` is the only
 thing that may touch a credential row, and nothing outside it may read one.
 
+### Which side of the overlay seam this lands on — BASE, deliberately
+
+This repository carries the overlay seams, and a feature adding a Nest module, two public
+routes and a contract path is exactly the shape they exist to absorb. The plan's first
+version simply did not mention them, which left the most consequential structural question
+in the feature to be answered by whoever typed `app.module.ts` first.
+
+**The decision is the base position**, and the reasoning is what makes it reviewable rather
+than a default:
+
+| | |
+|---|---|
+| `AppModule.imports`, not `OVERLAY_MODULES` | The seam exists so a fork's **own** features never collide with upstream's. Identity is not a fork's own feature — it is the missing floor under the whole product, and upstream needs it as much as this repository does. Putting it in the overlay would make the app's front door a permanent private divergence and guarantee that upstream builds a second one |
+| `EXPECTED_PUBLIC` in `auth-surface.spec.ts`, not `OVERLAY_PUBLIC_ROUTES` | Same reason, and it keeps the snapshot honest: these routes belong to the base product, so the base snapshot is where a reviewer should be made to approve them. Raising it is a deliberate, reviewable edit and is meant to be |
+| The base contract at `specs/001-interest-media-sharing/contracts/openapi.yaml`, not `contracts/openapi.overlay.yaml` | `contracts/README.md` is explicit that the overlay holds "what a downstream fork adds, and nothing else" |
+
+**The cost is stated rather than discovered**: this is CLAUDE.md's divergence kind (3),
+editing shared code, which buys a conflict on those files at the next sync. It is bought
+deliberately, and the alternative is worse — kind (1) here would not avoid the conflict, it
+would move it to the point where upstream ships its own identity and the two have to be
+reconciled as *features* rather than as *lines*.
+
+**Nothing here touches `visibility.filter.ts`**, which remains the one file where "just edit
+it in the fork" is off the table.
+
 ## Phasing, and what each phase is worth on its own
+
+Numbered as `tasks.md` numbers them, because the first version of this table used letters
+and left a reader to guess whether "Phase A" was Phase 1.
 
 | Phase | Stories | Independently shippable? |
 |---|---|---|
-| **A** | handle uniqueness (R1) | Yes — it is a defect fix and stands alone |
-| **B** | US1, US2 — sign up and sign in | Yes. The app opens normally. **This is the MVP** |
-| **C** | US3 — stay signed in, sign out | Yes, and mostly inherited from 009 |
-| **D** | US4 — password reset | Yes, and deliberately last: it is the only part needing an outside service |
+| **1** | setup — keys and the password floor | Not on its own; nothing uses them yet |
+| **2** | handle uniqueness (R1) | Yes — it is a defect fix and stands alone |
+| **3–4** | US1, US2 — sign up and sign in | Yes. The app opens normally. **This is the MVP** |
+| **5** | US3 — stay signed in, sign out | Yes, and mostly inherited from 009 |
+| **6** | US4 — password reset | Yes, and deliberately last: it is the only part needing an outside service |
+| **7** | polish and the close-out | — |
 
 **A before B is not a preference.** US1 is the first thing that lets a person choose a
 handle, and choosing from a space with no uniqueness constraint is how two accounts end up
@@ -152,6 +182,18 @@ invisible to the test somebody would naturally write.
 3. **A reset must end what came before it.** Otherwise it is a password change wearing the
    name of a remedy.
 
+**The analysis pass added a fourth, and it is the same shape as the first three.**
+Uniqueness enforced by a claim record binds only the rows that carry one, so the existing
+handles — every handle in the product — would have had nothing defending them on the day
+the feature that lets people choose handles shipped. R1's defect, reintroduced by R1's own
+fix, in the window where the feature is new. A bounded back-fill closes it, measured before
+it runs (data-model, "What a migration has to do").
+
+Two further corrections from the same pass, recorded because each was an artifact agreeing
+with itself and being wrong: FR-023 forbade US4's two reset routes, which nothing could have
+built around; and the credential epoch had no defined value for an account holding no
+credential record, which is every account that exists today.
+
 ## Risks
 
 | Risk | Response |
@@ -160,3 +202,6 @@ invisible to the test somebody would naturally write.
 | A public route becomes public by accident beyond the two intended | `auth-surface.spec.ts` enumerates every route and compares against a snapshot; it has already caught this twice |
 | The password floor is a guess | It is: 10 characters, recorded in Assumptions with the reasoning, changeable in one place |
 | US4 never ships, leaving reset unavailable | FR-022 makes that a stated condition rather than a broken control |
+| The handle back-fill runs against a set that already collides | It is measured first and the back-fill runs only if the measurement holds. A collision stops the phase for a person to resolve; a script picking a winner is the wrong-person outcome R1 found, performed on purpose |
+| The epoch signs out every existing account | An absent epoch verifies, stated in the contract and in data-model, with a task that asserts a device-token credential still works after the epoch lands |
+| Editing shared files conflicts at the next upstream sync | Accepted deliberately, with the reasoning in the Structure Decision. This is the feature where the base position is worth a conflict |

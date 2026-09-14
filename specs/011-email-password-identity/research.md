@@ -49,9 +49,20 @@ that makes email uniqueness work below. One mechanism, two claims, written toget
 | A unique index on the handle column | The datastore is a single table of `jsonb` rows; handles live inside `item`, and adding a column-level constraint for one field re-opens the remodelling 010/R2 defers |
 | Leave it, and make handles server-generated | Removes the defect by removing the feature. A person choosing their own handle is the point |
 
-**What this does NOT license**: back-filling or renaming any existing handle. They are
-unique in practice because they carry generated suffixes; the claim rows are written going
-forward, and a task verifies that no existing pair collides rather than assuming it.
+**The existing set MUST be claimed, and the first version of this paragraph got that
+wrong.** It said the claim rows are "written going forward" and that back-filling was not
+licensed — conflating two different operations. *Renaming* an existing handle is indeed off
+the table, and nothing here does it. *Claiming* one is not optional: the claim row is the
+only thing the constraint consults, so an account that predates the feature holds a handle
+with nothing defending it, and **the first human ever to choose a handle could take one
+already in use.** That is R1's defect reintroduced by R1's own fix, in the window where the
+feature is new.
+
+So: one bounded pass writes a claim for every handle that exists, and it is safe precisely
+because of what the paragraph got right — they carry generated suffixes and are unique in
+practice. A separate task *measures* that rather than assuming it, and the back-fill runs
+only if the measurement holds. If it does not, the collision is a defect to be resolved by
+a person, not by a script choosing which of two accounts keeps its name.
 
 ---
 
@@ -108,6 +119,24 @@ alive solves nothing.
 An epoch is one integer compared during verification. The alternative — a revocation list —
 needs storage, expiry and a read on every request, to express something a counter already
 expresses.
+
+**Where it lives**: on the **credential record**, which is the row partitioned by the
+folded email address (data-model §1). An earlier version of this decision said "stored on
+the account", which reads as the person row and is not where it is.
+
+**AN ABSENT EPOCH VERIFIES, and this is the whole of FR-026 after US4.** Accounts created by
+the device-token tool hold **no credential record at all**, so there is no epoch to read;
+their credentials also carry no epoch claim, because they were issued before this claim
+existed. The comparison therefore has to define both absences, and the only answer
+compatible with FR-026 is that a missing epoch on either side verifies.
+
+That is a deliberate fail-**open**, which is the opposite of what this project does for
+privacy (008's `RelationshipCache.isPrivateAccount` fails closed) — so it is worth being
+explicit about why the direction differs. A privacy read that fails open shows a private
+post to a stranger. An epoch read that fails closed signs out every emulator journey and
+the laptop runbook in one commit, and it protects nothing: an account with no credential
+record has no password, so it has no reset, so it has nothing an epoch could revoke. The
+epoch defends passwords, and it is inert where there is no password.
 
 **Consequence worth naming**: verification gains a datastore read it did not have. That is
 a real cost on the hottest path in the product, and the plan measures it rather than
@@ -168,9 +197,12 @@ nothing else.
 (publishing, commenting, sub-interest creation) and a viewer-only key would have bucketed
 every failed sign-in in the world together under `'anonymous'`.
 
-**Consequence**: the limit is per-address and does not depend on whether the account
-exists, which is what FR-010 requires. Everybody behind one NAT shares a bucket; that is
-accepted, and the capacity is chosen with it in mind.
+**Consequence**: the limit is keyed per **client IP** — written that way because "address"
+means the *email* address everywhere else in this feature, and a reader who carries that
+meaning into this paragraph concludes the bucket is per-account, which is the one thing it
+must not be. An IP key cannot depend on whether the account exists, which is exactly what
+FR-010 requires and is why it needs no new mechanism. Everybody behind one NAT shares a
+bucket; that is accepted, and the capacity is chosen with it in mind.
 
 ---
 
@@ -183,3 +215,27 @@ accepted, and the capacity is chosen with it in mind.
 does today. No change is needed — which is stated here because "no change needed" is a
 claim, and the reason it holds is that the cold start was already keyed to the account
 rather than to the device.
+
+---
+
+## R9 — US4 NEEDS TWO PUBLIC ROUTES, and FR-023's first version forbade them
+
+**Finding**: the spec as first written said sign-up and sign-in were "the only routes this
+feature makes reachable without a credential", and SC-007 pinned the public snapshot at
+**exactly two**. Password reset cannot be built under that: a person who has forgotten
+their password holds no credential, so requesting a reset and completing one are reachable
+by that person or by nobody.
+
+Caught by the analysis pass rather than by Phase 6, which is where it would otherwise have
+surfaced — as `auth-surface.spec.ts` going red on a snapshot the spec said must not move,
+with the spec and the test agreeing with each other and both being wrong.
+
+**Decision**: four public routes in total, two per releasable slice, and the count is
+stated per slice rather than as one number. FR-023 and SC-007 now say so, and Phase 6 has
+the controller task it was missing entirely — the reset row, the identical response and the
+single-use condition were all specified with nothing to call them.
+
+**Alternatives rejected**: a reset flow behind the expired credential the person still
+holds (they may hold none — a new device, a cleared app); emailing a new password instead
+of a link (mails a secret in the clear and needs no route, which is worse for the reason
+data-model gives about storing the token hashed).
