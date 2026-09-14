@@ -156,7 +156,7 @@ the same posts.
 
 - [ ] T041 [P] [US4] Define `apps/api/src/ports/mail.port.ts` and **leave it unbound** (research R6). Binding a do-nothing adapter "for later" produces a reset that silently succeeds and sends nothing
 - [ ] T042 [US4] Add the credential **epoch**: stored on the credential record, carried in the credential, compared during verification (research R4, FR-021). **An absent epoch on either side verifies** — accounts created by the device-token tool hold no credential record and their credentials predate the claim
-- [ ] T043 [US4] Confirm a **device-token account still works after T042** (FR-026): mint one, call `GET /v1/me`, and get 200. This is the assertion that fails if the epoch comparison fails closed, and the population it would sign out is every emulator journey and the laptop runbook
+- [X] T043 [US4] Confirm a **device-token account still works after T042** (FR-026): mint one, call `GET /v1/me`, and get 200. This is the assertion that fails if the epoch comparison fails closed, and the population it would sign out is every emulator journey and the laptop runbook
 - [ ] T044 [US4] **Measure what T042 costs.** Verification gains a datastore read on the hottest path in the product. If it costs, memoise per request beside `RelationshipCache`, which 008 already does for privacy — but measure before optimising and record the number either way
 - [ ] T045 [US4] Implement the reset request row, **storing the token hashed** — it is a bearer permission to take over an account, so the link in somebody's inbox must be the only copy of the secret
 - [ ] T046 [US4] Make the response to a reset request identical whether or not an account exists, and send nothing when it does not (FR-019)
@@ -174,15 +174,15 @@ the same posts.
 
 ## Phase 7: Polish & Cross-Cutting
 
-- [ ] T054 [P] Add a guard that fails the build if a password, or a derived password, can reach a log, a response body or an error — **verified against a planted leak**, because care is not a control (SC-008, FR-015, FR-016)
-- [ ] T055 [P] Confirm the email address appears on **no** profile projection. `profile.projection.ts` is the one place a `PublicProfile` is built, and adding a field there publishes it on all seven at once
-- [ ] T056 [P] Confirm device-token accounts are **unreachable through sign-in** (FR-026's other half): they hold no credential record, so sign-in has nothing to resolve. It needs no enforcing and it is asserted anyway, because a MUST NOT nobody checks is a MUST NOT nobody notices breaking
+- [X] T054 [P] Add a guard that fails the build if a password, or a derived password, can reach a log, a response body or an error — **verified against a planted leak**, because care is not a control (SC-008, FR-015, FR-016)
+- [X] T055 [P] Confirm the email address appears on **no** profile projection. `profile.projection.ts` is the one place a `PublicProfile` is built, and adding a field there publishes it on all seven at once
+- [X] T056 [P] Confirm device-token accounts are **unreachable through sign-in** (FR-026's other half): they hold no credential record, so sign-in has nothing to resolve. It needs no enforcing and it is asserted anyway, because a MUST NOT nobody checks is a MUST NOT nobody notices breaking
 - [X] T057 [P] Add the two — later four — new paths to the **base** contract at `specs/001-interest-media-sharing/contracts/openapi.yaml` and regenerate the client through `packages/shared/scripts/contract.ts`. **Not `contracts/openapi.yaml`, which does not exist**, and not the overlay, which holds only what a fork adds. 002's first defect was the contract and the API disagreeing while each looked right alone
-- [ ] T058 [P] Update `docs/laptop-runbook.md`: `pnpm token` stops being the way in and becomes the fallback for device passes
-- [ ] T059 [P] Update `CLAUDE.md` — "the local profile has no signup endpoint" is repeated in several places and stops being true with Phase 4
-- [ ] T060 [P] Stop 009's session descriptor printing a live credential into a world-readable job summary. CLAUDE.md states that exposure "ends when email/password identity lands and a session hands out only an address", and this is that feature — so it either closes here or is recorded as still open, never left to be assumed closed
-- [ ] T061 Run the real CI step list before pushing, not a proxy for it. Two red builds have come from checking typecheck, lint and tests and assuming that covered CI
-- [ ] T062 Record the run in `docs/verification/runs/`, with every criterion pass, fail or **not run** — never blank — and **count the items** rather than reading the highest number, which this project has got wrong twice
+- [X] T058 [P] Update `docs/laptop-runbook.md`: `pnpm token` stops being the way in and becomes the fallback for device passes
+- [X] T059 [P] Update `CLAUDE.md` — "the local profile has no signup endpoint" is repeated in several places and stops being true with Phase 4
+- [X] T060 [P] Stop 009's session descriptor printing a live credential into a world-readable job summary. CLAUDE.md states that exposure "ends when email/password identity lands and a session hands out only an address", and this is that feature — so it either closes here or is recorded as still open, never left to be assumed closed
+- [X] T061 Run the real CI step list before pushing, not a proxy for it. Two red builds have come from checking typecheck, lint and tests and assuming that covered CI
+- [X] T062 Record the run in `docs/verification/runs/`, with every criterion pass, fail or **not run** — never blank — and **count the items** rather than reading the highest number, which this project has got wrong twice
 
 ---
 

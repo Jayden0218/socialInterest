@@ -98,3 +98,59 @@ describe('008/SC-008 one profile projection', () => {
     ]);
   });
 });
+
+/**
+ * 011/T055. FR-016 — THE EMAIL ADDRESS IS ON NO PROFILE PROJECTION.
+ *
+ * Kept in this file rather than in a new one, because this is the file that
+ * knows there is exactly ONE place a `PublicProfile` is built — and that fact is
+ * the whole reason the check is cheap. Adding a field to
+ * `profile.projection.ts` publishes it on all seven projections at once, which
+ * is how 008/US5 found `avatarUrl` emitted as a raw storage key and 006/R4b
+ * found it before that.
+ *
+ * An email address is worse than either. A person's handle is how other people
+ * refer to them; their address is how somebody reaches them off the product,
+ * and it is the first half of every credential-stuffing attempt against them
+ * elsewhere. It belongs to the ACCOUNT, not to the person other people can see.
+ */
+describe('011/FR-016 the email address is not on a profile', () => {
+  it('profile.projection.ts does not read or emit an email', () => {
+    const source = readFileSync(
+      join(__dirname, '../../src/modules/people/profile.projection.ts'),
+      'utf8',
+    );
+    const code = source
+      .replace(/\/\*[\s\S]*?\*\//g, ' ')
+      .replace(/(^|[^:])\/\/.*$/gm, '$1');
+    expect(code).not.toMatch(/\bemail\b/i);
+  });
+
+  it('no response type in the shared contract puts an email on a person', () => {
+    /**
+     * The other direction: the projection could stay clean while the generated
+     * types declared the field, and a client would then read something the
+     * server never sends — or worse, a later change would populate it to satisfy
+     * the type. 008's `response-shape.spec.ts` exists for exactly that asymmetry.
+     */
+    const entities = readFileSync(
+      join(__dirname, '../../../../packages/shared/src/types/entities.ts'),
+      'utf8',
+    );
+    /**
+     * `publicProfileSchema`, not `interface PublicProfile` — the type is
+     * `z.infer` of the schema, so the schema is where a field would be added.
+     * The first version of this line matched the interface spelling, found
+     * nothing, and would have passed vacuously over an empty string.
+     *
+     * The `not.toBe('')` below is what caught that, and it is the assertion this
+     * project learned to write after `hooks-before-return.test.ts` went on
+     * reporting green while its subject had moved out from under it — "a guard
+     * can lose its subject and pass", which is worse than failing.
+     */
+    const profileBlock =
+      /export const publicProfileSchema[\s\S]*?\n\}\);/.exec(entities)?.[0] ?? '';
+    expect(profileBlock).not.toBe('');
+    expect(profileBlock).not.toMatch(/\bemail\b/i);
+  });
+});

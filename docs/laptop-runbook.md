@@ -116,19 +116,44 @@ Your phone must be on the same Wi-Fi. `Ctrl-C` stops it.
 
 ---
 
-## A token, and something to look at
+## Signing in — just open the app
+
+**Since 011 you create an account in the app.** Tap **Create an account**, enter
+an email address, a password, a handle and a name, and you are in. Sign in again
+later with the same address and password, on this phone or another one. The app
+stays signed in across relaunches, and **Sign out** is in Edit profile.
+
+The email address is never sent anywhere — there is no mail provider configured
+and password reset is not built yet (011/US4). It identifies the account and
+nothing else, so an address that does not exist works fine. **The consequence is
+worth knowing: a forgotten password is currently unrecoverable**, and the app
+deliberately offers no control that pretends otherwise.
+
+```bash
+pnpm seed:demo "<a token>"    # six people, fourteen posts, comments, places
+```
+
+The demo seed still wants a token, because it is an HTTP client acting as a
+person rather than something signing in. `pnpm token` below is how to get one.
+
+---
+
+## A token, for the seeder and for device passes
+
+**This is no longer how you get into the app.** It was, until 011, and it was
+never a product: the first screen asked for a 244-character string a developer
+had minted. It remains the right tool for two jobs that are not signing in —
+seeding the demo data, and provisioning an account for the emulator journeys.
 
 `pnpm laptop` holds the terminal. In a **second tab**, from the same directory:
 
 ```bash
 pnpm token                       # prints a QR code, the address and the token
-pnpm seed:demo "<that token>"    # six people, fourteen posts, comments, places
 ```
 
 `pnpm token` prints **a QR code holding the token**, then the address and token
 as text. Scan the code with the phone's **ordinary camera app — not Expo**:
-Expo Go's scanner expects a dev-server URL and will not help. The camera hands
-you the decoded string; copy it and paste it into the app's second field.
+Expo Go's scanner expects a dev-server URL and will not help.
 
 The **address** is short — type it. The code deliberately does not carry it:
 nothing on the phone parses a QR, so a payload with two values in it means

@@ -292,11 +292,16 @@ decision rather than on tooling.
 Two traps, both of which cost real runs:
 
 - **`runs-on: ubuntu-22.04`**, per the table above.
-- **A signed token is not an identity.** The local profile has no signup
-  endpoint, so a correctly signed JWT whose profile row does not exist gets
-  `404 No such person` from `GET /v1/me` and sign-in fails on the device.
-  `apps/api/scripts/mint-device-token.ts` writes the row through the API's own
-  `PersonRepository`, the same thing `apps/e2e/support/people.ts` does.
+- **A signed token is not an identity, and since 011 it is not the way in
+  either.** The app signs in with an EMAIL ADDRESS AND A PASSWORD
+  (`POST /v1/auth/sign-up`, `POST /v1/auth/sign-in`), and
+  `apps/api/scripts/mint-device-token.ts` now provisions a credential beside the
+  token so the device flows take the product path. The token is still printed
+  and still needed, because the fixture seeders are HTTP clients acting AS that
+  person rather than signing in. The original trap stands underneath all of it:
+  a correctly signed JWT whose profile row does not exist gets `404 No such
+  person` from `GET /v1/me`, so the row has to be written through the API's own
+  `PersonRepository`.
 
 **Six runs failed, and none of the six explanations was right. Run 7 booted in
 77 seconds.** Three of the failures were mine, every one the same shape —
@@ -489,8 +494,16 @@ other private repository the owner has, which is why the heavy jobs live upstrea
 **WHERE THIS REPOSITORY IS PUBLIC, ACTIONS LOGS AND JOB SUMMARIES ARE WORLD-READABLE.**
 009's session descriptor prints a live credential into its job summary. It dies with the
 session (30 minutes, against a random tunnel address) but anyone reading the Actions tab in
-that window has it. **That exposure ends when email/password identity lands and a session
-hands out only an address** — until then it is a known, bounded risk rather than an oversight.
+that window has it.
+
+**011 LANDED AND THIS EXPOSURE IS STILL OPEN. Reported, not closed.** The paragraph here
+used to promise it "ends when email/password identity lands and a session hands out only an
+address" — identity has landed, and the session workflow still prints the credential,
+because nothing in 011 touched `.github/workflows/session-server.yml`. What 011 changed is
+that the exposure is now *unnecessary* rather than load-bearing: a person can create an
+account in the app against a session's address, so the descriptor has no reason to carry a
+credential at all. Removing it is a small, separate change to that workflow and it has not
+been made. **Do not read the old sentence as done.**
 
 The paragraph as written on 2026-09-07: The repository is **public** (`visibility: public`, checked 2026-09-07),
 so GitHub-hosted standard runners are free on it, and CI runs 169-176 plus emulator runs
@@ -498,6 +511,136 @@ so GitHub-hosted standard runners are free on it, and CI runs 169-176 plus emula
 on this repository does not spend - so dispatching the emulator job is not the owner's
 call any more. Check the facts before repeating either claim; both halves of this one
 expired within a day.
+
+## What spec 011 built (2026-09-14) — the app opens like an app
+
+`specs/011-email-password-identity/`. Until this, the only way into the product was
+pasting a 244-character JWT a developer had minted. Every other capability was built and
+verified on a physical device; the first screen asked the person to do the one thing they
+could not do. **Phases 1–5 are implemented (sign-up, sign-in, the session). US4, password
+reset, is NOT — it needs a mail provider nobody has opened an account with.**
+
+### THE RESEARCH PHASE FOUND A LIVE DEFECT, AND IT WAS NOT SUBTLE
+
+**Handles were not unique**, and `findByHandle` returned the *second* holder — so a
+profile, a mention, a conversation, a follow, a block and a report would each have silently
+addressed the wrong person, across thirteen call sites in six services.
+`PersonRepository.create` guarded on `attribute_not_exists(pk)` where `pk` is
+`USER#<userId>`, a fresh identifier per call, so **the condition could never fire for a
+handle**. Measured rather than reasoned about: *eight of eight* simultaneous claims on one
+handle succeeded, every time.
+
+That distinction earned its place. A read-then-write would produce an occasional 2; this
+produced a reliable 8 — **there was no race to lose, because there was no constraint** — and
+a fix aimed at narrowing a window would have looked like progress against the wrong
+diagnosis. It had never bitten because no human had ever chosen a handle, and US1 is
+precisely the change that removes the thing hiding it.
+
+The claim is enforced in `PersonRepository.create`, not in sign-up: `create` is the one path
+every person comes through, so uniqueness there cannot be forgotten by a caller. In
+`auth.service` it would have defended the one door a human uses and left four open.
+
+**And the analysis pass caught that the fix reintroduced the defect.** A claim record
+defends only rows that carry one, and the 6,375 existing handles carried none — so the first
+human ever to choose a handle could have taken one already in use. They are back-filled now,
+**measured first** (0 collisions, so the generated-suffix argument finally has a measurement
+behind it) and refusing to write at all if that count is not zero: which account keeps a
+contested name is a person's decision, not a script's.
+
+### The timing leak is 45.7x, and the message assertions pass straight through it
+
+`contracts/identity.md` §4 predicted it and the measurement confirmed it. Against the
+natural implementation — look up, return early when the address has no account — an unknown
+address answers in **8ms** where a wrong password takes **~370ms**, because the absent case
+skips the key derivation.
+
+**Same 401, same body byte for byte, both populations, with the leak wide open.** A test
+asserting only the message signs this off. Sign-in now derives against a fixed dummy hash
+when it finds nothing, and the refusal is built *after* the verification so no branch can
+return without having paid.
+
+Two things about how it is measured, both of which are the general lesson: it compares
+**medians of repeated samples**, because a single pair is two numbers from a machine running
+fifty other suites; and the threshold is a **ratio, not a millisecond bound**, because an
+absolute one encodes this machine's speed — the invented-constant failure that cost four
+device runs. The second assertion (both medians above 20ms) exists because **the ratio alone
+is satisfied by being equally fast**: delete the derivation and both answer in a
+millisecond, the ratio is ~1, and a ratio-only test passes over a product that never checks
+passwords.
+
+### Guards that passed things they should not have — three, in one feature
+
+- **My constant-time guard passed a deliberate break.** It asserted the FILE contained
+  `timingSafeEqual` and that no `===` appeared in three hand-guessed spellings. Replacing
+  the comparison with `derived.toString('base64') === hash.toString('base64')` left the
+  import untouched, so the file still contained it and none of the guesses matched: six
+  assertions green over a short-circuiting comparison. It reads the `verifyPassword` BODY
+  now and asks two questions with no list in them.
+- **The concurrency test would have passed for the wrong reason.** Six simultaneous sign-ups
+  against a route whose capacity is five: one 201, assertion satisfied, and the other five
+  refused **429 by the rate limiter** without ever reaching the uniqueness constraint.
+  Delete the conditional write and it still passed. It sizes each batch at the capacity now,
+  clears the limiter, and asserts no response was a 429.
+- **The touch-target guard's `hitSlop` branch matched per FILE.** 007 removed exactly that
+  weakness from the sized-control branch — "one sized control approved every other one in
+  the same file" — and left it in the other one. A second slop control added to
+  `SignInScreen.tsx` rode in free on the first one's arithmetic. Keyed per control now.
+
+### Two fixtures that were quietly wrong
+
+- **The shared `AppData` fake had a trailing `...over`** *after* every per-key merge, so a
+  caller passing `session: { isSignedIn }` got a session with `isSignedIn` and nothing else
+  — every `...(over.session as object)` above it was dead code that looked like a feature.
+  Harmless only because callers happened to supply everything the shell touched. Adding
+  `session.resume()` killed five suites with a default that was right in a fixture that
+  discarded it.
+- **The testID snapshot was NINETEEN IDS BEHIND.** Because an addition never fails, nothing
+  ever forces an update, so it drifts — and **the guard can only detect the removal of an id
+  it knows about**. For 008's privacy, appeals, collections and follow-request ids, and
+  009's address controls, it was protecting nothing. The permissiveness is still right;
+  what is worth knowing is that the protection DECAYS between removals.
+
+### Established
+
+- **`isSignedIn` is not the question.** It answers "is there a token in the store", which a
+  credential that has expired, been revoked, or belongs to another backend satisfies
+  perfectly — and then every screen 401s into an empty product. `session.resume()` asks
+  whether it WORKS, clears a rejected one, and **rethrows a network failure**: treating an
+  unreachable backend as a bad credential signs somebody out of a working account because
+  their train went into a tunnel, and throws the credential away doing it.
+- **The submit-above-the-fields invariant absorbed a third field.** Sign-in went from one
+  field to three and the submit did not move. The arithmetic guard it replaced would have
+  needed re-tuning — to a number that was invented in the first place.
+- **FR-023's first version forbade US4's own routes.** "Sign-up and sign-in are the only
+  routes this feature makes public", with SC-007 pinning "exactly two" — but somebody who
+  has forgotten their password holds no credential, so the two reset routes are reachable by
+  them or by nobody. Phase 6 also had no controller task at all: the row, the identical
+  response and the single-use condition were specified with nothing to call them.
+- **The credential epoch has no value for an account with no credential row**, which is
+  every account that exists today. Fail closed and every emulator journey and the laptop
+  runbook sign out in one commit; fail open and nothing said so. **An absent epoch verifies,
+  on either side**, and the direction differs from privacy's fail-closed on purpose: an
+  account with no password has nothing a reset could revoke.
+- **Identity went in the BASE position, not the overlay seam**, and the plan says why:
+  identity is the floor under the whole product, not a fork's own feature, so putting it in
+  the overlay would make the app's front door a permanent private divergence and guarantee
+  upstream builds a second one. The sync conflict is bought deliberately.
+
+### Still not verified for 011, and must be reported that way
+
+- **NOTHING IN 011 HAS RUN ON A DEVICE.** No emulator in this sandbox, so
+  `35-sign-up-and-out.yaml`, the rewritten sign-in flows and
+  `mint-device-token.ts`'s credential path are **written and unexercised**.
+  `verify-maestro-ids` confirms every selector resolves, which is a different claim.
+- **No browser journey has run either** — `apps/e2e`'s updated specs need a server and a
+  browser this environment does not have.
+- **US4 (password reset) is not built.** A forgotten password is unrecoverable, and FR-022
+  makes that a stated condition rather than a broken control: there is no "forgot your
+  password" link, deliberately.
+- **009's session descriptor still prints a live credential** into a world-readable job
+  summary. See the note above — 011 makes it unnecessary and does not remove it.
+- MinIO cannot run in this sandbox (quay.io is unreachable), so 3 API failures are that and
+  1 is the grown-table appeal test; all four were baselined by stashing the change.
 
 ## What spec 008 Phases A and B built (2026-09-09)
 
