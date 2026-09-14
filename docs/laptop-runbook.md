@@ -10,12 +10,31 @@ hosted path (`specs/010-managed-backend`, R8a) is what removes it.
 
 ---
 
-## Once, to set up
+## From a Mac with nothing on it
 
 ```bash
-brew install node@22 pnpm ffmpeg        # macOS
+# 1. Homebrew, if you do not have it. Follow the "Next steps" it prints at the
+#    end — on Apple Silicon it tells you to add brew to your PATH, and nothing
+#    afterwards works until you do.
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# 2. The tools. `node` rather than `node@22`: the versioned formula is keg-only
+#    and needs its own PATH entry, and this only asks for 22 or newer.
+brew install node pnpm ffmpeg gh
+
+# 3. The repository. It is private, so `gh auth login` first — browser, HTTPS.
+gh auth login
+gh repo clone Jayden0218/SocialLetInterest ~/socialinterest
+cd ~/socialinterest
+git checkout claude/pensive-goldberg-jjjni5
+
+# 4. Dependencies.
 pnpm install
-cp .env.local.example .env.local        # then fill it in
+
+# 5. Configuration, then fill it in.
+cp .env.local.example .env.local
+openssl rand -hex 32          # paste into LOCAL_JWT_SECRET
+open -e .env.local
 ```
 
 `.env.local` is gitignored and must stay that way. What goes in it:
@@ -75,11 +94,32 @@ Your phone must be on the same Wi-Fi. `Ctrl-C` stops it.
 
 ---
 
+## A token, and something to look at
+
+`pnpm laptop` holds the terminal. In a **second tab**, from the same directory:
+
+```bash
+pnpm token                       # prints a sign-in token for the phone
+pnpm seed:demo "<that token>"    # six people, fourteen posts, comments, places
+```
+
+The seed is not decoration. A fresh backend holds twelve catalogue interests and
+nothing else, so the first screen after signing in is an empty feed — which reads
+as a broken app and is not one.
+
+**A signed token is not an identity**, which is why `pnpm token` exists rather
+than a JWT one-liner. There is no signup endpoint on this profile: the profile
+row the token refers to has to exist, or `GET /v1/me` answers 404 and sign-in
+fails on the device.
+
+If the seed fails it names the step it failed on. Anything from `setting
+avatars` onward means the API is fine and object storage is not.
+
 ## On the phone
 
 1. Install the APK.
-2. Sign-in screen → paste the address above into the top field, the token into
-   the second.
+2. Sign-in screen → paste the address `pnpm laptop` printed into the top field,
+   and the token from `pnpm token` into the second.
 3. That is the last time you type it: the app stores the address
    (`sih.backend.url`) and the token, and both survive a relaunch.
 

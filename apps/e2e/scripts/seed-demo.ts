@@ -40,7 +40,20 @@ if (!argToken) {
 }
 const deviceToken: string = argToken;
 
-const say = (line: string): void => void process.stderr.write(`${line}\n`);
+/**
+ * The step being attempted, so a failure can name it.
+ *
+ * The last line printed already implies it, and that is exactly the sort of
+ * "you could have worked it out" that costs somebody twenty minutes. An upload
+ * failure and a datastore failure both arrive as `fetch failed`; which STEP was
+ * running is what separates "object storage is misconfigured" from "the
+ * database is unreachable".
+ */
+let currentStep = 'starting';
+const say = (line: string): void => {
+  currentStep = line.replace(/\.\.\.$/, '');
+  process.stderr.write(`${line}\n`);
+};
 
 // ---------------------------------------------------------------------------
 // People
@@ -418,7 +431,25 @@ main().catch((err: unknown) => {
    * answered nothing" shape this project has paid for more than once.
    */
   const cause = (err as { cause?: unknown }).cause;
-  process.stderr.write(`seed-demo failed: ${String(err)}\n`);
+  process.stderr.write(`\nseed-demo failed while: ${currentStep}\n`);
+  process.stderr.write(`  ${String(err)}\n`);
   if (cause) process.stderr.write(`  cause: ${String(cause)}\n`);
+
+  /**
+   * A NETWORK FAILURE HAS TWO CANDIDATE CAUSES AND THEY LOOK IDENTICAL.
+   *
+   * `DataError(0, ...)` means no HTTP response happened at all — the data layer
+   * says so structurally rather than in prose. From the seed's point of view
+   * that is either the API or object storage, and the step above is what tells
+   * them apart. Saying so here beats leaving the reader to infer it from which
+   * line stopped printing.
+   */
+  if ((err as { status?: number }).status === 0 || String(err).includes('fetch failed')) {
+    process.stderr.write(
+      '\n  Nothing answered. If it failed on avatars, posts or comments, the API is\n' +
+        '  fine and OBJECT STORAGE is not: check S3_ENDPOINT, the keys, and that the\n' +
+        '  bucket exists and is private. Earlier steps than that mean the API itself.\n',
+    );
+  }
   process.exit(1);
 });
