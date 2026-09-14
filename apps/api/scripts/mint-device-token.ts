@@ -62,7 +62,26 @@ async function main(): Promise<void> {
 
   await pool.end();
   process.stderr.write(`provisioned ${userId} as @${handle}\n`);
-  process.stdout.write(jwt.sign({ sub: userId, operator: false }, secret, { issuer, expiresIn: '2h' }));
+  /**
+   * TWO HOURS BY DEFAULT, and longer only where something asks for it.
+   *
+   * Two hours is right for a device pass on a CI runner: the job is twenty-five
+   * minutes and a credential that outlives it is a credential printed into a
+   * world-readable job summary for longer than it needs to be.
+   *
+   * It is wrong for a laptop, where the same two hours means signing the phone
+   * out over lunch — and the symptom, "the app stopped working", is
+   * indistinguishable from the backend being down. `scripts/mint-token.sh`
+   * asks for 30 days.
+   *
+   * The trade is stated rather than hidden: a longer-lived bearer token is a
+   * longer window for anyone who gets hold of it. On a home network, for a
+   * credential that never leaves it, that is a reasonable trade and it is the
+   * owner's to make. It ends when email/password identity lands and a token
+   * stops being the thing you carry around.
+   */
+  const ttl = process.env['TOKEN_TTL'] ?? '2h';
+  process.stdout.write(jwt.sign({ sub: userId, operator: false }, secret, { issuer, expiresIn: ttl }));
 }
 
 main().catch((err: unknown) => {

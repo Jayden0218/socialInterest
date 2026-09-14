@@ -121,9 +121,26 @@ Your phone must be on the same Wi-Fi. `Ctrl-C` stops it.
 `pnpm laptop` holds the terminal. In a **second tab**, from the same directory:
 
 ```bash
-pnpm token                       # prints a sign-in token for the phone
+pnpm token                       # prints a QR code, the address and the token
 pnpm seed:demo "<that token>"    # six people, fourteen posts, comments, places
 ```
+
+`pnpm token` prints **a QR code carrying both values**, then both as text. Scan
+it with the phone's camera, or copy the token straight to the clipboard:
+
+```bash
+pnpm --silent token | pbcopy
+```
+
+The token alone goes to stdout and everything else to stderr, so that pipe gets
+the token and not the banner around it. It is ~244 characters: reading it off a
+screen and typing it into a phone is a step that gets done wrong three times and
+then abandoned, and "invalid token" looks the same whether you mistyped it or
+misconfigured the backend.
+
+**It lasts 30 days**, not the two hours a CI device pass gets. Two hours on a
+laptop signs the phone out over lunch, and "the app stopped working" is
+indistinguishable from the backend being down. Override with `TOKEN_TTL`.
 
 The seed is not decoration. A fresh backend holds twelve catalogue interests and
 nothing else, so the first screen after signing in is an empty feed — which reads

@@ -27,14 +27,31 @@ set +a
 [ -n "${LOCAL_JWT_SECRET:-}" ] || { echo "✗ LOCAL_JWT_SECRET is not set in .env.local" >&2; exit 1; }
 [ -n "${DATABASE_URL:-}" ] || { echo "✗ DATABASE_URL is not set in .env.local" >&2; exit 1; }
 
-TOKEN="$(npx tsx apps/api/scripts/mint-device-token.ts "${1:-me}")"
+# 30 days, not the 2 hours a CI device pass wants. Two hours on a laptop means
+# the phone signs itself out over lunch, and "the app stopped working" is
+# indistinguishable from the backend being down.
+TOKEN="$(TOKEN_TTL="${TOKEN_TTL:-30d}" npx tsx apps/api/scripts/mint-device-token.ts "${1:-me}")"
 
-cat >&2 <<MSG
+# The same address `pnpm laptop` prints, worked out the same way — from the
+# routing table rather than a hardcoded en0, which is Wi-Fi on most Macs and
+# Ethernet on others.
+LAN_IFACE="$(route -n get default 2>/dev/null | awk '/interface:/{print $2}' || true)"
+LAN_IP=""
+[ -n "$LAN_IFACE" ] && LAN_IP="$(ipconfig getifaddr "$LAN_IFACE" 2>/dev/null || true)"
+[ -n "$LAN_IP" ] || LAN_IP="$(ipconfig getifaddr en0 2>/dev/null || true)"
+[ -n "$LAN_IP" ] || LAN_IP="$(ifconfig 2>/dev/null | awk '/inet /{if ($2 != "127.0.0.1") {print $2; exit}}' || true)"
+[ -n "$LAN_IP" ] || LAN_IP="$(hostname -I 2>/dev/null | awk '{print $1}' || true)"
+ADDRESS="http://${LAN_IP}:${API_PORT:-3000}/v1"
 
-  ┌──────────────────────────────────────────────────────────────
-  │  Paste this into the app's second field, with the address
-  │  \`pnpm laptop\` printed in the first.
-  └──────────────────────────────────────────────────────────────
+{
+  printf '\n  Scan this with the phone, or copy the two values below it.\n\n'
+  npx tsx apps/api/scripts/pair-qr.ts "$ADDRESS" "$TOKEN" 2>/dev/null || \
+    printf '  (could not render a QR code — use the values below)\n'
+  printf '\n  Server address  %s\n' "$ADDRESS"
+  printf '  Token           %s\n\n' "$TOKEN"
+  printf '  Copy just the token to the clipboard:  pnpm --silent token | pbcopy\n\n'
+} >&2
 
-MSG
+# The token alone on stdout, so `pnpm --silent token | pbcopy` copies the token
+# and not the banner around it.
 printf '%s\n' "$TOKEN"
