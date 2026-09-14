@@ -25,6 +25,29 @@ import { join } from 'node:path';
  *
  * To accept a deliberate change, run with `UPDATE_TESTID_SNAPSHOT=1` and commit
  * the snapshot in the SAME commit as the flow updates it requires.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * "ADDITIONS BUT NEVER REMOVALS" HAS A COST, AND IT CAME DUE IN 011
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * Because an addition never fails, nothing ever forces the snapshot to be
+ * updated — so it drifts, silently, for as long as nobody removes anything.
+ * 011 removed one id (`sign-in-token`, when the token field became an email
+ * address and a password) and the regeneration revealed the file was **nineteen
+ * ids behind**: 008's account privacy, appeals, collections, follow requests and
+ * moderation notices, plus 009's `sign-in-address` and `sign-in-change-server`,
+ * had never been recorded.
+ *
+ * That is not a tidiness problem. **The guard can only detect the removal of an
+ * id it knows about**, so for those nineteen it was not protecting anything —
+ * deleting `account-privacy-switch` would have passed here in silence, which is
+ * exactly the breaking change this file exists to stop.
+ *
+ * The permissiveness is still right: failing on every new testID would make the
+ * file red for every unrelated feature, which is how a signal stops being read
+ * (the same reasoning `surfaces.ts` uses for reporting rather than asserting).
+ * What is worth knowing is that the protection DECAYS between removals, and the
+ * remedy is cheap: regenerate when you add ids, not only when you take one away.
  */
 const SRC = join(__dirname, '..');
 const SNAPSHOT = join(__dirname, 'testid-snapshot.json');

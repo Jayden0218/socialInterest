@@ -69,6 +69,73 @@ paths:
 #     [x] GET    /me/collections/{id}/posts       008/FR-050
 # ---------------------------------------------------------------------------
 
+  # -------------------------------------------------------------------------
+  # FEATURE 011 — obtaining a credential.
+  #
+  # The only two WRITES in this document reachable without a credential. They are
+  # public by necessity rather than convenience: the only person who can use them
+  # is a person who holds none.
+  #
+  # US4 will add two more for the same reason — somebody who has forgotten their
+  # password holds no credential either. FR-023 says two now and four then, per
+  # releasable slice; its first version said "exactly two" full stop, which
+  # forbade the reset routes the same spec requires.
+  #
+  # In the BASE document rather than contracts/openapi.overlay.yaml: identity is
+  # the floor under the whole product, not a downstream fork's own feature. See
+  # specs/011/plan.md's Structure Decision for the sync conflict this buys and
+  # why it is worth it.
+  # -------------------------------------------------------------------------
+  /auth/sign-up:
+    post:
+      tags: [Auth]
+      summary: Create an account
+      security: []
+      description: >-
+        Serves 011/FR-001. Public. MAY say that an address is already in use — a
+        person choosing an address has to be told — which sign-in deliberately
+        may not (FR-009).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SignUpRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Credential' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409':
+          description: The address or handle was taken between validation and the write
+        '429': { description: Rate limited }
+
+  /auth/sign-in:
+    post:
+      tags: [Auth]
+      summary: Exchange an email address and password for a credential
+      security: []
+      description: >-
+        Serves 011/FR-008. Public. The 401 is identical for a wrong password and
+        for an address with no account — same message, same status, and in the
+        same time (FR-009, contracts/identity.md §4). Documenting two distinct
+        failures here would be a contract that REQUIRES the leak.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SignInRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Credential' }
+        '401':
+          description: That email address and password do not match an account
+        '429': { description: Rate limited }
+
   /me:
     get:
       tags: [People]
@@ -2050,6 +2117,42 @@ components:
         (FR-006, and 001's error-distinction table).
 
   schemas:
+    SignUpRequest:
+      type: object
+      required: [email, password, handle, displayName]
+      properties:
+        email: { type: string, format: email, maxLength: 320 }
+        password:
+          type: string
+          minLength: 10
+          maxLength: 1024
+          description: >-
+            The floor is stated in 011's Assumptions with the reasoning. No
+            composition rules: length dominates character-class requirements,
+            which mostly produce predictable substitutions.
+        handle: { type: string, pattern: '^[a-z0-9_]{3,30}$' }
+        displayName: { type: string, minLength: 1, maxLength: 50 }
+
+    SignInRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, maxLength: 320 }
+        password: { type: string, maxLength: 1024 }
+
+    Credential:
+      type: object
+      required: [token, userId, handle]
+      description: >-
+        What proves a person may act as a given user. Carries NO MORE authority
+        than the credential the device-token tool issues, and can never be an
+        operator — the method serving these routes has no parameter for one
+        (011/FR-025). Contains no password and no derived form of one.
+      properties:
+        token: { type: string }
+        userId: { type: string }
+        handle: { type: string }
+
 
     Problem:
       type: object

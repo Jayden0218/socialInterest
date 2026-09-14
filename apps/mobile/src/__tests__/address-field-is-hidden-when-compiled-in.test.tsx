@@ -16,11 +16,20 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import { SignInScreen } from '../features/auth/SignInScreen';
 
+/**
+ * 011 replaced the token field with an email address and a password. Nothing
+ * about the ADDRESS changed — it is still a compiled-in default, still hidden
+ * behind a quiet control, still repairable from inside the app — so this file's
+ * subject is unchanged and only the props it hands over moved.
+ */
 const props = {
-  token: '',
+  email: '',
+  password: '',
   submitting: false,
-  onTokenChange: () => undefined,
+  onEmailChange: () => undefined,
+  onPasswordChange: () => undefined,
   onSubmit: () => undefined,
+  onCreateAccount: () => undefined,
   address: 'http://192.168.1.42:3000/v1',
   onAddressChange: () => undefined,
 };
@@ -51,7 +60,13 @@ describe('the address field when a backend was compiled in', () => {
     // would disable the button on exactly the builds this exists for.
     let submitted = false;
     const { getByTestId } = render(
-      <SignInScreen {...props} token="a-token" onSubmit={() => (submitted = true)} addressFixed />,
+      <SignInScreen
+        {...props}
+        email="jo@example.com"
+        password="a-long-enough-password"
+        onSubmit={() => (submitted = true)}
+        addressFixed
+      />,
     );
     fireEvent.press(getByTestId('sign-in-submit'));
     expect(submitted).toBe(true);

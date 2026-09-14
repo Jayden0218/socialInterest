@@ -23,6 +23,7 @@ import { resolve } from 'node:path';
 import type { Page } from 'playwright';
 import { launchChromium } from '../support/browser';
 import { startWebServer } from '../support/web-server';
+import { giveCredentials } from '../support/people';
 import { startApi, stopApi } from '../support/api-process';
 import { resetStore } from '../support/reset';
 import { ensureJwtSecret } from '../support/secret';
@@ -172,7 +173,10 @@ async function main(): Promise<void> {
   await shot('sign-in');
 
   // ---- signed in
-  await page.fill(id('sign-in-token'), me.token);
+  // 011: the screen takes an email address and a password now (FR-027).
+  const capture = await giveCredentials(me.userId, me.handle);
+  await page.fill(id('sign-in-email'), capture.email);
+  await page.fill(id('sign-in-password'), capture.password);
   await click('sign-in-submit');
   await page.waitForSelector(id('sign-in-screen'), { state: 'detached', timeout: 20_000 });
 

@@ -20,8 +20,10 @@
  */
 import { Pool } from 'pg';
 import jwt from 'jsonwebtoken';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, randomBytes } from 'node:crypto';
 import { PersonRepository } from '../src/persistence/person.repository';
+import { CredentialRepository } from '../src/persistence/credential.repository';
+import { derivePassword } from '../src/modules/auth/password';
 
 const secret = process.env['LOCAL_JWT_SECRET'];
 if (!secret) {
@@ -48,20 +50,61 @@ async function main(): Promise<void> {
 
   const pool = new Pool({ connectionString: process.env['DATABASE_URL'] ?? '' });
 
-  await new PersonRepository(pool, tableName).create({
-    userId,
-    handle,
-    displayName: 'Device pass',
-    followerCount: 0,
-    followingCount: 0,
-    interestFollowCount: 0,
-    notificationPrefs: { reaction: true, comment: true, follow: true, message: true },
-    status: 'active',
-    createdAt: new Date().toISOString(),
-  });
+  /**
+   * 011. THE DEVICE PASS NOW SIGNS IN THROUGH THE PRODUCT PATH.
+   *
+   * Until 011 the app's first screen took a token, so this script minted one and
+   * the flows pasted it. That field is gone (FR-027) — the screen asks for an
+   * email address and a password like any other app — so a flow that pasted a
+   * token would be selecting a control that no longer exists, and every device
+   * journey would fail at flow 1.
+   *
+   * So this provisions a real CREDENTIAL as well, and the flows sign in with it.
+   * That is strictly better evidence: the pass now exercises the path a person
+   * takes rather than one built for it.
+   *
+   * The TOKEN is still printed on stdout and is still the only thing on stdout,
+   * because the fixture seeders are HTTP clients and need a bearer — they are
+   * not signing in, they are acting as this person. FR-026 is satisfied by the
+   * same fact: a credential issued directly still verifies.
+   *
+   * The password is random per run and is written to stderr. It is a real
+   * credential for a real account, so the runner masks it exactly as it masks
+   * the token.
+   */
+  const email = `${handle}@device.local`;
+  const password = randomBytes(18).toString('base64url');
+  const now = new Date().toISOString();
+
+  const people = new PersonRepository(pool, tableName);
+  const credentials = new CredentialRepository(pool, tableName);
+
+  await people.create(
+    {
+      userId,
+      handle,
+      displayName: 'Device pass',
+      followerCount: 0,
+      followingCount: 0,
+      interestFollowCount: 0,
+      notificationPrefs: { reaction: true, comment: true, follow: true, message: true },
+      status: 'active',
+      createdAt: now,
+    },
+    [
+      credentials.createItem({
+        userId,
+        emailFolded: CredentialRepository.fold(email),
+        password: await derivePassword(password),
+        createdAt: now,
+      }),
+    ],
+  );
 
   await pool.end();
   process.stderr.write(`provisioned ${userId} as @${handle}\n`);
+  process.stderr.write(`DEVICE_EMAIL=${email}\n`);
+  process.stderr.write(`DEVICE_PASSWORD=${password}\n`);
   /**
    * TWO HOURS BY DEFAULT, and longer only where something asks for it.
    *

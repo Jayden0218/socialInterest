@@ -2,9 +2,11 @@
 // with contracts/openapi.overlay.yaml merged in (see contracts/README.md).
 // Do not edit by hand. Run: pnpm --filter @sih/shared generate:client
 //
-// 91 operations across 66 paths.
+// 93 operations across 68 paths.
 
 export const operations = {
+  postAuthSignUp: { method: 'POST', path: '/auth/sign-up', auth: false }, // Create an account
+  postAuthSignIn: { method: 'POST', path: '/auth/sign-in', auth: false }, // Exchange an email address and password for a credential
   getMe: { method: 'GET', path: '/me', auth: true }, // Current person's profile and preferences
   patchMe: { method: 'PATCH', path: '/me', auth: true }, // Update display name, avatar, bio, or notification preferences
   deleteMe: { method: 'DELETE', path: '/me', auth: true }, // Delete the current account

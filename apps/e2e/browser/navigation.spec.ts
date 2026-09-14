@@ -3,6 +3,7 @@ import { launchChromium } from '../support/browser';
 import { startWebServer, type WebServer } from '../support/web-server';
 import { baseUrl } from '../support/base-url';
 import { actor } from '../support/client';
+import { giveCredentials } from '../support/people';
 import { publishReadyImage } from '../support/publish';
 
 /**
@@ -52,13 +53,37 @@ describe('browser journeys - the screens the shell could not reach', () => {
 
   const id = (testID: string) => `[data-testid="${testID}"]`;
 
-  async function signInThroughTheScreen(token: string): Promise<void> {
+  /**
+   * 011. SIGNS IN WITH AN EMAIL ADDRESS AND A PASSWORD, through the screen.
+   *
+   * The token field is gone (FR-027), so every caller now needs a credential
+   * rather than a bearer. `giveCredentials` attaches one to a fixture account
+   * that already exists — the fixtures still write their rows directly, because
+   * they provision a starting state rather than exercise sign-up.
+   */
+  /**
+   * Gives an actor a credential and signs in as them.
+   *
+   * `giveCredentials` is called HERE rather than inside `actor()` because most
+   * fixture actors are never signed in as — they are people the signed-in
+   * account interacts with — and a `scrypt` derivation each would be ~100ms
+   * spent writing rows nothing reads. Paying it at the point of use keeps the
+   * cost where the need is.
+   */
+  async function signInAs(who: { userId: string; handle: string }): Promise<void> {
+    const { email, password } = await giveCredentials(who.userId, who.handle);
+    await signInThroughTheScreen(email, password);
+  }
+
+  async function signInThroughTheScreen(email: string, password: string): Promise<void> {
     await page.goto(web.url, { waitUntil: 'domcontentloaded' });
     await page.click(id('open-sign-in'));
-    await page.fill(id('sign-in-token'), token);
+    await page.fill(id('sign-in-email'), email);
+    await page.fill(id('sign-in-password'), password);
     await page.click(id('sign-in-submit'));
-    // The sign-in screen closing is the assertion: signIn calls GET /v1/me with
-    // the token before storing it, so this only happens if the API accepted it.
+    // The sign-in screen closing is the assertion: the data layer calls
+    // GET /v1/me with the new credential before returning, so this only happens
+    // if the API both issued one and accepted it.
     await page.waitForSelector(id('sign-in-screen'), { state: 'detached', timeout: 20_000 });
 
     /**
@@ -95,7 +120,7 @@ describe('browser journeys - the screens the shell could not reach', () => {
 
   it('J-01 a person signs in by typing a token, and the API accepts it', async () => {
     const person = await actor('websignin');
-    await signInThroughTheScreen(person.token);
+    await signInAs(person);
 
     // Signed in, so the sign-in affordance is gone and the profile tab resolves.
     expect(await page.$(id('open-sign-in'))).toBeNull();
@@ -106,7 +131,8 @@ describe('browser journeys - the screens the shell could not reach', () => {
   it('a token the API rejects is reported, not silently stored', async () => {
     await page.goto(web.url, { waitUntil: 'domcontentloaded' });
     await page.click(id('open-sign-in'));
-    await page.fill(id('sign-in-token'), 'not-a-real-token');
+    await page.fill(id('sign-in-email'), 'nobody@example.com');
+    await page.fill(id('sign-in-password'), 'not-the-right-password');
     await page.click(id('sign-in-submit'));
 
     await page.waitForSelector(id('sign-in-error'), { timeout: 20_000 });
@@ -120,7 +146,7 @@ describe('browser journeys - the screens the shell could not reach', () => {
     const target = catalogue.items[0];
     expect(target).toBeDefined();
 
-    await signInThroughTheScreen(person.token);
+    await signInAs(person);
     await page.click(id('tab-discover'));
     await page.fill(id('interest-search-input'), target!.name.slice(0, 4));
     await page.waitForSelector(id('search-result-0'), { timeout: 20_000 });
@@ -147,7 +173,7 @@ describe('browser journeys - the screens the shell could not reach', () => {
     await reader.data.interests.follow(interestId);
     const postId = await publishReadyImage(author, [interestId], { caption: 'comment me' });
 
-    await signInThroughTheScreen(reader.token);
+    await signInAs(reader);
     await page.click(id('tab-feed'));
     await page.waitForSelector(id(`post-${postId}`), { timeout: 30_000 });
     await page.click(id(`post-${postId}`));
@@ -173,7 +199,7 @@ describe('browser journeys - the screens the shell could not reach', () => {
     await reader.data.interests.follow(interestId);
     const postId = await publishReadyImage(author, [interestId], { caption: 'react to me' });
 
-    await signInThroughTheScreen(reader.token);
+    await signInAs(reader);
     await page.click(id('tab-feed'));
     await page.waitForSelector(id(`post-${postId}`), { timeout: 30_000 });
     await page.click(id(`post-${postId}`));
@@ -206,7 +232,7 @@ describe('browser journeys - the screens the shell could not reach', () => {
       await new Promise((r) => setTimeout(r, 500));
     }
 
-    await signInThroughTheScreen(author.token);
+    await signInAs(author);
     await page.click(id('tab-notifications'));
     await page.waitForSelector(id('notification-0'), { timeout: 30_000 });
     await page.click(id('notification-0'));
@@ -224,7 +250,7 @@ describe('browser journeys - the screens the shell could not reach', () => {
     await author.data.interests.follow(interestId);
     const postId = await publishReadyImage(author, [interestId], { caption: 'before' });
 
-    await signInThroughTheScreen(author.token);
+    await signInAs(author);
     await page.click(id('tab-feed'));
     await page.waitForSelector(id(`post-${postId}`), { timeout: 30_000 });
     await page.click(id(`post-${postId}`));
@@ -244,7 +270,7 @@ describe('browser journeys - the screens the shell could not reach', () => {
 
   it('a person edits their profile, including a notification preference', async () => {
     const person = await actor('webeditprofile');
-    await signInThroughTheScreen(person.token);
+    await signInAs(person);
     await page.click(id('tab-profile'));
     await page.waitForSelector(id('open-edit-profile'), { timeout: 20_000 });
     await page.click(id('open-edit-profile'));
@@ -282,7 +308,7 @@ describe('browser journeys - the screens the shell could not reach', () => {
     await reader.data.interests.follow(interestId);
     const postId = await publishReadyImage(author, [interestId], { caption: 'report me' });
 
-    await signInThroughTheScreen(reader.token);
+    await signInAs(reader);
     await page.click(id('tab-feed'));
     await page.waitForSelector(id(`post-${postId}`), { timeout: 30_000 });
     await page.click(id(`post-${postId}`));
@@ -309,7 +335,7 @@ describe('browser journeys - the screens the shell could not reach', () => {
     const me = await actor('webchatme');
     const them = await actor('webchatthem');
 
-    await signInThroughTheScreen(me.token);
+    await signInAs(me);
 
     // Seeded server-side so this case is about the INBOX route specifically;
     // the profile route into a conversation is the next case.
@@ -343,7 +369,7 @@ describe('browser journeys - the screens the shell could not reach', () => {
     await me.data.interests.follow(interestId);
     const postId = await publishReadyImage(them, [interestId], { caption: 'find the author' });
 
-    await signInThroughTheScreen(me.token);
+    await signInAs(me);
     await page.click(id('tab-feed'));
     await page.waitForSelector(id(`post-${postId}`), { timeout: 30_000 });
     await page.click(id(`post-${postId}`));
@@ -396,7 +422,7 @@ describe('browser journeys - the screens the shell could not reach', () => {
       placeId: place.placeId,
     });
 
-    await signInThroughTheScreen(viewer.token);
+    await signInAs(viewer);
     await page.click(id('tab-feed'));
     await page.waitForSelector(id(`post-${postId}`), { timeout: 30_000 });
     await page.click(id(`post-${postId}`));
@@ -438,7 +464,7 @@ describe('browser journeys - the screens the shell could not reach', () => {
     await saver.data.interests.follow(interestId);
     const postId = await publishReadyImage(author, [interestId], { caption: 'save me' });
 
-    await signInThroughTheScreen(saver.token);
+    await signInAs(saver);
     await page.click(id('tab-feed'));
     await page.waitForSelector(id(`post-${postId}`), { timeout: 30_000 });
     await page.click(id(`post-${postId}`));
@@ -495,7 +521,7 @@ describe('browser journeys - the screens the shell could not reach', () => {
     await a.data.people.follow(me.handle);
     await b.data.people.follow(me.handle);
 
-    await signInThroughTheScreen(me.token);
+    await signInAs(me);
     await page.click(id('tab-chats'));
     await page.waitForSelector(id('inbox-screen'), { timeout: 20_000 });
 

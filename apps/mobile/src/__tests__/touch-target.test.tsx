@@ -71,9 +71,29 @@ describe('every control is reliably tappable', () => {
    *   waterfall, measured — which is a layout regression to satisfy a guard.
    * - The compose square's ART is 46x34; the target is not.
    */
-  const SLOP_TARGETS: { file: string; label: string; boxHeight: number; boxWidth: number; slop: { top: number; bottom: number; left: number; right: number } }[] = [
+  /**
+   * `match` IS WHY THIS LIST IS KEYED PER CONTROL AND NOT PER FILE.
+   *
+   * The check below used to accept any `hitSlop` Pressable in a LISTED FILE,
+   * which is the same weakness 007 removed from the sized-control branch —
+   * "Touch targets were checked PER FILE. One sized control approved every
+   * other one in the same file, and the tab bar alone holds six."
+   *
+   * It was found by adding a second slop control to `SignInScreen.tsx` (011's
+   * "Create an account") and watching the guard stay green: the file was
+   * already listed for "use a different server", so nobody ever did the
+   * arithmetic for the new one. A guard that approves a FILE cannot tell a
+   * measured control from an unmeasured one beside it.
+   *
+   * `match` is the testID, or its leading literal where the id is built from a
+   * template — the same rule `verify-maestro-ids` follows, for the same reason:
+   * it is what a reader can see in a `testID=` position without following a
+   * function call.
+   */
+  const SLOP_TARGETS: { file: string; match: string; label: string; boxHeight: number; boxWidth: number; slop: { top: number; bottom: number; left: number; right: number } }[] = [
     {
       file: 'src/components/InterestWord.tsx',
+      match: 'interest-chip-',
       label: 'the interest word',
       // The line box IS the height: a <Text> with no padding.
       boxHeight: typeScale.small.lineHeight,
@@ -85,6 +105,7 @@ describe('every control is reliably tappable', () => {
     },
     {
       file: 'src/features/conversations/ConversationScreen.tsx',
+      match: 'report-message-',
       label: 'report this message',
       // A `small` line box; 10pt of slop gave 36 and this guard said so.
       boxHeight: typeScale.small.lineHeight,
@@ -93,6 +114,7 @@ describe('every control is reliably tappable', () => {
     },
     {
       file: 'src/features/auth/SignInScreen.tsx',
+      match: 'sign-in-change-server',
       label: 'use a different server',
       // A `small` line box, and a `minWidth` the style actually declares —
       // registering a width the control does not enforce would be the shape
@@ -103,7 +125,27 @@ describe('every control is reliably tappable', () => {
       slop: { top: 14, bottom: 14, left: 14, right: 14 },
     },
     {
+      file: 'src/features/auth/SignInScreen.tsx',
+      match: 'sign-in-create-account',
+      label: 'create an account',
+      // A `body` line box this time, not `small` — the control is the ordinary
+      // way to the other screen rather than a quiet repair, so it is sized to
+      // be read. The arithmetic is still done rather than assumed.
+      boxHeight: typeScale.body.lineHeight,
+      boxWidth: MIN_TOUCH_TARGET,
+      slop: { top: 14, bottom: 14, left: 14, right: 14 },
+    },
+    {
+      file: 'src/features/auth/SignUpScreen.tsx',
+      match: 'sign-up-to-sign-in',
+      label: 'sign in instead',
+      boxHeight: typeScale.body.lineHeight,
+      boxWidth: MIN_TOUCH_TARGET,
+      slop: { top: 14, bottom: 14, left: 14, right: 14 },
+    },
+    {
       file: 'src/App.tsx',
+      match: 'open-compose',
       label: 'the compose square',
       boxHeight: 34 + (MIN_TOUCH_TARGET - 34),
       boxWidth: 46,
@@ -170,7 +212,10 @@ describe('every control is reliably tappable', () => {
          * somebody does the sum and adds it — which is the point.
          */
         if (/hitSlop/.test(tag)) {
-          if (!SLOP_TARGETS.some((t) => t.file === rel)) {
+          // PER CONTROL, not per file — see the note on SLOP_TARGETS. Matching
+          // the file alone let a second slop control ride in on the first one's
+          // arithmetic, which is how this was found.
+          if (!SLOP_TARGETS.some((t) => t.file === rel && tag.includes(t.match))) {
             offenders.push(`${rel}:${line} (hitSlop, unmeasured — add it to SLOP_TARGETS)`);
           }
           continue;

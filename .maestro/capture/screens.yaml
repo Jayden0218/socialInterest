@@ -30,8 +30,11 @@ appId: app.socialinterest
 # With the keyboard UP, which is the state no browser can show and the one that
 # cost four runs. Captured before submitting, so the fold is real.
 - tapOn:
-    id: "sign-in-token"
-- inputText: ${TOKEN}
+    id: "sign-in-email"
+- inputText: ${EMAIL}
+- tapOn:
+    id: "sign-in-password"
+- inputText: ${PASSWORD}
 - takeScreenshot: 03-sign-in-keyboard-up
 
 - hideKeyboard

@@ -23,8 +23,11 @@ appId: app.socialinterest
 - tapOn:
     id: "open-sign-in"
 - tapOn:
-    id: "sign-in-token"
-- inputText: ${COLD_TOKEN}
+    id: "sign-in-email"
+- inputText: ${COLD_EMAIL}
+- tapOn:
+    id: "sign-in-password"
+- inputText: ${COLD_PASSWORD}
 - tapOn:
     id: "sign-in-submit"
 

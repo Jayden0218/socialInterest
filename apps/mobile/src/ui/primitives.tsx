@@ -202,6 +202,9 @@ export function Field({
   multiline = false,
   maxLength,
   editable,
+  secureTextEntry,
+  keyboardType,
+  textContentType,
   style,
 }: {
   value: string;
@@ -213,6 +216,25 @@ export function Field({
   maxLength?: number;
   /** 007/T052. A composer is disabled when the server says the viewer cannot send. */
   editable?: boolean;
+  /**
+   * 011. MASKS THE VALUE. A password field that renders in the clear is a
+   * defect, not a styling choice: it is readable over a shoulder and it is
+   * captured by a screenshot.
+   *
+   * Added to the primitive rather than by dropping a raw `TextInput` into the
+   * sign-up screen — `no-hardcoded-style` and `text-has-colour` exist because
+   * the one file that defines how a control looks is the one place a value can
+   * drift out of, and a second kind of field would be a second answer to "what
+   * does a field look like".
+   */
+  secureTextEntry?: boolean;
+  /** An email keyboard for an email field. Cosmetic on the web, real on a device. */
+  keyboardType?: 'default' | 'email-address';
+  /**
+   * Lets the platform offer a saved password or a generated one. `newPassword`
+   * on sign-up and `password` on sign-in are what tell it which.
+   */
+  textContentType?: 'emailAddress' | 'password' | 'newPassword';
   /** `TextStyle`, not `ViewStyle`: a field is text, and `textAlignVertical`
    *  is what keeps a multiline one from centring its first line on Android. */
   style?: TextStyle;
@@ -230,6 +252,9 @@ export function Field({
       multiline={multiline}
       {...(maxLength === undefined ? {} : { maxLength })}
       {...(editable === undefined ? {} : { editable })}
+      {...(secureTextEntry === undefined ? {} : { secureTextEntry })}
+      {...(keyboardType === undefined ? {} : { keyboardType })}
+      {...(textContentType === undefined ? {} : { textContentType })}
       style={{
         backgroundColor: palette.bg.sunken,
         borderRadius: multiline ? radius.card : radius.field,

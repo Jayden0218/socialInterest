@@ -42,7 +42,13 @@ function fakeData(over: Partial<Record<string, unknown>> = {}): AppData {
     client: { call: async () => ({}) },
     session: {
       isSignedIn: async () => false,
-      signIn: async () => me,
+      // 011 split the one `signIn` into the product path and the developer one.
+      // Both are stubbed: a stub that agrees with an older shape is the
+      // `ApiPage<T>` failure in miniature — it agrees with the test and not with
+      // the server, and 007 shipped five features of green tests that way.
+      signInWithPassword: async () => me,
+      signUp: async () => me,
+      signInWithToken: async () => me,
       me: async () => me,
       signOut: async () => undefined,
       updateProfile: async () => me,
@@ -152,7 +158,9 @@ describe('the shell reaches every screen', () => {
     });
     expect(screen.getByTestId('sign-in-screen')).toBeTruthy();
 
-    fireEvent.changeText(screen.getByTestId('sign-in-token'), 'a-token');
+    // 011: an email address and a password, not a token (FR-027).
+    fireEvent.changeText(screen.getByTestId('sign-in-email'), 'jo@example.com');
+    fireEvent.changeText(screen.getByTestId('sign-in-password'), 'a-long-enough-password');
     // signIn resolves on a promise, and the state updates it causes land outside
     // any act() boundary that fireEvent opened. Settling the chain inside act
     // makes the result observable synchronously; a polling waitFor races it and
@@ -166,24 +174,27 @@ describe('the shell reaches every screen', () => {
     expect(screen.queryByTestId('open-sign-in')).toBeNull();
   });
 
-  it('surfaces a rejected token instead of storing it', async () => {
+  it('surfaces a rejected credential instead of storing it', async () => {
     const data = fakeData({
       session: {
         isSignedIn: async () => false,
-        signIn: async () => {
-          throw new Error('That token was not accepted.');
+        signInWithPassword: async () => {
+          throw new Error('That email address and password do not match an account.');
         },
       },
     });
     renderShell(data);
     fireEvent.press(screen.getByTestId('open-sign-in'));
-    fireEvent.changeText(screen.getByTestId('sign-in-token'), 'bad');
+    fireEvent.changeText(screen.getByTestId('sign-in-email'), 'nobody@example.com');
+    fireEvent.changeText(screen.getByTestId('sign-in-password'), 'not-the-right-one');
     await act(async () => {
       fireEvent.press(screen.getByTestId('sign-in-submit'));
     });
 
     expect(screen.getByTestId('sign-in-error')).toBeTruthy();
-    // Still on the sign-in screen: a rejected token must not look like success.
+    // Still on the sign-in screen: a rejected credential must not look like
+    // success. This is the path FR-013 depends on — the app returning somebody
+    // to sign-in WITH AN EXPLANATION rather than rendering an empty product.
     expect(screen.getByTestId('sign-in-screen')).toBeTruthy();
   });
 

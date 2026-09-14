@@ -5,24 +5,50 @@ import { MIN_TOUCH_TARGET } from '../../ui/tokens';
 import { Banner, Button, Field, Screen } from '../../ui/primitives';
 
 /**
- * Sign in on the `local` runtime profile.
+ * Sign in with an email address and a password (011/FR-027).
  *
- * There is no hosted identity provider - `RUNTIME_PROFILE=local` issues its own
- * JWTs - so this takes a token directly rather than pretending to run an OAuth
- * flow that does not exist. When a real issuer arrives this screen is what gets
- * replaced, and nothing behind it changes: everything downstream only ever sees
- * `session.signIn(token)`.
+ * ────────────────────────────────────────────────────────────────────────────
+ * WHAT THIS REPLACES, AND WHY IT WAS NEVER A PRODUCT
+ * ────────────────────────────────────────────────────────────────────────────
  *
- * It is deliberately a screen and not a hidden test hook. J-01 is a journey a
- * person performs, and a device pass that seeds a token behind the UI would
- * prove the token store works while proving nothing about signing in.
+ * Until 011 this screen asked for a TOKEN: a 244-character string a developer
+ * minted with a script and handed over. That is correct for a device pass on a
+ * CI runner and it is not something any consumer app has ever asked of anybody.
+ * Every other capability was built — publishing, a ranked feed, comments,
+ * follows, messages, saving, reporting, appeals, all of it verified on a
+ * physical Android device — and the first screen still asked the person to do
+ * the one thing they could not do.
+ *
+ * `pnpm token` still works and still mints credentials for device passes
+ * (FR-026); it is simply no longer how a person gets in.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * THE SUBMIT IS ABOVE THE FIELDS. THIS IS AN INVARIANT, NOT A PREFERENCE.
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * Runs 39, 40 and 41 each spent about twenty minutes signed out because the
+ * submit sat below the fold once the soft keyboard opened, on a screen that
+ * deliberately does not scroll. The guard written to catch it measured against
+ * an INVENTED constant — "a keyboard takes 250 points" — and passed through two
+ * of those runs while the device failed identically, because react-native-web
+ * has no soft keyboard and no browser measurement can ever supply that number.
+ *
+ * A control ABOVE the fields cannot be covered by a keyboard that opens below
+ * them, at any keyboard height, under `adjustResize` and `adjustPan` alike.
+ * **This screen now has two fields where it had one**, which moves the fold —
+ * and cannot move a control that is above both. That is precisely what the
+ * invariant was for.
  */
 export interface SignInScreenProps {
-  token: string;
+  email: string;
+  password: string;
   submitting: boolean;
   error?: string | null;
-  onTokenChange: (next: string) => void;
+  onEmailChange: (next: string) => void;
+  onPasswordChange: (next: string) => void;
   onSubmit: () => void;
+  /** FR-028. Moving to sign-up carries the address already typed. */
+  onCreateAccount: () => void;
   /**
    * The backend this app talks to (009/US1, FR-001).
    *
@@ -44,16 +70,22 @@ export interface SignInScreenProps {
    * Hides the address field behind a quiet control rather than removing it: the
    * address is a default, not a pin, and a build that cannot be re-pointed from
    * inside itself is unrecoverable when a laptop's lease moves.
+   *
+   * FR-029 — the address stays reachable and stops being part of the ordinary
+   * path. Those are two requirements and this prop is where they meet.
    */
   addressFixed?: boolean;
 }
 
 export function SignInScreen({
-  token,
+  email,
+  password,
   submitting,
   error,
-  onTokenChange,
+  onEmailChange,
+  onPasswordChange,
   onSubmit,
+  onCreateAccount,
   address,
   onAddressChange,
   addressFixed = false,
@@ -61,18 +93,6 @@ export function SignInScreen({
   const configurable = typeof onAddressChange === 'function';
 
   /**
-   * A BUILD THAT KNOWS WHERE ITS SERVER IS SHOULD NOT OPEN BY ASKING.
-   *
-   * When an address was compiled in, the field starts hidden — opening the app
-   * is then "sign in", not "configure a client". That is the whole difference
-   * between this and a developer tool.
-   *
-   * It is HIDDEN AND NOT REMOVED, deliberately. The address is a default rather
-   * than a pin (009/US1), and the case that makes the difference is mundane: a
-   * laptop whose DHCP lease moves leaves an APK that can reach nothing. Removing
-   * the control would make that unrecoverable without a rebuild — a product
-   * that cannot be repaired from inside itself.
-   *
    * Every hook stays above every return, per `hooks-before-return.test.ts`: a
    * hook after an early return is "Rendered more hooks than during the previous
    * render", and after the final one it is dead code that looks like a feature.
@@ -80,6 +100,9 @@ export function SignInScreen({
   const [addressRevealed, setAddressRevealed] = useState(!addressFixed);
   const showAddressField = configurable && addressRevealed;
   const addressReady = !configurable || (address ?? '').trim().length > 0;
+  const canSubmit =
+    !submitting && email.trim().length > 0 && password.length > 0 && addressReady;
+
   return (
     /**
      * NOT `scroll`, and that is a measured decision rather than a default.
@@ -93,47 +116,6 @@ export function SignInScreen({
      * earns the prop.
      */
     <Screen testID="sign-in-screen">
-      {/*
-        TOP-ALIGNED, and NOT centred — measured, not assumed.
-        
-        The first version of this screen used `flexGrow: 1, justifyContent:
-        'center'`, which looks right on a tall phone and puts the submit button
-        at y=365..409 once the soft keyboard takes 250 points of a 640pt screen.
-        Nineteen points below the fold, on a screen that deliberately does not
-        scroll (run 36) — so Maestro cannot tap it, and neither can a person.
-        Run 39 spent nineteen minutes signed out for that reason: `GET
-        /v1/feed/home` 401 once a minute for the whole run, and not one
-        `GET /v1/me` from the device.
-        
-        `signin-fit.spec.ts` measures this at the keyboard-up viewport now.
-      */}
-      {/*
-        THE SUBMIT IS ABOVE THE FIELD, and that is an INVARIANT rather than a
-        measurement — runs 39, 40 and 41 are why.
-
-        Every one of those runs spent twenty minutes signed out, and run 41's
-        flow log finally named the step: Maestro TAPPED `sign-in-token` and then
-        could not find `sign-in-submit` for 54 seconds. `uiautomator` only
-        reports nodes inside the visible window, so the button was under the
-        soft keyboard — which opens beneath the field being typed into.
-
-        My first fix top-aligned the form and shrank the field, and
-        `signin-fit.spec.ts` said it fit: the browser reflows at 320x390 and the
-        button landed at 363. The device disagreed twice. The guard was not
-        simulating badly — it was measuring against a GUESS at the keyboard's
-        height, and the guess was wrong. react-native-web has no soft keyboard,
-        so no browser measurement can supply that number.
-
-        So the layout stops depending on it. A control ABOVE the field cannot be
-        covered by a keyboard that opens below the field: if the field is
-        reachable at all — and it demonstrably was, three runs running — then so
-        is the button. That holds under `adjustResize` and `adjustPan` alike and
-        at any keyboard height, which is what makes it an invariant and not
-        another number to be wrong about.
-
-        It also matches what the rest of 007 does: Save, Share, Next and Create
-        are all header controls on their screens.
-      */}
       <View
         style={{
           flexDirection: 'row',
@@ -146,8 +128,8 @@ export function SignInScreen({
         <Text style={{ ...textStyle.title, color: palette.text.primary }}>Sign in</Text>
         <Button
           testID="sign-in-submit"
-          label={submitting ? 'Signing in…' : 'Get started'}
-          disabled={submitting || token.trim().length === 0 || !addressReady}
+          label={submitting ? 'Signing in…' : 'Sign in'}
+          disabled={!canSubmit}
           onPress={onSubmit}
         />
       </View>
@@ -172,31 +154,6 @@ export function SignInScreen({
           Photos and video from people deep in the things they love.
         </Text>
 
-        <Text style={{ ...textStyle.caption, color: palette.text.muted }}>
-          {!configurable
-            ? 'This build talks to a local API. Paste a token to continue.'
-            : addressRevealed
-              ? 'Point this app at a server, then paste a token from it.'
-              : 'Paste a token to continue.'}
-        </Text>
-
-        {/*
-          THE SUBMIT IS STILL ABOVE BOTH FIELDS, and adding a field here is
-          exactly why that invariant was worth having.
-
-          Runs 39, 40 and 41 each spent about twenty minutes signed out because
-          the submit sat below the fold once the soft keyboard opened, on a
-          screen that deliberately does not scroll. The guard written to catch it
-          measured against an INVENTED constant — "a keyboard takes 250 points" —
-          and passed through two of those runs while the device failed
-          identically, because react-native-web has no soft keyboard and no
-          browser measurement can ever supply that number.
-
-          A control above the fields cannot be covered by a keyboard that opens
-          below them, at any keyboard height, under `adjustResize` and
-          `adjustPan` alike. Adding a second field moves the fold; it cannot move
-          a control that is above both.
-        */}
         {showAddressField ? (
           <Field
             testID="sign-in-address"
@@ -208,15 +165,23 @@ export function SignInScreen({
         ) : null}
 
         <Field
-          testID="sign-in-token"
-          accessibilityLabel="Access token"
-          value={token}
-          onChangeText={onTokenChange}
-          placeholder="Access token"
-          multiline
-          // 64, not 96. A token is one long string; the extra 32 points bought
-          // nothing and spent the button's headroom.
-          style={{ minHeight: 64, textAlignVertical: 'top' }}
+          testID="sign-in-email"
+          accessibilityLabel="Email address"
+          value={email}
+          onChangeText={onEmailChange}
+          placeholder="Email address"
+          keyboardType="email-address"
+          textContentType="emailAddress"
+        />
+
+        <Field
+          testID="sign-in-password"
+          accessibilityLabel="Password"
+          value={password}
+          onChangeText={onPasswordChange}
+          placeholder="Password"
+          secureTextEntry
+          textContentType="password"
         />
 
         {error ? (
@@ -224,6 +189,25 @@ export function SignInScreen({
             {error}
           </Banner>
         ) : null}
+
+        {/*
+          FR-028. The email survives the move, which is the whole reason this is
+          a control on the screen rather than a separate entry point: somebody
+          who typed an address, was told it has no account, and has to type it
+          again has been made to pay for the app's uncertainty.
+        */}
+        <Pressable
+          testID="sign-in-create-account"
+          accessibilityRole="button"
+          accessibilityLabel="Create an account"
+          onPress={onCreateAccount}
+          style={{ minWidth: MIN_TOUCH_TARGET, alignSelf: 'center' }}
+          hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+        >
+          <Text style={{ ...textStyle.body, color: palette.intent.accent, textAlign: 'center' }}>
+            Create an account
+          </Text>
+        </Pressable>
 
         {/*
           The way back, and the reason it is small rather than absent.
@@ -247,10 +231,6 @@ export function SignInScreen({
              * touch-target guard does the arithmetic and registers this control
              * in SLOP_TARGETS, and it refused the first version for having a
              * width nothing enforced.
-             *
-             * `hitSlop` rather than padding, because 007 measured the interest
-             * word occupying 44 points of LAYOUT for a 16pt word: at the feed's
-             * size that was the difference between two posts visible and four.
              */
             style={{ minWidth: MIN_TOUCH_TARGET, alignSelf: 'center' }}
             hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}

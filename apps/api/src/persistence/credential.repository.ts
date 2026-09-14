@@ -81,6 +81,21 @@ export class CredentialRepository extends BaseRepository {
    * can sign in as a person who does not exist, and a person written separately
    * has an outcome where somebody holds a handle they can never sign in to.
    */
+  /**
+   * Writes a credential on its own, for an account that already exists.
+   *
+   * FOR FIXTURES AND THE DEVICE-PASS SCRIPT ONLY. Sign-up must never use this:
+   * there the credential, the handle claim and the person are one transaction,
+   * and a credential written separately has an outcome where somebody can sign
+   * in as a person who does not exist.
+   */
+  async put(item: CredentialItem): Promise<void> {
+    await this.putItem(
+      { ...keys.credentialByEmail(item.emailFolded), type: 'Credential', ...item },
+      'attribute_not_exists(pk)',
+    );
+  }
+
   createItem(item: CredentialItem): TransactionItems[number] {
     return {
       Put: {

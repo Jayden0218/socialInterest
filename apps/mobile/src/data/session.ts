@@ -2,6 +2,19 @@ import type { PublicProfile } from '@sih/shared';
 import type { DataClient, TokenStore } from './client';
 
 /**
+ * What `POST /auth/sign-up` and `POST /auth/sign-in` return.
+ *
+ * NO PASSWORD AND NO DERIVED FORM OF ONE, in either direction — FR-016, and the
+ * contract says so too. A type that could carry one is a type somebody can
+ * populate.
+ */
+export interface Credential {
+  token: string;
+  userId: string;
+  handle: string;
+}
+
+/**
  * GET /me returns more than PublicProfile: the counts and preferences that are
  * only yours to see. Typing it as PublicProfile would have hidden those fields
  * from every caller.
@@ -50,7 +63,62 @@ export class SessionData {
     private readonly tokens: TokenStore = client.tokens,
   ) {}
 
-  async signIn(token: string): Promise<MyProfile> {
+  /**
+   * 011/FR-001. Creates an account and lands holding its credential.
+   *
+   * The credential is stored BEFORE `me()` is called, because `me()` is an
+   * authenticated request and has nothing to send otherwise — the same order
+   * `signInWithToken` uses, and for the same reason.
+   */
+  async signUp(input: {
+    email: string;
+    password: string;
+    handle: string;
+    displayName: string;
+  }): Promise<MyProfile> {
+    const credential = await this.client.call<Credential>('postAuthSignUp', { body: input });
+    return this.adopt(credential);
+  }
+
+  /**
+   * 011/FR-008. The ordinary way in.
+   *
+   * NAMED `signInWithPassword`, and the token version keeps its own name rather
+   * than this one gaining an overload. They are different acts: one is a person
+   * proving who they are, the other is a developer pasting a credential a script
+   * minted. Collapsing them into one `signIn(emailOrToken)` is how the developer
+   * path quietly becomes the product path — the distinction `issueForTesting`
+   * is named to preserve, on the client side.
+   */
+  async signInWithPassword(email: string, password: string): Promise<MyProfile> {
+    const credential = await this.client.call<Credential>('postAuthSignIn', {
+      body: { email, password },
+    });
+    return this.adopt(credential);
+  }
+
+  private async adopt(credential: Credential): Promise<MyProfile> {
+    await this.tokens.set(credential.token);
+    try {
+      return await this.me();
+    } catch (err) {
+      // Same reasoning as `signInWithToken`: never leave a credential the
+      // server will reject sitting in the store, or the next call fails the
+      // same way and looks like a different problem.
+      await this.tokens.set(null);
+      throw err;
+    }
+  }
+
+  /**
+   * THE DEVELOPER PATH, and it keeps working (011/FR-026).
+   *
+   * `pnpm token` still mints a credential for a device pass, and the emulator
+   * journeys and the laptop runbook both depend on it. It is no longer the
+   * ordinary way in — that is `signInWithPassword` — which is why it is named
+   * for what it is rather than being the plain `signIn`.
+   */
+  async signInWithToken(token: string): Promise<MyProfile> {
     await this.tokens.set(token);
     try {
       return await this.me();

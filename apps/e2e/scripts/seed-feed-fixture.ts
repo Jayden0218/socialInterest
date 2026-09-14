@@ -31,6 +31,7 @@
  */
 import { createAppData, MemoryTokenStore } from '@sih/mobile/data';
 import { actor } from '../support/client';
+import { giveCredentials } from '../support/people';
 import { baseUrl } from '../support/base-url';
 import { publishReadyImage } from '../support/publish';
 
@@ -73,6 +74,15 @@ async function main(): Promise<void> {
   process.stdout.write(`AUTHOR=${author.handle}\n`);
   process.stdout.write(`INTEREST=${interest.name}\n`);
   process.stdout.write(`COLD_TOKEN=${newcomer.token}\n`);
+  /**
+   * 011. The cold-start flow signs in on the DEVICE, so it needs a credential
+   * rather than a token — FR-027 replaced the token field with an email address
+   * and a password. The token is still printed because the fixture seeders use
+   * it as a bearer; they are acting AS this person, not signing in.
+   */
+  const coldCredentials = await giveCredentials(newcomer.userId, newcomer.handle);
+  process.stdout.write(`COLD_EMAIL=${coldCredentials.email}\n`);
+  process.stdout.write(`COLD_PASSWORD=${coldCredentials.password}\n`);
 }
 
 main().catch((err: unknown) => {

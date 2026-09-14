@@ -61,6 +61,23 @@ describe('008/SC-008 one profile projection', () => {
          * the next one from being noise.
          */
         if (/\bhandle\s*:\s*string\b/.test(line)) return;
+        /**
+         * A VALIDATION SCHEMA IS NOT A PROJECTION EITHER, and it points the
+         * opposite way.
+         *
+         * 011's sign-up schema declares `handle: z.string()` beside
+         * `displayName: z.string()` and tripped this guard on its first run —
+         * correctly by the rule, wrongly by the purpose, which is the second
+         * time that has happened here and the reason the exemption above exists.
+         *
+         * This guard exists to stop a `PublicProfile` being assembled by hand on
+         * the way OUT, because `profile.projection.ts` is the one place that may
+         * do it and a second place is how `avatarUrl` shipped as a raw storage
+         * key. A zod schema describes what may come IN. It builds nothing,
+         * returns nothing, and cannot leak a field, because its whole job is to
+         * refuse fields it does not name.
+         */
+        if (/\bhandle\s*:\s*z\./.test(line)) return;
         // A WINDOW, not a line. Four lines covers every hand-built literal in
         // this codebase, one-line and multi-line alike, without reaching across
         // unrelated object boundaries.

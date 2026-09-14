@@ -90,11 +90,11 @@ the feed, and never be shown a token or a server address.
 
 ### The app
 
-- [ ] T018 [P] [US1] Add `signUp` to `apps/mobile/src/data/session.ts` beside the existing `signIn`/`signOut`
-- [ ] T019 [US1] Build `apps/mobile/src/features/auth/SignUpScreen.tsx` — email, password, handle, display name. **The submit stays ABOVE the fields**: runs 39–41 were spent signed out because a submit fell below the fold once the keyboard opened, on a screen that does not scroll, and a control above the fields cannot be covered by a keyboard that opens below them at any keyboard height
-- [ ] T020 [US1] Build `apps/mobile/src/screens/SignUpContainer.tsx`, with every hook above every return per `hooks-before-return.test.ts`
-- [ ] T021 [US1] Show the password floor **before** submission rather than only in a refusal (FR-005)
-- [ ] T022 [US1] Preserve the rest of the form when one field is refused (FR-007)
+- [X] T018 [P] [US1] Add `signUp` to `apps/mobile/src/data/session.ts` beside the existing `signIn`/`signOut`
+- [X] T019 [US1] Build `apps/mobile/src/features/auth/SignUpScreen.tsx` — email, password, handle, display name. **The submit stays ABOVE the fields**: runs 39–41 were spent signed out because a submit fell below the fold once the keyboard opened, on a screen that does not scroll, and a control above the fields cannot be covered by a keyboard that opens below them at any keyboard height
+- [X] T020 [US1] Build `apps/mobile/src/screens/SignUpContainer.tsx`, with every hook above every return per `hooks-before-return.test.ts`
+- [X] T021 [US1] Show the password floor **before** submission rather than only in a refusal (FR-005)
+- [X] T022 [US1] Preserve the rest of the form when one field is refused (FR-007)
 
 ### Verification
 
@@ -123,10 +123,10 @@ the same posts.
 
 - [X] T029 [US2] Implement sign-in in `auth.service.ts`, deriving the password **whether or not the address exists** — against a fixed dummy hash when it does not (research R3)
 - [X] T030 [US2] Add `POST /v1/auth/sign-in`, `@Public()` and rate limited by the existing decorator, which keys on the **client IP** for an unauthenticated route (research R7)
-- [ ] T031 [P] [US2] Add `signIn` by email and password to `apps/mobile/src/data/session.ts`
-- [ ] T032 [US2] Rewrite `apps/mobile/src/features/auth/SignInScreen.tsx` around email and password, keeping the server address behind the control added in 010 (FR-027, FR-029)
-- [ ] T033 [US2] Rewrite `apps/mobile/src/screens/SignInContainer.tsx` for credentials, keeping `describeFailure`'s structured `status === 0` network case — it reads a signal rather than matching prose, and the prose version was dead code for the only case it existed for
-- [ ] T034 [US2] Let a person move between signing in and creating an account without losing the email they typed (FR-028)
+- [X] T031 [P] [US2] Add `signIn` by email and password to `apps/mobile/src/data/session.ts`
+- [X] T032 [US2] Rewrite `apps/mobile/src/features/auth/SignInScreen.tsx` around email and password, keeping the server address behind the control added in 010 (FR-027, FR-029)
+- [X] T033 [US2] Rewrite `apps/mobile/src/screens/SignInContainer.tsx` for credentials, keeping `describeFailure`'s structured `status === 0` network case — it reads a signal rather than matching prose, and the prose version was dead code for the only case it existed for
+- [X] T034 [US2] Let a person move between signing in and creating an account without losing the email they typed (FR-028)
 
 ### Verification
 
@@ -177,7 +177,7 @@ the same posts.
 - [ ] T054 [P] Add a guard that fails the build if a password, or a derived password, can reach a log, a response body or an error — **verified against a planted leak**, because care is not a control (SC-008, FR-015, FR-016)
 - [ ] T055 [P] Confirm the email address appears on **no** profile projection. `profile.projection.ts` is the one place a `PublicProfile` is built, and adding a field there publishes it on all seven at once
 - [ ] T056 [P] Confirm device-token accounts are **unreachable through sign-in** (FR-026's other half): they hold no credential record, so sign-in has nothing to resolve. It needs no enforcing and it is asserted anyway, because a MUST NOT nobody checks is a MUST NOT nobody notices breaking
-- [ ] T057 [P] Add the two — later four — new paths to the **base** contract at `specs/001-interest-media-sharing/contracts/openapi.yaml` and regenerate the client through `packages/shared/scripts/contract.ts`. **Not `contracts/openapi.yaml`, which does not exist**, and not the overlay, which holds only what a fork adds. 002's first defect was the contract and the API disagreeing while each looked right alone
+- [X] T057 [P] Add the two — later four — new paths to the **base** contract at `specs/001-interest-media-sharing/contracts/openapi.yaml` and regenerate the client through `packages/shared/scripts/contract.ts`. **Not `contracts/openapi.yaml`, which does not exist**, and not the overlay, which holds only what a fork adds. 002's first defect was the contract and the API disagreeing while each looked right alone
 - [ ] T058 [P] Update `docs/laptop-runbook.md`: `pnpm token` stops being the way in and becomes the fallback for device passes
 - [ ] T059 [P] Update `CLAUDE.md` — "the local profile has no signup endpoint" is repeated in several places and stops being true with Phase 4
 - [ ] T060 [P] Stop 009's session descriptor printing a live credential into a world-readable job summary. CLAUDE.md states that exposure "ends when email/password identity lands and a session hands out only an address", and this is that feature — so it either closes here or is recorded as still open, never left to be assumed closed

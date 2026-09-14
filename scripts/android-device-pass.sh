@@ -197,8 +197,24 @@ echo "== mint a token the API will actually accept =="
 # Same secret and issuer the API validates against. A journey that signed in
 # with a token the API would reject, or that bypassed sign-in, would turn an
 # auth defect into a green run.
-TOKEN="$(npx tsx apps/api/scripts/mint-device-token.ts)"
+#
+# 011: THE SCRIPT NOW PROVISIONS A CREDENTIAL AS WELL, and the flows sign in
+# with it. The first screen stopped taking a token (FR-027), so a flow pasting
+# one would select a control that no longer exists and the pass would die at
+# flow 1. The token is still captured because the fixture seeders below use it
+# as a bearer — they act AS this person rather than signing in.
+MINT_ERR="$(mktemp)"
+TOKEN="$(npx tsx apps/api/scripts/mint-device-token.ts 2>"$MINT_ERR")"
+cat "$MINT_ERR" >&2
+EMAIL="$(sed -n 's/^DEVICE_EMAIL=//p' "$MINT_ERR")"
+PASSWORD="$(sed -n 's/^DEVICE_PASSWORD=//p' "$MINT_ERR")"
+rm -f "$MINT_ERR"
 [ -n "$TOKEN" ] || { echo "FAIL: could not mint a token"; exit 1; }
+[ -n "$EMAIL" ] && [ -n "$PASSWORD" ] \
+  || { echo "FAIL: mint-device-token did not report a credential"; exit 1; }
+# A real password for a real account, in a job log that is world-readable on a
+# public repository. Masked for the same reason the token is.
+echo "::add-mask::$PASSWORD"
 # A real two-hour credential, in a job log that is now world-readable. Nothing
 # here prints it deliberately, but the failure paths dump a UI hierarchy and
 # Maestro's own log, and "nothing prints it deliberately" is not a guarantee.
@@ -228,6 +244,11 @@ PRESENT="$(echo "$FIXTURE" | sed -n 's/^PRESENT=//p')"
 AUTHOR="$(echo "$FIXTURE" | sed -n 's/^AUTHOR=//p')"
 INTEREST="$(echo "$FIXTURE" | sed -n 's/^INTEREST=//p')"
 COLD_TOKEN="$(echo "$FIXTURE" | sed -n 's/^COLD_TOKEN=//p')"
+COLD_EMAIL="$(echo "$FIXTURE" | sed -n 's/^COLD_EMAIL=//p')"
+COLD_PASSWORD="$(echo "$FIXTURE" | sed -n 's/^COLD_PASSWORD=//p')"
+[ -n "$COLD_EMAIL" ] && [ -n "$COLD_PASSWORD" ] \
+  || { echo "FAIL: the feed fixture did not report cold-start credentials"; exit 1; }
+echo "::add-mask::$COLD_PASSWORD"
 [ -n "$PRESENT" ] && [ -n "$AUTHOR" ] && [ -n "$INTEREST" ] && [ -n "$COLD_TOKEN" ] \
   || { echo "FAIL: the feed fixture did not print what the flows need"; exit 1; }
 
@@ -421,6 +442,8 @@ echo "== journeys =="
 MAESTRO_ENV=(
   -e TOKEN="$TOKEN" -e PRESENT="$PRESENT" -e INTEREST="$INTEREST"
   -e AUTHOR="$AUTHOR" -e COLD_TOKEN="$COLD_TOKEN"
+  -e EMAIL="$EMAIL" -e PASSWORD="$PASSWORD"
+  -e COLD_EMAIL="$COLD_EMAIL" -e COLD_PASSWORD="$COLD_PASSWORD"
   -e REQUESTER="$REQUESTER" -e FRIEND="$FRIEND" -e FRIEND_NAME="$FRIEND_NAME"
   -e FRIEND_PREFIX="$FRIEND_PREFIX"
   -e REQUEST_BODY="$REQUEST_BODY" -e FRIEND_BODY="$FRIEND_BODY"

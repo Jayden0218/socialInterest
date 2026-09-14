@@ -61,9 +61,9 @@ describe('sign-in fits with the keyboard up', () => {
     return found!;
   };
 
-  it('the token field and the submit button are on screen at 320x640', async () => {
+  it('the fields and the submit button are on screen at 320x640', async () => {
     await open(FULL);
-    for (const id of ['sign-in-token', 'sign-in-submit']) {
+    for (const id of ['sign-in-email', 'sign-in-password', 'sign-in-submit']) {
       const b = await box(id);
       expect({ id, bottom: Math.round(b.y + b.height) }).toEqual({
         id,
@@ -129,31 +129,51 @@ describe('sign-in fits with the keyboard up', () => {
    * make room, which is the honest cost of the field and is fine precisely
    * because the submit did not move.
    */
-  it('the submit stays above BOTH fields once the address field is added', async () => {
+  /**
+   * 011. A THIRD FIELD ARRIVED, AND THE INVARIANT HELD AGAIN.
+   *
+   * The token field became an email address AND a password (FR-027), so this
+   * screen now carries three fields where it carried one when the defect was
+   * found. Each addition pushes the fold further up — which is precisely the
+   * change that broke this screen in the first place — and none of them can
+   * move a control that sits above every field.
+   *
+   * That is the second time this invariant has absorbed a change that the old
+   * arithmetic guard would have had to be re-tuned for, and the old guard would
+   * have re-tuned to a number that was invented in the first place.
+   */
+  it('the submit stays above EVERY field, however many there are', async () => {
     await open(FULL);
     const submit = await box('sign-in-submit');
     const address = await box('sign-in-address');
-    const token = await box('sign-in-token');
+    const email = await box('sign-in-email');
+    const password = await box('sign-in-password');
 
+    const bottom = submit.y + submit.height;
     expect({
-      submitBottom: Math.round(submit.y + submit.height),
+      submitBottom: Math.round(bottom),
       addressTop: Math.round(address.y),
-      tokenTop: Math.round(token.y),
-      submitAboveAddress: submit.y + submit.height <= address.y,
-      submitAboveToken: submit.y + submit.height <= token.y,
-    }).toMatchObject({ submitAboveAddress: true, submitAboveToken: true });
+      emailTop: Math.round(email.y),
+      passwordTop: Math.round(password.y),
+      aboveAddress: bottom <= address.y,
+      aboveEmail: bottom <= email.y,
+      abovePassword: bottom <= password.y,
+    }).toMatchObject({ aboveAddress: true, aboveEmail: true, abovePassword: true });
 
-    // The address field is ABOVE the token field: a person names the server
-    // before pasting a credential issued by it, and reading them in the other
-    // order invites pasting a token for the backend you are about to leave.
-    expect(address.y).toBeLessThan(token.y);
+    // The address field is ABOVE the credentials: a person names the server
+    // before identifying themselves to it, and reading them in the other order
+    // invites signing in to the backend you are about to leave.
+    expect(address.y).toBeLessThan(email.y);
+    expect(email.y).toBeLessThan(password.y);
     await page.close();
   }, 180_000);
 
   it('the submit button is ABOVE the field, so no keyboard height can hide it', async () => {
     await open(FULL);
     const submit = await box('sign-in-submit');
-    const field = await box('sign-in-token');
+    // The FIRST field a person taps — the one whose keyboard opens first, and
+    // the one run 41's log named when the button vanished under it.
+    const field = await box('sign-in-email');
 
     // Boxes in the message: a failure should say where they actually are
     // rather than only that one was below the other.
@@ -174,7 +194,7 @@ describe('sign-in fits with the keyboard up', () => {
    */
   it('and both controls are on screen at the shortest supported height', async () => {
     await open(FULL);
-    for (const id of ['sign-in-token', 'sign-in-submit']) {
+    for (const id of ['sign-in-email', 'sign-in-password', 'sign-in-submit']) {
       const b = await box(id);
       expect({ id, ok: b.y + b.height <= FULL }).toEqual({ id, ok: true });
     }

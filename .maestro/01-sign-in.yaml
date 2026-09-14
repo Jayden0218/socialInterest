@@ -14,8 +14,11 @@ appId: app.socialinterest
 - assertVisible:
     id: "sign-in-screen"
 - tapOn:
-    id: "sign-in-token"
-- inputText: ${TOKEN}
+    id: "sign-in-email"
+- inputText: ${EMAIL}
+- tapOn:
+    id: "sign-in-password"
+- inputText: ${PASSWORD}
 - tapOn:
     id: "sign-in-submit"
 # The sign-in screen is gone - which only happens if the API accepted the token,
