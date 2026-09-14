@@ -75,18 +75,18 @@ the feed, and never be shown a token or a server address.
 
 ### Tests first — the two that cannot be added later
 
-- [ ] T009 [P] [US1] Write `apps/api/tests/integration/auth-signup-concurrency.spec.ts`: N simultaneous sign-ups for one email address produce **exactly one** account (SC-005, contract §1). A sequential version of this proves nothing
-- [ ] T010 [P] [US1] Write `apps/api/tests/unit/password.spec.ts`: derivation produces a different result for the same password twice (a salt is present), verification accepts the right password and rejects the wrong one, and comparison is constant-time
+- [X] T009 [P] [US1] Write `apps/api/tests/integration/auth-signup-concurrency.spec.ts`: N simultaneous sign-ups for one email address produce **exactly one** account (SC-005, contract §1). A sequential version of this proves nothing
+- [X] T010 [P] [US1] Write `apps/api/tests/unit/password.spec.ts`: derivation produces a different result for the same password twice (a salt is present), verification accepts the right password and rejects the wrong one, and comparison is constant-time
 
 ### Implementation
 
-- [ ] T011 [US1] Implement `apps/api/src/modules/auth/password.ts` — `scrypt` derivation with a per-password salt, **parameters stored alongside the hash** so the choice stays reversible, and `timingSafeEqual` comparison (research R2)
-- [ ] T012 [US1] Implement `apps/api/src/persistence/credential.repository.ts` — partitioned by the folded email address, per [data-model.md](./data-model.md)
-- [ ] T013 [US1] Implement sign-up in `apps/api/src/modules/auth/auth.service.ts` writing the credential, the handle claim and the person in **one transaction**. All or none: a person without their claim frees the handle for somebody else, and a claim without the person burns a handle nobody can use
-- [ ] T014 [US1] Add `POST /v1/auth/sign-up` to `apps/api/src/modules/auth/auth.controller.ts`, marked `@Public()` and rate limited
-- [ ] T015 [US1] Extend `apps/api/src/adapters/local/local-identity-provider.ts` to issue a credential for a person, leaving `issueForTesting` exactly as it is — a test affordance that must stay distinguishable from the product path
-- [ ] T016 [US1] Register the module in `apps/api/src/app.module.ts` and its repositories in `apps/api/src/persistence/persistence.module.ts` — the **base** position, not `OVERLAY_MODULES`, per the plan's Structure Decision. Identity is the floor under the whole product, not a fork's own feature, and the conflict this buys at the next sync is bought deliberately
-- [ ] T017 [US1] Fold and trim the email address on the way in, so `Jo@Example.com ` and `jo@example.com` are one address for uniqueness and for sign-in (FR-004)
+- [X] T011 [US1] Implement `apps/api/src/modules/auth/password.ts` — `scrypt` derivation with a per-password salt, **parameters stored alongside the hash** so the choice stays reversible, and `timingSafeEqual` comparison (research R2)
+- [X] T012 [US1] Implement `apps/api/src/persistence/credential.repository.ts` — partitioned by the folded email address, per [data-model.md](./data-model.md)
+- [X] T013 [US1] Implement sign-up in `apps/api/src/modules/auth/auth.service.ts` writing the credential, the handle claim and the person in **one transaction**. All or none: a person without their claim frees the handle for somebody else, and a claim without the person burns a handle nobody can use
+- [X] T014 [US1] Add `POST /v1/auth/sign-up` to `apps/api/src/modules/auth/auth.controller.ts`, marked `@Public()` and rate limited
+- [X] T015 [US1] Extend `apps/api/src/adapters/local/local-identity-provider.ts` to issue a credential for a person, leaving `issueForTesting` exactly as it is — a test affordance that must stay distinguishable from the product path
+- [X] T016 [US1] Register the module in `apps/api/src/app.module.ts` and its repositories in `apps/api/src/persistence/persistence.module.ts` — the **base** position, not `OVERLAY_MODULES`, per the plan's Structure Decision. Identity is the floor under the whole product, not a fork's own feature, and the conflict this buys at the next sync is bought deliberately
+- [X] T017 [US1] Fold and trim the email address on the way in, so `Jo@Example.com ` and `jo@example.com` are one address for uniqueness and for sign-in (FR-004)
 
 ### The app
 
@@ -98,10 +98,10 @@ the feed, and never be shown a token or a server address.
 
 ### Verification
 
-- [ ] T023 [US1] Run T009 and T010 and watch them pass; then break each guarantee and watch it fail — a non-transactional sign-up, and a comparison that short-circuits
-- [ ] T024 [US1] Confirm the visibility matrix reports the **same surfaces and the same total** (FR-024). **If a number moved, stop and find out why** — never update the number
-- [ ] T025 [US1] Confirm `auth-surface.spec.ts`'s public snapshot gains **exactly one** entry so far and the operator snapshot is unchanged (FR-023, FR-025), and that signing up cannot produce an operator whatever the request body contains
-- [ ] T026 [US1] Confirm the account sign-up creates is an **ordinary person** (FR-006) — it appears on a profile surface, in search and in a feed with no change to any of them. The requirement is that this feature adds nothing to what a person is, and an untested "nothing changed" is the claim most likely to be false
+- [X] T023 [US1] Run T009 and T010 and watch them pass; then break each guarantee and watch it fail — a non-transactional sign-up, and a comparison that short-circuits
+- [X] T024 [US1] Confirm the visibility matrix reports the **same surfaces and the same total** (FR-024). **If a number moved, stop and find out why** — never update the number
+- [X] T025 [US1] Confirm `auth-surface.spec.ts`'s public snapshot gains **exactly one** entry so far and the operator snapshot is unchanged (FR-023, FR-025), and that signing up cannot produce an operator whatever the request body contains
+- [X] T026 [US1] Confirm the account sign-up creates is an **ordinary person** (FR-006) — it appears on a profile surface, in search and in a feed with no change to any of them. The requirement is that this feature adds nothing to what a person is, and an untested "nothing changed" is the claim most likely to be false
 
 **Checkpoint**: an account can be created in the app. It cannot be returned to.
 

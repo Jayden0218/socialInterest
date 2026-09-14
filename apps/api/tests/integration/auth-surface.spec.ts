@@ -54,6 +54,28 @@ describe('the public/authenticated boundary', () => {
     'GET /places/:placeId/reviews',
     'GET /posts/:postId',
     'GET /posts/:postId/comments',
+    /**
+     * 011: THE TWO ROUTES THAT EXIST TO HAND OUT A CREDENTIAL.
+     *
+     * Every other entry in this list is a READ that a signed-out person may
+     * perform. These two are WRITES, and they are the only writes here — which
+     * is the reason to look twice at them rather than to wave them through.
+     *
+     * They are public by necessity, not by convenience: a person who has no
+     * credential is the only person who can use them, so requiring one would
+     * make them unreachable by their only caller. Both are rate limited, and
+     * neither can produce an operator — `issueForPerson` has no parameter for
+     * it, so FR-025 is enforced by the type rather than by a check somebody has
+     * to remember.
+     *
+     * US4 will add exactly two more, for the same reason: somebody who has
+     * forgotten their password holds no credential either. FR-023 and SC-007
+     * say two now and four then, per slice — the first version of both said
+     * "exactly two" full stop, which forbade the reset routes the same spec
+     * requires, and the analysis pass caught it before Phase 6 did.
+     */
+    'POST /auth/sign-in',
+    'POST /auth/sign-up',
     // There is deliberately no GET /share/:postId. A share link resolves through
     // GET /posts/{postId}, which is already public and already re-checks
     // visibility on every read (FR-042) - a separate resolution route would be a

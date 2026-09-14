@@ -18,6 +18,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { PostsModule } from './modules/posts/posts.module';
 import { ConversationsModule } from './modules/conversations/conversations.module';
 import { PlacesModule } from './modules/places/places.module';
+import { AuthModule } from './modules/auth/auth.module';
 import { SavedModule } from './modules/saved/saved.module';
 import { AuthGuard } from './common/auth/auth.guard';
 import { RateLimitGuard } from './common/rate-limit/rate-limit.guard';
@@ -46,6 +47,7 @@ import { OVERLAY_MODULES } from './overlay/modules';
     ConversationsModule,
     PlacesModule,
     SavedModule,
+    AuthModule,
     // A downstream fork's feature modules. Empty here and meant to stay empty -
     // see ./overlay/README.md. Last, so a fork's module can depend on anything
     // above it and nothing above it can depend on a fork's module.

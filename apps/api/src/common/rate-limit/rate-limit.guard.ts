@@ -27,9 +27,40 @@ interface Bucket {
   lastRefill: number;
 }
 
+/**
+ * 011. THE BUCKETS, AT MODULE SCOPE RATHER THAN ON THE INSTANCE.
+ *
+ * One guard instance exists per application, so in production this is the same
+ * state it was before. What it buys is a way for a test to clear it — see
+ * `resetRateLimitsForTests` below — which Nest otherwise makes unreachable:
+ * `{ provide: APP_GUARD, useClass: RateLimitGuard }` registers the instance
+ * under neither the class nor `APP_GUARD` in a way `module.get` can resolve.
+ *
+ * Jest gives each test FILE its own module registry, so this does not leak
+ * between suites.
+ */
+const BUCKETS = new Map<string, Bucket>();
+
+/**
+ * TEST-ONLY, and named so that nobody has to guess.
+ *
+ * `auth-signup-concurrency.spec.ts` measures how many of N simultaneous
+ * sign-ups the UNIQUENESS CONSTRAINT admits. Its first version fired six
+ * against a route with a capacity of five: one came back 201, the assertion
+ * passed, and the other five had been refused 429 without ever reaching the
+ * constraint. Delete the conditional write and that test still passed.
+ *
+ * The alternative was raising a real rate limit to suit a test — changing the
+ * product to make a measurement convenient, which is how a limit ends up
+ * chosen by a test rather than by what it is defending.
+ */
+export function resetRateLimitsForTests(): void {
+  BUCKETS.clear();
+}
+
 @Injectable()
 export class RateLimitGuard implements CanActivate {
-  private readonly buckets = new Map<string, Bucket>();
+  private readonly buckets = BUCKETS;
 
   constructor(@Inject(Reflector) private readonly reflector: Reflector) {}
 
