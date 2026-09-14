@@ -4,6 +4,7 @@ import { CONFIG, type AppConfig } from '../config/configuration';
 import { createPool, PG_POOL } from './pg-pool';
 import { Transactor } from './transactor';
 import { PersonRepository } from './person.repository';
+import { HandleClaimRepository } from './handle-claim.repository';
 import { InterestRepository } from './interest.repository';
 import { PersonFollowRepository } from './person-follow.repository';
 import { BlockRepository } from './block.repository';
@@ -45,6 +46,7 @@ const providers: Provider[] = [
   // 010. The one place a multi-item write is executed — see ./transactor.ts.
   Transactor,
   repo(PersonRepository),
+  repo(HandleClaimRepository),
   repo(InterestRepository),
   repo(PersonFollowRepository),
   repo(BlockRepository),
@@ -84,6 +86,7 @@ const providers: Provider[] = [
     PG_POOL,
     Transactor,
     PersonRepository,
+    HandleClaimRepository,
     InterestRepository,
     PersonFollowRepository,
     BlockRepository,

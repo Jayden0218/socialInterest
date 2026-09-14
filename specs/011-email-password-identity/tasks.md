@@ -44,8 +44,8 @@ defect reintroduced by R1's own fix.
 
 ## Phase 1: Setup
 
-- [ ] T001 Add the three key builders to `apps/api/src/persistence/keys.ts` — credential by email, handle claim, reset request — following the existing naming and leaving every current builder untouched
-- [ ] T002 [P] Add `PASSWORD_MIN_LENGTH = 10` to `apps/api/src/modules/auth/constants.ts` with the reasoning from Assumptions beside it, so the floor is one editable place rather than a literal in a validator
+- [X] T001 Add the three key builders to `apps/api/src/persistence/keys.ts` — credential by email, handle claim, reset request — following the existing naming and leaving every current builder untouched
+- [X] T002 [P] Add `PASSWORD_MIN_LENGTH = 10` to `apps/api/src/modules/auth/constants.ts` with the reasoning from Assumptions beside it, so the floor is one editable place rather than a literal in a validator
 
 **Checkpoint**: keys exist. Nothing uses them.
 
@@ -55,12 +55,12 @@ defect reintroduced by R1's own fix.
 
 **⚠️ No user story work begins until T003–T008 are done.**
 
-- [ ] T003 Write `apps/api/tests/integration/handle-uniqueness.spec.ts` asserting that two people cannot hold one handle, driven under **genuine concurrency** rather than in sequence
-- [ ] T004 **Run T003 against the product as it stands and watch it FAIL.** Record the output in `docs/verification/011-guard-red-log.md`, the way 008 recorded its red runs — not in `checklists/`, which is the spec-quality checklist and not a verification log. Research R1 predicts a specific failure — the second create succeeds and `findByHandle` returns the *second* person — and a different failure means the analysis is wrong, not the test
-- [ ] T005 Implement `apps/api/src/persistence/handle-claim.repository.ts`: claim a handle with the conditional write that makes the claim atomic, and release one
-- [ ] T006 **Measure** that no two existing handles already collide, with a one-off check over the datastore. The property is believed to hold because every handle in existence carries a generated suffix, and that is an argument rather than a measurement. **If it does not hold, stop** — a collision is for a person to resolve, and a script choosing which account keeps its name is R1's wrong-person outcome performed deliberately
-- [ ] T007 **Back-fill a claim row for every handle that already exists**, in one bounded pass, gated on T006 passing. Without this the constraint defends only handles chosen from here on, and the first human to pick one could take an existing person's. **No existing handle is renamed** — claiming and renaming are different operations and the first version of R1 conflated them
-- [ ] T008 Run T003 and watch it pass, then **break the claim's condition and watch it fail again** — a conditional write that has only ever succeeded is indistinguishable from an unconditional one
+- [X] T003 Write `apps/api/tests/integration/handle-uniqueness.spec.ts` asserting that two people cannot hold one handle, driven under **genuine concurrency** rather than in sequence
+- [X] T004 **Run T003 against the product as it stands and watch it FAIL.** Record the output in `docs/verification/011-guard-red-log.md`, the way 008 recorded its red runs — not in `checklists/`, which is the spec-quality checklist and not a verification log. Research R1 predicts a specific failure — the second create succeeds and `findByHandle` returns the *second* person — and a different failure means the analysis is wrong, not the test
+- [X] T005 Implement `apps/api/src/persistence/handle-claim.repository.ts`: claim a handle with the conditional write that makes the claim atomic, and release one
+- [X] T006 **Measure** that no two existing handles already collide, with a one-off check over the datastore. The property is believed to hold because every handle in existence carries a generated suffix, and that is an argument rather than a measurement. **If it does not hold, stop** — a collision is for a person to resolve, and a script choosing which account keeps its name is R1's wrong-person outcome performed deliberately
+- [X] T007 **Back-fill a claim row for every handle that already exists**, in one bounded pass, gated on T006 passing. Without this the constraint defends only handles chosen from here on, and the first human to pick one could take an existing person's. **No existing handle is renamed** — claiming and renaming are different operations and the first version of R1 conflated them
+- [X] T008 Run T003 and watch it pass, then **break the claim's condition and watch it fail again** — a conditional write that has only ever succeeded is indistinguishable from an unconditional one
 
 **Checkpoint**: a handle can be claimed once, across the whole set. No account can be created yet.
 

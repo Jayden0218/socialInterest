@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository, type Page } from './base.repository';
+import { HandleClaimRepository } from './handle-claim.repository';
+import type { TransactionItems } from './transactor';
 import { keys } from './keys';
 
 export interface PersonItem {
@@ -194,17 +196,48 @@ export class PersonRepository extends BaseRepository {
     });
   }
 
-  async create(person: PersonItem): Promise<void> {
-    await this.putItem(
+  /**
+   * 011/T005. CREATES THE PERSON AND CLAIMS THE HANDLE, IN ONE TRANSACTION.
+   *
+   * The claim is enforced HERE rather than in sign-up, and that is the whole
+   * point. `create` is the one path every person in the product comes through —
+   * sign-up, the device-token script, the e2e fixtures, the demo seed — so
+   * uniqueness enforced here cannot be forgotten by a caller. Enforced in
+   * `auth.service` instead, it would defend the one door a human uses and leave
+   * the other four open, which is 001/D6's argument about `VisibilityFilter`
+   * applied to a different invariant: six hand-written predicates is six silent
+   * leaks.
+   *
+   * BEFORE THIS, THE CONDITION ON THIS WRITE COULD NEVER FIRE FOR A HANDLE.
+   * `attribute_not_exists(pk)` where `pk` is `USER#<userId>` — a fresh
+   * identifier on every call — refuses only a repeated user id, which nothing
+   * generates. Measured rather than reasoned about: eight of eight simultaneous
+   * claims on one handle succeeded (`docs/verification/011-guard-red-log.md`).
+   * The user-id condition is KEPT, because it is still the right condition for
+   * the thing it was guarding.
+   *
+   * `extraItems` lets a caller put more writes into the SAME transaction —
+   * US1's credential row. A sign-up that wrote the credential separately would
+   * have an outcome where a person exists with no way to sign in as them.
+   */
+  async create(person: PersonItem, extraItems: TransactionItems = []): Promise<void> {
+    await this.transact([
       {
-        ...keys.person(person.userId),
-        ...keys.personByHandle(person.handle.toLowerCase()),
-        ...keys.personSearch(person.handle.toLowerCase()),
-        type: 'Person',
-        ...person,
-        displayNameLower: person.displayName.toLowerCase(),
+        Put: {
+          TableName: this.tableName,
+          Item: {
+            ...keys.person(person.userId),
+            ...keys.personByHandle(person.handle.toLowerCase()),
+            ...keys.personSearch(person.handle.toLowerCase()),
+            type: 'Person',
+            ...person,
+            displayNameLower: person.displayName.toLowerCase(),
+          },
+          ConditionExpression: 'attribute_not_exists(pk)',
+        },
       },
-      'attribute_not_exists(pk)',
-    );
+      HandleClaimRepository.claimItem(person.handle, person.userId, this.tableName),
+      ...extraItems,
+    ]);
   }
 }

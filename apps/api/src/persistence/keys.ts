@@ -40,6 +40,60 @@ export const keys = {
   personByHandle: (handleLower: string) => ({ gsi1pk: `HANDLE#${handleLower}`, gsi1sk: '#PROFILE' }),
 
   /**
+   * 011/T001 — THE CREDENTIAL, and it is partitioned by the EMAIL.
+   *
+   * The question this row answers is "who is jo@example.com, and is this their
+   * password", asked before any user id is known. Keyed by user it would need an
+   * index to be found at all, and — the part that matters — the uniqueness
+   * guarantee would have nothing to attach to.
+   *
+   * `emailFolded` is trimmed and lower-cased by the caller (FR-004). The key
+   * builder does NOT fold it itself: a builder that silently normalises its
+   * input hides the one place the rule is applied, and two callers folding
+   * differently would then produce two rows for one address with nothing
+   * complaining.
+   *
+   * FR-002 and SC-005 are served by the key ITSELF, claimed with the conditional
+   * write that already makes `putItem` atomic. Not a lookup followed by a write:
+   * that passes every sequential test and fails under exactly the two
+   * simultaneous requests it exists for.
+   */
+  credentialByEmail: (emailFolded: string) => ({ pk: `CRED#${emailFolded}`, sk: '#CREDENTIAL' }),
+
+  /**
+   * 011/T001 — THE HANDLE CLAIM, and its absence today is a live defect.
+   *
+   * Research R1, proved by running it rather than by reading the code: nothing
+   * enforces handle uniqueness. `PersonRepository.create` guards on
+   * `attribute_not_exists(pk)` where `pk` is `USER#<userId>` — a fresh id every
+   * time — so the condition can never fire for a handle. Two people can hold
+   * one, and `findByHandle` returns the SECOND, silently addressing the wrong
+   * person across thirteen call sites in six services.
+   *
+   * It has never bitten because no human has ever chosen a handle. US1 is
+   * precisely the change that removes the thing hiding it, which is why the
+   * claim is a prerequisite of US1 rather than a detail inside it.
+   *
+   * Written in the SAME TRANSACTION as the person: a person without their claim
+   * frees the handle for somebody else, and a claim without the person burns a
+   * handle nobody can ever use. Either half alone is worse than failing.
+   */
+  handleClaim: (handleLower: string) => ({ pk: `HANDLE#${handleLower}`, sk: '#CLAIM' }),
+
+  /**
+   * 011/T001 — A RESET REQUEST (US4), keyed by the token and the token is HASHED.
+   *
+   * Stored hashed for the same reason a password is: the row is a bearer
+   * permission to take over an account, so a datastore dump that leaks it leaks
+   * every pending reset. Hashing it means the link in somebody's inbox is the
+   * only copy of the secret that exists.
+   *
+   * Single use is enforced by a conditional write on `usedAt` being absent — not
+   * by reading it and then writing, which is the same race in a third place.
+   */
+  resetRequest: (tokenHash: string) => ({ pk: `RESET#${tokenHash}`, sk: '#META' }),
+
+  /**
    * A34 (004/FR-034) - people, searchable by handle PREFIX.
    *
    * `personByHandle` is an exact-match partition key, so it cannot answer "who
