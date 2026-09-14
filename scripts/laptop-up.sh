@@ -57,7 +57,16 @@ set -a
 . ./.env.local
 set +a
 
-for required in DATABASE_URL S3_ENDPOINT S3_ACCESS_KEY_ID S3_SECRET_ACCESS_KEY MEDIA_BUCKET; do
+# S3_REGION IS ON THIS LIST BECAUSE ITS DEFAULT IS WORSE THAN NOTHING.
+#
+# `configuration.ts` falls back to `local`, which is right for MinIO and wrong
+# for every real S3 service — a SigV4 signature covers the region, so a mismatch
+# is refused as `SignatureDoesNotMatch`. That surfaces as uploads failing with a
+# message about signatures, which sends you looking at your keys.
+#
+# A default that is silently wrong for the backend you configured is worse than
+# an absent one: the absent one stops you here, by name.
+for required in DATABASE_URL S3_ENDPOINT S3_REGION S3_ACCESS_KEY_ID S3_SECRET_ACCESS_KEY MEDIA_BUCKET; do
   [ -n "${!required:-}" ] || fail "$required is not set in .env.local"
 done
 
