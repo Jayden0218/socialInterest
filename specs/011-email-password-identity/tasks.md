@@ -116,13 +116,13 @@ the same posts.
 
 ### The test that has to come first
 
-- [ ] T027 [US2] Write `apps/api/tests/integration/auth-signin-timing.spec.ts`: refusals for an unknown address and for a wrong password must not separate — same message, same status, and **compared as distributions over repeated samples**, not as single measurements (SC-004, contract §4)
-- [ ] T028 [US2] **Watch T027 fail against a deliberately naive implementation** that returns early for an unknown address. It is the implementation anybody would write, it satisfies the message, and it leaks the answer by two orders of magnitude. A timing test that has never seen the leak is a timing test nobody should trust
+- [X] T027 [US2] Write `apps/api/tests/integration/auth-signin-timing.spec.ts`: refusals for an unknown address and for a wrong password must not separate — same message, same status, and **compared as distributions over repeated samples**, not as single measurements (SC-004, contract §4)
+- [X] T028 [US2] **Watch T027 fail against a deliberately naive implementation** that returns early for an unknown address. It is the implementation anybody would write, it satisfies the message, and it leaks the answer by two orders of magnitude. A timing test that has never seen the leak is a timing test nobody should trust
 
 ### Implementation
 
-- [ ] T029 [US2] Implement sign-in in `auth.service.ts`, deriving the password **whether or not the address exists** — against a fixed dummy hash when it does not (research R3)
-- [ ] T030 [US2] Add `POST /v1/auth/sign-in`, `@Public()` and rate limited by the existing decorator, which keys on the **client IP** for an unauthenticated route (research R7)
+- [X] T029 [US2] Implement sign-in in `auth.service.ts`, deriving the password **whether or not the address exists** — against a fixed dummy hash when it does not (research R3)
+- [X] T030 [US2] Add `POST /v1/auth/sign-in`, `@Public()` and rate limited by the existing decorator, which keys on the **client IP** for an unauthenticated route (research R7)
 - [ ] T031 [P] [US2] Add `signIn` by email and password to `apps/mobile/src/data/session.ts`
 - [ ] T032 [US2] Rewrite `apps/mobile/src/features/auth/SignInScreen.tsx` around email and password, keeping the server address behind the control added in 010 (FR-027, FR-029)
 - [ ] T033 [US2] Rewrite `apps/mobile/src/screens/SignInContainer.tsx` for credentials, keeping `describeFailure`'s structured `status === 0` network case — it reads a signal rather than matching prose, and the prose version was dead code for the only case it existed for
@@ -130,8 +130,8 @@ the same posts.
 
 ### Verification
 
-- [ ] T035 [US2] Confirm the public snapshot now holds **exactly two** new entries and no others (SC-007, MVP count)
-- [ ] T036 [US2] Confirm the rate limit is keyed on something that **cannot** depend on whether the account exists, and that a bucket exhausted by attempts against an unknown address refuses the same way as one exhausted against a known one (FR-010)
+- [X] T035 [US2] Confirm the public snapshot now holds **exactly two** new entries and no others (SC-007, MVP count)
+- [X] T036 [US2] Confirm the rate limit is keyed on something that **cannot** depend on whether the account exists, and that a bucket exhausted by attempts against an unknown address refuses the same way as one exhausted against a known one (FR-010)
 
 **Checkpoint**: Phases 1–4 are the MVP. The app opens like an app.
 

@@ -118,3 +118,87 @@ Tests:       3 failed, 235 skipped, 238 total
 Back to `3 passed` on restore. A conditional write that has only ever succeeded
 is indistinguishable from an unconditional one, and now this one has been
 watched being the difference.
+
+---
+
+## T023 — two guards of mine, each watched failing, and ONE OF THEM PASSED FIRST
+
+### The credential's uniqueness condition, removed
+
+```
+● sign-up under concurrency › admits EXACTLY ONE of five simultaneous sign-ups for one address
+  Received length: 5
+```
+
+Five accounts for one email address. The guard catches it.
+
+### The constant-time comparison, replaced — AND THE GUARD DID NOT NOTICE
+
+`timingSafeEqual(derived, parsed.hash)` was replaced with
+`derived.toString('base64') === parsed.hash.toString('base64')`, a comparison
+that returns as soon as it finds a differing byte.
+
+**Six assertions reported green.** The guard checked that the FILE contained
+`timingSafeEqual` — and the import at the top of the file was untouched, so it
+did — and that no `===` appeared in three hand-guessed spellings, none of which
+matched this one.
+
+That is the failure mode this project records as "a guard that has only ever
+passed is not a guard", with the same twist as the self-defeating comment
+stripper in `compiled-in-address.test.ts`: it was not too weak in an obvious
+place, it was asking a question whose answer stayed true while the subject
+changed underneath it.
+
+Rewritten to look at the FUNCTION rather than the file, and to ask two questions
+with no hand-picked list in them:
+
+```ts
+const body = /export async function verifyPassword[\s\S]*?\n}/.exec(code)?.[0];
+expect(body).toMatch(/return\s+timingSafeEqual\(/);
+expect(body).not.toContain('===');
+```
+
+Re-run against the same break:
+
+```
+● password derivation › uses a constant-time comparison, structurally
+Tests:       1 failed, 5 passed
+```
+
+A hand-picked list of ways to be wrong only covers the ways somebody has already
+been wrong — 004's lesson about the first version of `auth-surface.spec.ts`, in
+a new place.
+
+## T028 — the timing leak, measured
+
+The naive implementation installed on purpose: look up, return early when the
+address has no account.
+
+```
+● refuses both in the same time, compared at the median
+  Expected: < 2
+  Received:   45.73624704056309
+
+● and both really did cost the key derivation
+  Expected: > 20
+  Received:   8.133304
+```
+
+**45.7×.** The unknown address answered in about 8ms where a wrong password
+takes ~370ms, because the absent case skipped the key derivation entirely.
+
+**The message and status assertions PASSED THROUGHOUT.** Same 401, same body
+byte for byte, for both populations, with the leak wide open — which is exactly
+what `contracts/identity.md` §4 says will happen and the whole reason the
+guarantee needed a contract rather than a code comment. A test asserting only
+the message would have signed this off.
+
+Restored: `PASS`, ratio back under 2.
+
+### And why the second assertion exists
+
+The ratio alone can be satisfied by being equally FAST. Delete the derivation
+entirely and both populations answer in a millisecond, the ratio is ~1, and a
+ratio-only test passes over a product that never checks passwords at all. The
+floor — both medians above 20ms — is what makes the ratio mean what it looks
+like it means.
