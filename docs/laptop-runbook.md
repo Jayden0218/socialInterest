@@ -72,6 +72,28 @@ character-for-character the state spec 002 found the whole product stuck in.
 
 ---
 
+## Check it before you run it
+
+```bash
+pnpm doctor
+```
+
+Runs every prerequisite against your real configuration and names the one thing
+to change. It drives the PRODUCT'S OWN adapter rather than curling the endpoints
+— two checks written from the same assumption agree with each other and neither
+agrees with the product, which is how feature 001 shipped green and broken.
+
+What it proves, in order: ffmpeg and ffprobe exist; the database answers; the
+schema is there; the bucket accepts a write and reads it back; **the bucket is
+private** — an unsigned read is refused; and a presigned upload succeeds, which
+is the exact path a phone takes to upload a photograph.
+
+The privacy check is worth more than it looks. Every image URL the API issues is
+signed for fifteen minutes and issued only *after* the visibility boundary has
+allowed that viewer. A public bucket makes that decision decorative: anyone
+holding the key reads the file, forever, and the boundary has been bypassed
+rather than failed.
+
 ## Every time
 
 ```bash

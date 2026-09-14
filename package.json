@@ -8,6 +8,7 @@
   "scripts": {
     "typecheck": "pnpm -r typecheck",
     "laptop": "scripts/laptop-up.sh",
+    "doctor": "scripts/doctor.sh",
     "token": "scripts/mint-token.sh",
     "seed:demo": "scripts/seed-demo.sh",
     "lint": "eslint .",
