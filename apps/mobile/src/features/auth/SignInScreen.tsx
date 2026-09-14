@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { activePalette as palette, space, textStyle, type } from '../../ui/theme';
+import { MIN_TOUCH_TARGET } from '../../ui/tokens';
 import { Banner, Button, Field, Screen } from '../../ui/primitives';
 
 /**
@@ -37,6 +38,14 @@ export interface SignInScreenProps {
    */
   address?: string;
   onAddressChange?: (next: string) => void;
+  /**
+   * True when this build already knows its backend (`ADDRESS_IS_COMPILED_IN`).
+   *
+   * Hides the address field behind a quiet control rather than removing it: the
+   * address is a default, not a pin, and a build that cannot be re-pointed from
+   * inside itself is unrecoverable when a laptop's lease moves.
+   */
+  addressFixed?: boolean;
 }
 
 export function SignInScreen({
@@ -47,8 +56,29 @@ export function SignInScreen({
   onSubmit,
   address,
   onAddressChange,
+  addressFixed = false,
 }: SignInScreenProps) {
   const configurable = typeof onAddressChange === 'function';
+
+  /**
+   * A BUILD THAT KNOWS WHERE ITS SERVER IS SHOULD NOT OPEN BY ASKING.
+   *
+   * When an address was compiled in, the field starts hidden — opening the app
+   * is then "sign in", not "configure a client". That is the whole difference
+   * between this and a developer tool.
+   *
+   * It is HIDDEN AND NOT REMOVED, deliberately. The address is a default rather
+   * than a pin (009/US1), and the case that makes the difference is mundane: a
+   * laptop whose DHCP lease moves leaves an APK that can reach nothing. Removing
+   * the control would make that unrecoverable without a rebuild — a product
+   * that cannot be repaired from inside itself.
+   *
+   * Every hook stays above every return, per `hooks-before-return.test.ts`: a
+   * hook after an early return is "Rendered more hooks than during the previous
+   * render", and after the final one it is dead code that looks like a feature.
+   */
+  const [addressRevealed, setAddressRevealed] = useState(!addressFixed);
+  const showAddressField = configurable && addressRevealed;
   const addressReady = !configurable || (address ?? '').trim().length > 0;
   return (
     /**
@@ -143,9 +173,11 @@ export function SignInScreen({
         </Text>
 
         <Text style={{ ...textStyle.caption, color: palette.text.muted }}>
-          {configurable
-            ? 'Point this app at a server, then paste a token from it.'
-            : 'This build talks to a local API. Paste a token to continue.'}
+          {!configurable
+            ? 'This build talks to a local API. Paste a token to continue.'
+            : addressRevealed
+              ? 'Point this app at a server, then paste a token from it.'
+              : 'Paste a token to continue.'}
         </Text>
 
         {/*
@@ -165,7 +197,7 @@ export function SignInScreen({
           `adjustPan` alike. Adding a second field moves the fold; it cannot move
           a control that is above both.
         */}
-        {configurable ? (
+        {showAddressField ? (
           <Field
             testID="sign-in-address"
             accessibilityLabel="Server address"
@@ -191,6 +223,42 @@ export function SignInScreen({
           <Banner testID="sign-in-error" tone="danger">
             {error}
           </Banner>
+        ) : null}
+
+        {/*
+          The way back, and the reason it is small rather than absent.
+
+          Somebody whose server moved needs to say so from inside the app. A
+          quiet control does that without making the first screen look like a
+          settings page — and `hitSlop` gives it a real 44pt target while the
+          text stays the size it looks, which is what that prop is for (007
+          measured the interest word occupying 44 points of LAYOUT for a 16pt
+          word, and it cost two visible posts per screen).
+        */}
+        {configurable && !addressRevealed ? (
+          <Pressable
+            testID="sign-in-change-server"
+            accessibilityRole="button"
+            accessibilityLabel="Use a different server"
+            onPress={() => setAddressRevealed(true)}
+            /**
+             * 16pt line box + 14 + 14 = exactly 44 vertically, and a stated
+             * `minWidth` rather than "the text looks wide enough" — the
+             * touch-target guard does the arithmetic and registers this control
+             * in SLOP_TARGETS, and it refused the first version for having a
+             * width nothing enforced.
+             *
+             * `hitSlop` rather than padding, because 007 measured the interest
+             * word occupying 44 points of LAYOUT for a 16pt word: at the feed's
+             * size that was the difference between two posts visible and four.
+             */
+            style={{ minWidth: MIN_TOUCH_TARGET, alignSelf: 'center' }}
+            hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+          >
+            <Text style={{ ...textStyle.small, color: palette.text.muted, textAlign: 'center' }}>
+              Use a different server
+            </Text>
+          </Pressable>
         ) : null}
 
         <Text style={{ ...textStyle.small, color: palette.text.muted, textAlign: 'center' }}>

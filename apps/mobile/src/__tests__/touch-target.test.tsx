@@ -92,6 +92,17 @@ describe('every control is reliably tappable', () => {
       slop: { top: 14, bottom: 14, left: 12, right: 12 },
     },
     {
+      file: 'src/features/auth/SignInScreen.tsx',
+      label: 'use a different server',
+      // A `small` line box, and a `minWidth` the style actually declares —
+      // registering a width the control does not enforce would be the shape
+      // this guard was tightened to catch: accepting a mechanism instead of
+      // measuring a size.
+      boxHeight: typeScale.small.lineHeight,
+      boxWidth: MIN_TOUCH_TARGET,
+      slop: { top: 14, bottom: 14, left: 14, right: 14 },
+    },
+    {
       file: 'src/App.tsx',
       label: 'the compose square',
       boxHeight: 34 + (MIN_TOUCH_TARGET - 34),

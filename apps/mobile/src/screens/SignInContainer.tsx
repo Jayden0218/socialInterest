@@ -58,10 +58,13 @@ export function SignInContainer({
   onSignedIn,
   address,
   onAddressChange,
+  addressFixed,
 }: {
   onSignedIn: () => void;
   address?: string;
   onAddressChange?: (next: string) => Promise<void> | void;
+  /** 010. True when the build already knows its backend — see `config.ts`. */
+  addressFixed?: boolean;
 }) {
   const data = useData();
   const [token, setToken] = useState('');
@@ -114,6 +117,7 @@ export function SignInContainer({
       {...(onAddressChange
         ? { address: draftAddress, onAddressChange: setDraftAddress }
         : {})}
+      {...(addressFixed === undefined ? {} : { addressFixed })}
     />
   );
 }

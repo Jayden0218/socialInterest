@@ -40,9 +40,32 @@ describe('the address compiled in at build time', () => {
     expect(source).toMatch(/\?\?\s*'http:\/\/127\.0\.0\.1:3000\/v1'/);
   });
 
+  it('reports whether an address was compiled in, by comparing rather than asking', () => {
+    /**
+     * `ADDRESS_IS_COMPILED_IN` decides whether the sign-in screen shows an
+     * address field. It cannot be derived by testing the env var, because Expo
+     * substitutes `process.env.X` TEXTUALLY — after a build there is no variable
+     * left to ask about, only the string it became. Comparing against the
+     * fallback asks the same question in a way that survives substitution.
+     */
+    const source = read('config.ts');
+    expect(source).toContain('export const ADDRESS_IS_COMPILED_IN');
+    expect(source).toMatch(/ADDRESS_IS_COMPILED_IN\s*=\s*API_BASE_URL\s*!==/);
+  });
+
   it('App.tsx passes that value in as the store default, rather than a literal', () => {
     const app = read('App.tsx');
-    expect(app).toContain("import { API_BASE_URL } from './config'");
+    /**
+     * Matched on the NAMES, not on one exact spelling of the import line.
+     *
+     * The first version asserted the literal string
+     * `import { API_BASE_URL } from './config'` and went red the moment a second
+     * name was imported alongside it — a true change, correctly flagged, and for
+     * entirely the wrong reason. A guard pinned tighter than the rule it
+     * enforces spends its credibility on false alarms, and a guard whose alarms
+     * are routinely ignored is a guard that is not read when it matters.
+     */
+    expect(app).toMatch(/import\s*\{[^}]*\bAPI_BASE_URL\b[^}]*\}\s*from\s*'\.\/config'/);
     // The store is built FROM it. A literal here would leave config.ts exported
     // and unread — which is how `avatarKey` ended up with no writer.
     expect(app).toContain('createStores(API_BASE_URL)');

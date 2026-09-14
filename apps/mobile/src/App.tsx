@@ -31,7 +31,7 @@ import {
   SavedContainer,
 } from './screens';
 import type { ReportSubject } from './features/safety/SafetyActions';
-import { API_BASE_URL } from './config';
+import { ADDRESS_IS_COMPILED_IN, API_BASE_URL } from './config';
 import { OVERLAY_SCREENS } from './overlay/screens';
 
 export type Tab = 'feed' | 'discover' | 'chats' | 'notifications' | 'profile';
@@ -266,7 +266,15 @@ export function Shell({
         case 'sign-in':
           return (
             <SignInContainer
-              {...(backend ? { address: backend.address, onAddressChange: backend.onChange } : {})}
+              {...(backend
+                ? {
+                    address: backend.address,
+                    onAddressChange: backend.onChange,
+                    // A build given a real address opens as "sign in", not as
+                    // "configure a client". The field is hidden, not removed.
+                    addressFixed: ADDRESS_IS_COMPILED_IN,
+                  }
+                : {})}
               onSignedIn={() => {
                 setSignedIn(true);
                 /**
