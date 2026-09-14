@@ -10,6 +10,8 @@
  * or messaged. But a QR needs no account and no second device signed in.
  *
  * Usage: tsx apps/api/scripts/pair-qr.ts <address> <token>
+ *        (the address is accepted so the caller stays one shape; only the
+ *         token is encoded — see below)
  */
 import qrcode from 'qrcode-terminal';
 
@@ -20,14 +22,26 @@ if (!address || !token) {
 }
 
 /**
- * ONE CODE CARRYING BOTH, as a JSON object rather than two codes.
+ * THE TOKEN ALONE, AS PLAIN TEXT. This started as one code carrying both values
+ * as JSON, and that was wrong in a way worth writing down.
  *
- * Two codes is two scans and an ordering mistake waiting to happen — and the
- * app takes both values together anyway. `small: true` because a full-size code
- * for 300 characters does not fit in a terminal window, and a QR nobody can fit
- * on screen is a QR nobody can scan.
+ * Nothing on the phone PARSES this code. A camera app hands you the decoded
+ * string and stops — so a JSON payload means squinting at
+ * `{"address":"http://192.168.1.42:3000/v1","token":"eyJ..."}` on a phone screen
+ * and picking two values out of it by hand, past a 244-character token. That is
+ * worse than what it replaced, not better: I designed it for a scanner that does
+ * not exist yet.
+ *
+ * So the code carries the one value that CANNOT be typed. The address is 27
+ * characters and gets typed; the token is 244 and gets scanned, copied whole,
+ * and pasted. One scan, one short piece of typing, nothing to unpick.
+ *
+ * The version that parses this properly is the app itself — a "scan to connect"
+ * control on the sign-in screen, which needs a camera permission and a new
+ * build. Until that exists, a QR is a clipboard, and a clipboard should hold one
+ * thing.
  */
-const payload = JSON.stringify({ address, token });
+const payload = token;
 qrcode.generate(payload, { small: true }, (code: string) => {
   process.stdout.write(`${code}\n`);
 });

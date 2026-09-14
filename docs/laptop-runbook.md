@@ -125,8 +125,17 @@ pnpm token                       # prints a QR code, the address and the token
 pnpm seed:demo "<that token>"    # six people, fourteen posts, comments, places
 ```
 
-`pnpm token` prints **a QR code carrying both values**, then both as text. Scan
-it with the phone's camera, or copy the token straight to the clipboard:
+`pnpm token` prints **a QR code holding the token**, then the address and token
+as text. Scan the code with the phone's **ordinary camera app — not Expo**:
+Expo Go's scanner expects a dev-server URL and will not help. The camera hands
+you the decoded string; copy it and paste it into the app's second field.
+
+The **address** is short — type it. The code deliberately does not carry it:
+nothing on the phone parses a QR, so a payload with two values in it means
+picking them apart by hand on a phone screen, which is worse than typing 27
+characters. A QR here is a clipboard, and a clipboard should hold one thing.
+
+On the laptop you can skip the phone entirely for the token:
 
 ```bash
 pnpm --silent token | pbcopy

@@ -44,7 +44,8 @@ LAN_IP=""
 ADDRESS="http://${LAN_IP}:${API_PORT:-3000}/v1"
 
 {
-  printf '\n  Scan this with the phone, or copy the two values below it.\n\n'
+  printf '\n  Scan with the phone'\''s ORDINARY camera — not Expo. It holds the TOKEN,\n'
+  printf '  which is the part you cannot type. The address below is short; type that.\n\n'
   npx tsx apps/api/scripts/pair-qr.ts "$ADDRESS" "$TOKEN" 2>/dev/null || \
     printf '  (could not render a QR code — use the values below)\n'
   printf '\n  Server address  %s\n' "$ADDRESS"
