@@ -22,6 +22,22 @@ on:
         default: 'preview'
         type: choice
         options: ['preview', 'production']
+      backend_url:
+        # WHAT MAKES THE ADDRESS FIELD UNNECESSARY. Expo inlines
+        # EXPO_PUBLIC_* at BUILD time, so the address has to be known here, not
+        # at launch — `src/config.ts` reads it and `PersistentSettingsStore`
+        # uses it as the built-in default when the device has nothing stored.
+        #
+        # It is a DEFAULT and not a pin: the sign-in screen can still change it
+        # and the device remembers what it is told (009/US1). That matters more
+        # than it sounds — a laptop whose DHCP lease moves would otherwise leave
+        # an APK that can reach nothing and no way to say so.
+        #
+        # Include the scheme and the `/v1`, e.g. http://192.168.1.42:3000/v1
+        description: 'Backend address to compile in (blank = the 127.0.0.1 default)'
+        required: false
+        default: ''
+        type: string
 
 jobs:
   build:
@@ -84,6 +100,37 @@ jobs:
           EAS_PROJECT_ID: ${{ vars.EAS_PROJECT_ID }}
         run: |
           cd apps/mobile
+
+          # EAS BUILDS ON EXPO'S MACHINES, so an env var set in this job does not
+          # reach the build. `eas.json`'s per-profile `env` does, which is why
+          # this is written into the file rather than exported.
+          #
+          # Written here rather than committed: the address belongs to whoever
+          # dispatched the build, and committing one would make every future
+          # build inherit somebody's old laptop.
+          if [ -n "${{ inputs.backend_url }}" ]; then
+            node -e '
+              const fs = require("fs");
+              const url = process.argv[1];
+              if (!/^https?:\/\/.+/.test(url)) {
+                console.error(`backend_url must start with http:// or https:// — got: ${url}`);
+                process.exit(1);
+              }
+              if (!url.endsWith("/v1")) {
+                console.error(`backend_url must end with /v1 — got: ${url}`);
+                process.exit(1);
+              }
+              const eas = JSON.parse(fs.readFileSync("eas.json", "utf8"));
+              const profile = eas.build["${{ inputs.profile }}"];
+              profile.env = { ...(profile.env ?? {}), EXPO_PUBLIC_API_BASE_URL: url };
+              fs.writeFileSync("eas.json", JSON.stringify(eas, null, 2));
+              console.log(`compiled-in backend address: ${url}`);
+            ' "${{ inputs.backend_url }}"
+          else
+            echo "no backend_url given — the APK will default to http://127.0.0.1:3000/v1"
+            echo "and the address must be typed on the sign-in screen."
+          fi
+
           # NO --wait, and that is a cost decision rather than a style one.
           #
           # `--wait` holds this job open until Expo's machines finish, which is
