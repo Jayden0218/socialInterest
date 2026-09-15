@@ -102,7 +102,12 @@ mkdir -p /opt/jdk17 && tar xzf /tmp/jdk17.tar.gz -C /opt/jdk17 --strip-component
 
 # 4. Build. arm64-v8a only, release: a debug APK with every ABI is 104 MB,
 #    arm64 debug is 35 MB, arm64 release with R8 is 20 MB.
+#
+#    THE TWO `rm`s ARE NOT HYGIENE. They are the difference between this
+#    producing the APK you asked for and producing a stale one while reporting
+#    BUILD SUCCESSFUL. See below.
 cd apps/mobile/android && echo "sdk.dir=/opt/android-sdk" > local.properties
+rm -rf app/build /tmp/metro-cache /tmp/metro-file-map-*
 JAVA_HOME=/opt/jdk17 PATH=/opt/jdk17/bin:$PATH \
 EXPO_PUBLIC_API_BASE_URL=http://<reachable-host>:3000/v1 \
   ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a \
@@ -110,10 +115,72 @@ EXPO_PUBLIC_API_BASE_URL=http://<reachable-host>:3000/v1 \
 # -> app/build/outputs/apk/release/app-release.apk
 ```
 
+### CHANGING THE ADDRESS DOES NOT REBUILD THE BUNDLE, AND THE BUILD SAYS SUCCESSFUL
+
+**Cost four builds on 2026-09-16 before anybody looked.** The recipe above used
+to omit the `rm`, and it is wrong without them:
+
+- **Gradle does not track the environment variable as a task input.** The JS
+  bundle task's inputs are source files. Change `EXPO_PUBLIC_API_BASE_URL` and
+  nothing about the inputs has changed, so Gradle declares the task up to date,
+  skips bundling, repackages the previous bundle and prints `BUILD SUCCESSFUL`.
+  One of those builds took **25 seconds** and produced an APK with the wrong
+  address in it.
+- **`./gradlew clean` does not fix it.** Metro keeps its Babel transform cache in
+  `/tmp/metro-cache`, which belongs to Metro and not to Gradle, so `clean` walks
+  straight past it and the transformed `config.ts` — with whatever address was
+  set the first time — is served again.
+
+So: delete `app/build` so Gradle cannot consider the bundle current, and
+`/tmp/metro-cache` so Metro re-transforms. Both, every time the address changes.
+
+### AND VERIFY IT, BECAUSE THE OBVIOUS CHECK IS VACUOUS
+
+`config.ts` reads:
+
+```ts
+export const API_BASE_URL = process.env['EXPO_PUBLIC_API_BASE_URL'] ?? 'http://127.0.0.1:3000/v1';
+```
+
+The fallback is a **literal in the source**, so it is in the bundle whether or
+not substitution happened. Grepping the APK for it and finding it proves
+nothing — and that is exactly how three bad builds in a row were signed off as
+verified. Grep for **the address you passed**, which appears nowhere in the
+source:
+
+```bash
+unzip -p app/build/outputs/apk/release/app-release.apk assets/index.android.bundle \
+  | grep -c "<the-host-you-passed>:3000/v1"     # 1 = inlined. 0 = stale APK.
+```
+
+**When it is unclear whether the bundler is even seeing the variable, run the
+bundler on its own** — seventeen seconds, and it answers the question three
+Gradle builds could not:
+
+```bash
+cd apps/mobile
+EXPO_PUBLIC_API_BASE_URL=http://<host>:3000/v1 \
+  npx expo export:embed --platform android --dev false \
+    --bundle-output /tmp/direct.bundle --assets-dest /tmp/direct-assets
+grep -c "<host>:3000/v1" /tmp/direct.bundle
+```
+
+That is this project's own standing rule — make the failure visible before
+changing anything, and prefer the free observation to the expensive guess — and
+it was available from the first failure and reached for only after the fourth.
+
 **The API URL is compiled in.** `EXPO_PUBLIC_API_BASE_URL` is inlined at build
 time, so an APK built with one address cannot be repointed. Build it with an
-address the device can actually reach: a LAN address for a phone on your network,
-or a public URL for a cloud device farm.
+address the device can actually reach.
+
+**A LAN address is the wrong default for a phone.** It is a property of the
+network the machine is on, so it changes when either end joins a different
+network and when a DHCP lease moves — and the symptom is "the app cannot reach
+the server", which reads as a broken build. A **Tailscale address** (the
+`100.64.0.0/10` range) belongs to the machine rather than to the network, so it
+is the same at home, on mobile data and after a reboot; it is free for personal
+use with no card, and the traffic is WireGuard-encrypted, which plain `http://`
+over a LAN is not.
 
 
 ---
