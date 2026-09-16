@@ -88,6 +88,32 @@ events, DynamoDB Streams, EventBridge, and SQS.
 
 ## D3. Database: DynamoDB single-table, with the honest caveats
 
+> ## REVERSED 2026-09-16 (010/T037). THE DATASTORE IS POSTGRES.
+>
+> **D3 no longer describes the build.** Feature 010 replaced DynamoDB with a single Postgres
+> table — `items(pk, sk, item jsonb, gsi1pk … gsi5sk)` with five partial indexes — and the
+> twenty-nine repositories, `keys.ts` and every access pattern in `data-model.md` came across
+> unchanged. `apps/api/tests/integration/datastore-primitives.spec.ts` pins the seven
+> operations they depend on and was watched GREEN on the OLD engine first, so any difference
+> afterwards is the new engine's and is named.
+>
+> **The deciding consideration was the one this note already recorded below**, and it is worth
+> repeating as the reason rather than as a caveat: *DynamoDB's local form is an emulator,
+> PostgreSQL's local form is PostgreSQL*. 002/SC-002 had to be withdrawn because every local
+> load figure measured DynamoDB Local's 827 req/s ceiling rather than the product, and under
+> the original decision that question could not be answered without spending. Constitution V
+> is the principle; this was the standing instance of it.
+>
+> **What reversing it cost, measured rather than estimated**: the migration was ~265 lines of
+> core persistence plus four transaction call sites, as the note below predicted.
+>
+> **And what it did not fix.** A managed Postgres is still a divergence from a container on
+> loopback — pooling, latency and free-tier ceilings — which is `D-010-1` in
+> `docs/verification/divergence-register.md`, open and unverified. Reversing D3 removed an
+> emulator, not the need to run the production path.
+>
+> The 2026-09-06 note below is preserved because it is the reasoning that led here.
+
 > **Revisited 2026-09-06 (003/US3). Decision pending with the owner — the original reasoning
 > below is preserved unchanged.**
 >
@@ -261,6 +287,29 @@ flow coverage — YAML flows are quicker to maintain and the journeys here are s
 ---
 
 ## D9. Runtime profiles: ports and adapters, so the stack runs without AWS
+
+> ## RETIRED 2026-09-16 (010/T037). THE ENGINE IT DESCRIBED IS GONE.
+>
+> D9 is kept for the reasoning, not as a description of the build. Two of its three claims
+> have expired:
+>
+> 1. **The `aws` profile does not exist.** AWS was dropped as a deployment target on
+>    2026-09-05 and the four `aws` adapters were DELETED rather than left behind a switch —
+>    "four untested implementations selected by an env var is how a defect hides".
+>    `RUNTIME_PROFILE` accepts `local` only and says so if given anything else.
+> 2. **"Database: DynamoDB Local — no adapter, same API" described DynamoDB**, and the
+>    datastore is Postgres (D3, reversed above). The conclusion was right for the engine it
+>    was about: an emulator speaking the same API warrants no abstraction. It says nothing
+>    about a different engine, and 010 did not add one — Postgres is reached through
+>    `BaseRepository` and the `Transactor`, which is a seam rather than a port, and
+>    `one-datastore-seam.spec.ts` fails the build if anything outside `persistence/` names
+>    the datastore SDK.
+>
+> **What survives, and is still binding.** The remaining ports — `ObjectStore`,
+> `MediaProcessor`, `IdentityProvider`, `EventBus` — keep the media pipeline and the identity
+> check out of the modules that use them, and they are where a second implementation goes.
+> **If one is ever added, Principle V applies again.** Deleting the adapters removed an
+> instance, not the rule.
 
 **Decision**: The API depends on **ports** — narrow interfaces — for every managed
 service except DynamoDB, with two adapter sets selected by a `RUNTIME_PROFILE`

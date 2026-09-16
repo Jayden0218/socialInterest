@@ -55,9 +55,11 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint
       # The same compose file the local profile uses, so CI runs the configuration
-      # a developer runs. Not `services:` — those cannot pass a command, and both
-      # images need one: DynamoDB Local needs `-sharedDb`, MinIO needs `server /data`
-      # (without it the entrypoint prints usage and exits).
+      # a developer runs. Not `services:` — those cannot pass a command, and MinIO
+      # needs one: without `server /data` the entrypoint prints usage and exits.
+      #
+      # 010/T035: the compose file no longer starts DynamoDB Local, so this step
+      # brings up exactly the two engines the product speaks to.
       - run: docker compose up -d
       - name: Wait for Postgres and MinIO
         run: |

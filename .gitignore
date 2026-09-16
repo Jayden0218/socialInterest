@@ -26,3 +26,8 @@ apps/e2e/test-results/
 # The seeded design canvas — ~2 MB of editor payload regenerated from the
 # .dc.html artboards beside it by seed-canvas.mjs. The artboards are the source.
 design/*/[a-z]*-redesign.html
+
+# The compose override compose picks up automatically. `docker-compose.s3mock.yml`
+# is the one to copy into it locally; a substitute for a backing service must
+# never reach CI by being committed.
+docker-compose.override.yml

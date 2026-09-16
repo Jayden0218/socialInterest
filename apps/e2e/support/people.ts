@@ -19,6 +19,14 @@ import { e2eEnv } from './env';
  * would be exercising a shape the product does not use.
  */
 const pool = new Pool({ connectionString: e2eEnv.postgresUrl });
+/**
+ * The durability suite stops and starts Postgres on purpose, and this pool is
+ * module-scoped so it is still holding idle connections when that happens.
+ * Without an `error` listener, `terminating connection due to administrator
+ * command` becomes an unhandled error event and fails every case in the run.
+ * See the fuller note in `durability/durability.spec.ts`.
+ */
+pool.on('error', () => undefined);
 
 const people = new PersonRepository(pool, e2eEnv.tableName);
 const credentials = new CredentialRepository(pool, e2eEnv.tableName);

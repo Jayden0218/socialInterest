@@ -66,6 +66,32 @@ production hosting story — which is what makes it unverifiable — is unchange
 
 ---
 
+## D-010-1 — Postgres runs here as a container and would run there as a managed service
+
+**Recorded 2026-09-16 (010/T036).**
+
+| Field | Value |
+|---|---|
+| **Introduced by** | `specs/010-managed-backend`, which replaced DynamoDB with Postgres |
+| **Local implementation** | `postgres:16-alpine` in `docker-compose.yml`, on loopback, one client, no TLS, a pool that outlives every request, and a disk that is a Docker volume |
+| **What a hosted deployment would do instead** | A managed Postgres on a free tier: TLS required, a connection LIMIT in the low tens, latency across a network rather than a loopback socket, a CPU and memory allowance an order of magnitude smaller, and — on every free tier this project has looked at — an idle suspend |
+| **Why it was chosen anyway** | The engine is the same engine. 010/R2's whole argument is that one SQL implementation beats an emulator that speaks a different service's API, and `datastore-primitives.spec.ts` pins the seven operations the twenty-nine repositories depend on |
+| **What a green local suite does NOT prove** | Three things, and they are the reason this entry exists rather than a note. **Pooling**: the API opens a pool sized for a machine with no connection limit; a managed free tier counts connections and refuses them, and nothing here has ever met that refusal. **Latency**: every query in this suite is a loopback round trip, so the read-per-tile in `countsFor` and the fan-out in `previewForInterests` are measured at a cost they will not have. **Ceilings**: free tiers suspend when idle and cap CPU, storage and rows; SC-008's "first request after 24 hours in under 60 seconds" is precisely a claim about a behaviour that does not exist locally |
+| **Plan to verify the production path** | 010's own Phase 4 and 5: point `DATABASE_URL` at the managed instance and run `apps/e2e` unchanged, then measure SC-007 and SC-008 from a phone. Both are blocked on the owner creating the account, which is a free-tier sign-up and is theirs to make |
+| **Verified** | **no.** Nothing has run against a managed Postgres. The 2,161-test API suite and the 209 end-to-end journeys are evidence about a loopback container |
+
+**And a second, smaller one in the same area, stated rather than filed.** The object store
+in this sandbox is **`adobe/s3mock`, not MinIO** — quay.io is unreachable here, so MinIO
+cannot run at all (CLAUDE.md's dead-ends table). S3Mock speaks enough S3 for presigned PUT
+and GET, which is why `apps/e2e` runs here for the first time, and it **verifies no
+signatures and enforces no bucket policy**. That is not a divergence between local and
+production; it is a divergence between two local stand-ins, and its one consequence is
+named where it bites: `N-04` — "does not serve media to a viewer who may not see it" —
+**cannot pass against S3Mock and does not.** It is verifiable only against MinIO, in CI, and
+is reported unverified everywhere it appears.
+
+---
+
 ## Entries closed
 
-None. This register has one open entry and no closed ones.
+None. This register has two open entries and no closed ones.

@@ -27,8 +27,8 @@ look arbitrary and are not — see "Decisions that look wrong but aren't" below.
 
 **Cost — the owner's standing instruction.** No task may provision billable cloud
 resources without explicit, specific approval. Approval for one deploy is not approval
-for the next. Everything runs on the `local` profile: DynamoDB Local, MinIO, ffmpeg, a
-local JWT issuer, all in Docker, no AWS account. IaC may be written and `cdk synth`'d
+for the next. Everything runs on the `local` profile: **Postgres**, an S3-compatible
+object store, ffmpeg and a local JWT issuer, all in Docker, no cloud account. IaC may be written and `cdk synth`'d
 (free, no credentials); **applying it is never an implicit part of a task.**
 
 **AWS was dropped as the deployment target on 2026-09-05.** The four `aws` adapters
@@ -43,9 +43,12 @@ that use them, and they are where a second implementation would go. **If one is 
 added, Principle V applies again**: register the divergence and verify the production
 path before release. Deleting the adapters removed an instance, not the rule.
 
-Consequence worth naming: there is no production hosting story now. DynamoDB Local
-is a dev tool, not a production datastore, and `infra/` still describes an AWS stack
-that nothing targets. Both are open questions, not settled ones.
+Consequence worth naming: **there is still no production hosting story.** 010 replaced
+the emulator with the real engine — that is a different problem solved — but a Postgres
+container on loopback is not a deployment either, and `infra/` still describes an AWS
+stack that nothing targets. `D-010-1` in the divergence register names what differs
+(pooling, latency, free-tier ceilings) and is open and unverified. Both are open
+questions, not settled ones.
 
 **Constitution, in brief** (read the file for the binding text). **Amended to 2.0.0 on
 2026-09-08** — Principle I was rewritten and Principle II strengthened, so anything in this
@@ -160,8 +163,21 @@ still stands for the product, but that is not evidence about a populated overlay
   apart — generator 187,439 req/s, **emulator 827 req/s**, application shape with
   a stubbed datastore 5,574 req/s. **Re-measured 2026-09-06 against the durable
   (disk-backed) stack**: generator 356,276, **datastore 882**, application 9,475.
-  The datastore is still the lowest ceiling by an order of magnitude, so the
-  conclusion is unchanged and neither figure says anything about D1. `bench:feed-load`, now driven over HTTP, shows
+  The datastore was then the lowest ceiling by an order of magnitude, so the
+  conclusion was unchanged and neither figure says anything about D1.
+  **RE-MEASURED 2026-09-16 AGAINST POSTGRES, and the order of magnitude is
+  gone**: generator 366,725, **datastore 4,205**, application 4,342. The engine
+  moved (010) and the bench had NOT — it was still timing DynamoDB Local and
+  printing the figure labelled "datastore", which is the mislabelling this
+  bench's own harness refuses a measurement for. Postgres is ~4.8x the
+  emulator's ceiling and now within 3% of the application's, so "the datastore
+  is the constraint" is no longer a safe reading: the two are level, and an
+  attribution at 4,205 vs 4,342 is inside the noise. **It still says nothing
+  about D1** — a container on this machine is a stand-in for a managed database
+  exactly as the emulator was for provisioned DynamoDB, which is why
+  `harness.ts`'s `STAND_INS` list had to be extended to catch it (it would
+  otherwise have classified a local Postgres figure as a PRODUCTION datastore).
+  `bench:feed-load`, now driven over HTTP, shows
   throughput **flat at 6-7 req/s** across concurrency 1→100 while p95 rises
   368ms→6,463ms: a saturated dependency, not an algorithm out of headroom.
   At rest the feed is comfortable — p50 183ms at the 200-follow cap over 100k
@@ -174,11 +190,48 @@ still stands for the product, but that is not evidence about a populated overlay
   and SC-009 still forbid.
 - **`VisibilityFilter` is a top-level module, not a helper in `posts/`** (D6). Six
   hand-written predicates is six silent leaks. Never inline a visibility check.
-- **DynamoDB has no adapter; every other managed service does** (D9). DynamoDB Local
-  speaks the same API, so no abstraction is warranted. Don't add one.
-- **PostgreSQL is genuinely the better fit for this spec** (D3) and was not chosen —
-  DynamoDB is the owner's instruction. The friction (fuzzy interest search, merges,
-  aggregation) is deliberately concentrated behind `CatalogueSearch` and one async job.
+- **THE DATASTORE IS POSTGRES, and D3 IS REVERSED** (2026-09-16, 010/T037). One table —
+  `items(pk, sk, item jsonb, gsi1pk … gsi5sk)` with five partial indexes — so `keys.ts`,
+  the twenty-nine repositories and every access pattern in `data-model.md` came across
+  unchanged. The deciding argument is Constitution V's standing instance: **DynamoDB's
+  local form is an emulator, PostgreSQL's local form is PostgreSQL**, which is why
+  002/SC-002 had to be withdrawn — every local load figure measured the emulator's 827
+  req/s ceiling rather than the product. **D9 is RETIRED** with it: there is no `aws`
+  profile and the "no adapter, same API" reasoning was about the engine that is gone.
+  The other ports stay and Principle V still applies to them.
+- **Postgres has a SEAM, not a port**, and it is `BaseRepository` plus `Transactor`.
+  `one-datastore-seam.spec.ts` fails the build if anything outside `persistence/` names
+  the datastore SDK — it was watched RED first, naming five files that built their own
+  transactions and bypassed the base class entirely.
+- **DYNAMODB LOCAL IS OUT OF `docker-compose.yml` (2026-09-16, 010/T035), AND FOUR THINGS
+  WERE STILL READING IT.** The seam guard above covers `src/`, so it had nothing to say
+  about a test, a script or a bench — and every one of the four was pointed at a container
+  the product stopped writing to when the engine changed:
+  - **`apps/e2e/durability/durability.spec.ts`** queried the outstanding-event partition
+    with the AWS SDK. It is the only one that failed LOUDLY (`toHaveLength(1)` against an
+    empty answer), and the clean-up assertion in the same case — `toHaveLength(0)` — is
+    the half that would have passed over anything at all.
+  - **`apps/api/scripts/backfill-conversation-state.ts`** reached `repo.doc` through an
+    `as unknown as { doc, tableName }` cast. `doc` has not existed since the swap, so the
+    first line of its loop would have thrown — and **the cast is why it typechecked**. A
+    cast asserts a shape instead of reading one, which is 013's `smoke:boot` defect in a
+    second place. Repaired and dry-run: 36 conversations scanned, 11 groups skipped, 0
+    repaired.
+  - **`bench:ceiling` and `bench:feed-load`** timed DynamoDB Local and printed the number
+    **labelled as the datastore** — in the two files whose entire subject is what a figure
+    is a figure about. See the re-measurement under D1 above.
+  None of them was found by anything failing. They were found by grepping for the retired
+  engine, which is the "grep the COPY, not only the code" habit applied to a dependency.
+  **`harness.ts`'s `STAND_INS` had to gain `postgres-local`, `localhost` and `127.0.0.1`**:
+  Postgres is not an emulator, so the temptation is to stop calling a local run a stand-in
+  — and the guard would then have classified a laptop container as a PRODUCTION datastore.
+  Silent, and in the direction that flatters the number.
+- **`config.dynamo.endpoint` and `.region` are DELETED; `tableName` is NOT**, and the
+  difference is worth keeping. The first two had zero readers and sat in the file every new
+  setting is copied from, which is how two of the four above got pointed at port 8000.
+  `tableName` is in twenty-nine repository constructors and in every `TransactionItems`
+  entry's `TableName`, so removing it is the second large diff its own comment warns about
+  and no Phase 6 task asks for it. Recorded as outstanding rather than quietly done.
 - **Interest search uses an in-memory catalogue cache, not OpenSearch** (D3). The
   catalogue is small and slow-changing. OpenSearch replaces it behind the same interface
   when post-content search arrives.
@@ -198,7 +251,7 @@ echo '{ "registry-mirrors": ["https://mirror.gcr.io"] }' > /etc/docker/daemon.js
 setsid nohup dockerd > /var/log/dockerd.log 2>&1 < /dev/null &
 ```
 
-Verified working: `docker compose` with DynamoDB Local + MinIO, presigned S3 upload,
+Verified working: `docker compose` with Postgres + an S3-compatible store, presigned S3 upload,
 `TransactWriteItems`, and ffmpeg producing H.264 + poster frame + HLS.
 
 **One real limit**: the container is ephemeral. Commit and push, or lose it.
@@ -273,6 +326,9 @@ impossible regardless — the Simulator is macOS-only.
 | `minio/minio` on Docker Hub | **The repository is GONE from Docker Hub** (hit 2026-09-11), not just a tag. `hub.docker.com/v2/repositories/minio/minio/` answers 404 and the `minio` namespace lists 20 repositories, none of them `minio`. MinIO publishes to **quay.io**, so `docker-compose.yml` uses `quay.io/minio/minio:RELEASE.*`. Docker Hub's message is `pull access denied ... repository does not exist or may require 'docker login'` — it names NO TAG, because it is about the repository; a missing tag reads `manifest for ...:TAG not found` instead |
 | Verifying a Docker Hub pull **in this sandbox** | **THE MIRROR WILL LIE TO YOU.** `/etc/docker/daemon.json` sets `registry-mirrors: [mirror.gcr.io]`, so a pull can be served from the mirror's CACHE of a repository that no longer exists upstream — which is exactly what happened above: a pinned `minio/minio` release tag pulled here and failed identically in CI, which has no mirror. A local pull is evidence about the MIRROR, never about Docker Hub. quay.io is unreachable here at all (egress), so anything hosted there can only be verified by CI |
 | `quay.io` | Unreachable. `public.ecr.aws`, `ghcr.io`, `mirror.gcr.io` all work |
+| **An S3-compatible store IN THIS SANDBOX** | **SOLVED 2026-09-16 — `adobe/s3mock`, and it is NOT MinIO.** MinIO is unreachable here (quay.io); the mirror no longer has a cached `minio/minio` either, and `ghcr.io/gaul/s3proxy` and `ghcr.io/seaweedfs/seaweedfs` both fail to pull. `docker run -d --name sih-s3mock -p 9000:9090 adobe/s3mock` answers presigned PUT and GET, so `apps/e2e`, `seed:demo` and every media path run here for the first time. **It verifies NO signatures and enforces NO bucket policy**, so `N-04` — an unsigned fetch must be REFUSED — cannot pass against it and does not. That one failure is the environment; N-04 is verifiable only against MinIO, in CI. `docker-compose.yml` still names quay.io, deliberately: this is a local substitute, not a change to what ships. Since 2026-09-16 the substitute is a COMMITTED, documented file — `docker-compose.s3mock.yml`, copied to `docker-compose.override.yml` (gitignored, so it can never reach CI) — which is what let `test:durability` run here for the first time |
+| A compose override publishing a port the base file already publishes | **`ports:` MERGES, it does not replace.** A plain `ports: ["9000:9090"]` in an override left the base's `9000:9000` in place, so the container asked for 9000 twice and docker refused it: `Bind for 0.0.0.0:9000 failed: port is already allocated`. That reads exactly like a stuck allocator, and it survived removing every container AND a full `dockerd` restart while a direct Python `bind()` on 9000 succeeded — docker was right the whole time. Use `!override` on the sequence. **`!reset` is the wrong tag**: it clears the key and takes the list under it with it, which starts the container with no published ports at all and looks like a different bug |
+| Backgrounding a long-lived process from a Bash tool call | `setsid … &` inside a compound command is reaped with it. Use the tool's own background mode. **And check for a SECOND instance before believing a result**: a stale API holding port 3000 answers while the new one dies with `EADDRINUSE` into a log nobody reads, which cost three wrong readings of a change that was already correct. `pgrep -f main.ts` and `ps -o lstart=` |
 | DynamoDB Local with `-dbPath` on a named volume | **Needs `user: root`.** The image runs as uid 1000; Docker creates a named volume's mountpoint owned by root; the process cannot open its SQLite file: `SQLiteException: [14] unable to open database file`. It does NOT exit — it answers 400 to a bare `GET /`, so the compose health probe passes, and then hangs every real request forever. Cost an hour of a CI run and looked like a wedged container |
 | Android emulator **in this sandbox** | Boots, then crashloops. No `/dev/kvm`, no `vmx`/`svm`, so pure TCG: `system_server` is killed by its own watchdog *inside* `systemReady()` — `Blocked in handler on main thread for 94s`, limit 60s — restarts, and hits the same wall forever. Happens on a bare emulator with nothing installed. `pm.dexopt.install=skip` does not help (dexopt was never the problem) and `debug.disable_watchdog` is accepted by `setprop` but not honoured; the timeout is a compile-time constant. An `arm64` image is refused outright on an x86_64 host |
 | Android emulator on a GitHub runner | **Solved 2026-09-06, run 7: boots in 77s.** The cause of the six failures was DISK SPACE, not the runner image, the system image, the timeout or the options. The emulator wants ~7.4 GB for its userdata partition and checks *after* the SDK install, the Gradle build and the Docker images have taken theirs: `FATAL | Not enough space to create userdata partition. Available: 6278.66 MB, need 7372.80 MB`. It is not launched in the foreground, so that fatal exit surfaced only as a boot timeout with no device — the exact symptom of all six. The workflow frees ~7 GB first and `scripts/emulator-launch.sh` caps the partition at 2048M and captures the emulator's own output on every path. `KVM (version 12) is installed and usable`, reported by the emulator itself |
@@ -470,11 +526,41 @@ the picker needs no storage permission.
   directly with props, which proves the screen works and says nothing about whether anything
   calls it. **A screen test is not a container test.**
 
-## The Actions allowance was exhausted, and is not any more (cleared 2026-09-07)
+## The Actions allowance is BLOCKED AGAIN, and CI has not run since 2026-09-16 05:07
 
-On 2026-09-06 every workflow failed ~6 seconds in with `recent account payments have
-failed or your spending limit needs to be increased`, blocking ordinary CI as well as the
-emulator job.
+**CHECKED, NOT ASSUMED, 2026-09-16.** `visibility: private` (this is the fork). CI runs
+**69 through 73** — every push of 012 and 013 — are all `conclusion: failure`, each
+completing about **four seconds** after it started with **no steps at all**. The job's
+check-run annotation says why, verbatim:
+
+```
+The job was not started because recent account payments have failed or your
+spending limit needs to be increased. Please check the 'Billing & plans'
+section in your settings
+```
+
+Read from the API rather than inferred, because this file already records two confident
+explanations for unobserved CI failures that had to be retracted:
+
+```
+curl -s https://api.github.com/repos/<owner>/<repo>/check-runs/<job_id>/annotations
+```
+
+(the job id comes from `list_workflow_jobs`; the job's LOGS 404, because a job that never
+started produced none — which is why the annotation is the thing to read).
+
+**WHAT THAT MEANS FOR EVERY "gates green" LINE IN THOSE FIVE COMMITS.** They are LOCAL
+results. Nothing in 012 or 013 has been through CI, so the frozen lockfile, the ffmpeg
+install, the MinIO pull from quay.io, `playwright install`, `test:durability` and the
+Postgres wait have all been unverified on a runner since 2026-09-16 05:07. In particular
+`quay.io/minio` has never been proven to pull from a runner since MinIO left Docker Hub —
+this sandbox cannot reach quay.io at all, so **CI is the only instrument for it and CI has
+not run**.
+
+**Only the owner can clear this** — it is the billing on their account.
+
+The 2026-09-06 occurrence, for the pattern: every workflow failed ~6 seconds in with the
+same message, blocking ordinary CI as well as the emulator job.
 
 **THIS PARAGRAPH HAS BEEN TRUE AND THEN FALSE THREE TIMES. CHECK THE API, NEVER THIS FILE.**
 
@@ -486,6 +572,8 @@ The history, because the pattern matters more than any one reading: public on 20
 (free runners), then a private fork was taken and `visibility: private` applied to IT on
 2026-09-12 (2,000 shared minutes, jobs STOP rather than bill at a $0 spending limit), and the
 claim was repeated from this file both times instead of checked. It takes one request.
+**Checked again 2026-09-16: still `private`** — so the "now that it is public" sentence in
+`ci.yml`'s masking comment is stale too, though what it guards is right either way.
 
 **Which repository you are in decides the answer, and they differ.** `socialInterest` is the
 public upstream: runners are free, and general product work belongs here.
@@ -534,7 +622,29 @@ against it and does not.** That failure is the environment. N-04 is still
 verifiable only against MinIO, in CI, and must be reported unverified.
 
 To run anything here: `.env.local` with the local values, the ffmpeg shim on
-`PATH`, and `docker run -d --name sih-s3mock -p 9000:9090 adobe/s3mock`.
+`PATH`, and `cp docker-compose.s3mock.yml docker-compose.override.yml` before
+`docker compose up -d`. (A hand-run `docker run -d --name sih-s3mock -p
+9000:9090 adobe/s3mock` works too and is what 012 used, but it leaves object
+storage OUTSIDE the compose project — so `test:durability`, which shells out to
+a bare `docker compose down && up`, cannot cycle it.)
+
+**`pnpm --filter @sih/e2e test:durability` HAS NOW RUN HERE, and it had been
+broken by 010.** It read the outstanding-event partition with the AWS SDK
+against DynamoDB Local while the product writes it to Postgres. Repaired, it
+reports **3 of 4 in one run and 4 of 4 across runs**, and the one that moves is
+the environment rather than the product: S3Mock keeps nothing across a container
+restart (no volume, and `initialBuckets` does not re-run), so by the third case
+the bucket is a 404 and the upload fails. Run `s3:create-local` and that case
+passes — including `toHaveLength(1)` on the pending event, which is the exact
+assertion the broken read made unreachable. All four in ONE run needs MinIO.
+
+**A POOL THAT OUTLIVES A DELIBERATE DATABASE RESTART NEEDS AN `error` LISTENER.**
+The first run failed all four cases with a page of pg client internals and
+nothing naming the restart they had just performed on purpose: `compose down`
+sends every idle connection `terminating connection due to administrator
+command`, `pg-pool` re-emits it on the Pool, and a Pool with no listener makes
+that an UNHANDLED error event. Both module-scoped pools in the harness have one
+now.
 
 **Two API processes will lie to you.** A stale one holding port 3000 answers
 while a new one fails to bind with `EADDRINUSE` into a log nobody reads — which

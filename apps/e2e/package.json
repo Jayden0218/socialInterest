@@ -11,9 +11,6 @@
     "@sih/shared": "workspace:*"
   },
   "devDependencies": {
-    "@aws-sdk/client-dynamodb": "^3.712.0",
-    "@aws-sdk/client-s3": "^3.712.0",
-    "@aws-sdk/lib-dynamodb": "^3.712.0",
     "@types/jest": "^29.5.14",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^22.10.2",

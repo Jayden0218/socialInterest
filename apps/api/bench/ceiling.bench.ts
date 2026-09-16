@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { execSync } from 'node:child_process';
-import { DynamoDBClient, DescribeTableCommand } from '@aws-sdk/client-dynamodb';
+import { Pool } from 'pg';
 import { driveConcurrent, percentiles } from './harness';
 
 /**
@@ -14,23 +14,34 @@ import { driveConcurrent, percentiles } from './harness';
  * So measure the three ceilings separately, before touching the feed design:
  *
  *   1. GENERATOR  - the load driver itself, against a trivial local endpoint.
- *   2. DATASTORE  - DynamoDB Local alone, no application code.
+ *   2. DATASTORE  - the datastore alone, no application code.
  *   3. APPLICATION - the API with the datastore replaced by a fixed delay.
  *
  * Whichever is lowest is the ceiling the feed measurement is actually hitting.
  * If it is 1 or 2, the feed number says nothing about the architecture.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * 010: THE DATASTORE LEG WAS STILL MEASURING AN ENGINE NOTHING RUNS ON
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * It sent `DescribeTable` to DynamoDB Local. The product moved to Postgres and
+ * this file did not, so the leg named "datastore" was timing a container the
+ * API never talks to — and the whole point of this bench is that a figure must
+ * be able to say what it measured. The previously recorded numbers (emulator
+ * 827 req/s, then 882 against the durable stack) are figures about DynamoDB
+ * Local and stay attributed to it; they are NOT figures about this build.
+ *
+ * It is still a STAND-IN. A Postgres container on this machine is to managed
+ * Postgres what DynamoDB Local was to provisioned DynamoDB, and `harness.ts`
+ * knows that by name — see `STAND_INS` there, which 010 had to extend for
+ * exactly this reason.
  */
 const LEVELS = [1, 10, 50, 100];
 const REQUESTS = 400;
 const STUB_LATENCY_MS = 2;
 
-const endpoint = process.env['DYNAMO_ENDPOINT'] ?? 'http://127.0.0.1:8000';
-const region = process.env['DYNAMO_REGION'] ?? 'local';
-const table = process.env['TABLE_NAME'] ?? 'sih-main';
-const creds = {
-  accessKeyId: process.env['S3_ACCESS_KEY_ID'] ?? 'localkey',
-  secretAccessKey: process.env['S3_SECRET_ACCESS_KEY'] ?? 'localsecret',
-};
+const databaseUrl =
+  process.env['DATABASE_URL'] ?? 'postgres://sih:localsecret@127.0.0.1:5432/sih';
 
 async function ceilingOf(
   name: string,
@@ -60,13 +71,19 @@ async function main(): Promise<void> {
   });
   generator.rows.forEach((r) => console.log(r));
 
-  // 2. The datastore alone. DescribeTable is a real round trip to DynamoDB Local
-  //    with no application code in the path.
-  const dynamo = new DynamoDBClient({ endpoint, region, credentials: creds });
-  const datastore = await ceilingOf('datastore', () =>
-    dynamo.send(new DescribeTableCommand({ TableName: table })),
-  );
+  // 2. The datastore alone. A real round trip with no application code in the
+  //    path: `select 1` is the smallest thing the connection, the protocol and
+  //    the server can all be made to do, which is what makes it a ceiling
+  //    rather than a query cost.
+  //
+  //    The pool is sized to the highest level so a concurrency curve measures
+  //    the SERVER rather than the pool — a default pool of 10 would flatten
+  //    every level above 10 into a queue and the result would look like the
+  //    datastore saturating at 10.
+  const pool = new Pool({ connectionString: databaseUrl, max: Math.max(...LEVELS) });
+  const datastore = await ceilingOf('datastore', () => pool.query('select 1'));
   datastore.rows.forEach((r) => console.log(r));
+  await pool.end();
 
   // 3. The application shape with a fixed-latency stand-in for the datastore:
   //    the same fan-in arithmetic, none of the emulator. 200 followed interests
@@ -89,10 +106,10 @@ async function main(): Promise<void> {
   console.log(`\n  lowest ceiling: ${lowest.name} at ${lowest.best} req/s`);
   console.log(
     lowest.name === 'datastore'
-      ? '\n  The emulator is the binding constraint. A feed measurement taken against\n' +
-          '  it is a measurement OF IT, and says nothing about read-time fan-in.\n' +
-          '  Re-measure against provisioned DynamoDB (T052, gated) before drawing\n' +
-          '  any conclusion about the architecture.\n'
+      ? '\n  The local datastore is the binding constraint. A feed measurement taken\n' +
+          '  against it is a measurement OF IT, and says nothing about read-time\n' +
+          '  fan-in. Re-measure against the managed datastore before drawing any\n' +
+          '  conclusion about the architecture.\n'
       : lowest.name === 'generator'
         ? '\n  The load driver is the binding constraint. Every other figure here is\n' +
             '  bounded by it and none of them are attributable. Fix the driver first.\n'

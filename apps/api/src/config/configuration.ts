@@ -29,10 +29,24 @@ export interface AppConfig {
    * twenty-nine repositories in the same change that replaces the engine
    * underneath them — two large diffs at once is how a review stops being a
    * review. `tableName` is still passed to every repository and is unused by
-   * the Postgres engine, which has one table; Phase 6 removes both.
+   * the Postgres engine, which has one table.
+   *
+   * `endpoint` and `region` ARE GONE (Phase 6). They were an AWS endpoint and
+   * an AWS region for a client nothing in `src/` constructs any more, sitting
+   * in the file every new setting is copied from. Nothing read them — which is
+   * exactly what made them worth deleting rather than leaving: a dead setting
+   * reads as a live one, and the next person wiring something up would have
+   * pointed it at a container the product does not run on. Two files had
+   * already done that (the durability suite and the 005 backfill script).
+   *
+   * `tableName` is NOT gone, and saying so would be the rounding-up these
+   * notes exist to catch: it is in twenty-nine repository constructors and in
+   * the `TableName` field of every `TransactionItems` entry, which is the
+   * DynamoDB-shaped type `Transactor` deliberately keeps. That is the second
+   * large diff, and no task in Phase 6 asks for it.
    */
   datastore: { url: string };
-  dynamo: { endpoint?: string; region: string; tableName: string };
+  dynamo: { tableName: string };
   objectStore: {
     endpoint?: string;
     region: string;
@@ -107,9 +121,6 @@ export function loadConfig(): AppConfig {
       url: process.env['DATABASE_URL'] ?? '',
     },
     dynamo: {
-      // In `aws` the SDK resolves the real endpoint; only local overrides it.
-      endpoint: isLocal ? str('DYNAMO_ENDPOINT', 'http://127.0.0.1:8000') : undefined,
-      region: str('DYNAMO_REGION', isLocal ? 'local' : 'us-east-1'),
       tableName: str('TABLE_NAME', 'sih-main'),
     },
     objectStore: {

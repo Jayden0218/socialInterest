@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { Pool } from 'pg';
+import { EventRepository } from '../../api/src/persistence/event.repository';
 import { actor } from '../support/client';
 import { publishReadyImage } from '../support/publish';
 import { jpegPlain } from '../support/media';
@@ -52,21 +52,54 @@ async function waitForApi(): Promise<void> {
  *
  * Not through the API: the point of the event case below is what is on disk at
  * the instant the process dies, and the process is dead.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * 010: THIS READ WAS POINTED AT AN ENGINE THE PRODUCT NO LONGER WRITES TO
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * It queried DynamoDB Local with the AWS SDK. The datastore moved to Postgres
+ * and this file was not among the twenty-nine repositories that moved with it,
+ * so the query ran against a table nothing has written since — and answered
+ * with an empty list while the product was recording events correctly.
+ *
+ * It did at least FAIL rather than pass: the assertion below is
+ * `toHaveLength(1)`, so an empty answer is red. The clean-up assertion at the
+ * end of the same case (`toHaveLength(0)`) is the half that would have passed
+ * over anything, which is the shape CLAUDE.md records as a guard losing its
+ * subject. Nothing caught it because `test:durability` is its own jest config
+ * and needs a stack this sandbox could not start.
+ *
+ * `EventRepository`, not a restated key schema — the same argument
+ * `support/people.ts` makes: a second copy of `EVENTS#PENDING` here would drift
+ * from the product's silently and this suite would be asserting about a shape
+ * nothing writes. That is exactly what just happened.
  */
-const doc = DynamoDBDocumentClient.from(
-  new DynamoDBClient({ endpoint: e2eEnv.dynamoEndpoint, region: e2eEnv.region, credentials: e2eEnv.creds }),
-);
+const pool = new Pool({ connectionString: e2eEnv.postgresUrl });
+/**
+ * A POOL THAT OUTLIVES A DELIBERATE DATABASE RESTART NEEDS THIS, and finding
+ * out cost the first run of this suite in the development sandbox.
+ *
+ * `compose down` stops Postgres, which sends every idle connection
+ * `terminating connection due to administrator command`. `pg-pool` re-emits
+ * that on the Pool, and a Pool with no `error` listener makes it an UNHANDLED
+ * error event — so all four cases failed with a page of client internals and
+ * nothing naming the restart they had just performed on purpose.
+ *
+ * Swallowing it is correct here rather than lax: the connection was closed by
+ * the thing this suite exists to stop and start, the pool opens a new one on
+ * the next query, and a failure that matters shows up as a failed assertion
+ * after the restart — which is the whole point of the case.
+ */
+pool.on('error', () => undefined);
+const events = new EventRepository(pool, e2eEnv.tableName);
 
-async function pendingEvents(): Promise<{ eventType: string; payload: Record<string, unknown> }[]> {
-  const r = await doc.send(
-    new QueryCommand({
-      TableName: e2eEnv.tableName,
-      KeyConditionExpression: 'pk = :p',
-      ExpressionAttributeValues: { ':p': 'EVENTS#PENDING' },
-    }),
-  );
-  return (r.Items ?? []) as { eventType: string; payload: Record<string, unknown> }[];
+async function pendingEvents(): Promise<{ type: string; payload: Record<string, unknown> }[]> {
+  return events.listPending();
 }
+
+afterAll(async () => {
+  await pool.end();
+});
 
 describe('durability — the stack keeps what it is given', () => {
   jest.setTimeout(600_000);
@@ -159,7 +192,7 @@ describe('durability — the stack keeps what it is given', () => {
 
     const outstanding = await pendingEvents();
     const mine = outstanding.filter(
-      (e) => e.eventType === 'post.created' && e.payload['postId'] === post.postId,
+      (e) => e.type === 'post.created' && e.payload['postId'] === post.postId,
     );
     expect(mine).toHaveLength(1);
 

@@ -4,8 +4,7 @@ import { spawn } from 'node:child_process';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { writeFileSync, openSync, readFileSync } from 'node:fs';
-import { ScanCommand, DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { Pool } from 'pg';
 import jwt from 'jsonwebtoken';
 import { driveConcurrent, percentiles, reportMeasurement, type Bottleneck } from './harness';
 
@@ -19,8 +18,14 @@ import { driveConcurrent, percentiles, reportMeasurement, type Bottleneck } from
  * distinguish the architecture from the emulator.
  *
  * Run `bench:ceiling` first. If the datastore is the lowest ceiling, the figures
- * below are a measurement of DynamoDB Local and MUST NOT be cited as evidence
- * about the design. That is why `bottleneck` is a required field.
+ * below are a measurement of THE LOCAL CONTAINER and MUST NOT be cited as
+ * evidence about the design. That is why `bottleneck` is a required field.
+ *
+ * 010: the actor lookup below read the table with a DynamoDB `Scan` against an
+ * engine the product no longer runs on, and the measurement it printed was
+ * LABELLED "DynamoDB Local" — the exact mislabelling `harness.ts` refuses a
+ * measurement for not being able to do. Both are Postgres now, and the label
+ * still says stand-in, because a container on this machine is one.
  */
 const BUDGET_MS = 2000;
 const PORT = 3222;
@@ -31,17 +36,28 @@ const arg = (name: string, fallback: number): number => {
   return hit ? Number(hit.split('=')[1]) : fallback;
 };
 
+/**
+ * The datastore is NAMED in the printed measurement, and a connection string
+ * carries a password. The local one is written in `docker-compose.yml` where
+ * anybody reading this repository can already see it, but this same line prints
+ * whatever `DATABASE_URL` holds — which on a hosted run is a live credential,
+ * into a record somebody commits. Host and database, never the userinfo.
+ */
+const redactUrl = (url: string): string => {
+  try {
+    const u = new URL(url);
+    return `${u.host}${u.pathname}`;
+  } catch {
+    return 'unparseable DATABASE_URL';
+  }
+};
+
 const env = {
-  endpoint: process.env['DYNAMO_ENDPOINT'] ?? 'http://127.0.0.1:8000',
-  region: process.env['DYNAMO_REGION'] ?? 'local',
+  databaseUrl: process.env['DATABASE_URL'] ?? 'postgres://sih:localsecret@127.0.0.1:5432/sih',
   table: process.env['TABLE_NAME'] ?? 'sih-main',
   // No default: it must match what the API under measurement was started with.
   secret: process.env['LOCAL_JWT_SECRET'] ?? '',
   issuer: process.env['JWT_ISSUER'] ?? 'sih-local',
-  creds: {
-    accessKeyId: process.env['S3_ACCESS_KEY_ID'] ?? 'localkey',
-    secretAccessKey: process.env['S3_SECRET_ACCESS_KEY'] ?? 'localsecret',
-  },
 };
 
 const API_LOG = resolve(tmpdir(), 'sih-bench-api.log');
@@ -127,20 +143,15 @@ async function main(): Promise<void> {
   const requestsPerLevel = arg('requests', DEFAULT_REQUESTS_PER_LEVEL);
   const levels = [1, 10, 50, 100, target].filter((n, i, a) => a.indexOf(n) === i && n <= target).sort((a, b) => a - b);
 
-  const doc = DynamoDBDocumentClient.from(
-    new DynamoDBClient({ endpoint: env.endpoint, region: env.region, credentials: env.creds }),
+  const pool = new Pool({ connectionString: env.databaseUrl });
+  const { rows: followRows } = await pool.query<{ userId: string }>(
+    `select distinct item->>'userId' as "userId"
+       from items
+      where item->>'type' = 'InterestFollow'
+      limit 2000`,
   );
-  const scan = await doc.send(
-    new ScanCommand({
-      TableName: env.table,
-      FilterExpression: '#t = :t',
-      ExpressionAttributeNames: { '#t': 'type' },
-      ExpressionAttributeValues: { ':t': 'InterestFollow' },
-      ProjectionExpression: 'userId',
-      Limit: 2000,
-    }),
-  );
-  const userIds = [...new Set((scan.Items ?? []).map((i) => i['userId'] as string))];
+  await pool.end();
+  const userIds = followRows.map((r) => r.userId).filter((id): id is string => Boolean(id));
   if (userIds.length === 0) {
     console.log('\nNo seeded follows found. Run: pnpm --filter @sih/infra seed:load\n');
     return;
@@ -170,7 +181,7 @@ async function main(): Promise<void> {
     reportMeasurement(
       {
         transport: 'http',
-        datastore: `DynamoDB Local (${env.endpoint})`,
+        datastore: `postgres-local (${redactUrl(env.databaseUrl)})`,
         version: gitVersion(),
         date: new Date().toISOString().slice(0, 10),
         levels: rows,

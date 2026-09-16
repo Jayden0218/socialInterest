@@ -16,6 +16,7 @@
  *
  * Usage: LOCAL_JWT_SECRET=... npx tsx apps/api/scripts/backfill-conversation-state.ts [--dry-run]
  */
+import type { Pool } from 'pg';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../src/app.module';
 import { ConversationRepository } from '../src/persistence/conversation.repository';
@@ -25,34 +26,40 @@ async function main(): Promise<void> {
   const app = await NestFactory.createApplicationContext(AppModule, { logger: false });
   const repo = app.get(ConversationRepository);
 
-  // The repository has no "scan every conversation" method, deliberately - a
-  // scan is not an access pattern the product has. This reaches the raw client
-  // for a one-time migration, which is the honest way to do something the data
-  // model does not support rather than adding a scan the application could then
-  // start using.
-  const raw = repo as unknown as {
-    doc: { send: (c: unknown) => Promise<{ Items?: Record<string, unknown>[]; LastEvaluatedKey?: unknown }> };
-    tableName: string;
-  };
-  const { ScanCommand } = await import('@aws-sdk/lib-dynamodb');
+  /**
+   * The repository has no "scan every conversation" method, deliberately - a
+   * scan is not an access pattern the product has. This reaches past it for a
+   * one-time migration, which is the honest way to do something the data model
+   * does not support rather than adding a scan the application could then start
+   * using.
+   *
+   * ──────────────────────────────────────────────────────────────────────────
+   * 010: THIS SCRIPT WAS BROKEN AND TYPECHECKED CLEAN
+   * ──────────────────────────────────────────────────────────────────────────
+   *
+   * It reached for `repo.doc` - the DynamoDB document client - through an
+   * `as unknown as { doc, tableName }` cast. The datastore moved to Postgres, so
+   * `doc` has been `undefined` since, and the first line of the loop would have
+   * thrown `Cannot read properties of undefined (reading 'send')`. The cast is
+   * what hid it: it asserts a shape rather than reading one, so the compiler had
+   * nothing to check it against.
+   *
+   * That is 013's `smoke:boot` defect exactly - a call behind a cast, in a
+   * script no suite runs, surviving a clean typecheck and a full test suite.
+   * Found by grepping for the retired engine rather than by anything failing.
+   */
+  const raw = repo as unknown as { pool: Pool };
 
   let scanned = 0;
   let repaired = 0;
   let skippedGroups = 0;
-  let cursor: unknown = undefined;
 
-  do {
-    const page = await raw.doc.send(
-      new ScanCommand({
-        TableName: raw.tableName,
-        FilterExpression: '#t = :conv',
-        ExpressionAttributeNames: { '#t': 'type' },
-        ExpressionAttributeValues: { ':conv': 'Conversation' },
-        ExclusiveStartKey: cursor as Record<string, unknown> | undefined,
-      }) as never,
+  {
+    const { rows } = await raw.pool.query<{ item: Record<string, unknown> }>(
+      `select item from items where item->>'type' = 'Conversation'`,
     );
 
-    for (const item of page.Items ?? []) {
+    for (const { item } of rows) {
       scanned++;
       const conversationId = item['conversationId'] as string;
       const metaState = item['state'] as string;
@@ -97,8 +104,7 @@ async function main(): Promise<void> {
         }
       }
     }
-    cursor = page.LastEvaluatedKey;
-  } while (cursor);
+  }
 
   console.log(
     `\n${dryRun ? 'DRY RUN: ' : ''}scanned ${scanned} conversation(s), ` +

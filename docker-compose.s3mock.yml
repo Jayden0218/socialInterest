@@ -1,0 +1,47 @@
+# An OPTIONAL local override: object storage that this development sandbox can
+# actually start. NOT used by CI, which runs `docker-compose.yml` as written.
+#
+# WHY IT EXISTS. `docker-compose.yml` pulls MinIO from quay.io, which this
+# sandbox's egress policy denies (CLAUDE.md, "Known dead ends"), so for five
+# features nothing here could start object storage at all — every media path,
+# the whole of `apps/e2e`, `seed:demo` and the durability suite were unrunnable
+# locally. `adobe/s3mock` is on Docker Hub, speaks enough S3 for presigned PUT
+# and GET, and turns all of that on.
+#
+# IT IS A STAND-IN, AND TWO DIFFERENCES ARE MEASURED RATHER THAN ASSUMED:
+#
+#   1. S3Mock VERIFIES NO SIGNATURES and enforces no bucket policy, so `N-04`
+#      — which asserts that an UNSIGNED fetch to the bucket is REFUSED — cannot
+#      pass against it and is not weakened by it. That guard is verifiable only
+#      against MinIO, and the divergence register says so.
+#   2. It keeps nothing across a container restart. There is no volume and
+#      `initialBuckets` does not re-run, so `docker compose restart s3` leaves
+#      the bucket GONE (404) until `s3:create-local` recreates it. MinIO with
+#      its named volume does not do this. Consequence for the durability suite:
+#      its first cases restart the stack, so by the third the bucket is missing
+#      and the upload 404s. Each case passes here; all four in ONE run needs
+#      MinIO.
+#
+# USE, in this sandbox: `cp docker-compose.s3mock.yml docker-compose.override.yml`.
+# Compose picks `docker-compose.override.yml` up automatically, which is what
+# the durability suite needs — it shells out to a bare `docker compose`.
+# That filename is gitignored so this substitute can never reach CI by accident.
+#
+# `!override` ON `ports`, AND THE HOUR IT COST. Compose MERGES sequences from an
+# override rather than replacing them, so a plain `ports:` here published 9000
+# TWICE and docker refused the container with "Bind for 0.0.0.0:9000 failed:
+# port is already allocated". Everything about that reads as a stuck allocator —
+# it survived removing every container and a full `dockerd` restart, while a
+# direct `bind()` on 9000 from Python succeeded. Docker was right and the
+# override was asking for the port twice. `!reset` is the other tag and is not
+# the one to use: it clears the key and takes the list under it with it.
+services:
+  s3:
+    image: adobe/s3mock:latest
+    command: !reset null
+    volumes: !reset null
+    environment:
+      initialBuckets: sih-media
+      retainFilesOnExit: "false"
+    ports: !override
+      - "9000:9090"

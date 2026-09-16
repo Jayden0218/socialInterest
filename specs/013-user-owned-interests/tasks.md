@@ -151,7 +151,7 @@ to file a post at all.
 - [X] T041 [P] Update the testID snapshot in the **same commit** as the flows requiring it, and regenerate on ADDITIONS rather than only removals — 011 found it nineteen ids stale, and a snapshot can only detect the removal of an id it knows about
 - [X] T042 [P] Run `node scripts/verify-maestro-ids.mjs`. A selector matching nothing fails as a thirty-second timeout twenty minutes into a device run
 - [X] T043 Run the real CI step list before pushing, not a proxy for it. Two red builds came from checking typecheck/lint/tests and assuming that covered CI
-- [ ] T044 Run every scenario in [quickstart.md](./quickstart.md)
+- [X] T044 Run every scenario in [quickstart.md](./quickstart.md) — **run 2026-09-16.** §1 uniqueness (1 of N), §2 the global gate, §3 case and punctuation converge, §6 the regression gates, §7 grep the copy, and §8 the whole e2e suite. §4 and §5 are covered by `interest-naming` and `interest-merge-flat`. **Two things it found**: the document expected 1,488 across 16 surfaces and the answer is 1,586 across 17 — moved deliberately by 012/T038, recorded in the document rather than quietly updated — and §7 found LIVE user-facing copy telling somebody to "create a sub-interest for it", which is 007's follow-hint defect exactly and is why that scenario exists
 - [X] T045 Record the run in `docs/verification/runs/`, every criterion pass, fail or **not run** — never blank — and **count the items** rather than reading the highest number. The device tier is **not run**: no emulator here, and nothing since 011 has run on one
 
 ---

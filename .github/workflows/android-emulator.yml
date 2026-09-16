@@ -76,12 +76,18 @@ jobs:
       # The emulator and the API run on ONE machine, so the app reaches the
       # server at 10.0.2.2 with no inbound route, no tunnel and no allowlist.
       - run: docker compose up -d
-      - name: Wait for DynamoDB Local and MinIO
+      - name: Wait for Postgres and MinIO
         run: |
+          # 010/T035. This waited for DynamoDB Local on port 8000 and NOT for
+          # Postgres — so after the datastore swap it was blocking on a container
+          # the product does not use while `db:create-local-pg` ran against one
+          # that might not be up yet. `pg_isready`, the same probe ci.yml uses,
+          # for the reason written there.
           for _ in $(seq 1 60); do
-            # No -f on the DynamoDB probe: it answers a bare GET / with 400.
             if curl -sf http://127.0.0.1:9000/minio/health/live \
-               && curl -so /dev/null http://127.0.0.1:8000; then exit 0; fi
+               && docker compose exec -T postgres pg_isready -U sih -d sih; then
+              exit 0
+            fi
             sleep 2
           done
           echo "backing services never became ready"; docker compose logs; exit 1

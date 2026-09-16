@@ -132,8 +132,36 @@ export interface LoadMeasurement {
  * 003/FR-013 exists because 001 reported an emulator's p95 of 11.8s as a
  * property of the read-time feed design, and that reading drove a proposal to
  * build a fan-out hybrid the evidence never warranted.
+ *
+ * ────────────────────────────────────────────────────────────────────────────
+ * 010 HAD TO EXTEND THIS LIST, AND THE REASON IS THE WHOLE POINT OF IT
+ * ────────────────────────────────────────────────────────────────────────────
+ *
+ * The datastore moved to Postgres, and the benches with it. Postgres is not an
+ * emulator - it is the same engine the managed one runs - so the temptation is
+ * to say a local run is no longer a stand-in. It is: it is a single container
+ * on a developer's machine with no network between it and the client, no
+ * connection limit worth hitting, no shared tenancy and no free-tier ceiling.
+ * D-010-1 in the divergence register names exactly those four.
+ *
+ * Had this list not been extended, a local Postgres figure would have been
+ * classified as a PRODUCTION datastore by a guard whose entire job is to stop
+ * that - the failure would have been silent and in the direction that flatters
+ * the number, which is the direction this project keeps catching itself going.
  */
-const STAND_INS = ['dynamodb local', 'dynamodb-local', 'dynamodblocal', 'minio', 'in-memory', 'stub'];
+const STAND_INS = [
+  'dynamodb local',
+  'dynamodb-local',
+  'dynamodblocal',
+  'postgres-local',
+  'postgres local',
+  'localhost',
+  '127.0.0.1',
+  'minio',
+  's3mock',
+  'in-memory',
+  'stub',
+];
 
 /**
  * Substring, not equality. The benches name their datastore with detail -

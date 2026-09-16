@@ -69,8 +69,15 @@ typed**.
 pnpm --filter @sih/api exec jest tests/visibility/matrix.spec.ts tests/integration/auth-surface.spec.ts
 ```
 
-Expect **1,488 assertions across 16 surfaces**, and the route snapshots unchanged. **If a number
+Expect **1,586 assertions across 17 surfaces**, and the route snapshots unchanged. **If a number
 moves, stop and find out why — never update the number to match.**
+
+> **It moved once, deliberately, and this is the record of why.** 013 wrote 1,488 across 16.
+> 012/T038 added `interest preview` — Explore's photo mosaic — which is post media reaching a
+> viewer on a surface that returned none before, so it is surface 17 with a matrix row and a
+> routing probe. One surface, no new dimension, so the total rose by 98 rather than by the 784
+> a new axis costs. Raising the literals in `matrix.spec.ts` was the deliberate, reviewable
+> edit this instruction is asking for — not an update to make a number match.
 
 ## 7. The copy, not only the code (SC-009, FR-021)
 

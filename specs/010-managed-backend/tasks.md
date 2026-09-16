@@ -128,11 +128,11 @@ its media references and its counts are unchanged.
 
 ## Phase 6: Polish, Verification & Cross-Cutting
 
-- [ ] T034 [P] Add a guard that **fails the build** if a credential-shaped string appears anywhere in the tree (FR-016) — and verify it red against a planted fake, because care is not a control
-- [ ] T035 [P] Replace the DynamoDB service with Postgres in `.github/workflows/ci.yml`, with **no cloud credentials** anywhere in it (FR-007)
-- [ ] T036 [P] Add the Principle V divergence entry in `docs/verification/divergence-register.md` recording what still differs between local and managed Postgres — pooling, latency, and the free tier's ceilings — and confirm `pnpm verify:register` passes
-- [ ] T037 [P] Update `001/research.md`: **reverse D3** with the date and the reason, and **retire D9** with the engine it described. A design document that stops matching the build is how a reader is misled six features later
-- [ ] T038 [P] Update `CLAUDE.md`: the datastore, the local stack, and the fact that the quay.io MinIO dependency is gone from the datastore path
+- [x] T034 [P] Add a guard that **fails the build** if a credential-shaped string appears anywhere in the tree (FR-016) — and verify it red against a planted fake, because care is not a control
+- [x] T035 [P] Replace the DynamoDB service with Postgres in `.github/workflows/ci.yml`, with **no cloud credentials** anywhere in it (FR-007)
+- [x] T036 [P] Add the Principle V divergence entry in `docs/verification/divergence-register.md` recording what still differs between local and managed Postgres — pooling, latency, and the free tier's ceilings — and confirm `pnpm verify:register` passes
+- [x] T037 [P] Update `001/research.md`: **reverse D3** with the date and the reason, and **retire D9** with the engine it described. A design document that stops matching the build is how a reader is misled six features later
+- [x] T038 [P] Update `CLAUDE.md`: the datastore, the local stack, and the fact that the quay.io MinIO dependency is gone from the datastore path
 - [ ] T039 Confirm **SC-004 by inspection**: no payment method on file with any provider used
 - [ ] T040 Walk [quickstart.md](./quickstart.md) end to end and fix the document wherever reality disagreed with it
 - [ ] T041 Record the run in `docs/verification/runs/` with every criterion pass, fail or **not run** — never blank, and **count the items** rather than reading the highest number, which this project has got wrong twice

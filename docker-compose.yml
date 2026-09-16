@@ -1,33 +1,36 @@
 # The local runtime profile. Both services keep their data on a named volume:
-# without one the datastore ran `-inMemory` and lost every post on restart, and
-# object storage wrote into the container's writable layer and lost every upload
-# when the container was recreated.
+# without one the datastore lost every post on restart, and object storage wrote
+# into the container's writable layer and lost every upload when the container
+# was recreated.
 #
-# Verified 2026-09-06, after the ownership fix below: an item written through the
-# DynamoDB API, then `docker compose rm -sf dynamodb` (destroyed, not restarted),
-# then `up -d`, reads back with its value intact. The same check before the fix
-# could not even write.
+# 010/T035: DYNAMODB LOCAL IS GONE FROM THIS FILE, and it went last rather than
+# first. It was kept alongside Postgres deliberately while the swap was in
+# flight, because `contracts/datastore-primitives.md` requires the seven-
+# primitive contract test to be watched green against the engine being REPLACED
+# before the replacement is trusted, and an engine that cannot be started cannot
+# be watched. That is done; `datastore-primitives.spec.ts` drives Postgres now.
+#
+# What kept it here AFTER that was three readers nobody had noticed, each of
+# which would have been a silent wrong answer rather than a failure:
+#
+#   - `apps/e2e/durability/durability.spec.ts` read the outstanding-event
+#     partition with the AWS SDK. The product writes it to Postgres, so the
+#     query looked at a table nothing had written to since the swap. That one
+#     at least failed loudly (`toHaveLength(1)`).
+#   - `apps/api/scripts/backfill-conversation-state.ts` reached `repo.doc`
+#     through an `as unknown as` cast. `doc` has been undefined since the swap;
+#     the cast is why it typechecked.
+#   - `bench:ceiling` and `bench:feed-load` timed DynamoDB Local and PRINTED
+#     THE FIGURE LABELLED AS THE DATASTORE — a measurement of a container the
+#     API never talks to, in the two files whose whole subject is what a number
+#     is a number about.
+#
+# All three read Postgres now, so nothing starts this container to be lied to
+# by it. Anything still naming port 8000 is a leftover, not a dependency.
 services:
-  dynamodb:
-    image: amazon/dynamodb-local:latest
-    # `user: root` is not decoration. The image runs as uid 1000
-    # (dynamodblocal), but Docker creates a named volume's mountpoint owned by
-    # root, so DynamoDB Local cannot open its SQLite file at /data:
-    #
-    #   SQLiteException: [14] unable to open database file
-    #   SQLiteQueue[shared-local-instance.db]: stopped abnormally, reincarnating
-    #
-    # It does not exit. It answers 400 to a bare GET - so a health probe passes -
-    # and then HANGS every real request forever. That is how this looked healthy
-    # while `db:create-local` sat for 180s and the durability run never returned.
-    user: root
-    command: ["-jar", "DynamoDBLocal.jar", "-dbPath", "/data", "-sharedDb"]
-    volumes: ["sih-dynamodb:/data"]
-    ports: ["8000:8000"]
-
-  # 010/T002. Postgres, the engine the datastore is moving TO.
+  # 010/T002. Postgres, the engine the datastore moved TO.
   #
-  # ADDED ALONGSIDE DYNAMODB LOCAL RATHER THAN REPLACING IT, which is a
+  # ADDED ALONGSIDE DYNAMODB LOCAL RATHER THAN REPLACING IT, which was a
   # deliberate correction to 010/T002 as written. The task said "replace", but
   # T007 — the step the whole migration's provability rests on — requires the
   # seven-primitive contract test to be run against the engine being REPLACED
@@ -35,8 +38,8 @@ services:
   # watched. `contracts/datastore-primitives.md` says so itself: "the same test
   # file runs against both engines where both can still be started".
   #
-  # DynamoDB Local goes when the swap is done and the contract has been proven
-  # on both sides, which is 010 Phase 6's business, not Phase 1's.
+  # (DynamoDB Local went in Phase 6, once the contract had been proven on both
+  # sides and the last three readers of it had been moved — see the header.)
   #
   # On Docker Hub, and that matters here: `postgres` is an official library
   # image, so this removes the quay.io dependency the dead-ends table in
@@ -109,5 +112,4 @@ services:
 
 volumes:
   sih-postgres:
-  sih-dynamodb:
   sih-minio:
