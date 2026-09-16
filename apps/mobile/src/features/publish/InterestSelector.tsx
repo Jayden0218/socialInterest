@@ -1,11 +1,22 @@
 import { FlatList, Pressable, Text, View } from 'react-native';
 import type { InterestRef } from '@sih/shared';
 import { activePalette as palette, radius, space, textStyle, touchTarget, type } from '../../ui/theme';
+import { Field } from '../../ui/primitives';
+import { Icon } from '../../ui/Icon';
 
 export interface InterestSelectorProps {
   selected: InterestRef[];
   options: InterestRef[];
   onChange: (next: InterestRef[]) => void;
+  /**
+   * 013/T017, FR-001, FR-002. WHAT THE PERSON TYPED.
+   *
+   * The whole point of the feature: somebody names what their photograph is
+   * about instead of choosing from a list we own. Held by the container so it
+   * can be sent as `interestNames` on publish.
+   */
+  typedName?: string;
+  onTypedNameChange?: (next: string) => void;
 }
 
 /**
@@ -14,14 +25,23 @@ export interface InterestSelectorProps {
  * than as a server error the person has to interpret. The server enforces it
  * too — this is convenience, not the guarantee.
  */
-export function canPublish(selected: InterestRef[]): boolean {
-  return selected.length > 0;
+export function canPublish(selected: InterestRef[], typedName = ''): boolean {
+  // 013/FR-005. A NAME COUNTS. The server takes `interestIds`, `interestNames`
+  // or both and refuses neither — this mirrors that so the control is not
+  // disabled while somebody has plainly said what the post is about.
+  return selected.length > 0 || typedName.trim().length > 0;
 }
 
 // 013. Flat: names are globally unique, so there is nothing to disambiguate.
 const label = (ref: InterestRef): string => ref.name;
 
-export function InterestSelector({ selected, options, onChange }: InterestSelectorProps) {
+export function InterestSelector({
+  selected,
+  options,
+  onChange,
+  typedName,
+  onTypedNameChange,
+}: InterestSelectorProps) {
   const toggle = (ref: InterestRef): void => {
     const has = selected.some((s) => s.interestId === ref.interestId);
     onChange(has ? selected.filter((s) => s.interestId !== ref.interestId) : [...selected, ref]);
@@ -30,8 +50,25 @@ export function InterestSelector({ selected, options, onChange }: InterestSelect
   return (
     <View testID="interest-selector" style={{ gap: space.sm }}>
       <Text style={{ ...textStyle.caption, color: palette.text.muted }}>
-        {selected.length === 0 ? 'Choose an interest (required)' : 'Filed under'}
+        {selected.length === 0 && !typedName?.trim() ? 'What is this about? (required)' : 'Filed under'}
       </Text>
+
+      {/*
+        013/T017. THE FIELD COMES FIRST, AND THE SUGGESTIONS BELOW IT.
+        Naming your own subject is the primary action; the row underneath is
+        what already exists, offered so the obvious word is one tap away. The
+        prior research found this is where sprawl is won or lost — an interface
+        that pushes toward existing terms rather than one that only accepts them.
+      */}
+      {onTypedNameChange ? (
+        <Field
+          testID="interest-name-input"
+          accessibilityLabel="Name this interest"
+          placeholder="Bouldering, sourdough, birdwatching…"
+          value={typedName ?? ''}
+          onChangeText={onTypedNameChange}
+        />
+      ) : null}
       <FlatList
         horizontal
         data={options}
@@ -56,8 +93,6 @@ export function InterestSelector({ selected, options, onChange }: InterestSelect
                 backgroundColor: isSelected ? palette.intent.accent : palette.bg.base,
               }}
             >
-              {/* The parent is always shown: "portraits" under Photography must be
-                  distinguishable from "portraits" under Painting (FR-026). */}
               <Text style={{ color: isSelected ? palette.text.onAccent : palette.text.primary, fontSize: type.caption.size }}>
                 {label(item)}
               </Text>

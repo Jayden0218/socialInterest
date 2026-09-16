@@ -4,6 +4,8 @@ import type { Visibility } from '@sih/shared';
 import { PlaceRepository } from '../../persistence/place.repository';
 import { PersonRepository } from '../../persistence/person.repository';
 import { DomainError } from '../../common/errors/problem.filter';
+import { InterestService } from '../interests/interest.service';
+import type { TransactionItems } from '../../persistence/transactor';
 import { resolveMentions } from '../engagement/mention';
 import { MEDIA_LIMITS } from '../../config/media.limits';
 import { CATALOGUE_SEARCH, type CatalogueSearch } from '../interests/catalogue.cache';
@@ -22,6 +24,10 @@ export interface CreatePostInput {
    */
   uploadIds: string[];
   interestIds: string[];
+  /** 013/T013. Interests named rather than chosen; resolved or created. */
+  interestNames?: string[];
+  /** 013/FR-010. Acknowledged near-duplicates, for the names above. */
+  acknowledgedSimilarTo?: string[];
   caption?: string;
   /** 008/FR-034. Descriptions keyed by upload id. */
   altTexts?: Record<string, string>;
@@ -44,6 +50,8 @@ export class PostService {
     @Inject(UploadRepository) private readonly uploads: UploadRepository,
     @Inject(PlaceRepository) private readonly places: PlaceRepository,
     @Inject(PersonRepository) private readonly people: PersonRepository,
+    // 013/T013. Resolve-or-create an interest inside the post's transaction.
+    @Inject(InterestService) private readonly interests: InterestService,
   ) {}
 
   /**
@@ -80,9 +88,9 @@ export class PostService {
   }
 
   async create(input: CreatePostInput): Promise<PostItem> {
-    // FR-006: publishing without an interest is refused. Checked before any
-    // item is created, so a rejected post leaves nothing behind.
-    if (input.interestIds.length === 0) {
+    // FR-006 / 013/FR-005: publishing without an interest is refused. Checked
+    // before any item is created, so a rejected post leaves nothing behind.
+    if (input.interestIds.length === 0 && (input.interestNames?.length ?? 0) === 0) {
       throw new DomainError(
         HttpStatus.UNPROCESSABLE_ENTITY,
         'Validation failed',
@@ -138,7 +146,49 @@ export class PostService {
       );
     }
 
-    const expandedInterestIds = this.expandInterests(input.interestIds);
+    /**
+     * 013/T013, FR-004. RESOLVE THE NAMED INTERESTS, CREATE NONE OF THEM YET.
+     *
+     * `resolveOrPrepare` returns either an existing interest and no items, or a
+     * new interest and the items that would bring it into being. The items go
+     * into the POST's transaction below, so an interest and the post that
+     * justifies it land together or not at all — which is the only version of
+     * "an interest cannot exist without a post" with no window in it.
+     *
+     * Deduplicated by id: naming an interest twice, or naming one that was also
+     * chosen by id, must not write it twice.
+     */
+    const newInterestItems: TransactionItems = [];
+    const namedIds: string[] = [];
+    for (const name of input.interestNames ?? []) {
+      const { interest, items } = await this.interests.resolveOrPrepare(
+        name,
+        input.authorId,
+        input.acknowledgedSimilarTo,
+      );
+      if (namedIds.includes(interest.interestId) || input.interestIds.includes(interest.interestId)) {
+        continue;
+      }
+      namedIds.push(interest.interestId);
+      newInterestItems.push(...items);
+    }
+
+    /**
+     * 013/T013. VALIDATE ONLY THE IDS THE CALLER SUPPLIED.
+     *
+     * `expandInterests` checks each id against the catalogue and refuses an
+     * unknown one — which is right for an id a client sent, and wrong for an
+     * interest being created in THIS transaction: it is not in the cache yet,
+     * by construction, and asking the cache about it returned 422 on every
+     * genuinely new name.
+     *
+     * The named ones need no validation. They came from `resolveOrPrepare`,
+     * which either found them live in the catalogue or just built them.
+     */
+    const allInterestIds = [...new Set([...input.interestIds, ...namedIds])];
+    const expandedInterestIds = [
+      ...new Set([...this.expandInterests(input.interestIds), ...namedIds]),
+    ];
     const now = new Date().toISOString();
     const postId = ulid();
 
@@ -176,7 +226,7 @@ export class PostService {
       authorId: input.authorId,
       ...(input.caption ? { caption: input.caption } : {}),
       ...(mentions.length > 0 ? { mentions } : {}),
-      interestIds: input.interestIds,
+      interestIds: allInterestIds,
       ...(input.placeId ? { placeId: input.placeId } : {}),
       // FR-013: public unless the author chose otherwise.
       visibility: input.visibility ?? 'public',
@@ -224,8 +274,13 @@ export class PostService {
       post,
       media,
       expandedInterestIds,
+      ...(newInterestItems.length > 0 ? { newInterests: newInterestItems } : {}),
       ...(input.draftId ? { draftId: input.draftId } : {}),
     });
+
+    // The new interests are postable and searchable immediately, which is what
+    // `createSubInterest` already did after its own write.
+    if (newInterestItems.length > 0) await this.interests.refreshCatalogue();
 
     /**
      * FR-031, FR-032. NOTHING IS ANNOUNCED HERE, and that is deliberate.

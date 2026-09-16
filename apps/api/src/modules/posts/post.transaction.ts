@@ -39,8 +39,22 @@ export class PostTransaction {
   async createPost(input: {
     post: PostItem;
     media: MediaItemRecord[];
-    /** Already expanded: sub-interest AND its parent (FR-024). */
+    /**
+     * 013/FR-021. The interests this post carries. NO LONGER EXPANDED — the
+     * parent roll-up is withdrawn, so a post writes one index row per interest
+     * it actually names.
+     */
     expandedInterestIds: string[];
+    /**
+     * 013/T013, FR-004. Interests coming into existence WITH this post.
+     *
+     * An interest cannot exist without a post, and two requests leave a window
+     * in which one does — plus a publish that fails afterwards would leave it
+     * for ever. Passed as transaction items so the interest, its name claim,
+     * its slug claim and the post are one all-or-none write. 008/FR-051 used
+     * exactly this argument for collections.
+     */
+    newInterests?: TransactionItems;
     /**
      * 008/FR-038. The draft this post came from, deleted IN THIS TRANSACTION.
      *
@@ -51,10 +65,14 @@ export class PostTransaction {
      */
     draftId?: string;
   }): Promise<void> {
-    const { post, media, expandedInterestIds, draftId } = input;
+    const { post, media, expandedInterestIds, draftId, newInterests } = input;
     const table = this.config.dynamo.tableName;
 
     const items: TransactionItems = [
+      // 013/T013. First, so a name collision refuses before anything else is
+      // written — the transaction is all-or-none either way, but the failure
+      // reads as "that name is taken" rather than as a post that half-landed.
+      ...(newInterests ?? []),
       {
         Put: {
           TableName: table,

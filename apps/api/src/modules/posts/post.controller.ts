@@ -63,9 +63,36 @@ const createPostSchema = z.object({
    * its own share control, and Constitution III says a guarantee tested only
    * through the first-party client is not tested.
    */
-  interestIds: z
-    .array(z.string().min(1))
-    .min(1, { message: 'Choose an interest. Every post is filed under one.' }),
+  interestIds: z.array(z.string().min(1)).optional(),
+  /**
+   * 013/T013, FR-001, FR-004. THE INTEREST BY NAME, WHICH IS THE POINT.
+   *
+   * A person types what their photograph is about. The server resolves each
+   * name to an existing interest or creates it IN THE SAME TRANSACTION as the
+   * post, so an interest without a post is unrepresentable.
+   *
+   * `interestIds` stays accepted and optional beside it, because the interest
+   * a person picked from the autocomplete IS an existing id and sending it is
+   * cheaper and unambiguous. At least one of the two must be non-empty — that
+   * rule is the refine below, and it is what keeps Principle I true.
+   */
+  interestNames: z.array(z.string().min(1).max(50)).optional(),
+  /**
+   * 013/FR-010. Carried through from the compose screen: a person shown the
+   * existing near-matches and still wanting a new interest says so here, and
+   * the same gate that refuses a bare create refuses this.
+   */
+  acknowledgedSimilarTo: z.array(z.string().min(1)).optional(),
+  /**
+   * 013/FR-005. Interests may be named, chosen, or both — but not neither.
+   *
+   * This is the line that keeps Principle I true after 013, as `interestIds`
+   * alone kept it true after 007: the feed does not read the interest graph,
+   * so the ONLY thing still making every post belong somewhere is that
+   * publishing refuses without one. The message names what is missing, because
+   * a bare "Validation failed" on a publish flow tells somebody their post was
+   * rejected and not what to do about it.
+   */
   /**
    * 008/FR-034. Descriptions keyed by UPLOAD ID.
    *
@@ -90,7 +117,21 @@ const createPostSchema = z.object({
    * HTTP path a modified client would take.
    */
   placeId: z.string().min(1).optional(),
-});
+})
+  .refine((v) => (v.interestIds?.length ?? 0) + (v.interestNames?.length ?? 0) > 0, {
+    message: 'Choose an interest. Every post is filed under one.',
+    /**
+     * PATHED AT `interestIds` DELIBERATELY.
+     *
+     * A bare `.refine` on the object reports its path as the whole body, and
+     * `interest-required.spec.ts` caught that immediately: 001/FR-016 requires
+     * the refusal to NAME what is missing, because "Validation failed" on a
+     * publish tells somebody their post was rejected and not what to do about
+     * it. `interestIds` rather than `interestNames` because it is the field
+     * every existing client and the contract already know.
+     */
+    path: ['interestIds'],
+  });
 
 @Controller('posts')
 export class PostController {
@@ -116,7 +157,9 @@ export class PostController {
       uploadIds: input.uploadIds,
       ...(input.altTexts ? { altTexts: input.altTexts } : {}),
       ...(input.draftId ? { draftId: input.draftId } : {}),
-      interestIds: input.interestIds,
+      interestIds: input.interestIds ?? [],
+      ...(input.interestNames ? { interestNames: input.interestNames } : {}),
+      ...(input.acknowledgedSimilarTo ? { acknowledgedSimilarTo: input.acknowledgedSimilarTo } : {}),
       ...(input.caption ? { caption: input.caption } : {}),
       visibility: input.visibility,
       keepLocationMetadata: input.keepLocationMetadata,

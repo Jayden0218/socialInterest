@@ -59,6 +59,13 @@ export class PostsData {
     /** 008/FR-038. Publishing from a draft deletes it in the same transaction. */
     draftId?: string;
     interestIds: string[];
+    /**
+     * 013/T013, FR-001. Interests the person NAMED rather than chose.
+     *
+     * The server resolves each to an existing interest or creates it in the
+     * same transaction as the post, so an interest never exists without one.
+     */
+    interestNames?: string[];
     caption?: string;
     visibility?: Visibility;
     keepLocationMetadata?: boolean;

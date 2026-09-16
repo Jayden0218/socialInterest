@@ -2,6 +2,7 @@ import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { ulid } from 'ulid';
 import { DomainError } from '../../common/errors/problem.filter';
 import { InterestRepository, type InterestItem } from '../../persistence/interest.repository';
+import type { TransactionItems } from '../../persistence/transactor';
 import { InMemoryCatalogueCache, normaliseName } from './catalogue.cache';
 import { NamePolicy } from './name-policy';
 import { InterestSearch, type SearchResult } from './catalogue.search';
@@ -42,6 +43,76 @@ export class InterestService {
    * before the conditional write, so a prohibited name is never compared against
    * the catalogue and never reaches the table.
    */
+  /**
+   * 013/T013, FR-004. RESOLVE A NAME, OR PREPARE TO CREATE IT — never write.
+   *
+   * Returns the interest plus the transaction items that would bring it into
+   * existence, so the CALLER (publishing) puts them in the same transaction as
+   * the post. That is what makes "an interest cannot exist without a post" true
+   * rather than usually true: two requests leave a window in which an empty
+   * interest exists, and a publish that fails afterwards leaves one for ever.
+   *
+   * Contract §1, rows 3, 4 and 7. Rows 1, 2 and 5 throw.
+   */
+  /** 013/T013. Makes a just-created interest postable and searchable at once. */
+  async refreshCatalogue(): Promise<void> {
+    await this.cache.refresh();
+  }
+
+  async resolveOrPrepare(
+    name: string,
+    createdBy: string,
+    acknowledgedSimilarTo?: string[],
+  ): Promise<{ interest: InterestItem; items: TransactionItems }> {
+    const trimmed = name.trim();
+    const nameNormalised = normaliseName(trimmed);
+
+    // Contract §1 row 1. `normaliseName` strips everything outside [a-z0-9], so
+    // this also refuses a name written in a non-Latin script — a stated
+    // limitation of the product, not an accident of this branch.
+    if (!nameNormalised) {
+      throw new DomainError(
+        HttpStatus.UNPROCESSABLE_ENTITY,
+        'Interest name is empty',
+        'An interest needs a name with letters or numbers in it.',
+      );
+    }
+
+    // Row 3: it already exists, in any casing or punctuation. Not a question —
+    // asking somebody to confirm that capitalisation does not matter is noise.
+    const exact = this.search.findExact(trimmed);
+    if (exact) return { interest: exact, items: [] };
+
+    // Row 4: it names something merged away. Land on the survivor rather than
+    // resurrect the source.
+    const merged = this.cache.byNormalisedName(nameNormalised);
+    if (merged?.state === 'merged' && merged.mergedIntoId) {
+      const target = this.cache.byId(merged.mergedIntoId);
+      if (target && target.state === 'active') return { interest: target, items: [] };
+    }
+
+    // Rows 2, 5, 6, 7 — the same policy and duplicate gate creation uses.
+    this.namePolicy.assertAllowed(trimmed);
+    const similar = this.search.findSimilar(trimmed);
+    const acknowledged = new Set(acknowledgedSimilarTo ?? []);
+    const unacknowledged = similar.filter((c) => !acknowledged.has(c.interest.interestId));
+    if (this.search.isTooSimilar(unacknowledged)) throw new DuplicateInterestError(unacknowledged);
+
+    const interest: InterestItem = {
+      interestId: ulid(),
+      name: trimmed,
+      nameNormalised,
+      slug: await this.uniqueSlug(trimmed),
+      createdBy,
+      // FR-004: it is born with the post that is being written beside it.
+      postCount: 1,
+      followerCount: 0,
+      state: 'active',
+      createdAt: new Date().toISOString(),
+    };
+    return { interest, items: this.repo.createItems(interest) };
+  }
+
   async createSubInterest(input: CreateSubInterestInput): Promise<InterestItem> {
     this.namePolicy.assertAllowed(input.name);
 

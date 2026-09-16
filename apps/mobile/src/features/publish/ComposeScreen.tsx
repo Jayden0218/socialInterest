@@ -17,6 +17,9 @@ export interface ComposeScreenProps {
   slots: UploadSlot[];
   interestOptions: InterestRef[];
   selectedInterests: InterestRef[];
+  /** 013/T017. The interest the person typed, if any. */
+  typedInterestName?: string;
+  onTypedInterestNameChange?: (next: string) => void;
   caption: string;
   visibility: Visibility;
   publishing: boolean;
@@ -58,15 +61,19 @@ export interface ComposeScreenProps {
 export function publishDisabledReason(
   slots: UploadSlot[],
   interests: InterestRef[],
+  typedName = '',
 ): string | null {
-  if (!canPublish(interests)) return 'Choose an interest to publish';
+  // 013/FR-001. A TYPED NAME IS AN INTEREST. Leaving this as "chosen only"
+  // would disable publish while somebody has plainly said what the post is
+  // about, which is the whole gesture the feature adds.
+  if (!canPublish(interests, typedName)) return 'Name what this is about to publish';
   if (slots.some((s) => s.stage === 'failed')) return 'Retry the failed upload to publish';
   if (!allUploaded(slots)) return 'Waiting for uploads to finish';
   return null;
 }
 
 export function ComposeScreen(props: ComposeScreenProps) {
-  const blocked = publishDisabledReason(props.slots, props.selectedInterests);
+  const blocked = publishDisabledReason(props.slots, props.selectedInterests, props.typedInterestName);
 
   return (
     <Screen testID="compose-screen" padded={false}>
@@ -298,6 +305,10 @@ export function ComposeScreen(props: ComposeScreenProps) {
           selected={props.selectedInterests}
           options={props.interestOptions}
           onChange={props.onInterestsChange}
+          typedName={props.typedInterestName ?? ''}
+          {...(props.onTypedInterestNameChange
+            ? { onTypedNameChange: props.onTypedInterestNameChange }
+            : {})}
         />
 
         <VisibilityControl value={props.visibility ?? DEFAULT_VISIBILITY} onChange={props.onVisibilityChange} />

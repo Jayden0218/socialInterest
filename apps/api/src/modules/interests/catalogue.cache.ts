@@ -21,6 +21,7 @@ export interface CatalogueSearch {
   search(query: string, opts?: { level?: 'top' | 'sub'; parentId?: string; limit?: number }): CatalogueMatch[];
   findSimilar(name: string, limit?: number): CatalogueMatch[];
   findExactByName(name: string): InterestItem | undefined | null;
+  byNormalisedName(nameNormalised: string): InterestItem | undefined;
   byId(interestId: string): InterestItem | undefined;
   /**
    * 007/R1: every active interest id, for the ranked feed's candidate source.
@@ -166,6 +167,21 @@ export class InMemoryCatalogueCache implements CatalogueSearch, OnModuleInit {
       if (score >= 0.75) out.push({ interest, similarity: score });
     }
     return out.sort((a, b) => b.similarity - a.similarity).slice(0, limit);
+  }
+
+  /**
+   * 013. Any interest by normalised name, INCLUDING merged and retired ones.
+   *
+   * `findExactByName` deliberately sees only live interests, because that is
+   * what a duplicate check is about. This one is for contract §1 row 4 — a name
+   * that resolves to something merged away must land on its survivor, and a
+   * lookup that cannot see the merged row cannot follow the redirect.
+   */
+  byNormalisedName(nameNormalised: string): InterestItem | undefined {
+    for (const interest of this.byIdMap.values()) {
+      if (interest.nameNormalised === nameNormalised) return interest;
+    }
+    return undefined;
   }
 
   /** 013/FR-008. An exact normalised-name collision anywhere in the catalogue. */

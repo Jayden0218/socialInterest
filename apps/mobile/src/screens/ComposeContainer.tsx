@@ -39,6 +39,8 @@ export function ComposeContainer({
   const [slots, setSlots] = useState<UploadSlot[]>([]);
   const [options, setOptions] = useState<InterestRef[]>([]);
   const [selected, setSelected] = useState<InterestRef[]>([]);
+  // 013/T017. What the person typed, sent as `interestNames` on publish.
+  const [typedInterest, setTypedInterest] = useState('');
   const [caption, setCaption] = useState('');
   const [visibility, setVisibility] = useState<Visibility>(DEFAULT_VISIBILITY);
   const [publishing, setPublishing] = useState(false);
@@ -174,6 +176,7 @@ export function ComposeContainer({
         ...(draftId ? { draftId } : {}),
         ...(caption ? { caption } : {}),
         interestIds: selected.map((i) => i.interestId),
+        ...(typedInterest.trim() ? { interestNames: [typedInterest.trim()] } : {}),
         ...(place ? { placeId: place.placeId } : {}),
         uploadIds: slots.map((s) => s.uploadId).filter((id): id is string => Boolean(id)),
         altTexts: Object.fromEntries(
@@ -187,7 +190,7 @@ export function ComposeContainer({
     } catch (e: unknown) {
       setError(e instanceof DataError ? e.message : String(e));
     }
-  }, [data, draftId, caption, selected, place, slots, altTexts]);
+  }, [data, draftId, caption, selected, typedInterest, place, slots, altTexts]);
 
   const publish = useCallback(async () => {
     setPublishing(true);
@@ -207,6 +210,7 @@ export function ComposeContainer({
             .map((s) => [s.uploadId as string, (altTexts[s.media.uri] as string).trim()]),
         ),
         interestIds: selected.map((i) => i.interestId),
+        ...(typedInterest.trim() ? { interestNames: [typedInterest.trim()] } : {}),
         visibility,
         ...(caption ? { caption } : {}),
         // 004/FR-015. Absent unless the AUTHOR picked one. There is deliberately
@@ -219,7 +223,7 @@ export function ComposeContainer({
     } finally {
       setPublishing(false);
     }
-  }, [data, slots, selected, visibility, caption, place, altTexts, draftId, onPublished]);
+  }, [data, slots, selected, typedInterest, visibility, caption, place, altTexts, draftId, onPublished]);
 
   return (
     <ComposeScreen
@@ -227,6 +231,8 @@ export function ComposeContainer({
       slots={slots}
       interestOptions={options}
       selectedInterests={selected}
+      typedInterestName={typedInterest}
+      onTypedInterestNameChange={setTypedInterest}
       caption={caption}
       visibility={visibility}
       publishing={publishing}

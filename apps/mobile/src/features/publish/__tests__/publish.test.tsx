@@ -40,10 +40,10 @@ describe('ComposeScreen renders', () => {
     expect(screen.getByTestId('publish-button').props.accessibilityState.disabled).toBe(false);
   });
 
-  it('FR-006: publish is DISABLED with no interest, and says why', () => {
+  it('FR-006 + 013/FR-001: publish is DISABLED with no interest NAMED OR CHOSEN, and says why', () => {
     compose({ selectedInterests: [] });
     expect(screen.getByTestId('publish-button').props.accessibilityState.disabled).toBe(true);
-    expect(screen.getByTestId('publish-blocked-reason')).toHaveTextContent(/Choose an interest/);
+    expect(screen.getByTestId('publish-blocked-reason')).toHaveTextContent(/Name what this is about/);
   });
 
   it('FR-008: a failed upload offers Retry in place, keeping the picked media', () => {

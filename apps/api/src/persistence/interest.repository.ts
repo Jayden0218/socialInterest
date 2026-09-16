@@ -66,8 +66,13 @@ export class InterestRepository extends BaseRepository {
    * `extraItems` lets publishing put the post in the same transaction (T013), so
    * an interest cannot exist without one.
    */
-  async create(item: InterestItem, extraItems: TransactionItems = []): Promise<void> {
-    await this.transact([
+  /**
+   * 013/T013. The items that bring an interest into existence, for a caller
+   * that is writing something else in the same transaction — publishing, which
+   * must create the interest and the post together or neither (FR-004).
+   */
+  createItems(item: InterestItem): TransactionItems {
+    return [
       {
         Put: {
           TableName: this.tableName,
@@ -83,8 +88,11 @@ export class InterestRepository extends BaseRepository {
       },
       InterestNameClaimRepository.claimItem(item.nameNormalised, item.interestId, this.tableName),
       InterestNameClaimRepository.slugClaimItem(item.slug, item.interestId, this.tableName),
-      ...extraItems,
-    ]);
+    ];
+  }
+
+  async create(item: InterestItem, extraItems: TransactionItems = []): Promise<void> {
+    await this.transact([...this.createItems(item), ...extraItems]);
   }
 
   /** Atomic counter - no read-modify-write, so concurrent follows cannot race. */

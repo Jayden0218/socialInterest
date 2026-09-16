@@ -11,7 +11,8 @@ import { FeedModule } from '../feed/feed.module';
 @Module({
   imports: [PostsModule, FeedModule],
   controllers: [InterestController, InterestPostsController, InterestFollowController],
-  providers: [InterestService, InterestSearch, NamePolicy],
-  exports: [InterestService, InterestSearch, NamePolicy],
+  // 013/T013. Provided by the global InterestsModule now; see the note there.
+  providers: [],
+  exports: [],
 })
 export class InterestsHttpModule {}
