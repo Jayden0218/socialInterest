@@ -141,7 +141,10 @@ its media references and its counts are unchanged.
     line with no image behind it until T027. **Phases B and D are NOT walked**: both need the
     hosted provider, which is T022-T025 and T029-T033, which need an account the owner opens.
     Ticking this before those would be the rounding-up these records exist to catch.
-- [ ] T041 Record the run in `docs/verification/runs/` with every criterion pass, fail or **not run** — never blank, and **count the items** rather than reading the highest number, which this project has got wrong twice
+- [x] T041 Record the run in `docs/verification/runs/` with every criterion pass, fail or **not run** — never blank, and **count the items** rather than reading the highest number, which this project has got wrong twice
+  - `docs/verification/runs/2026-09-16-010-phase-6-record.md`. **Counted: 8 criteria — 3 pass,
+    0 fail, 5 not run; 17 requirements — 12 pass, 0 fail, 5 not run.** Four of the twelve are
+    marked "pass locally" with what that does not cover stated, rather than rounded up.
 - [ ] T042 **After seven days**, confirm SC-001 and SC-005 and update the record. Until then they are `not run`, and saying otherwise would be the kind of rounding-up these records exist to catch
 
 ---
