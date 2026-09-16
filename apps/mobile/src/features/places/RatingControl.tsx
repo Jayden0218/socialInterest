@@ -2,6 +2,7 @@ import { Pressable, Text, TextInput, View } from 'react-native';
 import type { PlaceRatingSummary } from '@sih/shared';
 import { activePalette as palette, radius, space, textStyle, touchTarget } from '../../ui/theme';
 import { Button, Row } from '../../ui/primitives';
+import { Icon } from '../../ui/Icon';
 
 const STARS = [1, 2, 3, 4, 5] as const;
 
@@ -72,21 +73,25 @@ export function RatingControl({
                  */
                 style={touchTarget}
               >
-                <Text
-                  style={{
-                    ...textStyle.title,
-                    // The viewer's own rating fills up to the star they chose,
-                    // so the control opens in the state they left it (FR-002) -
-                    // rather than empty, which invites a second rating that
-                    // silently replaces the first.
-                    color:
-                      viewerRating !== null && n <= viewerRating
-                        ? palette.text.primary
-                        : palette.text.muted,
-                  }}
-                >
-                  {viewerRating !== null && n <= viewerRating ? '★' : '☆'}
-                </Text>
+                {/*
+                  012/T011. Was `★` against `☆`.
+
+                  The viewer's own rating fills up to the star they chose, so the
+                  control opens in the state they left it (FR-002) - rather than
+                  empty, which invites a second rating that silently replaces the
+                  first. `filled` carries that now: one icon in two states rather
+                  than two characters that happen to look related.
+                */}
+                <Icon
+                  name="star"
+                  size="action"
+                  filled={viewerRating !== null && n <= viewerRating}
+                  color={
+                    viewerRating !== null && n <= viewerRating
+                      ? palette.text.primary
+                      : palette.text.muted
+                  }
+                />
               </Pressable>
             ))}
             {viewerRating !== null ? (

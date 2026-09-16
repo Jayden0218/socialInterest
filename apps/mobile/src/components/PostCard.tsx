@@ -4,6 +4,7 @@ import { Avatar } from './Avatar';
 import { InterestWord } from './InterestWord';
 import { Skeleton } from './Skeleton';
 import { mediaLabel } from './mediaLabel';
+import { Icon } from '../ui/Icon';
 import { useTheme } from '../ui/useTheme';
 import { radius, space, type as typeScale } from '../ui/tokens';
 
@@ -198,9 +199,14 @@ export function PostCard({
                 paddingHorizontal: space.sm,
                 borderRadius: radius.pill,
                 backgroundColor: palette.bg.raised,
+                // The badge holds an icon and a word since 012/T010.
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: space.xs,
               }}
             >
               {/* 006/FR-006: identifiable as a video without playing it. */}
+              <Icon name="play" size="count" color={palette.text.primary} />
               <Text
                 style={{
                   color: palette.text.primary,
@@ -208,7 +214,7 @@ export function PostCard({
                   lineHeight: typeScale.small.lineHeight,
                 }}
               >
-                ▶ Video
+                Video
               </Text>
             </View>
           ) : null}
@@ -264,16 +270,38 @@ export function PostCard({
             {post.author.displayName}
           </Text>
           <View style={{ flexGrow: 1 }} />
-          <Text
+          {/*
+            012/T010, FR-027. This read `♥ {reactionCount} · {commentCount}`:
+            a Unicode character doing an icon's job, a bare number doing
+            another's, and the pair of them the single most-seen line in the
+            product. The testID is unchanged — it is in the snapshot and in the
+            Maestro flows, and it marks the same thing.
+          */}
+          <View
             testID={`post-counts-${post.postId}`}
-            style={{
-              color: palette.text.muted,
-              fontSize: typeScale.small.size,
-              lineHeight: typeScale.small.lineHeight,
-            }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}
           >
-            ♥ {post.reactionCount} · {post.commentCount}
-          </Text>
+            <Icon name="heart" size="count" color={palette.text.muted} />
+            <Text
+              style={{
+                color: palette.text.muted,
+                fontSize: typeScale.small.size,
+                lineHeight: typeScale.small.lineHeight,
+              }}
+            >
+              {post.reactionCount}
+            </Text>
+            <Icon name="comment" size="count" color={palette.text.muted} />
+            <Text
+              style={{
+                color: palette.text.muted,
+                fontSize: typeScale.small.size,
+                lineHeight: typeScale.small.lineHeight,
+              }}
+            >
+              {post.commentCount}
+            </Text>
+          </View>
         </View>
 
         {/*

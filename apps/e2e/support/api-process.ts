@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { writeFileSync, readFileSync, existsSync, unlinkSync, openSync, readFileSync as read } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { ensureJwtSecret } from './secret';
+import { e2eEnv } from './env';
 
 /**
  * T007. Boots the API as a REAL child process under tsx - the production runner.
@@ -40,6 +41,24 @@ export async function startApi(port = 3111): Promise<string> {
       // Explicit: the API refuses to boot without it, and refuses the published
       // development value outright (003/FR-007).
       LOCAL_JWT_SECRET: ensureJwtSecret(),
+      /**
+       * 012/T001. THE HARNESS COULD CREATE THE DATABASE AND THE API COULD NOT
+       * REACH IT.
+       *
+       * `pg-pool.ts` gives DATABASE_URL no default on purpose — a default
+       * connection string is a password in the repository, 003/FR-007 — so the
+       * child inherited nothing and died with "DATABASE_URL is not set" before
+       * a single screenshot was taken. Meanwhile `resetStore()` had just
+       * recreated the database happily, because every OTHER piece of the
+       * harness reads `e2eEnv.postgresUrl`, which carries the local default.
+       *
+       * One source for that fact now. This does not weaken the API's rule: the
+       * variable is still required and still absent from the product's own
+       * code. The harness is a caller, and a caller is where a local default
+       * belongs. A real DATABASE_URL in the environment still wins — `e2eEnv`
+       * reads it first.
+       */
+      DATABASE_URL: e2eEnv.postgresUrl,
     },
     stdio: ['ignore', logFd, logFd],
     detached: true,

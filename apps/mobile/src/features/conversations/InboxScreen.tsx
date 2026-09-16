@@ -3,6 +3,7 @@ import type { ConversationState, ConversationSummary } from '@sih/shared';
 import { activePalette as palette, space, textStyle, type, MIN_TOUCH_TARGET } from '../../ui/theme';
 import { EmptyState, Screen, ScreenHeader } from '../../ui/primitives';
 import { Avatar } from '../../components/Avatar';
+import { Icon } from '../../ui/Icon';
 import { conversationSlug, conversationTitle, isGroup } from './conversation-title';
 
 export const INBOXES: { key: ConversationState; label: string }[] = [
@@ -155,7 +156,8 @@ export function InboxScreen({
                   justifyContent: 'center',
                 }}
               >
-                <Text style={{ ...textStyle.title, color: palette.text.primary }}>＋</Text>
+                {/* 012/T011. Was the fullwidth character `＋`. */}
+                <Icon name="plus" size="action" color={palette.text.primary} />
               </Pressable>
             ) : null
           }

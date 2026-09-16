@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Pressable, SafeAreaView, StatusBar, Text, View } from 'react-native';
 import { activePalette as palette, radius, space, textStyle, MIN_TOUCH_TARGET } from './ui/theme';
 import { Button, Row } from './ui/primitives';
+import { Icon } from './ui/Icon';
+import type { IconName } from './ui/icons';
 import { DataProvider, createStores, useData } from './data-provider';
 import {
   HomeFeedContainer,
@@ -45,18 +47,26 @@ export type Tab = 'feed' | 'discover' | 'chats' | 'notifications' | 'profile';
  * `tab-discover` is in the testID snapshot and in the Maestro flows and marks
  * the same thing.
  */
-export const TABS: { key: Tab; label: string }[] = [
-  { key: 'feed', label: 'Feed' },
-  { key: 'discover', label: 'Explore' },
+export const TABS: { key: Tab; label: string; icon: IconName }[] = [
+  { key: 'feed', label: 'Feed', icon: 'home' },
+  { key: 'discover', label: 'Explore', icon: 'explore' },
   // 004/US1. Five tabs is the ceiling, which is why places live INSIDE Explore
   // (one search across interests and places) rather than taking a sixth.
-  { key: 'chats', label: 'Chats' },
-  { key: 'notifications', label: 'Activity' },
-  { key: 'profile', label: 'You' },
+  { key: 'chats', label: 'Chats', icon: 'chats' },
+  { key: 'notifications', label: 'Activity', icon: 'activity' },
+  { key: 'profile', label: 'You', icon: 'profile' },
 ];
 
 /**
- * One tab: a label under a dot, in the accent when active and muted when not.
+ * One tab: an ICON above a label, in the accent when active and muted when not.
+ *
+ * IT WAS AN 8x8 DOT UNTIL 012/T009, and that one fact explains more of the
+ * owner's "the UI is very bad" than every skeleton and empty state in this
+ * feature combined. Material Design 3 is unambiguous that a navigation
+ * destination is an icon AND a label; every application on the phone this is
+ * installed beside follows it, so a person has been trained to read a row of
+ * icons as navigation. A row of dots reads as a prototype, because that is what
+ * it was (012/R8, FR-028).
  *
  * A component rather than five copies, because the accessibility state and the
  * tap target are the parts most likely to be forgotten in a copy — and a tab
@@ -67,7 +77,7 @@ function TabButton({
   active,
   onPress,
 }: {
-  tab: { key: Tab; label: string };
+  tab: { key: Tab; label: string; icon: IconName };
   active: boolean;
   onPress: () => void;
 }) {
@@ -80,13 +90,15 @@ function TabButton({
       onPress={onPress}
       style={{ flexGrow: 1, alignItems: 'center', gap: space.xs, minHeight: MIN_TOUCH_TARGET }}
     >
-      <View
-        style={{
-          width: 8,
-          height: 8,
-          borderRadius: radius.pill,
-          backgroundColor: active ? palette.intent.accent : palette.text.muted,
-        }}
+      {/*
+        Decorative: the label beneath says the same thing, and `accessibilityLabel`
+        on the Pressable already names the destination. Labelling the icon too
+        would have a screen reader read every tab twice.
+      */}
+      <Icon
+        name={tab.icon}
+        size="nav"
+        color={active ? palette.intent.accent : palette.text.muted}
       />
       <Text
         style={{

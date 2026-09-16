@@ -3,6 +3,7 @@ import type { Conversation, Message } from '@sih/shared';
 import { activePalette as palette, radius, space, textStyle, MIN_TOUCH_TARGET } from '../../ui/theme';
 import { Banner, Button, EmptyState, Field, Row, Screen } from '../../ui/primitives';
 import { Avatar } from '../../components/Avatar';
+import { Icon } from '../../ui/Icon';
 import { SharedPostBubble } from './SharedPostBubble';
 import { conversationTitle, isGroup } from './conversation-title';
 
@@ -336,17 +337,36 @@ export function ConversationScreen({
                 : palette.bg.sunken,
           }}
         >
-          <Text
-            style={{
-              ...textStyle.body,
-              color:
-                canSend(draft) && conversation.viewerCanSend && sending !== true
+          {/*
+            012/T011. Was the character `➤`. The three dots stay as text while
+            sending: that is a short discrete action, which FR-004 says a
+            spinner-ish indicator is FOR — the icon rule is about controls, and
+            a control mid-flight is reporting progress rather than naming itself.
+          */}
+          {sending ? (
+            <Text
+              style={{
+                ...textStyle.body,
+                color:
+                  canSend(draft) && conversation.viewerCanSend
+                    ? palette.text.onAccent
+                    : palette.text.muted,
+              }}
+            >
+              ...
+            </Text>
+          ) : (
+            <Icon
+              name="send"
+              size="action"
+              label="Send"
+              color={
+                canSend(draft) && conversation.viewerCanSend
                   ? palette.text.onAccent
-                  : palette.text.muted,
-            }}
-          >
-            {sending ? '···' : '➤'}
-          </Text>
+                  : palette.text.muted
+              }
+            />
+          )}
         </Pressable>
       </View>
     </Screen>

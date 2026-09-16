@@ -3,6 +3,7 @@ import type { PublicProfile } from '@sih/shared';
 import { activePalette as palette, radius, space, textStyle, MIN_TOUCH_TARGET } from '../../ui/theme';
 import { Banner, Button, EmptyState, Field, Row, Screen } from '../../ui/primitives';
 import { Avatar } from '../../components/Avatar';
+import { Icon } from '../../ui/Icon';
 
 /**
  * 005/FR-018, FR-024, FR-031.
@@ -170,7 +171,10 @@ export function NewGroupScreen({
                 <Text style={{ ...textStyle.label, color: palette.intent.accent }}>
                   {p.displayName}
                 </Text>
-                <Text style={{ ...textStyle.label, color: palette.intent.accent, paddingRight: 6 }}>✕</Text>
+                {/* 012/T011. Was the character `✕`. */}
+                <View style={{ paddingRight: 6 }}>
+                  <Icon name="close" size="count" color={palette.intent.accent} />
+                </View>
               </Pressable>
             ))}
           </Row>

@@ -1,6 +1,7 @@
 import { Pressable, Text } from 'react-native';
 import { activePalette as palette, space, touchTarget, type } from '../../ui/theme';
 import { Row } from '../../ui/primitives';
+import { Icon } from '../../ui/Icon';
 
 export interface EngagementState {
   reactionCount: number;
@@ -65,21 +66,37 @@ export function EngagementBar({
         accessibilityLabel={state.viewerHasReacted ? 'Remove reaction' : 'React'}
         onPress={onReact}
       >
-        <Text style={{ color: state.viewerHasReacted ? palette.intent.accent : palette.text.muted, fontSize: type.body.size }}>
-          {state.viewerHasReacted ? '♥' : '♡'} {state.reactionCount}
-          {/* Queued offline actions show as pending, never as landed. */}
-          {pending ? ' ·' : ''}
-        </Text>
+        <Row style={{ gap: space.xs, alignItems: 'center' }}>
+          <Icon
+            name="heart"
+            size="action"
+            filled={state.viewerHasReacted}
+            color={state.viewerHasReacted ? palette.intent.accent : palette.text.muted}
+          />
+          <Text
+            style={{
+              color: state.viewerHasReacted ? palette.intent.accent : palette.text.muted,
+              fontSize: type.body.size,
+            }}
+          >
+            {state.reactionCount}
+            {/* Queued offline actions show as pending, never as landed. */}
+            {pending ? ' ·' : ''}
+          </Text>
+        </Row>
       </Pressable>
 
       <Pressable
         style={touchTarget} testID="comments-button" accessibilityRole="button" onPress={onOpenComments}>
-        <Text style={{ color: palette.text.muted, fontSize: type.body.size }}>💬 {state.commentCount}</Text>
+        <Row style={{ gap: space.xs, alignItems: 'center' }}>
+          <Icon name="comment" size="action" color={palette.text.muted} />
+          <Text style={{ color: palette.text.muted, fontSize: type.body.size }}>{state.commentCount}</Text>
+        </Row>
       </Pressable>
 
       <Pressable
         style={touchTarget} testID="share-button" accessibilityRole="button" accessibilityLabel="Share" onPress={onShare}>
-        <Text style={{ color: palette.text.muted, fontSize: type.body.size }}>↗</Text>
+        <Icon name="share" size="action" color={palette.text.muted} />
       </Pressable>
 
       {/*
@@ -96,9 +113,12 @@ export function EngagementBar({
           accessibilityLabel={saved ? 'Remove from saved' : 'Save'}
           onPress={onToggleSave}
         >
-          <Text style={{ color: saved ? palette.intent.accent : palette.text.muted, fontSize: type.body.size }}>
-            {saved ? '★' : '☆'}
-          </Text>
+          <Icon
+            name="save"
+            size="action"
+            filled={saved === true}
+            color={saved ? palette.intent.accent : palette.text.muted}
+          />
         </Pressable>
       ) : null}
 
