@@ -61,9 +61,10 @@ not to host one. Develop the mobile app against a stack on your own machine.
 pnpm install
 cp .env.example .env.local          # RUNTIME_PROFILE=local, endpoints, table and bucket names
 docker compose up -d                # DynamoDB Local :8000, MinIO :9000 (console :9001)
-pnpm --filter @sih/infra db:create-local   # single table + 4 GSIs per data-model.md
+pnpm --filter @sih/infra db:create-local-pg   # the one table per data-model.md (Postgres since 010; this read `db:create-local` against DynamoDB Local when 001 was validated)
 pnpm --filter @sih/infra s3:create-local   # media bucket
-pnpm --filter @sih/infra seed:catalogue    # top-level interests (FR-021)
+# `seed:catalogue` was DELETED by 013: interests are user-created, so an
+# installation starts with none and one exists once somebody names it on a post.
 ```
 
 The catalogue seed is not optional. FR-022 only permits creating sub-interests beneath

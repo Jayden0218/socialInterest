@@ -8,9 +8,10 @@ How to prove this feature works, end to end, on the local profile. No cloud acco
 # The daemon does not survive a container reset in the sandbox
 setsid nohup dockerd > /var/log/dockerd.log 2>&1 < /dev/null &
 docker compose up -d
-pnpm --filter @sih/infra db:create-local
+pnpm --filter @sih/infra db:create-local-pg
 pnpm --filter @sih/infra s3:create-local
-pnpm --filter @sih/infra seed:catalogue
+# `seed:catalogue` was DELETED by 013: interests are user-created, so an
+# installation starts with none and one exists once somebody names it on a post.
 export LOCAL_JWT_SECRET=$(openssl rand -hex 32)   # no default, by design
 ```
 

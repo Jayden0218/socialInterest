@@ -2,7 +2,7 @@
 #
 # Mint a sign-in token for your phone, against the backend `pnpm laptop` runs.
 #
-#   pnpm token            # or: scripts/mint-token.sh [handle]
+#   pnpm mint:token            # or: scripts/mint-token.sh [handle]
 #
 # A SIGNED TOKEN IS NOT AN IDENTITY, which is the whole reason this wraps a
 # script rather than signing a JWT inline. There is no signup endpoint on this
@@ -50,9 +50,9 @@ ADDRESS="http://${LAN_IP}:${API_PORT:-3000}/v1"
     printf '  (could not render a QR code — use the values below)\n'
   printf '\n  Server address  %s\n' "$ADDRESS"
   printf '  Token           %s\n\n' "$TOKEN"
-  printf '  Copy just the token to the clipboard:  pnpm --silent token | pbcopy\n\n'
+  printf '  Copy just the token to the clipboard:  pnpm --silent mint:token | pbcopy\n\n'
 } >&2
 
-# The token alone on stdout, so `pnpm --silent token | pbcopy` copies the token
+# The token alone on stdout, so `pnpm --silent mint:token | pbcopy` copies the token
 # and not the banner around it.
 printf '%s\n' "$TOKEN"

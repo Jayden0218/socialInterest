@@ -31,13 +31,29 @@ export function jpegPlain(): Buffer {
   return JPEG_1X1;
 }
 
-/** A short real MP4, produced by the ffmpeg container (no host ffmpeg needed). */
+/**
+ * A short real MP4.
+ *
+ * INVOKES `ffmpeg` THE WAY THE PRODUCT DOES — `FFMPEG_PATH`, else whatever is on
+ * `PATH` — rather than shelling out to `docker run` itself.
+ *
+ * T026 moved the media pipeline off `docker run` because no managed host allows
+ * it, and this fixture was left behind: HALF A FIX, which is the shape this
+ * project keeps recording. The consequence was not cosmetic. It made the e2e
+ * suite require a container runtime on a machine with a perfectly good native
+ * ffmpeg, and it meant the journey that exercises transcoding could not be run
+ * with the Docker socket taken away — which is exactly what 010/T028 asks for.
+ * Measured: with `DOCKER_HOST` pointed at nothing, J-05 failed here with
+ * `Command failed: docker run ...` from THIS LINE while the product was fine.
+ *
+ * `scripts/ffmpeg-shim/` stays the one place the container variation lives, for
+ * the reason written in it: a variation outside the code is a five-line script
+ * anyone can read, and a variation inside it is a flag nobody exercises.
+ */
 export function mp4Short(seconds = 1): Buffer {
-  const image = process.env['FFMPEG_IMAGE'] ?? 'linuxserver/ffmpeg:latest';
   const out = execFileSync(
-    'docker',
+    process.env['FFMPEG_PATH'] ?? 'ffmpeg',
     [
-      'run', '--rm', '-i', '--entrypoint', 'ffmpeg', image,
       '-f', 'lavfi', '-i', `testsrc=size=64x64:rate=10:duration=${seconds}`,
       '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-movflags', 'frag_keyframe+empty_moov',
       '-f', 'mp4', 'pipe:1',

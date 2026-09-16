@@ -113,7 +113,7 @@ export class SessionData {
   /**
    * THE DEVELOPER PATH, and it keeps working (011/FR-026).
    *
-   * `pnpm token` still mints a credential for a device pass, and the emulator
+   * `pnpm mint:token` still mints a credential for a device pass, and the emulator
    * journeys and the laptop runbook both depend on it. It is no longer the
    * ordinary way in — that is `signInWithPassword` — which is why it is named
    * for what it is rather than being the plain `signIn`.

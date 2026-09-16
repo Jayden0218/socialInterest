@@ -2,7 +2,7 @@
 #
 # Fill the backend with a product you can actually look at.
 #
-#   pnpm seed:demo "<the token pnpm token printed>"
+#   pnpm seed:demo "<the token pnpm mint:token printed>"
 #
 # Six people with bios and avatars, fourteen posts carrying real photographs
 # across every interest, comments, reactions, follows both ways, two places with
@@ -16,7 +16,7 @@ set -Eeuo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
-[ -n "${1:-}" ] || { echo "usage: pnpm seed:demo \"<token>\"   (get one from: pnpm token)" >&2; exit 2; }
+[ -n "${1:-}" ] || { echo "usage: pnpm seed:demo \"<token>\"   (get one from: pnpm mint:token)" >&2; exit 2; }
 [ -f .env.local ] || { echo "✗ .env.local does not exist — see docs/laptop-runbook.md" >&2; exit 1; }
 set -a
 # shellcheck disable=SC1091

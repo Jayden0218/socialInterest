@@ -20,7 +20,6 @@ loadEnv();
 export const env = {
   tableName: process.env.TABLE_NAME ?? 'sih-main',
   bucket: process.env.MEDIA_BUCKET ?? 'sih-media',
-  dynamoEndpoint: process.env.DYNAMO_ENDPOINT ?? 'http://127.0.0.1:8000',
   /**
    * 010. The engine the datastore is moving to.
    *
@@ -31,12 +30,20 @@ export const env = {
    */
   postgresUrl: process.env.DATABASE_URL ?? 'postgres://sih:localsecret@127.0.0.1:5432/sih',
   s3Endpoint: process.env.S3_ENDPOINT ?? 'http://127.0.0.1:9000',
-  region: process.env.DYNAMO_REGION ?? 'local',
+  /** Object storage's region. Named for the SDK that demands one, not for AWS. */
+  region: process.env.S3_REGION ?? process.env.DYNAMO_REGION ?? 'local',
   creds: {
     accessKeyId: process.env.S3_ACCESS_KEY_ID ?? 'localkey',
     secretAccessKey: process.env.S3_SECRET_ACCESS_KEY ?? 'localsecret',
   },
   jwtSecret: process.env.LOCAL_JWT_SECRET ?? '',
   jwtIssuer: process.env.JWT_ISSUER ?? 'sih-local',
-  ffmpegImage: process.env.FFMPEG_IMAGE ?? 'linuxserver/ffmpeg:latest',
+  /**
+   * The BINARY, not an image. T026 moved the product off `docker run`; this
+   * stayed behind pointing at a container, so `verify:local` was checking that
+   * a developer's Docker could transcode rather than that the thing the API
+   * executes can. `scripts/ffmpeg-shim/` is what supplies it where there is no
+   * native one.
+   */
+  ffmpegPath: process.env.FFMPEG_PATH ?? 'ffmpeg',
 };

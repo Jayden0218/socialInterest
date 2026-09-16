@@ -144,7 +144,13 @@ async function person(handle: string, displayName: string, bio: string): Promise
 //
 // The gradients get grain and a slight blur so a card reads as a photograph at
 // thumbnail size instead of as a colour swatch.
-const FFMPEG_IMAGE = process.env['FFMPEG_IMAGE'] ?? 'linuxserver/ffmpeg:latest';
+/**
+ * The same `ffmpeg` the product runs — `FFMPEG_PATH`, else `PATH`. See the note
+ * in `support/media.ts`: T026 moved the pipeline off `docker run` and left four
+ * fixtures shelling out to it directly, which made every one of them need a
+ * container runtime on a machine with a native ffmpeg.
+ */
+const FFMPEG = process.env['FFMPEG_PATH'] ?? 'ffmpeg';
 
 /**
  * ASYNCHRONOUS, AND THAT IS THE WHOLE POINT OF THIS FUNCTION'S SHAPE.
@@ -170,9 +176,8 @@ const FFMPEG_IMAGE = process.env['FFMPEG_IMAGE'] ?? 'linuxserver/ffmpeg:latest';
 async function render(source: string, filters: string | null): Promise<Buffer> {
   try {
     const { stdout } = await execFileAsync(
-      'docker',
+      FFMPEG,
       [
-        'run', '--rm', '-i', '--entrypoint', 'ffmpeg', FFMPEG_IMAGE,
         '-f', 'lavfi', '-i', source,
         ...(filters ? ['-vf', filters] : []),
         '-frames:v', '1', '-f', 'mjpeg', '-',

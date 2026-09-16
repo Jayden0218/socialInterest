@@ -134,7 +134,7 @@ pnpm seed:demo "<a token>"    # six people, fourteen posts, comments, places
 ```
 
 The demo seed still wants a token, because it is an HTTP client acting as a
-person rather than something signing in. `pnpm token` below is how to get one.
+person rather than something signing in. `pnpm mint:token` below is how to get one.
 
 ---
 
@@ -148,10 +148,10 @@ seeding the demo data, and provisioning an account for the emulator journeys.
 `pnpm laptop` holds the terminal. In a **second tab**, from the same directory:
 
 ```bash
-pnpm token                       # prints a QR code, the address and the token
+pnpm mint:token                       # prints a QR code, the address and the token
 ```
 
-`pnpm token` prints **a QR code holding the token**, then the address and token
+`pnpm mint:token` prints **a QR code holding the token**, then the address and token
 as text. Scan the code with the phone's **ordinary camera app — not Expo**:
 Expo Go's scanner expects a dev-server URL and will not help.
 
@@ -163,7 +163,7 @@ characters. A QR here is a clipboard, and a clipboard should hold one thing.
 On the laptop you can skip the phone entirely for the token:
 
 ```bash
-pnpm --silent token | pbcopy
+pnpm --silent mint:token | pbcopy
 ```
 
 The token alone goes to stdout and everything else to stderr, so that pipe gets
@@ -180,7 +180,7 @@ The seed is not decoration. A fresh backend holds twelve catalogue interests and
 nothing else, so the first screen after signing in is an empty feed — which reads
 as a broken app and is not one.
 
-**A signed token is not an identity**, which is why `pnpm token` exists rather
+**A signed token is not an identity**, which is why `pnpm mint:token` exists rather
 than a JWT one-liner. There is no signup endpoint on this profile: the profile
 row the token refers to has to exist, or `GET /v1/me` answers 404 and sign-in
 fails on the device.
@@ -192,7 +192,7 @@ avatars` onward means the API is fine and object storage is not.
 
 1. Install the APK.
 2. Sign-in screen → paste the address `pnpm laptop` printed into the top field,
-   and the token from `pnpm token` into the second.
+   and the token from `pnpm mint:token` into the second.
 3. That is the last time you type it: the app stores the address
    (`sih.backend.url`) and the token, and both survive a relaunch.
 

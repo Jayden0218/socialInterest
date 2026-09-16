@@ -37,9 +37,10 @@ have come from checking typecheck, lint and tests and assuming that covered CI.
 
 ```bash
 pnpm typecheck && pnpm lint
-pnpm --filter @sih/infra db:create-local
+pnpm --filter @sih/infra db:create-local-pg
 pnpm --filter @sih/infra s3:create-local
-pnpm --filter @sih/infra seed:catalogue
+# `seed:catalogue` was DELETED by 013: interests are user-created, so an
+# installation starts with none and one exists once somebody names it on a post.
 pnpm --filter @sih/api test
 pnpm --filter @sih/mobile test
 pnpm --filter @sih/workers test

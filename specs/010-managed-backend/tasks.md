@@ -115,7 +115,7 @@ its media references and its counts are unchanged.
 
 - [x] T026 [US3] Change `apps/api/src/adapters/local/ffmpeg-media-processor.ts` to execute the `ffmpeg` binary directly instead of `docker run` — no managed host provides a container runtime, and this is the only code change outside `persistence/` the move strictly requires
 - [x] T027 [US3] Add a `Dockerfile` for the API that provides the `ffmpeg` binary — built in CI or on the host, because `apt-get install ffmpeg` is in the dead-ends table as blocked in the development sandbox
-- [ ] T028 [US3] Verify a **short** video transcodes with no Docker socket available — short because `-ss 00:00:01` seeks past the end of a sub-second clip and leaves the post `failed` forever, which is the defect the `thumbnail` filter exists for
+- [x] T028 [US3] Verify a **short** video transcodes with no Docker socket available — short because `-ss 00:00:01` seeks past the end of a sub-second clip and leaves the post `failed` forever, which is the defect the `thumbnail` filter exists for
 - [ ] T029 [US3] Deploy the API to **Render** (R8a — Koyeb's free tier closed to new sign-ups on acquisition) and record the address in `docs/verification/hosted-runbook.md`
 - [ ] T030 [US3] Confirm the address is encrypted and reachable from a phone on an unrelated network (FR-011, FR-012)
 - [ ] T031 [US3] Measure SC-007 from the phone: publishing a post carrying a photograph completes in **under 30 seconds**
@@ -135,6 +135,12 @@ its media references and its counts are unchanged.
 - [x] T038 [P] Update `CLAUDE.md`: the datastore, the local stack, and the fact that the quay.io MinIO dependency is gone from the datastore path
 - [ ] T039 Confirm **SC-004 by inspection**: no payment method on file with any provider used
 - [ ] T040 Walk [quickstart.md](./quickstart.md) end to end and fix the document wherever reality disagreed with it
+  - **Phases A and C walked 2026-09-16; four disagreements found and fixed** — `db:create-local`
+    (deleted with its DynamoDB table), `seed:catalogue` (deleted by 013), the visibility numbers
+    (16/1,488 -> 17/1,586, 012's interest preview surface), and a `docker run <the-api-image>`
+    line with no image behind it until T027. **Phases B and D are NOT walked**: both need the
+    hosted provider, which is T022-T025 and T029-T033, which need an account the owner opens.
+    Ticking this before those would be the rounding-up these records exist to catch.
 - [ ] T041 Record the run in `docs/verification/runs/` with every criterion pass, fail or **not run** — never blank, and **count the items** rather than reading the highest number, which this project has got wrong twice
 - [ ] T042 **After seven days**, confirm SC-001 and SC-005 and update the record. Until then they are `not run`, and saying otherwise would be the kind of rounding-up these records exist to catch
 

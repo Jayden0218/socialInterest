@@ -15,9 +15,10 @@ setsid nohup dockerd > /var/log/dockerd.log 2>&1 < /dev/null &
 
 docker compose up -d                       # DynamoDB Local + MinIO
 pnpm install --frozen-lockfile
-pnpm --filter @sih/infra db:create-local
+pnpm --filter @sih/infra db:create-local-pg
 pnpm --filter @sih/infra s3:create-local
-pnpm --filter @sih/infra seed:catalogue
+# `seed:catalogue` was DELETED by 013: interests are user-created, so an
+# installation starts with none and one exists once somebody names it on a post.
 ```
 
 ---

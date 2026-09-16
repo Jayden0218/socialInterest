@@ -2,8 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, TransactWriteCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { Pool } from 'pg';
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import jwt from 'jsonwebtoken';
@@ -16,9 +15,24 @@ const record = (name: string, ok: boolean, detail: string): void => {
   results.push({ name, ok, detail });
 };
 
-const doc = DynamoDBDocumentClient.from(
-  new DynamoDBClient({ endpoint: env.dynamoEndpoint, region: env.region, credentials: env.creds }),
-);
+/**
+ * 010. THE DATASTORE.
+ *
+ * This file used `TransactWriteCommand` against DynamoDB Local, so once the
+ * engine moved it was verifying that a container the product never talks to
+ * could do a transaction. That is worse than the other stale readers the swap
+ * left behind, because this is THE SCRIPT WHOSE JOB IS TO SAY THE LOCAL PROFILE
+ * WORKS: a PASS from it was the strongest wrong answer available.
+ *
+ * DELIBERATELY NOT the product's `Transactor`. Importing it was the first fix
+ * and it is the wrong shape here: `Transactor` is a `@Injectable()` with a
+ * parameter decorator, and dragging Nest's decorator pipeline into a four-script
+ * infra package to check an engine property buys nothing — `Transactor` itself
+ * is covered exhaustively by `datastore-primitives.spec.ts`, which is the
+ * seven-primitive contract. What THIS check is for is the ENGINE underneath it:
+ * that a multi-row write on the local container is all-or-none.
+ */
+const pool = new Pool({ connectionString: env.postgresUrl });
 const s3 = new S3Client({
   endpoint: env.s3Endpoint,
   region: env.region,
@@ -29,27 +43,55 @@ const s3 = new S3Client({
 // 1. FR-017: a visibility flip must land on the post and its index items atomically.
 async function checkTransaction(): Promise<void> {
   const id = `verify-${Date.now()}`;
-  const items = (visibility: string) => [
-    { Put: { TableName: env.tableName, Item: { pk: `POST#${id}`, sk: '#META', visibility } } },
-    { Put: { TableName: env.tableName, Item: { pk: `INTEREST#v-sub`, sk: `POST#${id}`, visibility } } },
-    { Put: { TableName: env.tableName, Item: { pk: `INTEREST#v-parent`, sk: `POST#${id}`, visibility } } },
+  const keys = [
+    { pk: `POST#${id}`, sk: '#META' },
+    { pk: `INTEREST#v-a-${id}`, sk: `POST#${id}` },
+    { pk: `INTEREST#v-b-${id}`, sk: `POST#${id}` },
   ];
-  await doc.send(new TransactWriteCommand({ TransactItems: items('public') }));
-  await doc.send(new TransactWriteCommand({ TransactItems: items('private') }));
+  /** One statement per row inside one transaction: all of them, or none. */
+  const writeAll = async (visibility: string): Promise<void> => {
+    const client = await pool.connect();
+    try {
+      await client.query('begin');
+      for (const k of keys) {
+        await client.query(
+          `insert into items (pk, sk, item) values ($1, $2, $3)
+             on conflict (pk, sk) do update set item = excluded.item`,
+          [k.pk, k.sk, JSON.stringify({ ...k, visibility })],
+        );
+      }
+      await client.query('commit');
+    } catch (e) {
+      await client.query('rollback');
+      throw e;
+    } finally {
+      client.release();
+    }
+  };
+
+  await writeAll('public');
+  await writeAll('private');
+
   const seen = await Promise.all(
-    [`POST#${id}`, 'INTEREST#v-sub', 'INTEREST#v-parent'].map((pk) =>
-      doc.send(
-        new QueryCommand({
-          TableName: env.tableName,
-          KeyConditionExpression: 'pk = :p',
-          ExpressionAttributeValues: { ':p': pk },
-        }),
-      ),
-    ),
+    keys.map(async (k) => {
+      const { rows } = await pool.query<{ visibility: string | null }>(
+        `select item->>'visibility' as visibility from items where pk = $1 and sk = $2`,
+        [k.pk, k.sk],
+      );
+      return rows[0]?.visibility ?? 'missing';
+    }),
   );
-  const vis = seen.map((r) => r.Items?.find((i) => i['pk'])?.['visibility']);
-  const ok = vis.every((v) => v === 'private');
-  record('DynamoDB TransactWriteItems (FR-017 atomic visibility flip)', ok, vis.join(','));
+  const ok = seen.every((v) => v === 'private');
+  record('TransactWriteItems (FR-017 atomic visibility flip)', ok, seen.join(','));
+
+  /**
+   * The partitions are per-run (`v-a-<id>`), so this is the whole of what this
+   * check wrote and it can take all of it back out. The local table is shared
+   * across runs and a grown one is this project's most-repeated false
+   * regression — four occurrences, every one first diagnosed as a product
+   * defect.
+   */
+  await pool.query(`delete from items where pk = any($1::text[])`, [keys.map((k) => k.pk)]);
 }
 
 // 2. FR-004 / FR-008: media bytes never pass through the API.
@@ -67,10 +109,18 @@ async function checkPresignedUpload(): Promise<void> {
 // 3. FR-009: video must become playable with a poster frame.
 function checkFfmpeg(): void {
   const dir = mkdtempSync(join(tmpdir(), 'sih-verify-'));
+  /**
+   * `ffmpeg` resolved the way the product resolves it — `FFMPEG_PATH`, else
+   * `PATH` — and run IN the temp directory rather than bind-mounting it.
+   *
+   * T026 moved the media pipeline off `docker run` because no managed host
+   * allows it, and this check kept shelling out to a container: so it verified
+   * that a LOCAL DEVELOPER'S DOCKER could transcode, which is not the thing it
+   * is named for. Where there is no native ffmpeg, `scripts/ffmpeg-shim/` puts
+   * one on `PATH`.
+   */
   const run = (...args: string[]): void => {
-    execFileSync('docker', ['run', '--rm', '-v', `${dir}:/w`, '-w', '/w', env.ffmpegImage, ...args], {
-      stdio: 'pipe',
-    });
+    execFileSync(env.ffmpegPath, args, { cwd: dir, stdio: 'pipe' });
   };
   try {
     run('-f', 'lavfi', '-i', 'testsrc=size=320x180:rate=15:duration=2', '-c:v', 'libx264',
@@ -106,6 +156,7 @@ async function main(): Promise<void> {
   for (const r of results) console.log(`  ${r.ok ? 'PASS' : 'FAIL'}  ${r.name}\n        ${r.detail}`);
   const failed = results.filter((r) => !r.ok);
   console.log(`\n${results.length - failed.length}/${results.length} passed\n`);
+  await pool.end();
   if (failed.length) process.exit(1);
 }
 

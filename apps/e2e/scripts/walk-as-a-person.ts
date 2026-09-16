@@ -20,7 +20,7 @@ import { startWebServer } from '../support/web-server';
  * own mistakes for the product's is how run 36 happened, and a script that is
  * kept gets corrected once instead of re-guessed every time.
  *
- *   pnpm seed:demo "$(pnpm --silent token)"   # or it walks an empty product
+ *   pnpm seed:demo "$(pnpm --silent mint:token)"   # or it walks an empty product
  *   cd apps/e2e && npx tsx scripts/walk-as-a-person.ts
  */
 async function main(): Promise<void> {

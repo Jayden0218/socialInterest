@@ -16,9 +16,10 @@ echo '{ "registry-mirrors": ["https://mirror.gcr.io"] }' > /etc/docker/daemon.js
 setsid nohup dockerd > /var/log/dockerd.log 2>&1 < /dev/null &
 
 docker compose up -d
-pnpm --filter @sih/infra db:create-local
+pnpm --filter @sih/infra db:create-local-pg
 pnpm --filter @sih/infra s3:create-local
-pnpm --filter @sih/infra seed:catalogue
+# `seed:catalogue` was DELETED by 013: interests are user-created, so an
+# installation starts with none and one exists once somebody names it on a post.
 ```
 
 ## Story 1 — the app runs on Android

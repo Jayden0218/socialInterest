@@ -1,5 +1,4 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, BatchWriteCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { Pool } from 'pg';
 import { ulid } from 'ulid';
 import { env } from './env';
 
@@ -8,28 +7,87 @@ import { env } from './env';
  * scales with how many interests a person follows (research D1), so the seeder
  * produces a realistic spread of follow counts rather than giving everyone the
  * same number.
+ *
+ * ──────────────────────────────────────────────────────────────────────────────
+ * 010/013: THIS WAS STALE IN TWO DIRECTIONS AT ONCE
+ * ──────────────────────────────────────────────────────────────────────────────
+ *
+ * It wrote to DynamoDB Local with `BatchWriteCommand` (010 moved the datastore
+ * to Postgres) AND it built a HIERARCHY — it queried `gsi3` for `PARENT#ROOT`,
+ * refused to run without a top-level interest, and gave every seeded interest a
+ * `level: 'sub'`, a `parentId` and a `gsi3` pair. 013 deleted all of that: an
+ * interest is flat, named freely on a publish, and there is no parent index left
+ * to attach to. So it could not have run, and if it had it would have seeded
+ * rows in a shape nothing reads.
+ *
+ * Its own header comment records the first version timing an EMPTY FEED and
+ * "reporting comfortable numbers for no work at all", because the bench
+ * interests were unreachable from the catalogue walk. That is the risk this file
+ * carries by writing rows directly rather than publishing through the API — the
+ * shapes below have to match what the repositories read, and nothing checks
+ * that for you. `bench:feed-load` prints the fan-in it measured for exactly this
+ * reason: a zero there means this seeder, not the design.
+ *
+ * KEY COLUMNS, NOT ONLY `item`. On Postgres `pk`, `sk` and the five index pairs
+ * are COLUMNS, and every query reads the columns. Writing them into the JSONB
+ * body alone produces rows that exist and are invisible to every index — which
+ * is a defect this project has already paid for once, in `runUpdate`.
  */
 const arg = (name: string, fallback: number): number => {
   const hit = process.argv.find((a) => a.startsWith(`--${name}=`));
   return hit ? Number(hit.split('=')[1]) : fallback;
 };
 
+/**
+ * IT WRITES INTO THE SAME TABLE EVERY SUITE USES, and there is no isolation.
+ *
+ * A small run — 200 posts, 30 people, 20 interests — was enough to turn
+ * `008/US13 FR-043` red in the API suite while it passed alone. That is this
+ * project's most-repeated false regression (a bounded page over a grown table,
+ * four previous occurrences, every one first diagnosed as a product defect) and
+ * this script is the fastest way to cause it. `db:create-local-pg --recreate`
+ * afterwards, and count the rows before believing a paging failure.
+ */
 const POSTS = arg('posts', 100_000);
 const INTERESTS = arg('interests', 5_000);
 const PEOPLE = arg('people', 10_000);
 /** Follow counts to bucket people into, spanning the 200 cap. */
 const FOLLOW_BUCKETS = [1, 5, 20, 50, 100, 200];
 
-const doc = DynamoDBDocumentClient.from(
-  new DynamoDBClient({ endpoint: env.dynamoEndpoint, region: env.region, credentials: env.creds }),
-);
+const pool = new Pool({ connectionString: env.postgresUrl });
 
-async function writeAll(items: Record<string, unknown>[]): Promise<void> {
-  for (let i = 0; i < items.length; i += 25) {
-    await doc.send(
-      new BatchWriteCommand({
-        RequestItems: { [env.tableName]: items.slice(i, i + 25).map((Item) => ({ PutRequest: { Item } })) },
-      }),
+/** The columns a row can carry, in the order the insert below binds them. */
+const COLUMNS = [
+  'pk', 'sk',
+  'gsi1pk', 'gsi1sk', 'gsi2pk', 'gsi2sk', 'gsi3pk', 'gsi3sk',
+  'gsi4pk', 'gsi4sk', 'gsi5pk', 'gsi5sk',
+] as const;
+
+type Row = Record<string, unknown>;
+
+/**
+ * One multi-row `insert` per chunk. 500 rows is 6,500 bind parameters, well
+ * inside Postgres's 65,535 limit and far fewer round trips than a row at a time
+ * — a 100,000-post run is 200,000 rows.
+ */
+async function writeAll(items: Row[]): Promise<void> {
+  const CHUNK = 500;
+  for (let i = 0; i < items.length; i += CHUNK) {
+    const chunk = items.slice(i, i + CHUNK);
+    const params: unknown[] = [];
+    const values = chunk.map((row) => {
+      const placeholders = COLUMNS.map((c) => {
+        params.push(row[c] ?? null);
+        return `$${params.length}`;
+      });
+      params.push(JSON.stringify(row));
+      placeholders.push(`$${params.length}`);
+      return `(${placeholders.join(', ')})`;
+    });
+    await pool.query(
+      `insert into items (${COLUMNS.join(', ')}, item) values ${values.join(', ')}
+         on conflict (pk, sk) do nothing`,
+      params,
     );
   }
 }
@@ -39,34 +97,10 @@ async function main(): Promise<void> {
   const now = new Date().toISOString();
 
   /**
-   * Bench interests must hang off a REAL top-level interest from the seeded
-   * catalogue.
-   *
-   * The first version parented them to interestIds[0], which was itself a
-   * bench sub-interest - so InterestRepository.loadAll(), which walks ROOT then
-   * each top-level interest's children, never found any of them. They were
-   * absent from the catalogue cache, FollowExpansion skipped every one, and
-   * bench:feed reported a fan-in of 0: it was timing an empty feed and
-   * reporting comfortable numbers for no work at all.
+   * FLAT (013). No parent, no `level`, no `gsi3` pair — an interest is a name
+   * somebody used on a post. `gsi1` is the slug lookup and is what makes these
+   * reachable by `InterestRepository`.
    */
-  const topLevel = await doc.send(
-    new QueryCommand({
-      TableName: env.tableName,
-      IndexName: 'gsi3',
-      KeyConditionExpression: 'gsi3pk = :p',
-      ExpressionAttributeValues: { ':p': 'PARENT#ROOT' },
-      Limit: 1,
-    }),
-  );
-  const parentId = (topLevel.Items?.[0]?.['interestId'] as string | undefined) ?? undefined;
-  if (!parentId) {
-    // 013. There is no seeded catalogue; an interest exists once somebody names
-    // one while publishing.
-    console.error('No interest found. Publish a post naming one first.');
-    process.exit(1);
-  }
-  console.log(`attaching bench interests to top-level ${parentId}`);
-
   const interestIds = Array.from({ length: INTERESTS }, () => ulid());
   await writeAll(
     interestIds.map((id, i) => ({
@@ -77,8 +111,6 @@ async function main(): Promise<void> {
       name: `Bench ${i}`,
       nameNormalised: `bench ${i}`,
       slug: `bench-${i}`,
-      level: 'sub',
-      parentId,
       createdBy: 'BENCH',
       postCount: 0,
       followerCount: 0,
@@ -86,8 +118,6 @@ async function main(): Promise<void> {
       createdAt: now,
       gsi1pk: `ISLUG#bench-${i}`,
       gsi1sk: '#META',
-      gsi3pk: `PARENT#${parentId}`,
-      gsi3sk: `NAME#bench ${i}`,
     })),
   );
 
@@ -103,7 +133,7 @@ async function main(): Promise<void> {
       followerCount: 0,
       followingCount: 0,
       interestFollowCount: 0,
-      notificationPrefs: { reaction: true, comment: true, follow: true },
+      notificationPrefs: { reaction: true, comment: true, follow: true, message: true },
       status: 'active',
       createdAt: now,
       gsi1pk: `HANDLE#bench${i}`,
@@ -113,7 +143,7 @@ async function main(): Promise<void> {
 
   // Posts, plus one index item each so interest listings and the feed have
   // something to read.
-  const postItems: Record<string, unknown>[] = [];
+  const postItems: Row[] = [];
   for (let i = 0; i < POSTS; i++) {
     const postId = ulid();
     const authorId = peopleIds[i % peopleIds.length]!;
@@ -136,7 +166,7 @@ async function main(): Promise<void> {
   await writeAll(postItems);
 
   // Follows, bucketed so bench:feed can report p95 BY follow count.
-  const followItems: Record<string, unknown>[] = [];
+  const followItems: Row[] = [];
   peopleIds.forEach((userId, i) => {
     const count = FOLLOW_BUCKETS[i % FOLLOW_BUCKETS.length]!;
     for (let f = 0; f < count; f++) {
@@ -152,6 +182,7 @@ async function main(): Promise<void> {
 
   console.log(`done: ${interestIds.length} interests, ${peopleIds.length} people, ${POSTS} posts`);
   console.log(`follow buckets: ${FOLLOW_BUCKETS.join(', ')}`);
+  await pool.end();
 }
 
 main().catch((e) => {

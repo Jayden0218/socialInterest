@@ -29,9 +29,9 @@ account and no credentials. See `plan.md` § Cost Posture.
 ```bash
 pnpm install
 cp .env.example .env.local
-docker compose up -d                        # DynamoDB Local :8000, MinIO :9000
+docker compose up -d                         # Postgres :5432, object storage :9000
 
-pnpm --filter @sih/infra db:create-local     # single table + 4 GSIs
+pnpm --filter @sih/infra db:create-local-pg  # the one table + its 5 partial indexes
 pnpm --filter @sih/infra s3:create-local     # media bucket
 pnpm --filter @sih/infra verify:local        # asserts the profile actually works
 

@@ -252,6 +252,52 @@ still stands for the product, but that is not evidence about a populated overlay
   devDependencies: `transactor.ts` imports a TYPE from it, which is erased.
   Removing a dependency nothing imports is free; noticing it is not, and it took
   writing a Dockerfile for a 512 MB host to make anybody look.
+- **FIVE MORE STALE READERS IN THE FIXTURES AND THE INFRA SCRIPTS (2026-09-16)**, all
+  the same shape as the four above and all found by running things rather than by
+  reading them:
+  - **`verify:local` was the worst of them.** It did a `TransactWriteCommand`
+    against DynamoDB Local, so after the swap the script whose entire job is to
+    say the local profile works would have PASSED by exercising a container the
+    product never talks to. It reads Postgres now and answers **4/4**.
+  - **`seed:load` was stale in TWO directions at once**: DynamoDB `BatchWrite`,
+    AND a hierarchy — it queried `gsi3` for `PARENT#ROOT` and gave every seeded
+    interest a `level: 'sub'` and a `parentId`, which 013 deleted. It could not
+    have run, and had it run it would have seeded rows nothing reads.
+  - **Four fixtures still shelled out to `docker run` for ffmpeg** — the e2e
+    media fixture, `seed-demo`, `capture-screens` and `verify:local` — after
+    T026 moved the PRODUCT off it. Half a fix. They all resolve `ffmpeg` the way
+    the product does now, so `scripts/ffmpeg-shim/` stays the one place the
+    container variation lives.
+  - **`create-local-table.ts` and `db:create-local` are deleted**, with the
+    DynamoDB SDKs from `infra`. The command survived in **eight** instructional
+    documents, `.env.example` among them.
+- **`.env.example` HANDED YOU A FILE THE API REFUSES TO BOOT WITH.** `cp
+  .env.example .env.local` is the README's second line; it wrote
+  `LOCAL_JWT_SECRET=dev-only-not-a-real-secret`, which is the published value
+  003/FR-007 makes the service refuse BY NAME, and it carried no `DATABASE_URL`
+  at all. It also still described an `aws` profile, Cognito and MediaConvert —
+  all deleted. Rewritten.
+- **010/T028 IS VERIFIED, AND "NO DOCKER SOCKET" WAS MADE LITERAL**: `DOCKER_HOST`
+  pointed at a path that does not exist, a real static ffmpeg on `PATH`
+  (extracted from `mwader/static-ffmpeg`, since `linuxserver/ffmpeg`'s binary
+  needs libraries this sandbox has not got). `publish-video` **3/3** — uploaded,
+  transcoded, `ready`, poster frame, readable by a permitted viewer — and
+  `verify:local` 4/4. The FIRST attempt failed with `Command failed: docker run
+  ...` and **that was the harness**, which is how the four fixtures above were
+  found.
+- **`pnpm token` HAS NOT WORKED, AND A DOZEN DOCUMENTS TELL PEOPLE TO RUN IT.**
+  pnpm has a BUILTIN `token` command (npm auth tokens) and it shadows a package
+  script of that name **silently** — `pnpm token` answers
+  `npm error 401 Unauthorized - GET https://registry.npmjs.org/-/npm/v1/tokens`,
+  which reads as an npm problem rather than as "your script never ran". The
+  laptop runbook, 011's quickstart, `seed-demo.sh`'s own usage line and
+  `mint-token.sh`'s own "copy to clipboard" hint all named it. It is
+  **`pnpm mint:token`** now: a colon-namespaced script name cannot collide with a
+  builtin. Found by trying to re-seed the demo data, not by reading anything.
+- **`seed:load` WRITES INTO THE TABLE EVERY SUITE USES.** 200 posts was enough to
+  turn `008/US13 FR-043` red in the full API suite while it passed alone —
+  the grown-table false regression for the fifth time, and the first one this
+  project caused deliberately. `db:create-local-pg --recreate` afterwards.
 - **`config.dynamo.endpoint` and `.region` are DELETED; `tableName` is NOT**, and the
   difference is worth keeping. The first two had zero readers and sat in the file every new
   setting is copied from, which is how two of the four above got pointed at port 8000.

@@ -44,11 +44,11 @@ that only compares the messages passes against the leaking implementation.
 ### And the thing no test substitutes for
 
 ```bash
-pnpm token   # NOT needed any more — but it must still work
+pnpm mint:token   # NOT needed any more — but it must still work
 ```
 
 Create an account through the app, sign out, sign in again, and find the same profile with
-the same posts. Then confirm `pnpm token` still produces a usable credential, because the
+the same posts. Then confirm `pnpm mint:token` still produces a usable credential, because the
 emulator journeys and the laptop runbook both depend on it (FR-026).
 
 ---
