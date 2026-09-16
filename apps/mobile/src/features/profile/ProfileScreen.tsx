@@ -194,6 +194,9 @@ export function ProfileScreen({
   onMessage,
   onLoadMore,
   renderPost,
+  postsFallback,
+  refreshing,
+  onRefresh,
   onEditProfile,
   onOpenSaved,
 }: {
@@ -207,6 +210,11 @@ export function ProfileScreen({
   onMessage?: () => void;
   onLoadMore: () => void;
   renderPost: (post: Post, index: number) => React.ReactElement;
+  /** 012/FR-001. Rendered instead of the grid; the profile header stays put. */
+  postsFallback?: React.ReactElement;
+  /** 012/FR-012. */
+  refreshing?: boolean;
+  onRefresh?: () => void;
   /** 007/T051. Both were loose Buttons under this screen in `App.tsx`; the
    *  artboard puts them on the profile itself. The testIDs are unchanged. */
   onEditProfile?: () => void;
@@ -321,15 +329,24 @@ export function ProfileScreen({
         header, marked T051 done, and left the content as the old list. Every
         test asserted the post was PRESENT, and it was.
       */}
-      <PagedPostList
-        state={posts}
-        keyOf={(p) => p.postId}
-        renderItem={renderPost}
-        onLoadMore={onLoadMore}
-        columns={3}
-        gap={2}
-        empty={{ title: 'No posts yet', body: isSelf ? 'Your posts will appear here.' : 'Nothing to show.' }}
-      />
+      {/*
+        012/FR-001. The header above stays in every state — a profile whose
+        posts are still loading is still a profile, and blanking the whole
+        screen would hide the name, the counts and the Follow button.
+      */}
+      {postsFallback ?? (
+        <PagedPostList
+          state={posts}
+          keyOf={(p) => p.postId}
+          renderItem={renderPost}
+          onLoadMore={onLoadMore}
+          columns={3}
+          gap={2}
+          refreshing={refreshing === true}
+          {...(onRefresh ? { onRefresh } : {})}
+          empty={{ title: 'No posts yet', body: isSelf ? 'Your posts will appear here.' : 'Nothing to show.' }}
+        />
+      )}
     </Screen>
   );
 }

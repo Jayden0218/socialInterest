@@ -39,6 +39,16 @@ export const ICON_SIZE = {
   action: 20,
   /** A navigation destination in the tab bar. */
   nav: 23,
+  /**
+   * The illustration at the centre of an empty or failed state.
+   *
+   * A FOURTH SIZE, ADDED BECAUSE THE DESIGN REQUIRES ONE — not because a screen
+   * wanted "a bit bigger", which is the thing the closed union exists to refuse.
+   * `States.dc.html` draws 40 for empty and 36 for failed; they are unified at
+   * 40 here because two sizes doing one job is how a scale starts drifting, and
+   * the artboards' own four-point difference carries no meaning.
+   */
+  state: 40,
 } as const;
 
 export type IconSizeName = keyof typeof ICON_SIZE;

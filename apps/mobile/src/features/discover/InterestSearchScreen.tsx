@@ -47,6 +47,7 @@ export function InterestSearchScreen({
   onSelectPlace,
   onSelectPerson,
   onSelectMode,
+  fallback,
 }: {
   query: string;
   results: InterestRef[];
@@ -63,6 +64,8 @@ export function InterestSearchScreen({
   onSelectPlace?: (placeId: string) => void;
   onSelectPerson?: (handle: string) => void;
   onSelectMode?: (next: SearchMode) => void;
+  /** 012/FR-001. Rendered instead of the interest list; the fields stay put. */
+  fallback?: React.ReactElement;
 }) {
   const showPosts = mode === 'posts' && onSelectMode !== undefined;
   return (
@@ -182,9 +185,20 @@ export function InterestSearchScreen({
           </View>
         ) : null}
 
-        {shouldQuery(query) && results.length === 0 ? (
+        {/*
+          012/FR-001. `fallback` first: it carries loading and failed, which
+          this screen had no way to express — `results.length === 0` cannot tell
+          a catalogue that is still arriving from one that would not load, and
+          said "No interests match" for both.
+
+          The query-specific wording below survives, because it is the better
+          sentence when a search genuinely matched nothing and the person can
+          act on it by retyping.
+        */}
+        {fallback ?? (shouldQuery(query) && results.length === 0 ? (
           <EmptyState
             testID="search-empty"
+            icon="search"
             title="No interests match"
             body="Try a shorter word, or create a sub-interest for it."
           />
@@ -230,7 +244,7 @@ export function InterestSearchScreen({
               </Pressable>
             )}
           />
-        )}
+        ))}
         </>
       )}
     </Screen>

@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react';
-import { FlatList, Text, View } from 'react-native';
+import { FlatList, RefreshControl, Text, View } from 'react-native';
 import { activePalette as palette, space, type } from '../ui/theme';
 import { EmptyState } from '../ui/primitives';
 import { Skeleton } from './Skeleton';
@@ -74,9 +74,24 @@ export interface PagedPostListProps<T> {
   columns?: number;
   /** The gutter between items. A grid's is 2; a card list's is `space.md`. */
   gap?: number;
+  /**
+   * 012/FR-012 to FR-014. Pull to refresh.
+   *
+   * ADDED HERE RATHER THAN PER SCREEN, for the same reason the four states are
+   * derived in `usePaged`: this is the component every paged surface already
+   * renders, so one prop pair gives the feed, the interest space, saved posts,
+   * search results and a profile the gesture at once. Twenty-five screens each
+   * remembering to attach a `RefreshControl` is twenty-five chances to forget,
+   * and the app had ZERO occurrences of it before this feature.
+   *
+   * Optional, so a caller with nothing to refresh still compiles and simply
+   * does not offer the gesture.
+   */
+  refreshing?: boolean;
+  onRefresh?: () => void;
 }
 
-export function PagedPostList<T>({ state, keyOf, renderItem, onLoadMore, empty, onViewableChanged, columns, gap }: PagedPostListProps<T>) {
+export function PagedPostList<T>({ state, keyOf, renderItem, onLoadMore, empty, onViewableChanged, columns, gap, refreshing, onRefresh }: PagedPostListProps<T>) {
   /**
    * A STABLE CALLBACK, held through a ref, and it is not a micro-optimisation.
    *
@@ -160,6 +175,13 @@ export function PagedPostList<T>({ state, keyOf, renderItem, onLoadMore, empty, 
         ? { numColumns: columns, columnWrapperStyle: { gap: gap ?? space.md } }
         : {})}
       contentContainerStyle={{ gap: gap ?? space.md }}
+      {...(onRefresh
+        ? {
+            refreshControl: (
+              <RefreshControl refreshing={refreshing === true} onRefresh={onRefresh} />
+            ),
+          }
+        : {})}
       {...(onViewableChanged
         ? {
             /**

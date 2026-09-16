@@ -80,6 +80,9 @@ export function HomeFeedScreen({
   renderPost,
   tab = 'for-you',
   onSelectTab,
+  refreshing,
+  onRefresh,
+  fallback,
 }: {
   state: PagedState<Post>;
   onLoadMore: () => void;
@@ -90,6 +93,15 @@ export function HomeFeedScreen({
   /** 007/FR-004. Absent in tests that render this screen directly. */
   onViewableChanged?: (postIds: string[]) => void;
   renderPost: (post: Post, index: number) => React.ReactElement;
+  /** 012/FR-012. Optional, so the render tests that mount this directly hold. */
+  refreshing?: boolean;
+  onRefresh?: () => void;
+  /**
+   * 012/FR-001. Rendered INSTEAD OF the list — the loading, empty or failed
+   * state, built by `surfaceFallback`. The chrome above stays put in all four
+   * states, which is how `States.dc.html` draws them.
+   */
+  fallback?: React.ReactElement;
 }) {
   const copy = emptyStateCopy(state.emptyStateHint as FeedEmptyState);
 
@@ -182,10 +194,13 @@ export function HomeFeedScreen({
         </Pressable>
       </View>
 
+      {fallback ?? (
       <Waterfall
         state={state}
         renderPost={renderPost}
         onLoadMore={onLoadMore}
+        refreshing={refreshing === true}
+        {...(onRefresh ? { onRefresh } : {})}
         {...(onViewableChanged ? { onViewableChanged } : {})}
         {...(copy
           ? {
@@ -198,6 +213,7 @@ export function HomeFeedScreen({
             }
           : {})}
       />
+      )}
     </Screen>
   );
 }

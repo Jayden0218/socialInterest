@@ -96,16 +96,16 @@ story to P3 after the research.
 
 **Goal**: no surface is ever an unexplained blank screen.
 
-- [ ] T016 [US1] Create `apps/mobile/src/ui/states.tsx` — `Skeleton`, `EmptyState`, `FailedState` — built from the existing tokens per `States.dc.html`, introducing no new ones (FR-025)
-- [ ] T017 [US1] Derive the four states **once**, in the data hook (`usePaged`), and hand them down. Twenty-five screens each deciding what "empty" means is twenty-five chances to render blank, and the five that exist today already disagree (FR-001)
-- [ ] T017a [US1] **Move `InboxContainer` onto `usePaged` before T018 touches it**, or record in the plan why it cannot. T017 derives the states in `apps/mobile/src/containers/usePaged.ts`, and six hooks in `containers/index.ts` wrap it — `useHomeFeed`, `useFollowingFeed`, `useInterestSearch`, `usePostSearch`, `useNotifications`, `useProfilePosts` — which reaches Feed, Explore, Activity and Profile. **Chats does not**: `InboxContainer` hand-rolls `useState`/`useEffect` and its `load` sets no loading flag at all, so T018 would otherwise hand-write a twenty-sixth state machine on the one surface this feature is supposed to fix. Its two real constraints — two inboxes each its own request, and a separate badge read — are why this is a task and not a footnote (numbered `a` rather than renumbering thirty-five tasks, the same way the spec carries FR-006a)
-- [ ] T018 [US1] Apply the states to Feed, Explore, Activity, Chats and Profile. A skeleton is **shaped like the content it replaces**, never a centred spinner (FR-003, FR-004). **The spec's names are not the code's**, and this project has already paid for that confusion — see the mapping below
-- [ ] T019 [US1] Add the delay threshold: no loading indicator for a request that resolves under ~200ms (FR-005). A skeleton that flashes for 40ms reads as a glitch, not as progress
-- [ ] T020 [US1] Add the upper bound: a request pending past ~15s is reported **failed**, not shown loading forever (FR-006). Without it a dropped connection shows a skeleton for ever, which is a blank screen wearing a costume
-- [ ] T021 [US1] Every empty state names an action and offers the control that performs it (FR-007), and offers nothing that person cannot do (FR-008)
-- [ ] T022 [US1] Every failure is visibly distinct from empty and offers a retry that re-attempts the request (FR-009, FR-010)
-- [ ] T023 [US1] **An empty list caused by the visibility boundary says nothing about why** (FR-011). The considerate message is the wrong one: Constitution II makes absence and refusal indistinguishable on purpose, and a helpful empty state here is an oracle
-- [ ] T024 [US1] Write `apps/mobile/src/__tests__/four-states.test.ts`: every surface that fetches renders something in each of the four states — **and watch it red first**, against the four primary surfaces that have no loading state today
+- [X] T016 [US1] Create `apps/mobile/src/ui/states.tsx` — `Skeleton`, `EmptyState`, `FailedState` — built from the existing tokens per `States.dc.html`, introducing no new ones (FR-025)
+- [X] T017 [US1] Derive the four states **once**, in the data hook (`usePaged`), and hand them down. Twenty-five screens each deciding what "empty" means is twenty-five chances to render blank, and the five that exist today already disagree (FR-001)
+- [X] T017a [US1] **Move `InboxContainer` onto `usePaged` before T018 touches it**, or record in the plan why it cannot. T017 derives the states in `apps/mobile/src/containers/usePaged.ts`, and six hooks in `containers/index.ts` wrap it — `useHomeFeed`, `useFollowingFeed`, `useInterestSearch`, `usePostSearch`, `useNotifications`, `useProfilePosts` — which reaches Feed, Explore, Activity and Profile. **Chats does not**: `InboxContainer` hand-rolls `useState`/`useEffect` and its `load` sets no loading flag at all, so T018 would otherwise hand-write a twenty-sixth state machine on the one surface this feature is supposed to fix. Its two real constraints — two inboxes each its own request, and a separate badge read — are why this is a task and not a footnote (numbered `a` rather than renumbering thirty-five tasks, the same way the spec carries FR-006a)
+- [X] T018 [US1] Apply the states to Feed, Explore, Activity, Chats and Profile. A skeleton is **shaped like the content it replaces**, never a centred spinner (FR-003, FR-004). **The spec's names are not the code's**, and this project has already paid for that confusion — see the mapping below
+- [X] T019 [US1] Add the delay threshold: no loading indicator for a request that resolves under ~200ms (FR-005). A skeleton that flashes for 40ms reads as a glitch, not as progress
+- [X] T020 [US1] Add the upper bound: a request pending past ~15s is reported **failed**, not shown loading forever (FR-006). Without it a dropped connection shows a skeleton for ever, which is a blank screen wearing a costume
+- [X] T021 [US1] Every empty state names an action and offers the control that performs it (FR-007), and offers nothing that person cannot do (FR-008)
+- [X] T022 [US1] Every failure is visibly distinct from empty and offers a retry that re-attempts the request (FR-009, FR-010)
+- [X] T023 [US1] **An empty list caused by the visibility boundary says nothing about why** (FR-011). The considerate message is the wrong one: Constitution II makes absence and refusal indistinguishable on purpose, and a helpful empty state here is an oracle
+- [X] T024 [US1] Write `apps/mobile/src/__tests__/four-states.test.ts`: every surface that fetches renders something in each of the four states — **and watch it red first**, against the four primary surfaces that have no loading state today
 - [ ] T025 [US1] Assert in the browser that the three states are visually distinguishable from one another (SC-008). A person who has not been told which is which must be able to tell
 
 **Checkpoint**: the app stops looking broken while it works.
@@ -114,9 +114,9 @@ story to P3 after the research.
 
 ## Phase 5: User Story 1 continued — refreshing (Priority: P1)
 
-- [ ] T026 [US1] Add `RefreshControl` to every list a person would expect to refresh — **there are currently zero occurrences in the app** (FR-012)
-- [ ] T027 [US1] A refresh in progress is visible and **visibly concludes even when nothing changed** (FR-013), or the gesture reads as broken
-- [ ] T028 [US1] A refresh requested while one is running does not start a second (FR-014)
+- [X] T026 [US1] Add `RefreshControl` to every list a person would expect to refresh — **there are currently zero occurrences in the app** (FR-012)
+- [X] T027 [US1] A refresh in progress is visible and **visibly concludes even when nothing changed** (FR-013), or the gesture reads as broken
+- [X] T028 [US1] A refresh requested while one is running does not start a second (FR-014)
 
 ---
 

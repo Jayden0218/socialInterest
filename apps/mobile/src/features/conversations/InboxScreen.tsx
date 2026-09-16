@@ -1,7 +1,7 @@
-import { FlatList, Pressable, Text, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 import type { ConversationState, ConversationSummary } from '@sih/shared';
 import { activePalette as palette, space, textStyle, type, MIN_TOUCH_TARGET } from '../../ui/theme';
-import { EmptyState, Screen, ScreenHeader } from '../../ui/primitives';
+import { Screen, ScreenHeader } from '../../ui/primitives';
 import { Avatar } from '../../components/Avatar';
 import { Icon } from '../../ui/Icon';
 import { conversationSlug, conversationTitle, isGroup } from './conversation-title';
@@ -126,6 +126,9 @@ export function InboxScreen({
   onOpen,
   onNewGroup,
   requestCount,
+  refreshing,
+  onRefresh,
+  fallback,
 }: {
   state: ConversationState;
   conversations: ConversationSummary[];
@@ -135,8 +138,12 @@ export function InboxScreen({
   onNewGroup?: () => void;
   /** The badge on the Requests tab. Absent when the caller has not counted. */
   requestCount?: number;
+  /** 012/FR-012 to FR-014. Optional, so a caller that cannot refresh compiles. */
+  refreshing?: boolean;
+  onRefresh?: () => void;
+  /** 012/FR-001. Rendered instead of the list; the header stays put. */
+  fallback?: React.ReactElement;
 }) {
-  const empty = emptyInboxCopy(state);
   return (
     <Screen testID="inbox-screen">
       <View style={{ paddingHorizontal: space.lg, paddingTop: space.sm }}>
@@ -185,14 +192,43 @@ export function InboxScreen({
         ))}
       </View>
 
-      {conversations.length === 0 ? (
-        <EmptyState testID="inbox-empty" title={empty.title} body={empty.body} />
-      ) : (
+      {/*
+        012/FR-001. THE EMPTY BRANCH THAT USED TO BE HERE IS GONE.
+
+        It read `conversations.length === 0 ? <EmptyState/> : <FlatList/>`,
+        which is the per-screen state machine the "derive once" decision exists
+        to remove — and it could not tell empty from failed or from still
+        loading, so a dropped connection said "No messages yet". `usePaged`
+        decides now and the container passes the result in.
+
+        The per-inbox WORDING survives, because it was the good part:
+        `emptyInboxCopy` is exported and the container calls it. Requests and
+        Messages are different kinds of empty and deserve different sentences.
+      */}
+      {fallback ?? (
         <FlatList
           testID="inbox-list"
           data={conversations}
           keyExtractor={(c) => c.conversationId}
           renderItem={({ item }) => <ConversationRow conversation={item} onOpen={onOpen} />}
+          /**
+           * 012/FR-012. The app contained ZERO occurrences of `RefreshControl`
+           * before this feature. Every other application on the phone has
+           * trained people to pull down here, and its absence does not read as
+           * "this list is static" — it reads as the app being stuck.
+           *
+           * FR-013's "visibly concludes even when nothing changed" is what
+           * `RefreshControl` does natively, and FR-014's "must not stack" is
+           * guarded in `usePaged.refresh` rather than here, so every list gets
+           * it rather than each one remembering.
+           */
+          {...(onRefresh
+            ? {
+                refreshControl: (
+                  <RefreshControl refreshing={refreshing === true} onRefresh={onRefresh} />
+                ),
+              }
+            : {})}
         />
       )}
     </Screen>

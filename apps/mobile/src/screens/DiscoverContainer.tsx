@@ -12,7 +12,7 @@ import type { PublicProfile, PlaceSummary } from '@sih/shared';
 import { useInterestSearch, usePostSearch } from '../containers';
 import { useData } from '../data-provider';
 import type { InterestRef } from '@sih/shared';
-import { Failed } from './shared';
+import { surfaceFallback } from '../ui/SurfaceStates';
 
 export function DiscoverContainer({
   onSelect,
@@ -38,7 +38,8 @@ export function DiscoverContainer({
     terms: string[];
     fallback: { interests: InterestRef[]; people: PublicProfile[] } | null;
   }>({ terms: [], fallback: null });
-  const { state, error } = useInterestSearch(query);
+  const interests = useInterestSearch(query);
+  const { state } = interests;
   const postSearch = usePostSearch(query, mode === 'posts' && onOpenPost !== undefined, (page) =>
     setPostMeta({ terms: page.meta?.terms ?? [], fallback: page.fallback ?? null }),
   );
@@ -77,9 +78,36 @@ export function DiscoverContainer({
     };
   }, [data, query, locality, onSelectPlace]);
 
-  if (error) return <Failed message={error} />;
+  /**
+   * 012/T018. EXPLORE IS THE TAB A LOST NEWCOMER PRESSES FIRST, and it had no
+   * loading state: two empty search fields above nothing, whether the catalogue
+   * was on its way, absent, or unreachable (012/R5).
+   *
+   * The empty copy is about the CATALOGUE, not about the query — a search that
+   * matched nothing and a catalogue that would not load are different facts,
+   * and `usePaged` is what tells them apart now. The `Failed` early return this
+   * replaces blanked the search fields too, so a person could not even retype.
+   */
+  const fallback = surfaceFallback(interests, {
+    shape: 'list',
+    ids: {
+      loading: 'discover-loading',
+      empty: 'discover-empty',
+      failed: 'discover-failed',
+    },
+    empty: {
+      icon: 'search',
+      title: query.trim() === '' ? 'Nothing to explore yet' : 'No matches',
+      body:
+        query.trim() === ''
+          ? 'Interests appear here as people create them.'
+          : 'Try a different word, or a broader one.',
+    },
+  });
+
   return (
     <InterestSearchScreen
+      {...(fallback ? { fallback } : {})}
       query={query}
       results={state.items}
       places={places}

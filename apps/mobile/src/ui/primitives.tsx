@@ -1,5 +1,7 @@
 import { Pressable, ScrollView, Text, TextInput, View, type TextStyle, type ViewStyle } from 'react-native';
 import { activePalette as palette, MIN_TOUCH_TARGET, radius, space, textStyle, type } from './theme';
+import { Icon } from './Icon';
+import type { IconName } from './icons';
 
 export function Button({
   label,
@@ -110,16 +112,24 @@ export function EmptyState({
   body,
   actionLabel,
   onAction,
+  icon,
   testID,
 }: {
   title: string;
   body: string;
   actionLabel?: string;
   onAction?: () => void;
+  /**
+   * 012/T016, `States.dc.html`. Optional so the ~15 existing call sites keep
+   * working unchanged: an empty state with no picture is the old one, which is
+   * correct, rather than a broken one.
+   */
+  icon?: IconName;
   testID?: string;
 }) {
   return (
     <View testID={testID} style={{ padding: space.xl, alignItems: 'center', gap: space.md }}>
+      {icon ? <Icon name={icon} size="state" color={palette.line.strong} /> : null}
       <Text
         style={{
           ...textStyle.title,

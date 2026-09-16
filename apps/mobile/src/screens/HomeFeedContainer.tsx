@@ -12,7 +12,7 @@ import { useFollowingFeed, useHomeFeed } from '../containers';
 import { useDwell } from '../features/feed/useDwell';
 import { space } from '../ui/theme';
 import { useData } from '../data-provider';
-import { Failed } from './shared';
+import { surfaceFallback } from '../ui/SurfaceStates';
 
 export function HomeFeedContainer({
   onEmptyAction,
@@ -36,7 +36,54 @@ export function HomeFeedContainer({
   const ranked = useHomeFeed();
   const following = useFollowingFeed();
   const active = tab === 'for-you' ? ranked : following;
-  if (active.error) return <Failed message={active.error} />;
+
+  /**
+   * 012/T018. THE FEED IS THE FIRST SCREEN A SIGNED-IN PERSON SEES, AND IT HAD
+   * NO LOADING STATE AT ALL.
+   *
+   * It rendered nothing while it fetched, so "working", "there is nothing" and
+   * "that failed" were one blank rectangle on the product's front door. The
+   * `Failed` early return that used to be here handled one of the four; the
+   * other three were the same blank screen.
+   *
+   * The states wrap the screen rather than living inside it, so the feed cannot
+   * render a blank rectangle by accident — and the decision about WHICH state
+   * is `usePaged`'s, made once, rather than this screen's opinion.
+   */
+  /**
+   * 012/T018. THE FEED IS THE FIRST SCREEN A SIGNED-IN PERSON SEES, AND IT HAD
+   * NO LOADING STATE AT ALL.
+   *
+   * It rendered nothing while it fetched, so "working", "there is nothing" and
+   * "that failed" were one blank rectangle on the product's front door. The
+   * `Failed` early return that used to be here covered one of the four; the
+   * other three were the same blank screen.
+   *
+   * A FALLBACK, NOT A WRAPPER — the screen keeps its header and its For You /
+   * Following switcher in every state. Wrapping was the first attempt and it
+   * left an empty feed with no control to change that it was empty.
+   */
+  const fallback = surfaceFallback(active, {
+    shape: 'feed',
+    ids: { loading: 'feed-loading', empty: 'feed-empty', failed: 'feed-failed' },
+    empty: {
+      icon: 'explore',
+      title: 'Nothing here yet',
+      /**
+       * FR-007: names an action and offers the control that performs it.
+       *
+       * FR-011 is why it says nothing about WHY the feed is short. A feed can be
+       * empty because a person follows little, and it can be empty because the
+       * boundary withheld everything — Constitution II makes those deliberately
+       * indistinguishable, so an empty state that explained the difference
+       * would be an oracle.
+       */
+      body: 'Follow a few interests and your feed fills up.',
+      actionLabel: 'Explore interests',
+      onAction: onEmptyAction,
+    },
+  });
+
   return (
     <HomeFeedScreen
       state={active.state}
@@ -72,6 +119,9 @@ export function HomeFeedContainer({
           }}
         />
       )}
+      refreshing={active.refreshing}
+      onRefresh={active.refresh}
+      {...(fallback ? { fallback } : {})}
     />
   );
 }

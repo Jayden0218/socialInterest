@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useMemo, useRef } from 'react';
-import { FlatList, Text, View } from 'react-native';
+import { FlatList, RefreshControl, Text, View } from 'react-native';
 import type { Post } from '@sih/shared';
 import { useTheme } from '../ui/useTheme';
 import { space, type as typeScale } from '../ui/tokens';
@@ -85,6 +85,8 @@ export function Waterfall({
   onLoadMore,
   onViewableChanged,
   empty,
+  refreshing,
+  onRefresh,
 }: {
   state: PagedState<Post>;
   renderPost: (post: Post, index: number) => React.ReactElement;
@@ -92,6 +94,9 @@ export function Waterfall({
   /** 007/FR-004. Absent on lists that are not the feed. */
   onViewableChanged?: (postIds: string[]) => void;
   empty?: { title: string; body: string; actionLabel?: string; onAction?: () => void };
+  /** 012/FR-012 to FR-014. The feed is the surface people pull down on most. */
+  refreshing?: boolean;
+  onRefresh?: () => void;
 }) {
   const palette = useTheme();
   const blocks = useMemo(() => toBlocks(state.items), [state.items]);
@@ -132,6 +137,13 @@ export function Waterfall({
       testID="paged-post-list"
       data={blocks}
       keyExtractor={(b) => b.key}
+      {...(onRefresh
+        ? {
+            refreshControl: (
+              <RefreshControl refreshing={refreshing === true} onRefresh={onRefresh} />
+            ),
+          }
+        : {})}
       renderItem={({ item: block, index: blockIndex }) => (
         <View style={{ flexDirection: 'row', gap: space.sm, marginBottom: space.md }}>
           {block.columns.map((column, columnIndex) => (

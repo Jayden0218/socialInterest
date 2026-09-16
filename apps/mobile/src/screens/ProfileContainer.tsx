@@ -13,6 +13,7 @@ import { DataError } from '../data';
 import { ProfileScreen, type ProfileData } from '../features/profile/ProfileScreen';
 import { useProfilePosts } from '../containers';
 import { Failed } from './shared';
+import { surfaceFallback } from '../ui/SurfaceStates';
 
 export function ProfileContainer({
   handle,
@@ -41,7 +42,8 @@ export function ProfileContainer({
   // in. Until `GET /v1/me` resolves there is no handle to ask with, and asking
   // with "me" got a 404 and an empty list that explained nothing.
   const postsHandle = isSelf ? (profile?.handle ?? '') : handle;
-  const { state, loadMore } = useProfilePosts(postsHandle);
+  const profilePosts = useProfilePosts(postsHandle);
+  const { state, loadMore } = profilePosts;
 
   /**
    * T053. This used to call `session.me()` regardless of whose profile was
@@ -150,6 +152,21 @@ export function ProfileContainer({
     [data, profile],
   );
 
+  /**
+   * 012/T018. TWO DIFFERENT FAILURES, AND THEY ARE NOT THE SAME SCREEN.
+   *
+   * `error` above is the PROFILE failing to load — there is no subject, so the
+   * whole screen is the failure and the early return is right. This one is the
+   * POSTS failing under a profile that loaded fine, where blanking the screen
+   * would throw away the name, the counts and the Follow button over a list
+   * that did not arrive.
+   */
+  const postsFallback = surfaceFallback(profilePosts, {
+    shape: 'list',
+    ids: { loading: 'profile-posts-loading', empty: 'profile-posts-empty', failed: 'profile-posts-failed' },
+    empty: { title: 'No posts yet', body: 'Nothing to show.' },
+  });
+
   if (error) return <Failed message={error} />;
   if (!profile) return <View testID="profile-loading" />;
   return (
@@ -163,6 +180,9 @@ export function ProfileContainer({
         ? { onMessage: () => onMessage(profile.handle) }
         : {})}
       onLoadMore={loadMore}
+      refreshing={profilePosts.refreshing}
+      onRefresh={profilePosts.refresh}
+      {...(postsFallback && profilePosts.surface !== 'empty' ? { postsFallback } : {})}
       // A TILE, not a card. `Profile.dc.html` is a three-column grid; a card
       // carries a byline and an interest, which on somebody's own profile
       // repeat the header above them once per post.

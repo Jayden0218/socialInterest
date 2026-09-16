@@ -1,4 +1,4 @@
-import { FlatList, Image, Text, View } from 'react-native';
+import { FlatList, Image, RefreshControl, Text, View } from 'react-native';
 import type { Notification } from '@sih/shared';
 import { activePalette as palette, radius, space, textStyle, type } from '../../ui/theme';
 import { EmptyState, Screen, ScreenHeader } from '../../ui/primitives';
@@ -155,44 +155,71 @@ export function NotificationsScreen({
   prefs,
   onOpen,
   onEditPrefs,
+  refreshing,
+  onRefresh,
+  fallback,
 }: {
   notifications: Notification[];
   prefs: NotificationPrefs;
   onOpen: (n: Notification) => void;
   onEditPrefs: () => void;
+  /** 012/FR-012. Optional, so render tests that mount this directly hold. */
+  refreshing?: boolean;
+  onRefresh?: () => void;
+  /** 012/FR-001. Rendered instead of the list; the header stays put. */
+  fallback?: React.ReactElement;
 }) {
-  if (notifications.length === 0) {
-    return (
-      <Screen testID="notifications-screen" padded>
-        <ScreenHeader title="Activity" />
-        <EmptyState
-          testID="notifications-empty"
-          title="Nothing new"
-          body={
-            allDisabled(prefs)
-              ? 'All notification categories are turned off.'
-              : 'You are all caught up.'
-          }
-          {...(allDisabled(prefs) ? { actionLabel: 'Notification settings', onAction: onEditPrefs } : {})}
-        />
-      </Screen>
-    );
-  }
+  /**
+   * 012/T018. ACTIVITY HAD A GOOD EMPTY STATE AND NO LOADING STATE, so "still
+   * loading" and "you are all caught up" were the same screen — and a person
+   * told they are caught up stops looking.
+   *
+   * THE EARLY RETURN IS GONE, not just supplemented. It returned a DIFFERENT
+   * `<Screen padded>` from the populated branch, so the header moved between
+   * states; one chrome now, with the state inside it, as `States.dc.html`
+   * draws all three.
+   *
+   * The "all categories off" wording survives because it is the one thing the
+   * screen knows that the container does not — it reads `prefs`.
+   */
+  const empty =
+    notifications.length === 0 && !fallback ? (
+      <EmptyState
+        testID="notifications-empty"
+        icon="activity"
+        title="Nothing new"
+        body={
+          allDisabled(prefs)
+            ? 'All notification categories are turned off.'
+            : 'You are all caught up.'
+        }
+        {...(allDisabled(prefs) ? { actionLabel: 'Notification settings', onAction: onEditPrefs } : {})}
+      />
+    ) : null;
 
   return (
     <Screen testID="notifications-screen">
       <View style={{ paddingHorizontal: space.md, paddingTop: space.sm }}>
         <ScreenHeader title="Activity" />
       </View>
-      <FlatList
-        testID="notification-list"
-        data={notifications}
-        keyExtractor={(n) => n.notificationId}
-        ListHeaderComponent={<SectionLabel>This week</SectionLabel>}
-        renderItem={({ item, index }) => (
-          <NotificationRow notification={item} index={index} onOpen={onOpen} />
-        )}
-      />
+      {fallback ?? empty ?? (
+        <FlatList
+          testID="notification-list"
+          data={notifications}
+          keyExtractor={(n) => n.notificationId}
+          ListHeaderComponent={<SectionLabel>This week</SectionLabel>}
+          renderItem={({ item, index }) => (
+            <NotificationRow notification={item} index={index} onOpen={onOpen} />
+          )}
+          {...(onRefresh
+            ? {
+                refreshControl: (
+                  <RefreshControl refreshing={refreshing === true} onRefresh={onRefresh} />
+                ),
+              }
+            : {})}
+        />
+      )}
     </Screen>
   );
 }

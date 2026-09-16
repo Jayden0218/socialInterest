@@ -7,10 +7,11 @@
  */
 import { NotificationsScreen } from '../features/notifications/NotificationsScreen';
 import { useMarkNotificationsRead, useNotifications } from '../containers';
-import { Failed } from './shared';
+import { surfaceFallback } from '../ui/SurfaceStates';
 
 export function NotificationsContainer({ onOpen }: { onOpen: (postId: string) => void }) {
-  const { state, error } = useNotifications();
+  const notifications = useNotifications();
+  const { state } = notifications;
   /**
    * 008/FR-005. Viewing marks them read.
    *
@@ -20,9 +21,28 @@ export function NotificationsContainer({ onOpen }: { onOpen: (postId: string) =>
    * fails.
    */
   useMarkNotificationsRead(state.items.length > 0);
-  if (error) return <Failed message={error} />;
+
+  /**
+   * 012/T018. Loading and failed only: the screen owns the EMPTY wording,
+   * because it reads `prefs` to say "all categories are turned off" — a fact
+   * the container does not have. One decision still, made by `usePaged`; the
+   * empty branch it selects is simply rendered by the screen.
+   */
+  const fallback = surfaceFallback(notifications, {
+    shape: 'list',
+    ids: {
+      loading: 'notifications-loading',
+      empty: 'notifications-empty',
+      failed: 'notifications-failed',
+    },
+    empty: { title: 'Nothing new', body: 'You are all caught up.' },
+  });
+
   return (
     <NotificationsScreen
+      refreshing={notifications.refreshing}
+      onRefresh={notifications.refresh}
+      {...(fallback && notifications.surface !== 'empty' ? { fallback } : {})}
       notifications={state.items}
       prefs={{ reaction: true, comment: true, follow: true, message: true, mention: true }}
       // The notification's postId, not its notificationId. Passing the latter
