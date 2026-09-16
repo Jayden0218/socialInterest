@@ -287,8 +287,10 @@ already prevents the common case.
 ### Key Entities
 
 - **Interest**: a word or phrase a person named, belonging to no hierarchy. Carries the name as
-  typed, the form used for matching, and whether it is live or has been merged away. An interest
-  that no post uses is not a thing the product keeps.
+  typed, the form used for matching, and its state: **live, merging, merged away, or retired**.
+  Retired is what an interest becomes when no post uses it — retired rather than deleted, so that a
+  link to it from somewhere the boundary has not re-evaluated does not lead nowhere. (The
+  implementation calls "live" `active`; the four states already exist.)
 - **Interest name proposal**: what a person typed while publishing, before the product has decided
   whether it names something that exists, resembles something that exists, or is new.
 

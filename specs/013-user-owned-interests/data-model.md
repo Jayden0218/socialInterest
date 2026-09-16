@@ -84,9 +84,16 @@ half becomes the claim above; the key itself is removed.
   interest it actually carries. Less work per publish, and the roll-up it existed for is withdrawn.
 - **Interest follows** — unchanged. A follow is still a standing declaration worth one unit to the
   ranker (007/FR-030).
-- **Interest colour** — derived from `interestId` by FNV-1a; a child previously borrowed its
-  parent's hue. With no parents every interest gets its own, and the existing enumeration over all
-  720 generated colours in both palettes already covers the space.
+- **Interest colour** — **CHANGES VISIBLY for every existing sub-interest, and that is accepted
+  rather than overlooked.** The hue is seeded from `interest.parentId ?? interest.interestId`, so a
+  child borrows its parent's hue, and a child is additionally drawn one step lighter or darker. With
+  no parents both go: every interest takes its own hue at the base lightness. The first version of
+  this section said only "every interest gets its own", which is true about LEGIBILITY — the
+  enumeration over all generated colours still covers the space — and silent about the fact that
+  interests people already use will look different. Preserving the old hues would mean keeping
+  `parentId` for ever, which is exactly what this feature deletes it to prevent. The child lightness
+  branch is removed from the generator AND from the contrast enumeration together, so the guard
+  stops enumerating a lightness that can no longer occur.
 
 ## Migration
 
