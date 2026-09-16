@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+  <style>
+/* Tokens lifted verbatim from apps/mobile/src/ui/tokens.ts — not rounded. */
+:root{
+  --bg:#FBFAF8; --raised:#FFFFFF; --sunken:#F3F1EC;
+  --tx:#16211A; --tx2:#43514A; --tx3:#606C66; --on-accent:#FFFFFF;
+  --hair:#ECEAE4; --strong:#CFCABE;
+  --accent:#1F6B3F; --danger:#C0392B;
+  --r-card:14px; --r-btn:11px; --r-field:21px; --r-sheet:20px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);
+  font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;
+  -webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none} a:hover{color:#17512F}
+/* Type roles — exact values from tokens.ts */
+.t-display{font-size:20px;line-height:26px;font-weight:700}
+.t-title{font-size:18px;line-height:24px;font-weight:700}
+.t-body{font-size:14px;line-height:21px;font-weight:400}
+.t-label{font-size:13.5px;line-height:18px;font-weight:600}
+.t-caption{font-size:12.5px;line-height:17px;font-weight:500}
+.t-small{font-size:11.5px;line-height:16px;font-weight:500}
+.t-tab{font-size:10.5px;line-height:14px;font-weight:600}
+.phone{width:390px;height:844px;background:var(--bg);position:relative;overflow:hidden;
+  display:flex;flex-direction:column}
+/* No fake status bar — the real one paints here on a device. */
+.safe-top{height:44px;flex:none}
+.scroll{flex:1;overflow:hidden}
+.nav{flex:none;background:var(--raised);border-top:1px solid var(--hair);
+  padding:8px 8px 22px;display:grid;grid-template-columns:repeat(5,1fr);align-items:end}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;
+  justify-content:center;color:var(--tx3)}
+.nav-item.on{color:var(--accent)}
+.compose{width:46px;height:34px;border-radius:var(--r-btn);background:var(--accent);
+  display:flex;align-items:center;justify-content:center;color:#fff;margin-bottom:3px}
+/* Photographic stand-ins: muted, natural, never a bright gradient. */
+.ph{background-color:#C9C3B6;background-repeat:no-repeat;position:relative;overflow:hidden}
+.ph-1{background-image:radial-gradient(120% 90% at 20% 15%,#8FA089 0%,#6E8270 45%,#43574B 100%)}
+.ph-2{background-image:radial-gradient(110% 80% at 75% 20%,#D8C3A0 0%,#B79770 50%,#7E6242 100%)}
+.ph-3{background-image:radial-gradient(120% 95% at 30% 80%,#A9B6C2 0%,#7B8C9C 50%,#4C5A69 100%)}
+.ph-4{background-image:radial-gradient(100% 85% at 60% 25%,#C9A79A 0%,#A67E70 50%,#6F4F46 100%)}
+.ph-5{background-image:radial-gradient(130% 90% at 25% 30%,#BFC7AE 0%,#93A17F 50%,#5D6B4C 100%)}
+.ph-6{background-image:radial-gradient(110% 90% at 70% 70%,#C6B8C9 0%,#9A88A3 50%,#63566E 100%)}
+
+  </style>
+</helmet>
+<div class="phone">
+  <div style="position:absolute;inset:0;overflow:hidden"><div class="safe-top"></div><div style="flex:none;display:flex;align-items:center;justify-content:space-between;padding:2px 16px 10px;min-height:44px"><span class="t-display">socialInterest</span><span style="display:flex;gap:6px;color:var(--tx2)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.4"/><path d="m15.8 15.8 4 4"/></svg></span></div>
+  <div style="padding:12px 16px"><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start">
+  <div><div style="background:var(--raised);border-radius:var(--r-card);overflow:hidden">
+  <div class="ph ph-1" style="height:150px"></div>
+  <div style="padding:9px 10px 11px;display:flex;flex-direction:column;gap:5px">
+    <div class="t-label" style="color:var(--tx)">Goldcrest, finally still</div>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <span class="t-small" style="color:#00798D;font-weight:600">Birding</span>
+      <span style="display:flex;align-items:center;gap:9px;color:var(--tx3)">
+        <span style="display:flex;align-items:center;gap:3px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.3s-7.3-4.4-7.3-9.2A4.1 4.1 0 0 1 12 8.2a4.1 4.1 0 0 1 7.3 2.9c0 4.8-7.3 9.2-7.3 9.2Z"/></svg><span class="t-small">34</span></span>
+        <span style="display:flex;align-items:center;gap:3px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20.4 12.3c0 3.8-3.8 6.9-8.4 6.9a9.9 9.9 0 0 1-2.5-.3L4.8 20.4l1.3-3.5a6.5 6.5 0 0 1-2.5-5c0-3.8 3.8-6.9 8.4-6.9s8.4 3.1 8.4 6.9Z"/></svg><span class="t-small">6</span></span>
+      </span>
+    </div>
+  </div>
+</div></div>
+  <div><div style="background:var(--raised);border-radius:var(--r-card);overflow:hidden">
+  <div class="ph ph-2" style="height:130px"></div>
+  <div style="padding:9px 10px 11px;display:flex;flex-direction:column;gap:5px">
+    <div class="t-label" style="color:var(--tx)">Trimming the foot</div>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <span class="t-small" style="color:#A04D39;font-weight:600">Ceramics</span>
+      <span style="display:flex;align-items:center;gap:9px;color:var(--tx3)">
+        <span style="display:flex;align-items:center;gap:3px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.3s-7.3-4.4-7.3-9.2A4.1 4.1 0 0 1 12 8.2a4.1 4.1 0 0 1 7.3 2.9c0 4.8-7.3 9.2-7.3 9.2Z"/></svg><span class="t-small">62</span></span>
+        <span style="display:flex;align-items:center;gap:3px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20.4 12.3c0 3.8-3.8 6.9-8.4 6.9a9.9 9.9 0 0 1-2.5-.3L4.8 20.4l1.3-3.5a6.5 6.5 0 0 1-2.5-5c0-3.8 3.8-6.9 8.4-6.9s8.4 3.1 8.4 6.9Z"/></svg><span class="t-small">4</span></span>
+      </span>
+    </div>
+  </div>
+</div></div></div></div></div>
+  <div style="position:absolute;inset:0;background:rgba(22,33,26,.38)"></div>
+  <div style="position:absolute;left:0;right:0;bottom:0;background:var(--raised);
+    border-radius:var(--r-sheet) var(--r-sheet) 0 0;padding:10px 20px 28px">
+    <div style="width:38px;height:4px;border-radius:999px;background:var(--strong);margin:0 auto 12px"></div>
+    <div class="t-caption" style="color:var(--tx3);padding-bottom:4px">mara</div>
+    <div style="display:flex;align-items:center;gap:14px;padding:15px 0;min-height:44px;color:var(--tx)">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20.4 12.6c0 3.7-3.5 6.7-7.9 6.7a9.6 9.6 0 0 1-2.6-.35L5.2 20.4l1.2-3.3a6.4 6.4 0 0 1-2.8-5.2c0-3.7 3.6-6.7 8-6.7s8.8 2.7 8.8 7.4Z"/></svg><span class="t-body" style="color:var(--tx)">Message</span></div><div style="display:flex;align-items:center;gap:14px;padding:15px 0;min-height:44px;color:var(--tx)">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15.4V3.9m0 0L8.2 7.7M12 3.9l3.8 3.8"/><path d="M5.2 13.4v5.7a1 1 0 0 0 1 1h11.6a1 1 0 0 0 1-1v-5.7"/></svg><span class="t-body" style="color:var(--tx)">Share profile</span></div><div style="display:flex;align-items:center;gap:14px;padding:15px 0;min-height:44px;color:var(--tx)">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6.4 6.4 17.6 17.6M17.6 6.4 6.4 17.6"/></svg><span class="t-body" style="color:var(--tx)">Mute</span></div><div style="display:flex;align-items:center;gap:14px;padding:15px 0;min-height:44px;color:var(--danger)">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.2" r="3.7"/><path d="M4.9 20.3a7.1 7.1 0 0 1 14.2 0"/></svg><span class="t-body" style="color:var(--danger)">Block</span></div><div style="display:flex;align-items:center;gap:14px;padding:15px 0;min-height:44px;color:var(--danger)">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.4" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="18.6" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg><span class="t-body" style="color:var(--danger)">Report account</span></div>
+  </div></div>
+</x-dc>
+</body>
+</html>

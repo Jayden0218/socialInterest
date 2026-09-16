@@ -1,0 +1,351 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+  <style>
+/* Tokens lifted verbatim from apps/mobile/src/ui/tokens.ts — not rounded. */
+:root{
+  --bg:#FBFAF8; --raised:#FFFFFF; --sunken:#F3F1EC;
+  --tx:#16211A; --tx2:#43514A; --tx3:#606C66; --on-accent:#FFFFFF;
+  --hair:#ECEAE4; --strong:#CFCABE;
+  --accent:#1F6B3F; --danger:#C0392B;
+  --r-card:14px; --r-btn:11px; --r-field:21px; --r-sheet:20px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);
+  font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;
+  -webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none} a:hover{color:#17512F}
+/* Type roles — exact values from tokens.ts */
+.t-display{font-size:20px;line-height:26px;font-weight:700}
+.t-title{font-size:18px;line-height:24px;font-weight:700}
+.t-body{font-size:14px;line-height:21px;font-weight:400}
+.t-label{font-size:13.5px;line-height:18px;font-weight:600}
+.t-caption{font-size:12.5px;line-height:17px;font-weight:500}
+.t-small{font-size:11.5px;line-height:16px;font-weight:500}
+.t-tab{font-size:10.5px;line-height:14px;font-weight:600}
+.phone{width:390px;height:844px;background:var(--bg);position:relative;overflow:hidden;
+  display:flex;flex-direction:column}
+/* No fake status bar — the real one paints here on a device. */
+.safe-top{height:44px;flex:none}
+.scroll{flex:1;overflow:hidden}
+.nav{flex:none;background:var(--raised);border-top:1px solid var(--hair);
+  padding:8px 8px 22px;display:grid;grid-template-columns:repeat(5,1fr);align-items:end}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;
+  justify-content:center;color:var(--tx3)}
+.nav-item.on{color:var(--accent)}
+.compose{width:46px;height:34px;border-radius:var(--r-btn);background:var(--accent);
+  display:flex;align-items:center;justify-content:center;color:#fff;margin-bottom:3px}
+/* Photographic stand-ins: muted, natural, never a bright gradient. */
+.ph{background-color:#C9C3B6;background-repeat:no-repeat;position:relative;overflow:hidden}
+.ph-1{background-image:radial-gradient(120% 90% at 20% 15%,#8FA089 0%,#6E8270 45%,#43574B 100%)}
+.ph-2{background-image:radial-gradient(110% 80% at 75% 20%,#D8C3A0 0%,#B79770 50%,#7E6242 100%)}
+.ph-3{background-image:radial-gradient(120% 95% at 30% 80%,#A9B6C2 0%,#7B8C9C 50%,#4C5A69 100%)}
+.ph-4{background-image:radial-gradient(100% 85% at 60% 25%,#C9A79A 0%,#A67E70 50%,#6F4F46 100%)}
+.ph-5{background-image:radial-gradient(130% 90% at 25% 30%,#BFC7AE 0%,#93A17F 50%,#5D6B4C 100%)}
+.ph-6{background-image:radial-gradient(110% 90% at 70% 70%,#C6B8C9 0%,#9A88A3 50%,#63566E 100%)}
+
+  </style>
+</helmet>
+<div style="width:1300px;min-height:900px;background:var(--bg);padding:32px">
+  <div class="t-display" style="margin-bottom:6px">Where every button goes</div>
+  <div class="t-body" style="color:var(--tx2);max-width:760px;margin-bottom:8px">
+    Every control on every screen, and its destination. A control with nowhere to go is the
+    defect this map exists to make visible — the product currently has two routes nothing can
+    reach, and one of them has no renderer either.</div>
+  <div class="t-caption" style="color:var(--danger);margin-bottom:22px">
+    &bull; marks a destination that did not exist as an artboard before this pass — fourteen of them.</div>
+  <div style="column-count:3;column-gap:18px">
+    <div style="break-inside:avoid;margin-bottom:18px"><div style="background:var(--raised);border-radius:var(--r-card);padding:14px 16px 16px">
+  <div class="t-label" style="color:var(--accent);margin-bottom:6px">Home feed</div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">search icon</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--danger);font-weight:600">Search •</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">For you / Following</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--tx);font-weight:600">same screen, two states</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">a card</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--tx);font-weight:600">Post detail</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">interest word</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--danger);font-weight:600">Interest space •</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">heart / comment</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--tx);font-weight:600">inline, then Post detail</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">5 nav icons</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--tx);font-weight:600">the five tabs</span>
+    </div></div></div><div style="break-inside:avoid;margin-bottom:18px"><div style="background:var(--raised);border-radius:var(--r-card);padding:14px 16px 16px">
+  <div class="t-label" style="color:var(--accent);margin-bottom:6px">Explore</div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">search field</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--danger);font-weight:600">Search •</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">interest tile</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--danger);font-weight:600">Interest space •</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">“Busy this week”</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--tx);font-weight:600">ranked, no input needed</span>
+    </div></div></div><div style="break-inside:avoid;margin-bottom:18px"><div style="background:var(--raised);border-radius:var(--r-card);padding:14px 16px 16px">
+  <div class="t-label" style="color:var(--accent);margin-bottom:6px">Interest space</div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">Follow</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--tx);font-weight:600">state change</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">sub-interest</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--danger);font-weight:600">that interest space •</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">a card</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--tx);font-weight:600">Post detail</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">⋯</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--danger);font-weight:600">report interest description •</span>
+    </div></div></div><div style="break-inside:avoid;margin-bottom:18px"><div style="background:var(--raised);border-radius:var(--r-card);padding:14px 16px 16px">
+  <div class="t-label" style="color:var(--accent);margin-bottom:6px">Post detail</div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">back</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--tx);font-weight:600">wherever you came from</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">⋯</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--danger);font-weight:600">Post actions sheet •</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">avatar / handle</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--tx);font-weight:600">Profile</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">Follow</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--tx);font-weight:600">state change</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">heart</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--tx);font-weight:600">state change</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">comment</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--tx);font-weight:600">comment composer</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">share</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--danger);font-weight:600">share sheet •</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">save</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--danger);font-weight:600">Saved / collections •</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">interest word</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--danger);font-weight:600">Interest space •</span>
+    </div></div></div><div style="break-inside:avoid;margin-bottom:18px"><div style="background:var(--raised);border-radius:var(--r-card);padding:14px 16px 16px">
+  <div class="t-label" style="color:var(--accent);margin-bottom:6px">Profile (someone else)</div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">⋯</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--danger);font-weight:600">Safety sheet •</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">Follow</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--tx);font-weight:600">state change</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">Message</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--danger);font-weight:600">Conversation •</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">a grid tile</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--tx);font-weight:600">Post detail</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">Interests tab</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--tx);font-weight:600">their interests</span>
+    </div></div></div><div style="break-inside:avoid;margin-bottom:18px"><div style="background:var(--raised);border-radius:var(--r-card);padding:14px 16px 16px">
+  <div class="t-label" style="color:var(--accent);margin-bottom:6px">Profile (yours)</div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">Edit profile</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--danger);font-weight:600">Edit profile •</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">Share profile</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--danger);font-weight:600">share sheet •</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">Saved tab</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--danger);font-weight:600">Saved / collections •</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">a grid tile</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--tx);font-weight:600">Post detail</span>
+    </div></div></div><div style="break-inside:avoid;margin-bottom:18px"><div style="background:var(--raised);border-radius:var(--r-card);padding:14px 16px 16px">
+  <div class="t-label" style="color:var(--accent);margin-bottom:6px">Compose</div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">close</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--tx);font-weight:600">back, with a discard prompt</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">Add / camera</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--danger);font-weight:600">Media picker •</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">an interest chip</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--danger);font-weight:600">picks it; search opens the picker •</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">Add a place</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--danger);font-weight:600">Place picker •</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">Publish</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--tx);font-weight:600">Post detail, on the new post</span>
+    </div></div></div><div style="break-inside:avoid;margin-bottom:18px"><div style="background:var(--raised);border-radius:var(--r-card);padding:14px 16px 16px">
+  <div class="t-label" style="color:var(--accent);margin-bottom:6px">Chats</div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">+</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--danger);font-weight:600">New message •</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">a row</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--danger);font-weight:600">Conversation •</span>
+    </div></div></div><div style="break-inside:avoid;margin-bottom:18px"><div style="background:var(--raised);border-radius:var(--r-card);padding:14px 16px 16px">
+  <div class="t-label" style="color:var(--accent);margin-bottom:6px">Conversation</div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">back</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--tx);font-weight:600">Chats</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">⋯</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--danger);font-weight:600">Safety sheet •</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">camera</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--danger);font-weight:600">Media picker •</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">send</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--tx);font-weight:600">stays here</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">a sent post</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--tx);font-weight:600">Post detail</span>
+    </div></div></div><div style="break-inside:avoid;margin-bottom:18px"><div style="background:var(--raised);border-radius:var(--r-card);padding:14px 16px 16px">
+  <div class="t-label" style="color:var(--accent);margin-bottom:6px">Activity</div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">a like row</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--tx);font-weight:600">Post detail</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">a comment row</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--tx);font-weight:600">Post detail, at the comment</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">a follow row</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--tx);font-weight:600">Profile</span>
+    </div></div></div><div style="break-inside:avoid;margin-bottom:18px"><div style="background:var(--raised);border-radius:var(--r-card);padding:14px 16px 16px">
+  <div class="t-label" style="color:var(--accent);margin-bottom:6px">Edit profile</div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">Change photo</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--danger);font-weight:600">Media picker •</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">Removed content</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--danger);font-weight:600">Moderation notices •</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">Sign out</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--tx);font-weight:600">Sign in</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">Delete account</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--tx);font-weight:600">confirm, then Sign in</span>
+    </div></div></div><div style="break-inside:avoid;margin-bottom:18px"><div style="background:var(--raised);border-radius:var(--r-card);padding:14px 16px 16px">
+  <div class="t-label" style="color:var(--accent);margin-bottom:6px">Sign in / Sign up</div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">Create an account</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--tx);font-weight:600">Sign up, keeping the email</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">Sign in instead</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--tx);font-weight:600">Sign in, keeping the email</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">Create</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--danger);font-weight:600">Cold start, then the feed •</span>
+    </div><div style="display:grid;grid-template-columns:118px 18px 1fr;gap:8px;
+      align-items:center;padding:6px 0;border-top:1px solid var(--hair)">
+      <span class="t-small" style="color:var(--tx2)">Use a different server</span>
+      <span class="t-small" style="color:var(--strong)">&rarr;</span>
+      <span class="t-small" style="color:var(--tx);font-weight:600">reveals the address field</span>
+    </div></div></div>
+  </div></div>
+</x-dc>
+</body>
+</html>

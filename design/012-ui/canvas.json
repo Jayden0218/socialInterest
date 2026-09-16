@@ -1,26 +1,244 @@
 {
   "pages": [
-    { "id": "page-1", "name": "Screens" },
-    { "id": "page-2", "name": "System" }
+    {
+      "id": "page-1",
+      "name": "Screens"
+    },
+    {
+      "id": "page-2",
+      "name": "System"
+    }
   ],
   "artboards": [
-    { "file": "Main.dc.html",       "page": "page-1", "x": 0,    "y": 0,    "w": 390, "h": 844, "title": "Home feed" },
-    { "file": "Explore.dc.html",    "page": "page-1", "x": 470,  "y": 0,    "w": 390, "h": 844 },
-    { "file": "PostDetail.dc.html", "page": "page-1", "x": 940,  "y": 0,    "w": 390, "h": 844, "title": "Post detail" },
-    { "file": "Profile.dc.html",    "page": "page-1", "x": 1410, "y": 0,    "w": 390, "h": 844 },
-    { "file": "Compose.dc.html",    "page": "page-1", "x": 1880, "y": 0,    "w": 390, "h": 844 },
-    { "file": "Activity.dc.html",   "page": "page-1", "x": 0,    "y": 984,  "w": 390, "h": 844 },
-    { "file": "Chats.dc.html",      "page": "page-1", "x": 470,  "y": 984,  "w": 390, "h": 844 },
-    { "file": "Auth.dc.html",       "page": "page-1", "x": 940,  "y": 984,  "w": 900, "h": 940, "title": "Sign in / Sign up" },
-    { "file": "Icons.dc.html",      "page": "page-2", "x": 0,    "y": 0,    "w": 880, "h": 520, "title": "Icon set" },
-    { "file": "CardAnatomy.dc.html","page": "page-2", "x": 980,  "y": 0,    "w": 720, "h": 600, "title": "Card anatomy" },
-    { "file": "States.dc.html",     "page": "page-2", "x": 0,    "y": 740,  "w": 1290,"h": 760, "title": "Loading / empty / failed" }
+    {
+      "file": "Main.dc.html",
+      "page": "page-1",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Home feed"
+    },
+    {
+      "file": "Explore.dc.html",
+      "page": "page-1",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "InterestSpace.dc.html",
+      "page": "page-1",
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Interest space"
+    },
+    {
+      "file": "PostDetail.dc.html",
+      "page": "page-1",
+      "x": 1410,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Post detail"
+    },
+    {
+      "file": "Profile.dc.html",
+      "page": "page-1",
+      "x": 1880,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Profile \u2014 someone else"
+    },
+    {
+      "file": "OwnProfile.dc.html",
+      "page": "page-1",
+      "x": 0,
+      "y": 984,
+      "w": 390,
+      "h": 844,
+      "title": "Profile \u2014 yours"
+    },
+    {
+      "file": "Compose.dc.html",
+      "page": "page-1",
+      "x": 470,
+      "y": 984,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "MediaPicker.dc.html",
+      "page": "page-1",
+      "x": 940,
+      "y": 984,
+      "w": 390,
+      "h": 844,
+      "title": "Media picker"
+    },
+    {
+      "file": "Activity.dc.html",
+      "page": "page-1",
+      "x": 1410,
+      "y": 984,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "Chats.dc.html",
+      "page": "page-1",
+      "x": 1880,
+      "y": 984,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "Conversation.dc.html",
+      "page": "page-1",
+      "x": 0,
+      "y": 1968,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "NewMessage.dc.html",
+      "page": "page-1",
+      "x": 470,
+      "y": 1968,
+      "w": 390,
+      "h": 844,
+      "title": "New message"
+    },
+    {
+      "file": "Search.dc.html",
+      "page": "page-1",
+      "x": 940,
+      "y": 1968,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "Place.dc.html",
+      "page": "page-1",
+      "x": 1410,
+      "y": 1968,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "Saved.dc.html",
+      "page": "page-1",
+      "x": 1880,
+      "y": 1968,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "EditProfile.dc.html",
+      "page": "page-1",
+      "x": 0,
+      "y": 2952,
+      "w": 390,
+      "h": 844,
+      "title": "Edit profile"
+    },
+    {
+      "file": "ColdStart.dc.html",
+      "page": "page-1",
+      "x": 470,
+      "y": 2952,
+      "w": 390,
+      "h": 844,
+      "title": "Cold start"
+    },
+    {
+      "file": "PostActions.dc.html",
+      "page": "page-1",
+      "x": 940,
+      "y": 2952,
+      "w": 390,
+      "h": 844,
+      "title": "Post actions"
+    },
+    {
+      "file": "SafetySheet.dc.html",
+      "page": "page-1",
+      "x": 1410,
+      "y": 2952,
+      "w": 390,
+      "h": 844,
+      "title": "Safety sheet"
+    },
+    {
+      "file": "Auth.dc.html",
+      "page": "page-1",
+      "x": 1880,
+      "y": 2952,
+      "w": 900,
+      "h": 940,
+      "title": "Sign in / Sign up"
+    },
+    {
+      "file": "FlowMap.dc.html",
+      "page": "page-2",
+      "x": 0,
+      "y": 0,
+      "w": 1300,
+      "h": 900,
+      "title": "Where every button goes"
+    },
+    {
+      "file": "Icons.dc.html",
+      "page": "page-2",
+      "x": 0,
+      "y": 1020,
+      "w": 880,
+      "h": 520,
+      "title": "Icon set"
+    },
+    {
+      "file": "CardAnatomy.dc.html",
+      "page": "page-2",
+      "x": 960,
+      "y": 1020,
+      "w": 720,
+      "h": 600,
+      "title": "Card anatomy"
+    },
+    {
+      "file": "States.dc.html",
+      "page": "page-2",
+      "x": 0,
+      "y": 1740,
+      "w": 1290,
+      "h": 760,
+      "title": "Loading / empty / failed"
+    }
   ],
   "annotations": [
-    { "id": "brief", "x": 0, "y": -150, "w": 700, "page": "page-1",
-      "text": "socialInterest — redesign.\n\nThe measured problem: no icons anywhere (five destinations drawn as an 8px dot, a reaction drawn as ♥), cards that give half their height to metadata, and an Explore tab that asks you to type before it shows anything.\n\nTokens are lifted verbatim from apps/mobile/src/ui/tokens.ts — nothing rounded." },
-    { "id": "system-note", "x": 0, "y": -110, "w": 640, "page": "page-2",
-      "text": "The system behind the screens. The icon set is the single biggest change: one 24px grid, 1.75 stroke, used for every action and destination." }
+    {
+      "id": "brief",
+      "x": 0,
+      "y": -170,
+      "w": 760,
+      "page": "page-1",
+      "text": "socialInterest \u2014 redesign, 24 artboards.\n\nTwenty screens covering every destination in the product, plus the system behind them. The measured problem: no icons anywhere (five destinations drawn as an 8px dot, a reaction drawn as \u2665), cards giving half their height to metadata, and an Explore that asks you to type before it shows anything.\n\nTokens lifted verbatim from apps/mobile/src/ui/tokens.ts. Interest hues computed through the product's own OKLCH rule at L 0.52, C 0.115."
+    },
+    {
+      "id": "system-note",
+      "x": 0,
+      "y": -130,
+      "w": 700,
+      "page": "page-2",
+      "text": "Start with \"Where every button goes\" \u2014 it lists every control on every screen and its destination. Fourteen of those destinations had no artboard before this pass."
+    }
   ],
-  "launch": { "view": "canvas", "page": "page-1" }
+  "launch": {
+    "view": "canvas",
+    "page": "page-1"
+  }
 }
