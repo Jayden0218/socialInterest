@@ -16,17 +16,29 @@ is a judgement about the product, and the measurements underneath it are not in 
 | Surface | Loading state | Empty state | Pull to refresh |
 |---|---|---|---|
 | **Feed** — the first screen after signing in | **none** | yes | **none** |
-| **Explore** | **none** | **none** | **none** |
-| **Activity** | **none** | **none** | **none** |
+| **Explore** | **none** | yes | **none** |
+| **Activity** | **none** | yes | **none** |
 | **Chats** | **none** | yes | **none** |
 | Profile | yes | yes | **none** |
 
-**14 of 25 screens have no loading state. The app contains no pull-to-refresh at all.**
+**No primary surface has a loading state. The app contains no pull-to-refresh at all.**
 
-So on four of the five primary surfaces, "still loading", "nothing here yet" and "that
-failed" are the same blank rectangle, and there is no way to ask for fresh content. An
-interface that shows nothing while it works does not read as slow — it reads as broken,
-which is exactly what was reported.
+> **CORRECTED AFTER LOOKING (research R1).** The first draft of this table said Explore and
+> Activity had no empty state, from a grep of `screens/*Container.tsx`. The containers
+> fetch; the **screens render**, and every one of them has a good empty state — Activity
+> says "Nothing new / You are all caught up." The grep was truthful about the wrong files,
+> which is the same shape as a guard reading a barrel and finding no offenders. The loading
+> and refresh columns survived the check; the empty column did not.
+
+So on every primary surface, "still loading" and "that failed" are the same blank
+rectangle, and there is no way to ask for fresh content. An interface that shows nothing
+while it works does not read as slow — it reads as broken.
+
+**And the captures found something the grep could not.** Every photograph in the feed is a
+blank grey box, with no placeholder while it loads and no indication when it fails — the
+four-state rule applied to an image rather than a screen, on a product whose premise is
+photographs. Every post also shows `♥ 0 · 0`. A feed of entirely unengaged posts reads as
+abandoned however well it is laid out, and no state or palette fixes that.
 
 **Two further findings, of a kind this project has recorded seven times**: `people-search`
 is a declared route with no renderer and no caller — a screen specified, typed, and
@@ -179,6 +191,11 @@ screen and confirm they read as the same product.
 - **FR-006**: A request pending beyond a stated limit MUST be reported as failed rather than
   shown as loading indefinitely.
 
+- **FR-006a**: An image MUST indicate that it is loading, and MUST indicate when it has
+  failed. A photograph that never arrives may not be indistinguishable from one that is
+  still on its way, and neither may be indistinguishable from an empty frame. (Research R3 —
+  every image in the captures is the same grey box in all three cases.)
+
 #### Empty and failed
 
 - **FR-007**: An empty state MUST name an action that would change the state, and offer the
@@ -262,11 +279,14 @@ screen and confirm they read as the same product.
 Decisions taken in the absence of a stated requirement, recorded so a reader meets them here
 rather than as a surprise in the build.
 
-- **The complaint is about feedback and completeness before it is about aesthetics.** The
-  measurements support that reading: an app blank on four of five surfaces with no refresh
-  anywhere will be called bad regardless of its palette. If seeing the screens shows the
-  visual layer is also wrong, that is a finding for US4 and possibly a separate feature —
-  not a reason to reorder this one.
+- **The complaint is about feedback and completeness before it is about aesthetics — and
+  this was checked rather than assumed.** Research R2 rendered the screens: the palette,
+  spacing, type and card layout are coherent and match `design/007-ui`. The visual layer is
+  **not** what is wrong. Two things the assumption did not anticipate came out of looking:
+  images render as blank grey boxes with no state of their own (now FR-006a), and Explore is
+  genuinely the weakest screen in the product (research R5) on the tab a lost newcomer
+  presses first. The second is a US4 item and its priority is a judgement for the plan
+  rather than the automatic last place this spec first gave it.
 - **The approved design is not reopened.** `design/007-ui/` is settled. This feature
   implements it, records drift from it, and designs only the states it does not cover.
 - **A placeholder threshold of around 200ms and a failure limit of around 15 seconds.** Both
