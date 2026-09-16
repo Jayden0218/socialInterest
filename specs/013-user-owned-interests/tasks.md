@@ -125,11 +125,11 @@ to file a post at all.
 
 **Goal**: an operator can repair a genuine synonym, and nobody's own words are rewritten.
 
-- [ ] T030 [US4] Confirm the merge job in `apps/workers/src/interest-jobs/handler.ts` still holds flat: mark `merging`, move posts, move followers, **then** `setMergedInto` (FR-012, FR-013, FR-014). The order is the requirement — a reader must never follow a redirect to content that has not arrived
-- [ ] T031 [US4] **The moved `postInterestIndex` rows must carry their denormalised `visibility`.** 008 recorded that a drifted index item "is exactly the SC-009 failure this class exists to make impossible", and a merge is a move across partitions
-- [ ] T032 [US4] Assert merging is operator-only (FR-016), and that the route's status matches the contract — 008 found `OperatorGuard` throwing 401 where the contract (`specs/001-interest-media-sharing/contracts/openapi.yaml`; there is no `openapi.yaml` at the repository root) documented 403 on every moderation route, each looking right alone
-- [ ] T033 [US4] Write a test that after a merge **the author's own post still displays the word they typed** (FR-015, SC-008), while reads resolve through the redirect
-- [ ] T034 [US4] Release the merged-away name's claim, or point it at the target, so the source's name does not stay permanently unusable. Contract §1 row 4: a person typing it lands on the **surviving** interest and does not resurrect the source
+- [X] T030 [US4] Confirm the merge job in `apps/workers/src/interest-jobs/handler.ts` still holds flat: mark `merging`, move posts, move followers, **then** `setMergedInto` (FR-012, FR-013, FR-014). The order is the requirement — a reader must never follow a redirect to content that has not arrived
+- [X] T031 [US4] **The moved `postInterestIndex` rows must carry their denormalised `visibility`.** 008 recorded that a drifted index item "is exactly the SC-009 failure this class exists to make impossible", and a merge is a move across partitions
+- [X] T032 [US4] Assert merging is operator-only (FR-016), and that the route's status matches the contract — 008 found `OperatorGuard` throwing 401 where the contract (`specs/001-interest-media-sharing/contracts/openapi.yaml`; there is no `openapi.yaml` at the repository root) documented 403 on every moderation route, each looking right alone
+- [X] T033 [US4] Write a test that after a merge **the author's own post still displays the word they typed** (FR-015, SC-008), while reads resolve through the redirect
+- [X] T034 [US4] Release the merged-away name's claim, or point it at the target, so the source's name does not stay permanently unusable. Contract §1 row 4: a person typing it lands on the **surviving** interest and does not resurrect the source
 
 **Checkpoint**: genuine duplicates can be repaired without anybody losing their own words.
 
@@ -137,8 +137,8 @@ to file a post at all.
 
 ## Phase 7: User Story 5 — dead interests do not accumulate (Priority: P3)
 
-- [ ] T035 [US5] An interest with no posts is set `retired` and stops being browsable (FR-022). **Retired, not deleted**, so a link from somewhere the boundary has not re-evaluated does not 404 into nothing. **Say what happens to its FOLLOWERS**: a merge moves them (T030) and retirement currently does not, which would leave people following something unbrowsable while the follow still counts as a ranking signal (007/FR-030). **And decide explicitly whether `postCount` is authoritative**, or whether the rows are: it is a stored counter, and CLAUDE.md records 008 deliberately NOT copying the conversation `unreadCount` because "a count and the rows it counts are two sources of truth for one fact"
-- [ ] T036 [US5] Assert housekeeping never touches an interest that has posts (FR-023)
+- [X] T035 [US5] An interest with no posts is set `retired` and stops being browsable (FR-022). **Retired, not deleted**, so a link from somewhere the boundary has not re-evaluated does not 404 into nothing. **Say what happens to its FOLLOWERS**: a merge moves them (T030) and retirement currently does not, which would leave people following something unbrowsable while the follow still counts as a ranking signal (007/FR-030). **And decide explicitly whether `postCount` is authoritative**, or whether the rows are: it is a stored counter, and CLAUDE.md records 008 deliberately NOT copying the conversation `unreadCount` because "a count and the rows it counts are two sources of truth for one fact"
+- [X] T036 [US5] Assert housekeeping never touches an interest that has posts (FR-023)
 - [ ] T037 [P] [US5] Decide and record what "has posts" means when the last post is hidden by its author, deleted, or removed by a moderator. **That is a visibility question and the boundary answers it, not the job** — a job that counted rows the boundary would withhold would be a second visibility decision, which Principle II forbids
 
 ---
@@ -147,12 +147,12 @@ to file a post at all.
 
 - [X] T038 [P] Confirm the visibility matrix reports the **same surfaces and the same total** as T002 recorded (FR-024, SC-011). **If a number moved, stop and find out why — never update the number**
 - [X] T039 [P] Confirm the public and operator route snapshots against T002 (FR-025). Whether `POST /v1/interests` survives as a standalone route once publishing creates interests is a **deliberate, reviewed decision** (research R5), never an incidental diff
-- [ ] T040 [P] Confirm no state or surface introduced here shows content the boundary would have withheld, and that an empty interest space says nothing about why (FR-026)
+- [X] T040 [P] Confirm no state or surface introduced here shows content the boundary would have withheld, and that an empty interest space says nothing about why (FR-026)
 - [ ] T041 [P] Update the testID snapshot in the **same commit** as the flows requiring it, and regenerate on ADDITIONS rather than only removals — 011 found it nineteen ids stale, and a snapshot can only detect the removal of an id it knows about
 - [X] T042 [P] Run `node scripts/verify-maestro-ids.mjs`. A selector matching nothing fails as a thirty-second timeout twenty minutes into a device run
 - [ ] T043 Run the real CI step list before pushing, not a proxy for it. Two red builds came from checking typecheck/lint/tests and assuming that covered CI
 - [ ] T044 Run every scenario in [quickstart.md](./quickstart.md)
-- [ ] T045 Record the run in `docs/verification/runs/`, every criterion pass, fail or **not run** — never blank — and **count the items** rather than reading the highest number. The device tier is **not run**: no emulator here, and nothing since 011 has run on one
+- [X] T045 Record the run in `docs/verification/runs/`, every criterion pass, fail or **not run** — never blank — and **count the items** rather than reading the highest number. The device tier is **not run**: no emulator here, and nothing since 011 has run on one
 
 ---
 

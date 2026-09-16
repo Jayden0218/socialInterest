@@ -50,6 +50,18 @@ export class PostInterestIndexRepository extends BaseRepository {
     return moved;
   }
 
+  /**
+   * 013/T035. Removes one post's row from one interest.
+   *
+   * Exists for housekeeping to have something to act on, and for the tests that
+   * drive the "its last post went away" state. A post deletion path that
+   * removes these rows belongs beside the deletion itself; this is the
+   * primitive it will use.
+   */
+  async removeForPost(interestId: string, createdAt: string, postId: string): Promise<void> {
+    await this.deleteItem(keys.postInterestIndex(interestId, createdAt, postId));
+  }
+
   /** A4 - recent posts in one interest, newest first. */
   async listByInterest(
     interestId: string,

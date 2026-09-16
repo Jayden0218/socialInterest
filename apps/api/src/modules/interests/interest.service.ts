@@ -6,6 +6,7 @@ import type { TransactionItems } from '../../persistence/transactor';
 import { InMemoryCatalogueCache, normaliseName } from './catalogue.cache';
 import { NamePolicy } from './name-policy';
 import { InterestSearch, type SearchResult } from './catalogue.search';
+import { PostInterestIndexRepository } from '../../persistence/post-interest-index.repository';
 
 export interface CreateSubInterestInput {
   name: string;
@@ -33,6 +34,7 @@ export class InterestService {
     @Inject(InMemoryCatalogueCache) private readonly cache: InMemoryCatalogueCache,
     @Inject(NamePolicy) private readonly namePolicy: NamePolicy,
     @Inject(InterestSearch) private readonly search: InterestSearch,
+    @Inject(PostInterestIndexRepository) private readonly index: PostInterestIndexRepository,
   ) {}
 
   /**
@@ -45,6 +47,44 @@ export class InterestService {
    * instead of writing on its own, so the interest and the post that justifies
    * it land together or not at all.
    */
+
+  /**
+   * 013/T035, FR-022, FR-023. RETIRE AN INTEREST THAT NO POST USES.
+   *
+   * ────────────────────────────────────────────────────────────────────────
+   * IT ASKS THE ROWS, NOT THE COUNTER, AND THAT IS NOT A PREFERENCE
+   * ────────────────────────────────────────────────────────────────────────
+   *
+   * `InterestItem.postCount` looks like the obvious signal and is the wrong
+   * one: NOTHING MAINTAINS IT. `incrementPostCount` exists on the repository
+   * and has no caller anywhere — publishing into an existing interest never
+   * touches it — so it is 1 for every interest ever created and means nothing
+   * afterwards. Retiring on `postCount === 0` would retire nothing, for ever,
+   * and look implemented.
+   *
+   * Even maintained it would be the wrong source: 008 deliberately did not copy
+   * the conversation `unreadCount` because "a count and the rows it counts are
+   * two sources of truth for one fact". The index rows ARE the fact.
+   *
+   * RETIRED, NOT DELETED, so a link from somewhere the boundary has not
+   * re-evaluated leads to a retired interest rather than nowhere.
+   *
+   * FR-026: it reads the rows RAW, without the viewer's boundary. "Does this
+   * interest hold any post at all" is not "does this viewer see one" — asking
+   * the second would retire an interest because one person is blocked, which
+   * would leak the block to everybody else.
+   */
+  async retireIfEmpty(interestId: string): Promise<boolean> {
+    const interest = this.cache.byId(interestId);
+    if (!interest || interest.state !== 'active') return false;
+
+    const page = await this.index.listByInterest(interestId, { limit: 1 });
+    if (page.items.length > 0) return false;
+
+    await this.repo.setState(interestId, 'retired');
+    await this.cache.refresh();
+    return true;
+  }
 
   /** 013/T013. Makes a just-created interest postable and searchable at once. */
   async refreshCatalogue(): Promise<void> {
