@@ -37,14 +37,12 @@ export function InterestContainer({
 
   useEffect(() => {
     let live = true;
-    Promise.all([
-      data.interests.get(interestId),
-      data.interests.listChildren(interestId),
-      data.session.me().catch(() => null),
-    ])
-      .then(([interest, children, me]) => {
+    // 013/FR-021. The children fetch is GONE, not just its result. It was still
+    // being awaited here and discarded under a comment saying interests are
+    // flat — a request per screen open for a list nothing renders.
+    Promise.all([data.interests.get(interestId), data.session.me().catch(() => null)])
+      .then(([interest, me]) => {
         if (!live) return;
-        // 013. Flat: no children to fetch or show.
         setDetail({ interest });
         setFollowedCount(me?.interestFollowCount ?? 0);
       })

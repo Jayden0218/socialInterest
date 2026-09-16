@@ -32,13 +32,20 @@ async function main(): Promise<void> {
 
   // Resolve a real interest so the listing check exercises the happy path
   // rather than only the not-found branch.
+  /**
+   * 013/FR-003. `childrenOf('ROOT')` IS GONE with the hierarchy, and this script
+   * went on calling it — the same shape as 007's device runner invoking a
+   * deleted fixture, and caught here for the same reason: this boots the app,
+   * so a call that no longer resolves is a TypeError rather than a comment.
+   * `active()` is the flat catalogue.
+   */
   const { CATALOGUE_SEARCH } = await import('../src/modules/interests/catalogue.cache');
-  const catalogue = app.get<{ childrenOf(id: string): { interestId: string }[] }>(CATALOGUE_SEARCH);
-  const realInterest = catalogue.childrenOf('ROOT')[0]?.interestId;
+  const catalogue = app.get<{ active(): { interestId: string }[] }>(CATALOGUE_SEARCH);
+  const realInterest = catalogue.active()[0]?.interestId;
 
   const checks: { name: string; path: string; method?: string; expect: number[] }[] = [
     { name: 'health', path: '/v1/health', expect: [200] },
-    { name: 'interest browse', path: '/v1/interests?level=top', expect: [200] },
+    { name: 'interest browse', path: '/v1/interests', expect: [200] },
     ...(realInterest
       ? [{ name: 'interest space (real)', path: `/v1/interests/${realInterest}/posts`, expect: [200] }]
       : []),

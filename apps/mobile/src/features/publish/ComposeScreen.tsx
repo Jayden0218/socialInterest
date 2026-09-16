@@ -20,6 +20,13 @@ export interface ComposeScreenProps {
   /** 013/T017. The interest the person typed, if any. */
   typedInterestName?: string;
   onTypedInterestNameChange?: (next: string) => void;
+  /**
+   * 013/T021, FR-009. Interests the typed name resembles, returned by a refused
+   * publish. Non-empty means the person has a choice to make, not an error to
+   * read.
+   */
+  duplicateCandidates?: InterestRef[];
+  onJoinExisting?: (ref: InterestRef) => void;
   caption: string;
   visibility: Visibility;
   publishing: boolean;
@@ -309,6 +316,8 @@ export function ComposeScreen(props: ComposeScreenProps) {
           {...(props.onTypedInterestNameChange
             ? { onTypedNameChange: props.onTypedInterestNameChange }
             : {})}
+          candidates={props.duplicateCandidates ?? []}
+          {...(props.onJoinExisting ? { onJoinExisting: props.onJoinExisting } : {})}
         />
 
         <VisibilityControl value={props.visibility ?? DEFAULT_VISIBILITY} onChange={props.onVisibilityChange} />

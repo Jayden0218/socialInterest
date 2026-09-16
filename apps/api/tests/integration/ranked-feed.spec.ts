@@ -70,7 +70,7 @@ describe('SC-001 — a session changes the next feed', () => {
     const author = await h.token(await h.createPerson('rankedauthor'));
     viewerToken = await h.token(await h.createPerson('rankedviewer'));
 
-    const tops = await request(h.app.getHttpServer()).get('/v1/interests?level=top&limit=50');
+    const tops = await request(h.app.getHttpServer()).get('/v1/interests?limit=50');
     engagedInterest = tops.body.items[0].interestId;
     skippedInterest = tops.body.items[1].interestId;
 

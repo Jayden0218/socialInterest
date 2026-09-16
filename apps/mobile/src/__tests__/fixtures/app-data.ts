@@ -71,7 +71,6 @@ export function fakeData(over: Partial<Record<string, unknown>> = {}): AppData {
       search: async () => page,
       suggested: async () => page,
       listTop: async () => page,
-      listChildren: async () => page,
       get: async () => ({
         interestId: 'i1',
         name: 'Bouldering',

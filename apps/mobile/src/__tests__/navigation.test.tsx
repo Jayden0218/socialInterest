@@ -274,7 +274,6 @@ describe('the shell reaches every screen', () => {
         search: async () => ({ items: [found], page: { nextCursor: null } }),
         suggested: async () => ({ items: [], page: { nextCursor: null, emptyStateHint: null } }),
         listTop: async () => ({ items: [found], page: { nextCursor: null } }),
-        listChildren: async () => ({ items: [], page: { nextCursor: null, emptyStateHint: null } }),
         get: async () => found,
         posts: async () => ({ items: [], page: { nextCursor: null, emptyStateHint: null } }),
         follow: async () => undefined,

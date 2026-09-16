@@ -41,6 +41,11 @@ export function ComposeContainer({
   const [selected, setSelected] = useState<InterestRef[]>([]);
   // 013/T017. What the person typed, sent as `interestNames` on publish.
   const [typedInterest, setTypedInterest] = useState('');
+  /**
+   * 013/FR-009. What the server offered instead of the name that was typed.
+   * Non-empty means the publish was refused and the person has a choice to make.
+   */
+  const [duplicateCandidates, setDuplicateCandidates] = useState<InterestRef[]>([]);
   const [caption, setCaption] = useState('');
   const [visibility, setVisibility] = useState<Visibility>(DEFAULT_VISIBILITY);
   const [publishing, setPublishing] = useState(false);
@@ -219,6 +224,28 @@ export function ComposeContainer({
       });
       onPublished(post.postId);
     } catch (e: unknown) {
+      /**
+       * 013/T021, FR-009, FR-010. THE NEAR-DUPLICATE REFUSAL IS A CHOICE,
+       * NOT AN ERROR MESSAGE.
+       *
+       * A 409 carries the interests the typed name resembles, so the person can
+       * join one instead of creating a near-duplicate. Showing only
+       * `e.message` here would make the server's whole sprawl control invisible
+       * — the API refuses correctly and the person is told "that is too
+       * similar" with nothing to do about it, which is the shape the prior
+       * research found sprawl is actually won or lost on.
+       *
+       * `DataError.extension` exists for exactly this and its own comment says
+       * so: "e.g. `candidates` on a near-duplicate interest refusal".
+       */
+      if (e instanceof DataError && e.status === 409) {
+        const candidates = e.extension<{ interest: InterestRef; similarity: number }[]>('candidates');
+        if (candidates && candidates.length > 0) {
+          setDuplicateCandidates(candidates.map((c) => c.interest));
+          setPublishing(false);
+          return;
+        }
+      }
       setError(e instanceof DataError ? e.message : String(e));
     } finally {
       setPublishing(false);
@@ -232,7 +259,19 @@ export function ComposeContainer({
       interestOptions={options}
       selectedInterests={selected}
       typedInterestName={typedInterest}
-      onTypedInterestNameChange={setTypedInterest}
+      onTypedInterestNameChange={(next) => {
+        // A new keystroke invalidates a refusal about the previous name.
+        setDuplicateCandidates([]);
+        setTypedInterest(next);
+      }}
+      duplicateCandidates={duplicateCandidates}
+      onJoinExisting={(ref) => {
+        // FR-010's other half: joining is ONE tap, and it clears the typed name
+        // so the publish carries the chosen id rather than both.
+        setSelected((prev) => (prev.some((p) => p.interestId === ref.interestId) ? prev : [...prev, ref]));
+        setTypedInterest('');
+        setDuplicateCandidates([]);
+      }}
       caption={caption}
       visibility={visibility}
       publishing={publishing}

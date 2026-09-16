@@ -1,5 +1,5 @@
 import { actor } from '../support/client';
-import { publishReadyImage } from '../support/publish';
+import { publishReadyImage, publishReadyNamingInterest } from '../support/publish';
 
 /**
  * 008/T091, US6 — POST SEARCH, OVER REAL HTTP, THROUGH THE APP'S OWN DATA LAYER.
@@ -88,8 +88,17 @@ describe('008/SC-009 finding a post by its words', () => {
     // their own results — searching as the person carrying the nonce would have
     // reported the fallback empty for a reason that is the product working.
     const named = await actor(nonce);
-    const top = (await me.data.interests.listTop({ limit: 1 })).items[0]!;
-    const child = await me.data.interests.create({ name: nonce, parentId: top.interestId });
+    /**
+     * 013/FR-004. THE INTEREST IS CREATED BY PUBLISHING INTO IT, WITH NO
+     * CAPTION — and the missing caption is the point, not an omission.
+     *
+     * `interests.create` is gone; an interest cannot exist without a post. Post
+     * search indexes CAPTION terms only, so a captionless post leaves the
+     * nonce unfindable as a post while the interest carrying it is findable —
+     * which is the miss this test needs. A caption would have made `items`
+     * non-zero and turned the fallback assertion into a test of nothing.
+     */
+    const child = await publishReadyNamingInterest(me, nonce);
 
     const page = await me.data.search.posts(nonce);
 

@@ -2,7 +2,7 @@
 // with contracts/openapi.overlay.yaml merged in (see contracts/README.md).
 // Do not edit by hand. Run: pnpm --filter @sih/shared generate:client
 //
-// 93 operations across 68 paths.
+// 92 operations across 68 paths.
 
 export const operations = {
   postAuthSignUp: { method: 'POST', path: '/auth/sign-up', auth: false }, // Create an account
@@ -25,9 +25,8 @@ export const operations = {
   putPeopleByHandleFollow: { method: 'PUT', path: '/people/{handle}/follow', auth: true }, // Follow a person
   deletePeopleByHandleFollow: { method: 'DELETE', path: '/people/{handle}/follow', auth: true }, // Unfollow a person
   getInterests: { method: 'GET', path: '/interests', auth: false }, // Browse or search interests
-  postInterests: { method: 'POST', path: '/interests', auth: true }, // Create a sub-interest
-  getInterestsSimilar: { method: 'GET', path: '/interests/similar', auth: true }, // Near-duplicate check before creating a sub-interest
-  getInterestsByInterestId: { method: 'GET', path: '/interests/{interestId}', auth: false }, // An interest, with its sub-interests when top-level
+  getInterestsSimilar: { method: 'GET', path: '/interests/similar', auth: true }, // Near-duplicate check before naming an interest
+  getInterestsByInterestId: { method: 'GET', path: '/interests/{interestId}', auth: false }, // An interest
   getInterestsByInterestIdPosts: { method: 'GET', path: '/interests/{interestId}/posts', auth: false }, // Posts in an interest, newest first
   putInterestsByInterestIdFollow: { method: 'PUT', path: '/interests/{interestId}/follow', auth: true }, // Follow an interest
   deleteInterestsByInterestIdFollow: { method: 'DELETE', path: '/interests/{interestId}/follow', auth: true }, // Unfollow an interest

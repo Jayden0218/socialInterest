@@ -37,7 +37,7 @@ describe('US6 — manage your profile and your content', () => {
     authorHandle = (await h.module.get(PersonRepository).findById(authorId))!.handle;
     otherToken = await h.token(await h.createPerson('intruder'));
     interestId = await h.topInterestId();
-    const tops = await request(h.app.getHttpServer()).get('/v1/interests?level=top&limit=50');
+    const tops = await request(h.app.getHttpServer()).get('/v1/interests?limit=50');
     otherInterestId = tops.body.items.find((i: { interestId: string }) => i.interestId !== interestId).interestId;
   }, 90_000);
 

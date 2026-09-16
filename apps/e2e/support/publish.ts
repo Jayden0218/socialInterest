@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { Actor } from './client';
 import { jpegPlain, jpegWithGps } from './media';
 
@@ -97,4 +98,64 @@ export async function publishReadyImages(
     await new Promise((r) => setTimeout(r, 250));
   }
   throw new Error(`post ${post.postId} never became ready`);
+}
+
+/**
+ * 013/FR-004. Publishes a post that NAMES its interest, creating it.
+ *
+ * There is no `interests.create` any more: an interest with no posts is
+ * unrepresentable, so the only gesture that brings one into existence is
+ * publishing into it. A journey that needs an interest of its own therefore
+ * starts by publishing into it, and gets both ids back — the post's, because
+ * the caller usually asserts on it, and the interest's, because every later
+ * publish in the same journey should reference the id rather than re-send the
+ * name and depend on the resolve step agreeing with itself.
+ *
+ * The name must be HIGH-ENTROPY, not merely unique: FR-008 compares a proposed
+ * name against EVERY interest, and two names differing by one character score
+ * over the blocking threshold — which is why the suffix here is random rather
+ * than a timestamp. `interest-merge.spec.ts` records the same trap.
+ */
+export async function publishReadyNamingInterest(
+  who: Actor,
+  interestName: string,
+  opts: {
+    caption?: string;
+    visibility?: 'public' | 'followers' | 'private';
+    bytes?: Buffer;
+  } = {},
+): Promise<{ postId: string; interestId: string }> {
+  const bytes = opts.bytes ?? jpegPlain();
+  const target = await who.data.posts.createUploadTarget({
+    kind: 'image',
+    contentType: 'image/jpeg',
+    sizeBytes: bytes.byteLength,
+  });
+  await who.data.posts.uploadBytes(target, bytes, 'image/jpeg');
+  const post = await who.data.posts.publish({
+    uploadIds: [target.uploadId],
+    interestIds: [],
+    interestNames: [interestName],
+    ...(opts.caption ? { caption: opts.caption } : {}),
+    ...(opts.visibility ? { visibility: opts.visibility } : {}),
+  });
+  const interestId = post.interests[0]?.interestId;
+  if (!interestId) throw new Error(`publish named "${interestName}" and came back with no interest`);
+
+  const deadline = Date.now() + 60_000;
+  while (Date.now() < deadline) {
+    const current = await who.data.posts.get(post.postId);
+    if (current.processingState === 'ready') return { postId: post.postId, interestId };
+    if (current.processingState === 'failed') {
+      throw new Error(`media processing failed for ${post.postId}`);
+    }
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  throw new Error(`post ${post.postId} never became ready`);
+}
+
+/** A name no other run can collide with, and far enough from every other name
+ * that FR-008's near-duplicate gate cannot refuse it. */
+export function freshInterestName(stem: string): string {
+  return `${stem} ${randomUUID().slice(0, 8)}`;
 }

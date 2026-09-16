@@ -3,7 +3,7 @@ import { launchChromium } from '../support/browser';
 import { startWebServer, type WebServer } from '../support/web-server';
 import { baseUrl } from '../support/base-url';
 import { actor } from '../support/client';
-import { publishReadyImage } from '../support/publish';
+import { freshInterestName, publishReadyImage, publishReadyNamingInterest } from '../support/publish';
 
 /**
  * ===========================================================================
@@ -102,30 +102,43 @@ describe('007/G2 - the interest space is reachable from a post', () => {
   }, 240_000);
 
   /**
-   * FR-018. The space says its sub-interests roll up, rather than leaving
-   * somebody to wonder why a post about a sub-interest is on the parent's page.
+   * 013/FR-021. REPLACES "the space lists a sub-interest post and says where it
+   * came from".
+   *
+   * That test drove 001/FR-024's roll-up — a parent space showing a child's
+   * posts — and the roll-up is WITHDRAWN: interests are flat, so there is no
+   * parent to roll up into and nothing to explain on the page. Removing it
+   * outright would have taken the navigational guarantee with it, so what it is
+   * replaced by is the same guarantee for the product that exists now: an
+   * interest A PERSON NAMED is findable by searching for it, and its space
+   * holds the post that created it.
+   *
+   * That is worth a browser rather than a request, for the reason at the top of
+   * this file: an interest nobody can navigate TO is the defect this gate
+   * exists for, and 013 is precisely the change that makes every interest a
+   * person-named one.
    */
-  it('the space lists a sub-interest post and says where it came from', async () => {
-    const author = await actor('g2subauthor');
-    const reader = await actor('g2subreader');
-    const parent = (await reader.data.interests.listTop({ limit: 1 })).items[0]!;
-    const sub = await author.data.interests.create({
-      name: `G2 Nested ${Date.now().toString().slice(-6)}`,
-      parentId: parent.interestId,
+  it('an interest a person named is findable by search, and its space holds the post', async () => {
+    const author = await actor('g2nameauthor');
+    const reader = await actor('g2namereader');
+    const named = await publishReadyNamingInterest(author, freshInterestName('Gliding'), {
+      caption: 'g2 in an interest somebody named',
     });
-    const postId = await publishReadyImage(author, [sub.interestId], { caption: 'g2 in a sub-interest' });
+    // The name the server settled on, rather than the one that was sent: a
+    // resolve may have landed on an existing interest, and searching for the
+    // typed name would then look for something nothing is called.
+    const interest = await reader.data.interests.get(named.interestId);
 
     await open(reader.token);
     await page.goto(`${web.url}#/`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector(id('tab-discover'), { timeout: 30_000 });
     await page.click(id('tab-discover'));
-    await page.fill(id('interest-search-input'), parent.name.slice(0, 4));
+    await page.fill(id('interest-search-input'), interest.name);
     await page.waitForSelector(id('search-result-0'), { timeout: 30_000 });
     await page.click(id('search-result-0'));
     await page.waitForSelector(id('interest-screen'), { timeout: 30_000 });
 
-    // 001/FR-024's roll-up, seen rather than asserted about an index row.
-    await page.waitForSelector(id(`post-${postId}`), { timeout: 30_000 });
+    await page.waitForSelector(id(`post-${named.postId}`), { timeout: 30_000 });
 
     await page.close();
   }, 240_000);

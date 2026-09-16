@@ -29,19 +29,19 @@ export class InterestSearch {
   constructor(@Inject(CATALOGUE_SEARCH) private readonly catalogue: CatalogueSearch) {}
 
   /**
-   * FR-026: results appear as the person types, and every sub-interest carries
-   * its parent so "portraits" under Photography is distinguishable from
-   * "portraits" under Painting.
+   * FR-026: results appear as the person types.
+   *
+   * 013/FR-003. `level` and `parentId` are gone from this signature. They had
+   * stopped being read while still being accepted, which is worse than being
+   * absent: a caller passing one cannot tell a filter that matched everything
+   * from a filter nothing applied.
    */
-  search(
-    query: string,
-    opts: { level?: 'top' | 'sub'; parentId?: string; limit?: number } = {},
-  ): SearchResult[] {
+  search(query: string, opts: { limit?: number } = {}): SearchResult[] {
     return this.catalogue.search(query, opts).map((m) => this.withParent(m));
   }
 
-  /** Browsing with no query: the curated top level, or one parent's children. */
-  browse(opts: { level?: 'top' | 'sub'; parentId?: string; limit?: number } = {}): SearchResult[] {
+  /** Browsing with no query: the whole flat catalogue, by name. */
+  browse(opts: { limit?: number } = {}): SearchResult[] {
     // 013. Flat: there is no hierarchy to walk and no 'ROOT' to stand in for one.
     return this.catalogue
       .active()

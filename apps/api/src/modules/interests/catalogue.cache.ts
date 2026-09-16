@@ -18,7 +18,7 @@ export interface CatalogueMatch {
  * swapping in OpenSearch when post-content search arrives touches no callers.
  */
 export interface CatalogueSearch {
-  search(query: string, opts?: { level?: 'top' | 'sub'; parentId?: string; limit?: number }): CatalogueMatch[];
+  search(query: string, opts?: { limit?: number }): CatalogueMatch[];
   findSimilar(name: string, limit?: number): CatalogueMatch[];
   findExactByName(name: string): InterestItem | undefined | null;
   byNormalisedName(nameNormalised: string): InterestItem | undefined;
@@ -120,10 +120,7 @@ export class InMemoryCatalogueCache implements CatalogueSearch, OnModuleInit {
   }
 
   /** FR-026: prefix matches rank above fuzzy ones so type-ahead feels direct. */
-  search(
-    query: string,
-    opts: { level?: 'top' | 'sub'; parentId?: string; limit?: number } = {},
-  ): CatalogueMatch[] {
+  search(query: string, opts: { limit?: number } = {}): CatalogueMatch[] {
     const q = normaliseName(query);
     if (!q) return [];
     const out: CatalogueMatch[] = [];

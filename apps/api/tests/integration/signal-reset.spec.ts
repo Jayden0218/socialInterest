@@ -46,7 +46,7 @@ describe('FR-012 — clearing signals empties the store and resets the ranking',
     userId = await h.createPerson('resetviewer');
     token = await h.token(userId);
 
-    const tops = await request(h.app.getHttpServer()).get('/v1/interests?level=top&limit=50');
+    const tops = await request(h.app.getHttpServer()).get('/v1/interests?limit=50');
     seedInterest = tops.body.items[0].interestId;
     otherInterest = tops.body.items[1].interestId;
 

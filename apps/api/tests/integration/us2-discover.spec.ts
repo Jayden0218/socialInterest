@@ -117,7 +117,7 @@ describe('US2 — discover content by interest', () => {
    * `interest-similarity-is-global`.
    */
   it('search is readable signed out', async () => {
-    const res = await request(h.app.getHttpServer()).get('/v1/interests?level=top');
+    const res = await request(h.app.getHttpServer()).get('/v1/interests');
     expect(res.status).toBe(200);
     expect(res.body.items.length).toBeGreaterThan(0);
   });

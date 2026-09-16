@@ -32,11 +32,16 @@ export class InterestsData {
     });
   }
 
-  listChildren(parentId: string, opts: { limit?: number; cursor?: string } = {}): Promise<InterestPage> {
-    return this.client.call<InterestPage>('getInterests', {
-      query: { parentId, limit: opts.limit, cursor: opts.cursor },
-    });
-  }
+  /**
+   * 013/FR-021. `listChildren` IS GONE, and it was not merely unused.
+   *
+   * `InterestContainer` still CALLED it on every interest screen and then threw
+   * the result away under a comment saying interests are flat — a request per
+   * open, carrying a `parentId` the server had stopped reading, for a list
+   * nothing rendered. A call whose result nothing reads is the declared-half
+   * shape this repository has recorded six times; deleting the method is what
+   * makes the dead call a typecheck failure rather than a comment.
+   */
 
   search(q: string): Promise<InterestPage> {
     return this.client.call<InterestPage>('getInterests', { query: { q } });
@@ -51,18 +56,16 @@ export class InterestsData {
   }
 
   /**
-   * A near-duplicate name is refused with 409 carrying `candidates` as an RFC 9457
-   * extension. Re-submitting with acknowledgedSimilarTo is how the person says
-   * "different thing, same-ish name" (FR-029).
+   * 013/FR-004. `create` IS GONE with `POST /v1/interests`.
+   *
+   * It created an interest with no posts, which FR-004 makes unrepresentable.
+   * Naming one happens on publish: `posts.publish({ interestNames })`, and the
+   * near-duplicate refusal comes back as a 409 carrying the candidates so the
+   * compose screen can offer "join this one instead" (FR-009, FR-010).
+   *
+   * The generated client no longer has `postInterests` at all, which is how
+   * this was found rather than left as a method nothing could call.
    */
-  create(input: {
-    name: string;
-    parentId: string;
-    description?: string;
-    acknowledgedSimilarTo?: string[];
-  }): Promise<Interest> {
-    return this.client.call<Interest>('postInterests', { body: input });
-  }
 
   follow(interestId: string): Promise<void> {
     return this.client.call<void>('putInterestsByInterestIdFollow', { params: { interestId } });
@@ -73,9 +76,9 @@ export class InterestsData {
   }
 
   /**
-   * 004/FR-025, FR-030. Operators for a top-level interest; the creator or an
-   * operator for a sub-interest. The server decides - the app does not hide the
-   * control based on a guess, it reports the refusal.
+   * 004/FR-025, FR-030, 013/FR-002. The CREATOR, or an operator — there is no
+   * curated tier for the rule to treat differently. The server decides: the app
+   * does not hide the control based on a guess, it reports the refusal.
    */
   setDescription(interestId: string, description: string): Promise<void> {
     return this.client.call<void>('putInterestsByInterestIdDescription', {

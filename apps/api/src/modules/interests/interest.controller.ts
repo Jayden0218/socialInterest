@@ -24,12 +24,10 @@ import { InterestSearch, type SearchResult } from './catalogue.search';
 import { DuplicateInterestError, InterestService } from './interest.service';
 import { InterestFollowService } from './interest-follow.service';
 
-const createInterestSchema = z.object({
-  name: z.string().min(2).max(50),
-  parentId: z.string().min(1),
-  description: z.string().max(500).optional(),
-  acknowledgedSimilarTo: z.array(z.string()).optional(),
-});
+// 013/FR-004. `createInterestSchema` IS DELETED with `POST /interests`. It
+// survived the route's removal as a declared-but-unreferenced const — and it
+// still made `parentId` mandatory, which is the single field 013 exists to
+// remove. Naming an interest is validated on the publish route now.
 
 // 013/T009a. `level` and `parent` are gone from the contract with the hierarchy.
 const toRef = (r: SearchResult) => ({
@@ -73,15 +71,12 @@ export class InterestController {
   /** FR-025 browse, FR-026 type-ahead. Readable signed out. */
   @Public()
   @Get()
-  browseOrSearch(
-    @Query('q') q?: string,
-    @Query('level') level?: 'top' | 'sub',
-    @Query('parentId') parentId?: string,
-    @Query('limit') limit?: string,
-  ) {
+  // 013/FR-003. `level` AND `parentId` ARE GONE FROM THE SIGNATURE, not merely
+  // unread. Interests are flat, so neither has anything to filter by — and an
+  // accepted-and-ignored filter is one a caller cannot tell from a filter that
+  // matched everything. The contract declared both until this change too.
+  browseOrSearch(@Query('q') q?: string, @Query('limit') limit?: string) {
     const opts = {
-      ...(level ? { level } : {}),
-      ...(parentId ? { parentId } : {}),
       limit: limit ? Math.min(50, Math.max(1, Number(limit))) : 20,
     };
     const results = q ? this.search.search(q, opts) : this.search.browse(opts);
@@ -139,10 +134,10 @@ export class InterestController {
   /**
    * 004/FR-025, FR-030.
    *
-   * Operators for a top-level interest; the CREATOR or an operator for a
-   * sub-interest. The asymmetry matches who is accountable for each: top-level
-   * interests are curated (001/FR-021), sub-interests are made by people
-   * (001/FR-022).
+   * 013/FR-002. THE CREATOR, or an operator. There is no curated tier any more:
+   * every interest is made by a person, so the asymmetry this rule used to
+   * carry — operators for the twelve we owned, creators for everything under
+   * them — has nothing left to distinguish.
    *
    * The description is CONTENT, so it is reportable as `interest-description`
    * and the same content policy applies (Constitution IV: user-generated names

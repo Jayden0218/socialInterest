@@ -41,7 +41,7 @@ stories; this pair is not, and saying so is cheaper than discovering it.
 ## Phase 1: Setup — measure what is actually wrong
 
 - [X] T001 Write `apps/api/tests/integration/interest-name-uniqueness.spec.ts` and **run it against the product as it stands**: fire N simultaneous creations of ONE name and **count the interests that result**. Record the number in the run record. **Size the batch to the route's rate-limit capacity and clear the limiter first** — 011's concurrency test would otherwise have passed for the wrong reason, with five of six refused `429` before ever reaching the constraint, and deleting the constraint left it green. Assert no response was a 429
-- [ ] T002 [P] Record the BASELINE for the gates that must not move: `pnpm --filter @sih/api exec jest tests/visibility/matrix.spec.ts tests/integration/auth-surface.spec.ts`. Expect **1,488 assertions across 16 surfaces**. Write the numbers down now, so a later diff is compared against a measurement rather than a memory
+- [X] T002 [P] Record the BASELINE for the gates that must not move: `pnpm --filter @sih/api exec jest tests/visibility/matrix.spec.ts tests/integration/auth-surface.spec.ts`. Expect **1,488 assertions across 16 surfaces**. Write the numbers down now, so a later diff is compared against a measurement rather than a memory
 
 **Checkpoint**: the defect is quantified and the regression gates have a recorded starting point.
 
@@ -139,7 +139,7 @@ to file a post at all.
 
 - [X] T035 [US5] An interest with no posts is set `retired` and stops being browsable (FR-022). **Retired, not deleted**, so a link from somewhere the boundary has not re-evaluated does not 404 into nothing. **Say what happens to its FOLLOWERS**: a merge moves them (T030) and retirement currently does not, which would leave people following something unbrowsable while the follow still counts as a ranking signal (007/FR-030). **And decide explicitly whether `postCount` is authoritative**, or whether the rows are: it is a stored counter, and CLAUDE.md records 008 deliberately NOT copying the conversation `unreadCount` because "a count and the rows it counts are two sources of truth for one fact"
 - [X] T036 [US5] Assert housekeeping never touches an interest that has posts (FR-023)
-- [ ] T037 [P] [US5] Decide and record what "has posts" means when the last post is hidden by its author, deleted, or removed by a moderator. **That is a visibility question and the boundary answers it, not the job** — a job that counted rows the boundary would withhold would be a second visibility decision, which Principle II forbids
+- [X] T037 [P] [US5] Decide and record what "has posts" means when the last post is hidden by its author, deleted, or removed by a moderator. **That is a visibility question and the boundary answers it, not the job** — a job that counted rows the boundary would withhold would be a second visibility decision, which Principle II forbids
 
 ---
 
@@ -148,9 +148,9 @@ to file a post at all.
 - [X] T038 [P] Confirm the visibility matrix reports the **same surfaces and the same total** as T002 recorded (FR-024, SC-011). **If a number moved, stop and find out why — never update the number**
 - [X] T039 [P] Confirm the public and operator route snapshots against T002 (FR-025). Whether `POST /v1/interests` survives as a standalone route once publishing creates interests is a **deliberate, reviewed decision** (research R5), never an incidental diff
 - [X] T040 [P] Confirm no state or surface introduced here shows content the boundary would have withheld, and that an empty interest space says nothing about why (FR-026)
-- [ ] T041 [P] Update the testID snapshot in the **same commit** as the flows requiring it, and regenerate on ADDITIONS rather than only removals — 011 found it nineteen ids stale, and a snapshot can only detect the removal of an id it knows about
+- [X] T041 [P] Update the testID snapshot in the **same commit** as the flows requiring it, and regenerate on ADDITIONS rather than only removals — 011 found it nineteen ids stale, and a snapshot can only detect the removal of an id it knows about
 - [X] T042 [P] Run `node scripts/verify-maestro-ids.mjs`. A selector matching nothing fails as a thirty-second timeout twenty minutes into a device run
-- [ ] T043 Run the real CI step list before pushing, not a proxy for it. Two red builds came from checking typecheck/lint/tests and assuming that covered CI
+- [X] T043 Run the real CI step list before pushing, not a proxy for it. Two red builds came from checking typecheck/lint/tests and assuming that covered CI
 - [ ] T044 Run every scenario in [quickstart.md](./quickstart.md)
 - [X] T045 Record the run in `docs/verification/runs/`, every criterion pass, fail or **not run** — never blank — and **count the items** rather than reading the highest number. The device tier is **not run**: no emulator here, and nothing since 011 has run on one
 

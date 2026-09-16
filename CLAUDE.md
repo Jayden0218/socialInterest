@@ -14,7 +14,8 @@ Read before doing anything substantive:
 | `specs/001-interest-media-sharing/data-model.md` | DynamoDB single-table design, 20 access patterns |
 | `specs/001-interest-media-sharing/contracts/` | OpenAPI + the visibility matrix contract |
 | `specs/001-interest-media-sharing/tasks.md` | 172 tasks, T001–T172, ordered |
-| `specs/007-ranked-feed-redesign/` | **The current feature.** Ranked feed + redesign; all 8 phases implemented |
+| `specs/007-ranked-feed-redesign/` | Ranked feed + redesign; all 8 phases implemented |
+| `specs/013-user-owned-interests/` | **The current feature.** Interests are user-owned, flat and hashtag-like; the curated twelve are gone |
 | `design/007-ui/` | The **approved** design, 20 artboards. Settled — implement, do not reopen |
 | the five seam READMEs — `apps/api/{src,tests}/overlay/`, `apps/mobile/src/overlay/`, `apps/mobile/src/screens/`, `contracts/` | **The overlay seams.** What a private downstream fork owns, and what that does not relax |
 
@@ -511,6 +512,123 @@ so GitHub-hosted standard runners are free on it, and CI runs 169-176 plus emula
 on this repository does not spend - so dispatching the emulator job is not the owner's
 call any more. Check the facts before repeating either claim; both halves of this one
 expired within a day.
+
+## What spec 013 built (2026-09-16) — the interests belong to the people using them
+
+`specs/013-user-owned-interests/`. The curated twelve are **deleted**. Interests are
+**flat and hashtag-like**: a person publishing names the subject freely, the name is
+resolved-or-created **inside the post's transaction**, and `POST /v1/interests` is gone
+because it produced an interest with no posts. Record:
+`docs/verification/runs/2026-09-16-013-local-record.md`.
+
+**Principle I is NOT amended and did not need to be.** It requires every post to be
+filed under an interest and interests to stay first-class surfaces; it is **silent on
+who creates them**. Every post still carries one. 001/FR-024's sub-interest roll-up is
+**withdrawn** by the flat model, and every place describing it was updated rather than
+left describing a product that does not exist.
+
+### HANDLES, AGAIN: the constraint did not exist
+
+`createSubInterest` guarded `attribute_not_exists(pk)` where `pk` carries a **fresh
+ULID**, so the condition could never fire for a NAME — and what stood in for it was a
+read against a **per-process** cache. 011's handle defect word for word. Measured rather
+than reasoned about: **8 of 8 simultaneous claims on one name succeeded; 1 after the
+claim row.** A read-then-write produces an occasional 2; this produced a reliable 8,
+because there was no race to lose. Both halves of the measurement are the evidence.
+
+### No threshold separates a synonym from an unrelated word — measured
+
+Real synonyms score **0.13–0.23** on this repo's own similarity function (NYC / New York
+City, Football / Soccer) while unrelated pairs score **0.75–0.83** (Golf / Wolf, Baking /
+Biking) and typos **0.86–0.91**. The bands **overlap the wrong way round**, so edit
+distance cannot tell a synonym from a coincidence and **automatic merging is impossible
+by measurement, not by caution**. A merge moves posts and followers and is irreversible
+here, so it stays an operator action.
+
+### Defects no plan predicted, and what each one teaches
+
+- **`loadAll()` walked the hierarchy** through the index this feature deletes, so the
+  cache loaded **empty** and the duplicate gate accepted everything — the feature's own
+  failure mode arriving through the loader. **The unit guard stubs `loadAll` and was
+  structurally blind to it**: 007's `ApiPage` defect in miniature, a stub agreeing with
+  the test and not with the datastore.
+- **`smoke:boot` was still calling `catalogue.childrenOf('ROOT')`**, deleted with the
+  hierarchy. 2,050 API tests, a clean typecheck and a clean lint all passed over it — the
+  call sits behind an `app.get<{...}>()` cast, which satisfies the compiler, and no suite
+  runs that script. **Only booting the app found it.** Same shape as 007's device runner
+  invoking a deleted fixture, for a command instead of a 25-minute run.
+- **`postCount` is never maintained** — `incrementPostCount` has no caller anywhere — so
+  retiring an interest on `postCount === 0` would have retired nothing and **looked
+  implemented**. Housekeeping reads index ROWS.
+- **The 409 stopped carrying its candidates** when the gesture moved to the publish
+  route. A bare refusal is the whole sprawl control doing nothing: FR-009/FR-010 exist so
+  a client can offer "join this one instead".
+
+### THE CONTRACT HAD STOPPED DESCRIBING THE PRODUCT, IN FIVE PLACES
+
+Removing `POST /interests` from the document took the generated client from **93
+operations to 92**, and the 92 found the rest. Every one is 002's first defect — the
+contract and the API disagreeing, each looking right alone:
+
+1. **`PostCreate` declared neither `interestNames` nor `acknowledgedSimilarTo`, and
+   REQUIRED `interestIds`.** 013's entire premise was absent: a client generated from the
+   contract could not name an interest at all. It works from the app only because
+   `apps/mobile/src/data/posts.ts` declares the field **by hand**.
+2. **`POST /posts` did not declare the 409** the near-duplicate refusal now returns.
+3. **`GET /interests/similar` declared `parentId` as REQUIRED** while the server had
+   stopped reading it — the controller's own comment says demanding one "would have made
+   this endpoint unreachable from a compose screen that has none", and the contract was
+   demanding it the whole time.
+4. **`GET /interests` declared `level` and `parentId`**, accepted and ignored end to end.
+   **An accepted-and-ignored filter is one a caller cannot tell from a filter that
+   matched everything** — removed from the signature, not left unread.
+5. **`InterestCreate` and `InterestDetail.subInterests`** described a route and a
+   hierarchy that no longer exist.
+
+### Three dead halves, all of them the pattern this repository keeps recording
+
+- **`InterestContainer` still CALLED `data.interests.listChildren(interestId)`** on every
+  interest screen open and threw the result away, under a comment saying interests are
+  flat: a request per open, carrying a `parentId` the server ignores, for a list nothing
+  renders. **Deleting the METHOD is what turns a dead call into a typecheck failure
+  rather than a comment.**
+- **`createInterestSchema` survived its route's removal** as an unreferenced const, still
+  making `parentId` mandatory — the single field 013 exists to remove.
+- **Two doc comments still described the curated tier** after the code stopped making
+  that distinction. When a requirement is withdrawn, **grep the COPY, not only the code**.
+
+### Decisions taken against the plan, on evidence
+
+- **The merged name's claim is NOT released.** The plan said to release it so the name
+  was not permanently burnt. Writing the test showed that is worse: resolve already lands
+  a person on the survivor, and releasing the claim would let the next person **recreate
+  the duplicate the merge removed**.
+- **An interest whose posts are all HIDDEN is not retired** (T037). `retireIfEmpty` reads
+  index rows RAW, deliberately: asking the boundary "does any post exist" would make a
+  housekeeping job a second visibility decision, which Principle II forbids.
+- **T021's candidates are shown.** Compose reads the 409's `candidates` and offers
+  one-tap joining; a keystroke invalidates a refusal about the previous name.
+
+### The gates that had to hold, and did
+
+**The visibility matrix is unmoved: 1,488 assertions across 16 surfaces** (1,470 post
+across 15 post surfaces, plus 18 review). The public route snapshot moved by exactly one
+route — `POST /interests` — which FR-025 calls for as a deliberate, reviewed edit and
+research R5 named before the work started.
+
+### Still not verified for 013, and must be reported that way
+
+- **NOTHING IN 013 HAS RUN ON A DEVICE, and no browser journey has run either.**
+  `apps/e2e` needs a server and a browser this sandbox does not have, and MinIO is
+  unreachable here (quay.io, egress), so every rewritten journey is **written and
+  unexercised**. A clean typecheck confirms the call sites compile, which is a different
+  claim.
+- **`ports.contract` and `us1-exif` fail on MinIO** and are baselined by stashing the
+  change and watching them fail identically. API suite: **2,050 passed, 2 failed**.
+- **One API run reported three failures and the third suite was not captured**; two runs
+  immediately after were 2/2,050 identically. Recorded as **unreproduced with no cause** —
+  this file already records two confident explanations for unobserved failures that had
+  to be retracted.
 
 ## What spec 011 built (2026-09-14) — the app opens like an app
 

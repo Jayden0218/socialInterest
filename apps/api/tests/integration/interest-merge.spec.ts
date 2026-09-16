@@ -52,7 +52,7 @@ describe('FR-030 — interest merge, re-parent and retire', () => {
     operatorToken = await h.token(await h.createPerson('mergeop'), { isOperator: true });
     userToken = await h.token(await h.createPerson('mergeuser'));
     topId = await h.topInterestId();
-    const tops = await request(h.app.getHttpServer()).get('/v1/interests?level=top&limit=50');
+    const tops = await request(h.app.getHttpServer()).get('/v1/interests?limit=50');
     otherTopId = tops.body.items.find((i: { interestId: string }) => i.interestId !== topId).interestId;
   }, 120_000);
 

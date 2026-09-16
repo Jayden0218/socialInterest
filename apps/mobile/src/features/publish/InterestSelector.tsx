@@ -17,6 +17,17 @@ export interface InterestSelectorProps {
    */
   typedName?: string;
   onTypedNameChange?: (next: string) => void;
+  /**
+   * 013/T021, FR-009, FR-010. What already exists that resembles the typed
+   * name, offered so joining one is a single tap.
+   *
+   * The prior research is unambiguous that this moment is where sprawl is won
+   * or lost: an interface that pushes toward existing terms, rather than one
+   * that merely refuses novel ones. A bare refusal leaves a person retyping
+   * variants until one is accepted, which is the opposite of the intent.
+   */
+  candidates?: InterestRef[];
+  onJoinExisting?: (ref: InterestRef) => void;
 }
 
 /**
@@ -41,6 +52,8 @@ export function InterestSelector({
   onChange,
   typedName,
   onTypedNameChange,
+  candidates,
+  onJoinExisting,
 }: InterestSelectorProps) {
   const toggle = (ref: InterestRef): void => {
     const has = selected.some((s) => s.interestId === ref.interestId);
@@ -69,6 +82,33 @@ export function InterestSelector({
           onChangeText={onTypedNameChange}
         />
       ) : null}
+      {candidates && candidates.length > 0 && onJoinExisting ? (
+        <View testID="duplicate-candidates" style={{ gap: space.xs }}>
+          <Text style={{ ...textStyle.caption, color: palette.text.secondary }}>
+            These already exist. Join one instead?
+          </Text>
+          {candidates.map((c) => (
+            <Pressable
+              key={c.interestId}
+              testID={`join-existing-${c.interestId}`}
+              accessibilityRole="button"
+              accessibilityLabel={`Join ${c.name}`}
+              onPress={() => onJoinExisting(c)}
+              style={{
+                ...touchTarget,
+                justifyContent: 'center',
+                paddingHorizontal: space.md,
+                borderRadius: radius.button,
+                borderWidth: 1,
+                borderColor: palette.intent.accent,
+              }}
+            >
+              <Text style={{ color: palette.intent.accent, fontSize: type.body.size }}>{c.name}</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+
       <FlatList
         horizontal
         data={options}

@@ -58,6 +58,50 @@ describe('013/FR-022, FR-023 — housekeeping', () => {
     expect(h.module.get(InMemoryCatalogueCache).byId(interestId)?.state).toBe('retired');
   }, 90_000);
 
+  /**
+   * 013/T037. THE DECISION: "HAS POSTS" MEANS ROWS EXIST, NOT THAT ANYONE CAN
+   * SEE THEM — AND THE BOUNDARY IS NOT CONSULTED.
+   *
+   * A post turned private keeps its `postInterestIndex` row; only the
+   * denormalised `visibility` changes. So an interest whose every post is
+   * private is NOT retired, and that is the right answer twice over:
+   *
+   *  - the author can still see their own posts, and retiring the interest
+   *    would take a live space away from under them;
+   *  - asking the boundary instead would make retirement depend on WHO is
+   *    asking. One person blocking the only author would empty the interest
+   *    from their point of view, and a job acting on that would retire it for
+   *    everybody — which is a second visibility decision, and Principle II
+   *    permits exactly one.
+   *
+   * A moderator REMOVAL is different in kind and needs no special case: it
+   * removes the index rows, so the interest becomes genuinely empty and the
+   * ordinary rule retires it.
+   */
+  it('T037: an interest whose posts are all private is NOT retired', async () => {
+    const name = `Private ${randomUUID().slice(0, 8)}`;
+    const { postId, interestId } = await publishNaming(name);
+
+    const rows = await index.listByInterest(interestId, { limit: 10 });
+    expect(rows.items).toHaveLength(1);
+
+    // What a visibility change does, through the product's own path: the ROW
+    // stays and only the denormalised field moves.
+    const { PostRepository } = await import('../../src/persistence/post.repository');
+    const { PostTransaction } = await import('../../src/modules/posts/post.transaction');
+    const post = await h.module.get(PostRepository).findById(postId);
+    await h.module.get(PostTransaction).updateVisibility({
+      post: post!,
+      expandedInterestIds: [interestId],
+      visibility: 'private',
+    });
+
+    expect((await index.listByInterest(interestId, { limit: 10 })).items).toHaveLength(1);
+
+    expect(await interests.retireIfEmpty(interestId)).toBe(false);
+    expect(h.module.get(InMemoryCatalogueCache).byId(interestId)?.state).toBe('active');
+  }, 90_000);
+
   it('a retired interest is not offered by search or by the duplicate gate', async () => {
     const name = `Vanished ${randomUUID().slice(0, 8)}`;
     const { postId, interestId } = await publishNaming(name);
