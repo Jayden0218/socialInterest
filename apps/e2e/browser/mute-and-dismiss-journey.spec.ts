@@ -5,6 +5,7 @@ import { baseUrl } from '../support/base-url';
 import { actor } from '../support/client';
 import { publishReadyImage } from '../support/publish';
 import { anInterest } from '../support/interests';
+import { eventually } from '../support/eventually';
 
 /**
  * 008/US12 — WHERE `dismiss-post` LEAVES YOU.
@@ -97,6 +98,29 @@ describe('008/US12 - the route through the safety sheet, and where it returns to
     await page.click(id('sheet-mute'));
     await page.waitForSelector(id('post-detail-screen'), { timeout: 30_000 });
 
+    /**
+     * `eventually`, NOT a bare assertion — and the reason is a product decision
+     * made two files away.
+     *
+     * `ActionSheet` closes BEFORE it runs the row's action ("so a row that
+     * navigates does not leave a sheet floating over the screen it opened").
+     * So `post-detail-screen` reappearing is evidence the sheet closed and
+     * NOTHING about whether the request landed. Asserting straight after it is
+     * a race the fast machine always wins.
+     *
+     * It won here every time and lost on a loaded CI runner — 2026-09-16, run
+     * #347: `- "PUT /v1/people/…/mute 204"`, the dismiss recorded and the mute
+     * still in flight. Same shape as the four integration tests CLAUDE.md
+     * records that "waited for a duration, not a condition", and the same fix:
+     * wait for the condition, fail at a deadline with what was actually seen.
+     */
+    await eventually(
+      async () => [...writes],
+      (w) =>
+        w.includes(`PUT /v1/posts/${postId}/dismiss 204`) &&
+        w.includes(`PUT /v1/people/${author.handle}/mute 204`),
+      { timeoutMs: 15_000, describe: 'both the dismiss and the mute reaching the server' },
+    );
     expect(writes).toEqual([
       `PUT /v1/posts/${postId}/dismiss 204`,
       `PUT /v1/people/${author.handle}/mute 204`,
