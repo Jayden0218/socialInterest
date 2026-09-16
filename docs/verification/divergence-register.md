@@ -92,6 +92,28 @@ is reported unverified everywhere it appears.
 
 ---
 
+## D-009-1 — A session is a CI runner behind a tunnel, not a hosted service
+
+| Field | Value |
+|---|---|
+| **Introduced by** | `specs/009-session-server`, research R1/R2 |
+| **Local implementation** | `.github/workflows/session-server.yml` + `scripts/session-up.sh`: one GitHub-hosted runner holds Postgres, object storage, ffmpeg and the API, and `cloudflared` opens two tunnels — one for the API, one for media — for a lifetime the dispatcher chooses. Everything dies with the job |
+| **What a hosted deployment would do instead** | A service with a stable address, a datastore that survives the process, TLS terminated at its own edge rather than at somebody's tunnel, and no lifetime. It would also not need TWO addresses: the media/backend split exists because a tunnel address is not known until the tunnel is up, so the API must be told the public media host after it could otherwise have derived one |
+| **Why it was chosen anyway** | It is free, needs no payment method, and puts the real product on a real phone over a real network today. 010's hosting work is the answer to the same question and is blocked on an account the owner opens |
+| **What a green local suite does NOT prove** | That a session works, and a working session does not prove hosting works. Three things in particular: the **tunnel itself is unverified from any runner** (it provably cannot open from this development sandbox — the edge wants a raw TCP dial to port 7844, which is a PORT block and not a host allowlist); the **two-address split** is a property of tunnels and disappears under a single-origin deployment, so the `S3_PUBLIC_ENDPOINT` path it exercises is not the one a deployment would take; and **nothing is durable** — a session starts on an empty datastore, so it can say nothing about SC-001's "readable seven days later" |
+| **Plan to verify the production path** | There is no production path to verify, which is the point of the entry: a session is not one. 009/T032 dispatches the first session and is explicitly recorded as *"the experiment, not a validation"*. When hosting exists (010 Phases C and D), the device pass runs against the hosted address instead and this entry closes |
+| **Verified** | **no.** No session has been dispatched. `.github/workflows/session-server.yml` has never run — and since 2026-09-16 no workflow on this repository can, the Actions allowance being blocked at the account's billing |
+
+**Amended 2026-09-16: the descriptor no longer publishes a credential.** It did, into a job
+summary that is world-readable wherever this repository is public, for the lifetime of a live
+session against a live address. The requirement that put it there (FR-014) justified itself in
+one sentence — *"the product has no self-service sign-up"* — which **011 made false** and
+nobody grepped the copy for. FR-014 is withdrawn and replaced, `contracts/session-descriptor.md`
+§2 is reversed, and the bring-up still mints a credential for its own checks and for seeding;
+it simply never leaves the runner.
+
+---
+
 ## Entries closed
 
 None. This register has two open entries and no closed ones.

@@ -53,10 +53,14 @@ the 2-hour default.
 
 Wait. Expect a descriptor in the **run summary** — not buried in the log — carrying:
 
-- an backend address
+- a backend address
 - a **different** media address
-- a credential
 - an absolute expiry time, and the lifetime you chose
+
+**NOT a credential** (amended 2026-09-16, FR-014). It used to print one, because the product
+had no self-service sign-up; 011 added it, so the descriptor's reason for carrying a live
+credential into a world-readable job summary went away. You create an account in the app
+instead — the datastore is fresh, so the name you want is free.
 
 If bring-up fails instead, the summary must name **which step** failed. A failure that does
 not name a step is a defect in this feature, not in whatever failed (FR-021).
@@ -75,8 +79,8 @@ On mobile data, or any network unrelated to anything:
 
 | Step | Expect | Proves |
 |---|---|---|
-| Enter the backend address and credential | Signed in | FR-010, FR-011, FR-014 |
-| Look at the feed | The interest catalogue is there; the feed is **empty** | FR-013, and that empty works |
+| Enter the backend address, then create an account | Signed in | FR-010, FR-011, FR-014 |
+| Look at the feed | The seeded content is there | FR-013 |
 | Publish a post with a photograph | It publishes | — |
 | Look at it | **The photograph renders** | SC-004, and contract §1 |
 | Open the safety sheet on a post and file a report | It is accepted | FR-018, Constitution IV |

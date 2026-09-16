@@ -96,7 +96,10 @@ command -v ffmpeg >/dev/null 2>&1 || {
 } || fail "could not install ffmpeg"
 say "ffmpeg: $(ffmpeg -version 2>&1 | head -1)"
 
-STEP="2. create the table and bucket, seed the catalogue"
+# "seed the catalogue" until 2026-09-16, which stopped being true when 013
+# deleted the curated twelve — there is no catalogue to seed, and the step had
+# not run one for some time. The session's content comes from step 7b instead.
+STEP="2. create the schema and the bucket"
 say "==> $STEP"
 pnpm --filter @sih/infra db:create-local-pg
 pnpm --filter @sih/infra s3:create-local
@@ -306,9 +309,32 @@ fi
 STEP="8. emit the descriptor"
 EXPIRES_AT="$(date -u -d "+${LIFETIME_MINUTES} minutes" '+%Y-%m-%d %H:%M UTC')"
 
+#
+# NO CREDENTIAL IN THE DESCRIPTOR, AND THIS IS THE CHANGE 011 MADE POSSIBLE.
+#
+# It used to print the minted token in a fenced block here. Where this
+# repository is PUBLIC the job summary is world-readable, so that was a live
+# credential against a live address for anyone reading the Actions tab — bounded
+# only by the session's lifetime. CLAUDE.md has carried it as a reported, open
+# exposure since 009, with the note that 011 would make it unnecessary and that
+# nothing in 011 had touched this file. It had not.
+#
+# What changed is that a person can now CREATE AN ACCOUNT in the app against
+# this address (POST /v1/auth/sign-up), so the descriptor has no reason to carry
+# a credential at all. The token is still minted — steps 7 and 7b act AS that
+# person over HTTP and cannot sign in to do it — it simply never leaves the
+# runner.
+#
+# Deliberately not swapped for the email and password `mint-device-token.ts`
+# provisions beside it: that is the same exposure with more steps.
+#
+# The repository is private today. That is not the reason this is safe, and it
+# is not a reason to leave it: CLAUDE.md records this project reading visibility
+# off a stale paragraph three times.
 {
   printf '## Your session is ready\n\n'
-  printf 'Open the app, paste the server address and the token into the sign-in screen.\n\n'
+  printf 'Open the app, paste the server address into the sign-in screen, and create\n'
+  printf 'an account. It is a fresh datastore, so the name you want is free.\n\n'
   printf '| | |\n|---|---|\n'
   printf '| **Server address** | `%s/v1` |\n' "$BACKEND_ADDRESS"
   printf '| **Expires** | %s (%s minutes) |\n' "$EXPIRES_AT" "$LIFETIME_MINUTES"
@@ -318,7 +344,7 @@ EXPIRES_AT="$(date -u -d "+${LIFETIME_MINUTES} minutes" '+%Y-%m-%d %H:%M UTC')"
   else
     printf '| Content | **none — seeding failed.** The app works; the feed is empty because this session holds no posts, not because the product is broken. |\n'
   fi
-  printf '\n**Token**\n\n```\n%s\n```\n\n' "$TOKEN"
+  printf '\n'
   printf -- '---\n\n'
   printf 'This is a temporary development environment, not a deployment of the product.\n'
   printf 'It starts with an empty datastore, it is gone at the time above, and nothing in\n'

@@ -149,9 +149,18 @@ credential there, without a laptop and without downloading a file.
 - [X] T031 [P] Build the APK **on EAS** via `.github/workflows/apk.yml` (the owner's choice over the local recipe, which stays documented and working). Needs an `EXPO_TOKEN` repository secret and, after the first dispatch, an `EAS_PROJECT_ID` repository variable — neither of which an agent can create. **DONE 2026-09-13**: built from the owner's own machine with an interactive `eas login`, so no token ever entered a transcript, a secret store or an agent session — Android internal distribution, SDK 54.0.0, commit `ce7e3a6`, 6m11s, artifact available 13 days — with the address now runtime-settable, **this build is not tied to any backend** and does not need rebuilding per session
 - [ ] T032 **Dispatch the first session. This is the experiment, not a validation.** Research R2 records the tunnel as unverified on a runner; if it fails, fall back through the providers R2 names in order and record which worked
 - [ ] T033 Run the device pass on the owner's phone per [quickstart.md](./quickstart.md) sections B–D, publishing a post carrying a photograph and confirming it renders
-- [ ] T034 Re-run the gates from T004 and confirm `BASE_SURFACES` is still 16, `baseTotal` still 1488, and the public-route snapshot unchanged — if either moved, this feature added a visibility surface and the design is wrong. Also confirm the session runs the unchanged product build with **no safety surface disabled**: a session that could not accept a report would fail Constitution IV while passing every gate above it (contract §6, FR-018)
-- [ ] T035 [P] **Grep the copy, not only the code**: confirm no user-facing string, workflow name, or document produced by this feature describes a session as a deployment or as publicly available (FR-019). 007 shipped a follow hint describing a withdrawn requirement because only the code was updated
-- [ ] T036 [P] Add the Principle V divergence entry for the session environment in `docs/verification/divergence-register.md` and confirm `pnpm verify:register` passes
+- [x] T034 Re-run the gates from T004 and confirm `BASE_SURFACES` is still 16, `baseTotal` still 1488, and the public-route snapshot unchanged — if either moved, this feature added a visibility surface and the design is wrong. Also confirm the session runs the unchanged product build with **no safety surface disabled**: a session that could not accept a report would fail Constitution IV while passing every gate above it (contract §6, FR-018)
+  - **2026-09-16: 17 and 1,586, and NEITHER MOVED FOR 009.** 012 added the interest preview
+    mosaic as surface 17 — a deliberate, reviewed edit with a probe behind it. The clause's
+    actual test is whether THIS feature added a surface, and it did not: 009 adds no route and
+    no read path. The route snapshots are unchanged.
+  - **No safety surface is disabled**, checked by reading what `scripts/session-up.sh` exports
+    to the API: `RUNTIME_PROFILE`, `API_PORT`, `S3_PUBLIC_ENDPOINT`, `DATABASE_URL`,
+    `LOCAL_JWT_SECRET`, and nothing else. In particular `MEDIA_DISPATCH_ON_CREATE` — the one
+    flag in this codebase that changes runtime behaviour, set only by the integration harness —
+    is NOT set, so the media pipeline runs as it does everywhere else.
+- [x] T035 [P] **Grep the copy, not only the code**: confirm no user-facing string, workflow name, or document produced by this feature describes a session as a deployment or as publicly available (FR-019). 007 shipped a follow hint describing a withdrawn requirement because only the code was updated
+- [x] T036 [P] Add the Principle V divergence entry for the session environment in `docs/verification/divergence-register.md` and confirm `pnpm verify:register` passes
 - [ ] T037 Record the run in `docs/verification/runs/` with every criterion marked pass, fail or **not run** — never blank, and **count the items rather than reading the highest number**, which this project has got wrong twice
 - [ ] T038 Update `CLAUDE.md` honestly: the app runs on a real phone, and this does **not** close the hosting question or `003/datastore-decision.md`
 - [ ] T039 Walk [quickstart.md](./quickstart.md) end to end as written, and fix the document wherever reality disagreed with it

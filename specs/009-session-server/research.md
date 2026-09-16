@@ -149,7 +149,12 @@ until the tunnel is up.
 publish at all, because the bytes never landed. Run 25's third defect is the same fact from
 the other direction. `configuration.ts` carries a comment about it that ends: *"Any hosted
 deployment where object storage sits behind a different public address needs this distinction
-too."* This feature is that deployment.
+too."* A session is the first thing here to sit behind one.
+
+(Worded as "this feature is that deployment" until 2026-09-16. FR-019 forbids describing a
+session as a deployment, and T035's whole job is to grep the copy rather than only the code —
+so the sentence went, even though it meant "the case that comment anticipated". It is exactly
+the drift 007 shipped when a follow hint kept describing a withdrawn requirement.)
 
 **The symptom if it is got wrong is the reason it is a contract**: the app works, and every
 image is blank. That reads as a defect in the product and is not one — which is precisely

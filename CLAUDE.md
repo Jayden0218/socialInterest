@@ -654,18 +654,27 @@ overlay seams; its Actions draw on an account-wide 2,000-minute allowance shared
 other private repository the owner has, which is why the heavy jobs live upstream.
 
 **WHERE THIS REPOSITORY IS PUBLIC, ACTIONS LOGS AND JOB SUMMARIES ARE WORLD-READABLE.**
-009's session descriptor prints a live credential into its job summary. It dies with the
+009's session descriptor printed a live credential into its job summary. It died with the
 session (30 minutes, against a random tunnel address) but anyone reading the Actions tab in
-that window has it.
+that window had it.
 
-**011 LANDED AND THIS EXPOSURE IS STILL OPEN. Reported, not closed.** The paragraph here
-used to promise it "ends when email/password identity lands and a session hands out only an
-address" — identity has landed, and the session workflow still prints the credential,
-because nothing in 011 touched `.github/workflows/session-server.yml`. What 011 changed is
-that the exposure is now *unnecessary* rather than load-bearing: a person can create an
-account in the app against a session's address, so the descriptor has no reason to carry a
-credential at all. Removing it is a small, separate change to that workflow and it has not
-been made. **Do not read the old sentence as done.**
+**CLOSED 2026-09-16.** The descriptor publishes no credential. `scripts/session-up.sh` still
+MINTS one — steps 7 and 7b act AS that person over HTTP and cannot sign in to do it — and it
+never leaves the runner. A person types the backend address and creates an account, which is
+what 011 made possible.
+
+**The requirement that kept it there is the part worth remembering.** 009/FR-014 said a
+session MUST issue a credential, and justified itself in one sentence: *"The product has no
+self-service sign-up."* 011 made that false and the requirement stayed — along with a MUST in
+`contracts/session-descriptor.md` §2, a row in its "what a descriptor MUST contain" table,
+US3's own title, an acceptance scenario and the quickstart. **Deleting the `printf` alone
+would have left five documents demanding it back.** That is "grep the COPY, not only the
+code" applied to a contract rather than to a follow hint, and it is why this sat open for two
+features: each time, the code looked like the whole job.
+
+Not swapped for the email and password `mint-device-token.ts` provisions beside the token —
+that is the same exposure with more steps. And the repository being private today is not the
+reason this is safe: this file records reading visibility off a stale paragraph three times.
 
 The paragraph as written on 2026-09-07: The repository is **public** (`visibility: public`, checked 2026-09-07),
 so GitHub-hosted standard runners are free on it, and CI runs 169-176 plus emulator runs
@@ -1069,8 +1078,9 @@ passwords.
 - **US4 (password reset) is not built.** A forgotten password is unrecoverable, and FR-022
   makes that a stated condition rather than a broken control: there is no "forgot your
   password" link, deliberately.
-- **009's session descriptor still prints a live credential** into a world-readable job
-  summary. See the note above — 011 makes it unnecessary and does not remove it.
+- ~~**009's session descriptor still prints a live credential** into a world-readable job
+  summary.~~ **Closed 2026-09-16**, by withdrawing 009/FR-014 as well as by editing the
+  script. See the note above.
 - MinIO cannot run in this sandbox (quay.io is unreachable), so 3 API failures are that and
   1 is the grown-table appeal test; all four were baselined by stashing the change.
 

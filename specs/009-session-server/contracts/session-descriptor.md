@@ -71,15 +71,39 @@ name this step. It MUST NOT emit a descriptor.
 |---|---|
 | Backend address | The address the app talks to. Full base address including scheme and version prefix, interchangeable with the app's built-in default |
 | Media address | The address media is served from. Distinct from the backend address |
-| Credential | At least one, valid for **this** session only |
 | Expiry | An absolute time, not a duration. "2 hours" read forty minutes later is a lie |
 | Lifetime as chosen | So the owner can see that the dispatch input took effect (FR-017) |
 
-**The credential MUST be one the product itself would accept.** The local profile has no
-self-service sign-up, so a correctly-signed credential whose profile row does not exist gets
-`404 No such person` and sign-in fails on the device. A descriptor carrying such a credential
-satisfies this contract's letter and fails its purpose; the credential MUST be minted through
-the application's own person repository, as `apps/api/scripts/mint-device-token.ts` does.
+### A descriptor MUST NOT contain a credential (amended 2026-09-16)
+
+**This clause is the reverse of what it said**, and the reversal is the point rather than a
+loosening.
+
+It required "a credential, at least one, valid for **this** session only", and justified it in
+one sentence: *"The local profile has no self-service sign-up."* That was true when it was
+written and **011 made it false** — `POST /v1/auth/sign-up` exists, so a person holding the
+backend address can make themselves an account. The premise went and the requirement stayed,
+which is the shape this project records as a withdrawn requirement nobody grepped the copy for.
+
+What the original clause was *defending* is still binding and is not weakened: a
+correctly-signed credential whose profile row does not exist gets `404 No such person` and
+sign-in fails on the device — **a signed token is not an identity**. That is why the bring-up
+still mints through the application's own `PersonRepository`
+(`apps/api/scripts/mint-device-token.ts`) rather than signing a JWT. The credential is what the
+bring-up's own checks act as (the media-address check in §1, and seeding). It simply never
+leaves the runner.
+
+**Why MUST NOT rather than MAY.** Where this repository is public, a job summary is
+world-readable. A credential printed there is live, against a live address, for anyone reading
+the Actions tab for as long as the session lasts. CLAUDE.md carried that as a reported, open
+exposure from 009 onwards — including a note that 011 would make it unnecessary and that
+nothing in 011 had touched the workflow. It had not; this amendment is that change.
+
+The email and password `mint-device-token.ts` provisions beside the token are **not** a
+substitute. They are the same exposure with more steps.
+
+Consequence for the person: they type the backend address and create an account. A session
+starts on an empty datastore, so whatever name they want is free.
 
 **Both addresses MUST be reachable over an encrypted connection (FR-011), and the bring-up
 MUST verify it rather than assume it.**

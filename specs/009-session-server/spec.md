@@ -70,14 +70,14 @@ mobile data — not the same network as anything.
 
 1. **Given** no cloud account and no payment method exists anywhere, **When** the owner starts a session, **Then** it starts and costs nothing.
 2. **Given** a running session, **When** a phone on an unrelated network opens the app against it, **Then** the app reaches it over an encrypted connection.
-3. **Given** a running session, **When** the owner signs in with the credential it issued, **Then** they reach the product's main surface with the interest catalogue already populated.
+3. **Given** a running session, **When** the owner creates an account against its address, **Then** they reach the product's main surface with content already there. (**Amended 2026-09-16**: 011 added sign-up, so a session no longer issues a credential — see FR-014. 013 also deleted the curated catalogue, so what is "already populated" is the seeded demo content, not twelve interests we own.)
 4. **Given** a running session, **When** the owner publishes a post with a photograph, **Then** the photograph is stored and renders back on the phone.
 5. **Given** a session has been running for its chosen lifetime, **When** that lifetime elapses, **Then** the session ends without the owner doing anything.
 6. **Given** the owner starts a session, **When** they choose how long it should last, **Then** it lasts that long and the expiry time is stated up front.
 
 ---
 
-### User Story 3 - Get the address and credential without hunting for them (Priority: P3)
+### User Story 3 - Get the address without hunting for it (Priority: P3)
 
 The owner starts a session from their phone. When it is ready, everything they need to type
 into the app is in front of them, on the phone, in a form they can copy from.
@@ -86,12 +86,14 @@ into the app is in front of them, on the phone, in a form they can copy from.
 work. It is P3 only because Stories 1 and 2 can be demonstrated by an owner willing to dig,
 and this makes it routine rather than possible.
 
-**Independent Test**: Start a session using only a phone. Obtain both addresses and the
-credential on that phone, without opening a laptop and without downloading a file.
+**Independent Test**: Start a session using only a phone. Obtain both addresses on that phone,
+without opening a laptop and without downloading a file, and create an account against the
+backend one from inside the app. (**Amended 2026-09-16**, FR-014: the descriptor no longer
+carries a credential, so "obtain the credential" became "make one".)
 
 **Acceptance Scenarios**:
 
-1. **Given** a session has started, **When** the owner looks at its result on a phone, **Then** both addresses, the credential, and the expiry time are readable there.
+1. **Given** a session has started, **When** the owner looks at its result on a phone, **Then** both addresses and the expiry time are readable there. (**Amended 2026-09-16**, FR-014: not the credential.)
 2. **Given** a session fails to start, **When** the owner looks at the result, **Then** it names which step failed.
 3. **Given** a session is running, **When** the owner checks on it, **Then** they can tell whether it is still alive and how long it has left.
 
@@ -130,7 +132,7 @@ credential on that phone, without opening a laptop and without downloading a fil
 - **FR-011**: A session MUST be reachable over an encrypted connection.
 - **FR-012**: A session MUST serve both the application and the media it stores, at addresses a phone can reach.
 - **FR-013**: A session MUST start with the interest catalogue populated, so the product is usable immediately.
-- **FR-014**: A session MUST issue at least one credential that can sign in to it. The product has no self-service sign-up, so a session without one is unusable.
+- **FR-014**: ~~A session MUST issue at least one credential that can sign in to it. The product has no self-service sign-up, so a session without one is unusable.~~ **WITHDRAWN 2026-09-16.** Its stated premise — "the product has no self-service sign-up" — was made false by 011, which added `POST /v1/auth/sign-up`. **Replaced by FR-014a**: a session MUST NOT publish a credential in its descriptor. The bring-up still mints one through the application's own `PersonRepository` for its own checks and for seeding; that credential never leaves the runner. Where this repository is public a job summary is world-readable, so a published credential is live against a live address for anyone reading the Actions tab. See `contracts/session-descriptor.md` §2.
 - **FR-015**: Each session MUST generate its own signing secret. No secret may be shared between sessions or stored in the repository.
 - **FR-016**: A session MUST end automatically after a bounded lifetime, with no action from the owner.
 - **FR-017**: The owner MUST be able to choose that lifetime when starting the session, within a stated maximum.
@@ -139,7 +141,7 @@ credential on that phone, without opening a laptop and without downloading a fil
 
 #### Getting what you need out of it (US3)
 
-- **FR-020**: When a session is ready, both addresses, a credential, and the expiry time MUST be presented together, readable on a phone, without downloading anything.
+- **FR-020**: When a session is ready, both addresses and the expiry time MUST be presented together, readable on a phone, without downloading anything. (**Amended 2026-09-16** with FR-014: a credential is no longer among them, and must not be.)
 - **FR-021**: When a session fails to start, the result MUST name the step that failed.
 - **FR-022**: While a session is running, the owner MUST be able to determine that it is still alive and how much of its lifetime remains.
 
