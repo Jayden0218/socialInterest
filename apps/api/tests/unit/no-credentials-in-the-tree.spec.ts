@@ -132,6 +132,29 @@ describe('010/FR-016 — nothing credential-shaped is in the repository', () => 
    * Planted against the PATTERNS rather than in a file, because writing a real
    * credential-shaped string into the tree to prove the scanner works is how
    * one gets committed.
+   *
+   * ──────────────────────────────────────────────────────────────────────────
+   * AND EVERY ONE IS ASSEMBLED, NEVER WRITTEN WHOLE. GITHUB BLOCKED A PUSH
+   * OVER THIS FILE.
+   * ──────────────────────────────────────────────────────────────────────────
+   *
+   * Three of these were already split (`gh${'p'}_…`) and five were not, which
+   * is an inconsistency I introduced and did not notice. GitHub Push Protection
+   * found the one of the five it has a detector for, and refused the push:
+   *
+   *   remote: - GITHUB PUSH PROTECTION
+   *   remote:   —— Slack API Token ——
+   *   remote:     path: apps/api/tests/unit/no-credentials-in-the-tree.spec.ts:143
+   *
+   * The token is `xoxb-` followed by twenty-four ZEROES. A shape detector
+   * cannot tell a planted example from a real credential — that is the whole
+   * reason it is a shape detector, and it is the same reason THIS file's own
+   * scanner would flag its own fixtures if they were written whole.
+   *
+   * So every example is built from fragments at runtime. The assertions below
+   * test the identical strings; what changes is that no complete credential
+   * shape exists as a literal anywhere in this repository's source — which is
+   * the property the file is named for, applied to the file itself.
    */
   it('every shape it claims to catch, it catches', () => {
     const planted: Record<string, string> = {
