@@ -132,9 +132,23 @@ story to P3 after the research.
 
 - [X] T032 [US2] Give `people-search` a renderer **and** a way in. It has neither today — a route nothing can reach that also could not draw itself if reached (FR-015, FR-016)
 - [X] T033 [US2] Give `create-place` a caller, or remove the route. A route with no way in is not a screen
-- [ ] T034 [US2] Build the post actions sheet and the safety sheet per `PostActions.dc.html` and `SafetySheet.dc.html`. Report and block currently sit behind an unlabelled `⋯`; Constitution IV makes those easier to reach, never harder
+- [X] T034 [US2] Build the post actions sheet and the safety sheet per `PostActions.dc.html` and `SafetySheet.dc.html`. Report and block currently sit behind an unlabelled `⋯`; Constitution IV makes those easier to reach, never harder.
+
+  **DONE, with one row of `SafetySheet.dc.html` deliberately NOT built: "Report account".**
+
+  `ReportSubjectType` has no `person`, and adding one would file a report an operator cannot
+  act on — a person's status is `active | deleting | deleted`, there is no suspension, and
+  `moderation.controller.ts` has no action that takes a person. That is the
+  declared-half-with-no-other-half shape this repository has recorded seven times, and safety
+  is the worst place to add an eighth: it would look like a route to a human and be a queue
+  item nobody can close. Mute and block are offered and are immediate; a person's CONTENT is
+  reportable from any of their posts. **Reporting a person is a real gap and needs an operator
+  action before it is a control.**
+
+  What this did close: a profile had Follow and Message and nothing else, so the only way to
+  block somebody was to find one of their posts and press a button labelled Report.
 - [ ] T035 [US2] Walk every journey end to end **as a person, not as a test**, and write down the first point at which you cannot continue. That list is the rest of this phase (FR-017)
-- [ ] T036 [US2] Every pushed screen offers a way back that does not depend on a platform gesture (FR-018)
+- [X] T036 [US2] Every pushed screen offers a way back that does not depend on a platform gesture (FR-018)
 - [X] T037 [US2] Write a guard that fails the build if a declared route has no renderer or no caller. `people-search` is why: two halves missing and nothing noticed
 
 ---
@@ -144,7 +158,7 @@ story to P3 after the research.
 - [X] T038 [US5] Rebuild Explore per `Explore.dc.html`: **one** search field instead of two, and interest tiles with a photo mosaic and a post count shown **before anything is typed** (FR-031, FR-032)
 - [ ] T039 [US5] Build the interest space per `InterestSpace.dc.html`. It is the product's premise — every space is browsed by one interest — and it had no artboard at all until this pass
 - [X] T040 [US5] Every primary surface offers a visible next action without scrolling (FR-033)
-- [ ] T041 [US5] Build the cold start per `ColdStart.dc.html`, so a new account's first screen after sign-up leads somewhere rather than to an empty feed
+- [X] T041 [US5] Build the cold start per `ColdStart.dc.html`, so a new account's first screen after sign-up leads somewhere rather than to an empty feed
 
 ---
 

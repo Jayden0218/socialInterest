@@ -8,7 +8,8 @@ export interface NamePolicyVerdict {
 }
 
 /**
- * FR-031: the content policy applies to sub-interest NAMES, not only to posts.
+ * FR-031: the content policy applies to interest NAMES, not only to posts —
+ * and since 013 every name is one a person typed, so it applies to all of them.
  *
  * Added after /speckit-analyze found the gap (finding G1): reporting existed,
  * but nothing screened a name at creation - so an abusive interest name would go

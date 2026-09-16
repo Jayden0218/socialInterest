@@ -11,9 +11,11 @@ import { Icon } from '../../ui/Icon';
 export type SearchMode = 'interests' | 'posts';
 
 /**
- * FR-026: results appear as the person types, across both levels, each
- * sub-interest labelled with its parent — "portraits" under Photography must be
- * distinguishable from "portraits" under Painting.
+ * FR-026: results appear as the person types.
+ *
+ * 013. It used to say "across both levels, each sub-interest labelled with its
+ * parent". There is one level and a name is globally unique, so there is nothing
+ * to disambiguate.
  */
 export const TYPEAHEAD_DEBOUNCE_MS = 150;
 export const MIN_QUERY_LENGTH = 1;
@@ -249,7 +251,15 @@ export function InterestSearchScreen({
             testID="search-empty"
             icon="search"
             title="No interests match"
-            body="Try a shorter word, or create a sub-interest for it."
+            /*
+              013/FR-004, and this is COPY describing a product that no longer
+              exists — the thing 013's quickstart §7 and 008/T224 both exist to
+              catch, found exactly that way. It said "create a sub-interest for
+              it": there are no sub-interests, and there is no create screen
+              either. An interest comes into being when somebody publishes a
+              post that names it, so that is what this says.
+            */
+            body="Nobody has named one yet. Publish a post with this word and you will have."
           />
         ) : (
           /*

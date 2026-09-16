@@ -38,6 +38,16 @@ appId: app.socialinterest
 
 - tapOn:
     id: "open-safety"
+
+# 012/T034. ONE STEP MORE, AND IT IS THE PRODUCT'S OWN. `open-safety` opens the
+# actions sheet now (`PostActions.dc.html`); reporting is a labelled row in it
+# rather than the whole of what that control does. Constitution IV: easier to
+# reach, never harder — and the sheet is where mute and dismiss are, so somebody
+# who wants one of those no longer has to press a button marked Report.
+- assertVisible:
+    id: "post-actions"
+- tapOn:
+    id: "sheet-report"
 - assertVisible:
     id: "report-reasons"
 

@@ -31,6 +31,18 @@ export function fakeData(over: Partial<Record<string, unknown>> = {}): AppData {
    */
   const page = { items: [], page: { nextCursor: null, emptyStateHint: null } };
   const me = {
+    /**
+     * 012/T036. `userId` WAS MISSING, and `Avatar` crashed the whole screen on
+     * it — `stableHash(undefined).length`, taking Edit profile down with it.
+     *
+     * A real `PublicProfile` always carries one; the contract requires it. So
+     * this is the fixture lying about the interface rather than a product
+     * defect, and the fix belongs here rather than in a component defending
+     * against a shape only a fixture produces. It went unnoticed because no
+     * test rendered Edit profile through the SHELL until one enumerated every
+     * route — a screen test is not a container test, 003 again.
+     */
+    userId: 'u-me',
     handle: 'me',
     displayName: 'Me',
     bio: null,

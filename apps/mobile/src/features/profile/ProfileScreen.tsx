@@ -192,6 +192,8 @@ export function ProfileScreen({
   followPending = false,
   onToggleFollow,
   onMessage,
+  onOpenActions,
+  actionsSheet,
   onLoadMore,
   renderPost,
   postsFallback,
@@ -208,6 +210,10 @@ export function ProfileScreen({
   onToggleFollow: (next: boolean) => void;
   /** 004/FR-001. Absent on your own profile - you cannot message yourself. */
   onMessage?: () => void;
+  /** 012/T034. Opens the person actions sheet. Absent means it is not offered. */
+  onOpenActions?: () => void;
+  /** The sheet itself, rendered by the container so this screen owns no state. */
+  actionsSheet?: React.ReactNode;
   onLoadMore: () => void;
   renderPost: (post: Post, index: number) => React.ReactElement;
   /** 012/FR-001. Rendered instead of the grid; the profile header stays put. */
@@ -306,6 +312,22 @@ export function ProfileScreen({
               {onMessage ? (
                 <PillButton testID="message-person" label="Message" onPress={onMessage} />
               ) : null}
+              {/*
+                012/T034, Constitution IV. THE ONLY WAY TO MUTE OR BLOCK SOMEBODY
+                WAS THROUGH ONE OF THEIR POSTS.
+                
+                A profile had Follow and Message and nothing else, so somebody
+                who wanted to block a person had to find something they had
+                posted first and press a button labelled Report. Safety is a
+                release gate and gets easier to reach, never harder — and
+                `SafetySheet.dc.html` puts these on the profile, where a person
+                looks for them.
+                
+                Labelled "More", never a bare glyph, for the reason T034 names.
+              */}
+              {onOpenActions ? (
+                <PillButton testID="open-person-actions" label="More" onPress={onOpenActions} />
+              ) : null}
             </>
           )}
         </View>
@@ -347,6 +369,9 @@ export function ProfileScreen({
           empty={{ title: 'No posts yet', body: isSelf ? 'Your posts will appear here.' : 'Nothing to show.' }}
         />
       )}
+      {/* 012/T034. The sheet renders LAST so it is above the grid, and comes
+          from the container: this screen stays prop-driven and owns no state. */}
+      {actionsSheet}
     </Screen>
   );
 }

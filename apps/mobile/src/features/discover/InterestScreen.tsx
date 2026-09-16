@@ -8,7 +8,8 @@ import { FollowInterestControl } from './FollowInterestControl';
 
 export interface InterestScreenData {
   interest: Interest;
-  /** Sub-interests whose posts are rolled up into this listing (FR-024). */
+  // 013/FR-021. `rollsUpFrom` lived here. A doc comment for a field that is gone
+  // is the copy half of the same defect, so it goes with the field.
 }
 
 /**

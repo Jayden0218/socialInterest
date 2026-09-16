@@ -69,9 +69,14 @@ describe('008/US12 - the route through the safety sheet, and where it returns to
     await page.click(id(`post-${postId}`));
     await page.waitForSelector(id('post-detail-screen'), { timeout: 30_000 });
 
+    /*
+      012/T034. `open-safety` OPENS THE SHEET NOW. Reporting, muting and
+      dismissing are labelled rows in it rather than one screen you reach by
+      pressing a button marked Report.
+    */
     await page.click(id('open-safety'));
-    await page.waitForSelector(id('safety-actions'), { timeout: 30_000 });
-    await page.click(id('dismiss-post'));
+    await page.waitForSelector(id('post-actions'), { timeout: 30_000 });
+    await page.click(id('sheet-dismiss'));
 
     // WHERE THE TAP LEAVES YOU. `onDone` is `pop`, so this is post detail again
     // — and the flow's next step was a sixty-second wait for a feed card.
@@ -88,8 +93,8 @@ describe('008/US12 - the route through the safety sheet, and where it returns to
       this post.
     */
     await page.click(id('open-safety'));
-    await page.waitForSelector(id('safety-actions'), { timeout: 30_000 });
-    await page.click(id('mute-person'));
+    await page.waitForSelector(id('post-actions'), { timeout: 30_000 });
+    await page.click(id('sheet-mute'));
     await page.waitForSelector(id('post-detail-screen'), { timeout: 30_000 });
 
     expect(writes).toEqual([

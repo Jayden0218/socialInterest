@@ -38,29 +38,28 @@ appId: app.socialinterest
     timeout: 30000
 - tapOn:
     id: "open-safety"
+
+# 012/T034. THE SHEET, NOT THE SAFETY SCREEN — and this whole flow got shorter.
+#
+# `open-safety` used to push a full screen whose report reasons came FIRST and
+# whose dismiss and mute sat below them; that screen is why this flow had to
+# scroll, why run 57 failed on `mute-person` sixty points past the fold, and why
+# it had to walk back out to post detail between the two actions.
+#
+# Both are rows in a sheet now, above the report, per `PostActions.dc.html`. The
+# sheet closes on tap, so the second action starts from post detail without a
+# round trip — and nothing is below any fold, which is the point of a sheet.
 - assertVisible:
-    id: "safety-actions"
+    id: "post-actions"
 
 # FR-041. The post stops being chosen; it still opens from a link, which is what
 # makes this selection rather than the boundary.
 - assertVisible:
-    id: "dismiss-post"
+    id: "sheet-dismiss"
 - tapOn:
-    id: "dismiss-post"
+    id: "sheet-dismiss"
 
-# WHERE THAT TAP LEAVES YOU, and the whole of run 55's failure.
-#
-# The sheet is a PUSHED screen whose `onDone` is `pop` (App.tsx), so dismissing
-# returns to POST DETAIL. This flow then waited sixty seconds for a feed card —
-# and `post-<ULID>` is a testID on `PostCard` and `PostTile`, neither of which
-# the detail screen renders, so there was never anything to find. Measured in
-# 3.1 seconds by `apps/e2e/browser/mute-and-dismiss-journey.spec.ts`, which
-# counts zero of them on the screen the dismissal returns to.
-#
-# So the person-level choice starts from the screen that is actually in front of
-# you. The sheet closed on success, so this is a fresh journey to it — just not
-# one that goes back out to a feed that has this moment been told to stop
-# choosing this post.
+# The sheet closed itself, so this is post detail again with no navigation.
 - extendedWaitUntil:
     visible:
       id: "post-detail-screen"
@@ -68,28 +67,16 @@ appId: app.socialinterest
 - tapOn:
     id: "open-safety"
 - assertVisible:
-    id: "safety-actions"
+    id: "post-actions"
 
-# SCROLLED TO, exactly as `09-report-and-block` scrolls to `block-person`, and
-# measured rather than assumed. At the emulator's own 320x616 the sheet's
-# controls sit at `submit-report` 455, `dismiss-post` 557, `mute-person` 676,
-# `block-person` 852 — so the dismissal above is on screen and the mute is
-# sixty points past the fold, which is precisely the shape of run 57's failure
-# (`Assertion is false: id: mute-person is visible`, after
-# `PUT /v1/posts/:postId/dismiss` 204 in the same run's aggregate).
-#
-# The sheet scrolls because run 35 found `block-person` UNREACHABLE rather than
-# merely below the fold — a Constitution IV release gate — so this is a person
-# scrolling to a control that is meant to be scrolled to, not a workaround.
-- scrollUntilVisible:
-    element:
-      id: "mute-person"
-    direction: DOWN
-    timeout: 20000
+# 008/FR-040. NO SCROLL, which is the measured change. At the emulator's own
+# 320x616 the old screen put `mute-person` at y=676 — past the fold, and run
+# 57's failure exactly. A sheet is anchored to the bottom and holds five rows,
+# so every one of them is on screen by construction.
 - assertVisible:
-    id: "mute-person"
+    id: "sheet-mute"
 - tapOn:
-    id: "mute-person"
+    id: "sheet-mute"
 
 - assertNotVisible:
     id: "load-error"

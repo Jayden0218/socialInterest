@@ -23,9 +23,10 @@ import { MIN_TOUCH_TARGET, type as typeScale } from '../ui/tokens';
  * THE NAME IS NOT OPTIONAL AND NEVER WILL BE (006/FR-014). The colour comes
  * from a hash of the id, so two unrelated interests can land on similar hues —
  * fine as reinforcement, fatal as identification. Colour narrows; the name says.
- * A sub-interest borrows its parent's hue (FR-012) because 001/FR-024 rolls its
- * posts into the parent, and unrelated colours would make the screen disagree
- * with the product.
+ *
+ * 013. A sub-interest used to borrow its parent's hue, because the roll-up made
+ * the two one place. Interests are flat and the roll-up is withdrawn, so every
+ * interest takes its own — see `interest-colour.ts`.
  */
 export function InterestWord({
   interest,

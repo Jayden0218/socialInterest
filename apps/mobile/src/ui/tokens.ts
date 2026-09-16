@@ -29,7 +29,21 @@ import { OVERLAY_PALETTES } from '../overlay/palette';
 export const BRAND_HUE = 152;
 
 export interface Palette {
-  bg: { base: string; raised: string; sunken: string };
+  bg: {
+    base: string;
+    raised: string;
+    sunken: string;
+    /**
+     * 012/T034. What a modal sheet dims the screen behind it with.
+     *
+     * A TOKEN and not a literal, because `no-hardcoded-style` refused the
+     * literal and was right to: a scrim is a colour decision, it differs
+     * between the two palettes, and a value written inline is one the contrast
+     * guards cannot see. `PostActions.dc.html` uses the page's own text colour
+     * at 38%, which is why it reads as dimming rather than as grey paint.
+     */
+    scrim: string;
+  };
   text: {
     primary: string;
     secondary: string;
@@ -66,6 +80,8 @@ const baseLight: Palette = {
     raised: '#FFFFFF',
     /** A field, and any inset well. */
     sunken: '#F3F1EC',
+    // `text.primary` at 38%, per the artboard.
+    scrim: 'rgba(22, 33, 26, 0.38)',
   },
   text: {
     primary: '#16211A',
@@ -114,6 +130,10 @@ const baseDark: Palette = {
     base: '#121714',
     raised: '#1A211D',
     sunken: '#0D1210',
+    // Heavier in the dark palette: the same 38% over a dark page is barely a
+    // dim at all, and a sheet that does not separate from what is behind it is
+    // the "two palettes at once" problem 006 found, one layer down.
+    scrim: 'rgba(0, 0, 0, 0.55)',
   },
   text: {
     primary: '#F2F4F2',

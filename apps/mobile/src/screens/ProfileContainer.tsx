@@ -10,6 +10,7 @@ import { View } from 'react-native';
 import { PostTile } from '../components/PostCard';
 import { useData } from '../data-provider';
 import { DataError } from '../data';
+import { ActionSheet } from '../ui/ActionSheet';
 import { ProfileScreen, type ProfileData } from '../features/profile/ProfileScreen';
 import { useProfilePosts } from '../containers';
 import { Failed } from './shared';
@@ -37,6 +38,45 @@ export function ProfileContainer({
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  // 012/T034. The person actions sheet, and whether they are already muted —
+  // the row has to say which way it goes or it is a control that might undo
+  // what you meant to do.
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [muted, setMuted] = useState(false);
+
+  /**
+   * 008/FR-040. A MUTE LEAVES NO TRACE, so the sheet's own label is the only
+   * feedback there is — which is why the state is tracked here rather than
+   * inferred. Optimistic, and put back on refusal: a row that says "Mute" after
+   * a failed mute is a lie about what the server holds.
+   */
+  const toggleMute = useCallback(async () => {
+    if (!profile) return;
+    const next = !muted;
+    setMuted(next);
+    try {
+      await (next ? data.safety.mute(profile.handle) : data.safety.unmute(profile.handle));
+    } catch {
+      setMuted(!next);
+    }
+  }, [data, profile, muted]);
+
+  /**
+   * FR-044. Blocking is mutual and severs the follow, and this offers it with
+   * no second step — the warning that explains it lives on the safety screen
+   * reached from a post, which is where somebody who wants to read it is.
+   *
+   * NOT swallowed like a mute: a block somebody believes happened and did not
+   * is the one failure here that matters, so it surfaces.
+   */
+  const block = useCallback(async () => {
+    if (!profile) return;
+    try {
+      await data.safety.block(profile.handle);
+    } catch (e: unknown) {
+      setError(e instanceof DataError ? e.message : String(e));
+    }
+  }, [data, profile]);
   const [myInterests, setMyInterests] = useState<string[]>([]);
   // Your own posts need your REAL handle, not the literal "me" the tab passes
   // in. Until `GET /v1/me` resolves there is no handle to ask with, and asking
@@ -189,6 +229,62 @@ export function ProfileContainer({
       renderPost={(post) => <PostTile post={post} onOpen={onOpenPost} />}
       {...(isSelf && onEditProfile ? { onEditProfile } : {})}
       {...(isSelf && onOpenSaved ? { onOpenSaved } : {})}
+      {...(isSelf
+        ? {}
+        : {
+            onOpenActions: () => setSheetOpen(true),
+            actionsSheet: (
+              <ActionSheet
+                testID="person-actions"
+                visible={sheetOpen}
+                caption={`@${profile.handle}`}
+                onClose={() => setSheetOpen(false)}
+                actions={[
+                  ...(onMessage
+                    ? [
+                        {
+                          key: 'message' as const,
+                          icon: 'chats' as const,
+                          label: 'Message',
+                          onPress: () => onMessage(profile.handle),
+                        },
+                      ]
+                    : []),
+                  {
+                    key: 'mute' as const,
+                    icon: 'profile' as const,
+                    label: muted ? 'Show their posts again' : 'Mute',
+                    onPress: () => void toggleMute(),
+                  },
+                  {
+                    key: 'block' as const,
+                    icon: 'close' as const,
+                    label: 'Block',
+                    destructive: true,
+                    onPress: () => void block(),
+                  },
+                  /*
+                    012/T034. "REPORT ACCOUNT" IS ON THE ARTBOARD AND IS NOT
+                    HERE, and that is a decision rather than an omission.
+
+                    `ReportSubjectType` has no `person`, and adding one would
+                    file a report an operator cannot act on: a person's status
+                    is `active | deleting | deleted` — there is no suspension,
+                    and `moderation.controller.ts` has no action that takes a
+                    person. A control that sends something nobody can answer is
+                    the declared-half-with-no-other-half shape this repository
+                    has recorded seven times, and safety is the worst place to
+                    add an eighth: it would look like a route to a human and be
+                    a route to a queue item nobody can close.
+
+                    What exists and is offered: mute and block, both immediate
+                    and both real. Reporting a person's CONTENT is reachable
+                    from any of their posts. Recorded in 012/tasks.md.
+                  */
+                ]}
+              />
+            ),
+          })}
     />
   );
 }

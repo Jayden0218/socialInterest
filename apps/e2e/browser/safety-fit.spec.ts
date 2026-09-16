@@ -56,7 +56,10 @@ describe('006/J-09 - the safety sheet on a short screen', () => {
     await page.click('[data-testid="tab-feed"]');
     await page.waitForSelector(`[data-testid="post-${postId}"]`, { timeout: 30_000 });
     await page.click(`[data-testid="post-${postId}"]`);
+    // 012/T034. Through the sheet, which is where reporting lives now.
     await page.click('[data-testid="open-safety"]');
+    await page.waitForSelector('[data-testid="post-actions"]', { timeout: 30_000 });
+    await page.click('[data-testid="sheet-report"]');
     await page.waitForSelector('[data-testid="report-reasons"]', { timeout: 30_000 });
   }
 

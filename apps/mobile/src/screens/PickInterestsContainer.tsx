@@ -5,7 +5,7 @@
  * a single 2,726-line `screens/index.tsx`, which `index.tsx` now re-exports so
  * nothing outside this directory changed. See ./README.md for why.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import type { Interest } from '@sih/shared';
 import { PickInterestsScreen, MAX_PICKS } from '../features/onboarding/PickInterestsScreen';
@@ -44,6 +44,26 @@ export function PickInterestsContainer({ onDone }: { onDone: () => void }) {
           onDone();
           return;
         }
+        /**
+         * 012/T041, 013/FR-017. NOTHING TO OFFER IS A REASON NOT TO ASK.
+         *
+         * Until 013 the catalogue was twelve interests that shipped with the
+         * product, so this screen always had something on it. It ships with
+         * none now, and on a fresh install `listTop` comes back empty — so the
+         * first thing the product would do to a person is show them an empty
+         * grid, a "0 picked" counter and a Continue button that records the
+         * answer "none" they were never given a chance to give.
+         *
+         * Asking a question with no answers on it is worse than not asking. The
+         * answer is recorded as "none" — which is TRUE, and is what keeps the
+         * screen from reappearing on every sign-in — and they go straight to the
+         * feed, which since T044 offers them the one action that exists on an
+         * empty install: publish something.
+         */
+        if (top.items.length === 0) {
+          void commitRef.current([]);
+          return;
+        }
         setInterests(top.items);
       })
       .catch(() => live && onDone());
@@ -61,6 +81,14 @@ export function PickInterestsContainer({ onDone }: { onDone: () => void }) {
           : [...current, interestId],
     );
   }, []);
+
+  /**
+   * A REF, because the effect above needs `commit` and `commit` is declared
+   * below it. Putting `commit` in the effect's dependency list would re-run the
+   * whole cold-start check whenever its identity changed, which is the shape
+   * that makes a first-run screen flicker.
+   */
+  const commitRef = useRef<(ids: string[]) => Promise<void>>(async () => undefined);
 
   const commit = useCallback(
     async (ids: string[]) => {
@@ -84,6 +112,8 @@ export function PickInterestsContainer({ onDone }: { onDone: () => void }) {
     },
     [data, onDone],
   );
+
+  commitRef.current = commit;
 
   if (!interests) return <View testID="pick-interests-loading" />;
   return (

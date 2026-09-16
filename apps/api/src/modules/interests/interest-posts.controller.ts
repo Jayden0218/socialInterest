@@ -9,8 +9,9 @@ import { CATALOGUE_SEARCH, type CatalogueSearch } from './catalogue.cache';
  * FR-024, FR-025, FR-035.
  *
  * The roll-up needs no work here: PostService writes one index item per interest
- * in the expanded set (sub-interest AND parent), so querying a top-level
- * interest's partition already returns its sub-interests' posts in one Query.
+ * in its interest's partition, so querying that partition returns the space's
+ * posts in one Query. 013: there is no expanded set any more — a post is filed
+ * under the interests it names and the roll-up is withdrawn.
  * Denormalising on write is what buys that - see data-model.md.
  *
  * Replaces the minimal listing US1 shipped in post-feeds.controller.ts, adding

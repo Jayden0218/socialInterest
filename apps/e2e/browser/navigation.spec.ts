@@ -319,6 +319,9 @@ describe('browser journeys - the screens the shell could not reach', () => {
     await page.click(id(`post-${postId}`));
     await page.waitForSelector(id('open-safety'), { timeout: 20_000 });
     await page.click(id('open-safety'));
+    // 012/T034. The sheet first, then the report row — see `post-actions`.
+    await page.waitForSelector(id('post-actions'), { timeout: 20_000 });
+    await page.click(id('sheet-report'));
 
     await page.waitForSelector(id('safety-actions'), { timeout: 20_000 });
     // Block renders only when the author's handle reached SafetyActions

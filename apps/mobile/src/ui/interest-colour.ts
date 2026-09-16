@@ -18,19 +18,22 @@ import { dark, light, type Palette } from './tokens';
  */
 export interface InterestColourInput {
   interestId: string;
-  /** Present on a sub-interest. FR-012: the family must be visible. */
+  // 013/T026a. A `parentId` used to live here so a child could borrow a
+  // parent's hue. Interests are flat; the field and the comment describing it
+  // both go, because a dangling doc comment for a deleted field is the copy
+  // half of the same defect (013's quickstart §7: grep the COPY).
 }
 
 export function interestHue(interest: InterestColourInput): number {
   /**
-   * A sub-interest takes its PARENT's hue.
+   * ITS OWN ID, ALWAYS.
    *
-   * 001/FR-024 rolls a sub-interest's posts into its parent, so they are one
-   * place as far as a feed is concerned. Giving them unrelated colours would
-   * make the screen disagree with the product. They are told apart by lightness
-   * instead - see `interestColour`.
+   * A sub-interest used to take its PARENT's hue, because 001/FR-024 rolled its
+   * posts into the parent and two unrelated colours for one place would have
+   * made the screen disagree with the product. 013 withdrew the roll-up and the
+   * hierarchy with it, so there is no parent to borrow from and no family to
+   * signal.
    */
-  // 013/T026a. Its own id, always. A child no longer borrows a parent's hue.
   const seed = interest.interestId;
   return stableHash(seed) % 360;
 }
@@ -38,10 +41,6 @@ export function interestHue(interest: InterestColourInput): number {
 /**
  * The chip colour for an interest in a given palette.
  *
- * A sub-interest sits one step lighter (dark palette) or darker (light palette)
- * than its parent, so a family reads as a family without a second hue.
- */
-/**
  * 013/T026a. THE CHILD BRANCH IS GONE, AND SO IS THE HUE IT BORROWED.
  *
  * A sub-interest used to take its PARENT's hue — `parentId ?? interestId` — and

@@ -157,6 +157,17 @@ describe('every control is reliably tappable', () => {
       slop: { top: 14, bottom: 14, left: 14, right: 14 },
     },
     {
+      file: 'src/features/onboarding/PickInterestsScreen.tsx',
+      match: 'pick-skip-header',
+      label: 'skip the cold start',
+      // 012/T041. Skip moved into the header per `ColdStart.dc.html`, where it
+      // is a word rather than a button — so it needs the arithmetic doing. A
+      // `caption` line box with a declared `minWidth`.
+      boxHeight: typeScale.caption.lineHeight,
+      boxWidth: MIN_TOUCH_TARGET,
+      slop: { top: 14, bottom: 14, left: 14, right: 14 },
+    },
+    {
       file: 'src/App.tsx',
       match: 'open-compose',
       label: 'the compose square',
