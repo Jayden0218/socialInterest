@@ -349,9 +349,10 @@ rather than as a surprise in the build.
 
 ### Open, and carried here rather than guessed
 
-- **[NEEDS CLARIFICATION: Is the operator merge queue built in this feature, or do synonyms
-  accumulate until somebody asks for one?]** FR-012 requires an operator to be *able* to merge —
-  the capability already exists. What is undecided is whether this feature also builds the
-  surface that finds candidates and presents them for decision. Building it now costs real work
-  and nobody has yet seen the volume; leaving it means genuine synonyms sit unmerged until a
-  person notices, which US2's prevention makes tolerable.
+- **RESOLVED (research R7): the operator merge QUEUE is not built in this feature.** FR-012's
+  capability is required and already exists; the surface that finds candidate synonyms and
+  presents them for decision is out of scope. The decisive reason is that it cannot be built well
+  yet — a queue must propose candidates, and the only available signal scores true synonyms
+  (0.13–0.23) below every unrelated pair (0.75–0.83), so a queue ranked by it would surface
+  Golf/Wolf and never NYC/New York City. Revisit when an installation has the volume, or when a
+  signal better than edit distance exists.

@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,11 +31,13 @@
 
 ## Notes
 
-**One [NEEDS CLARIFICATION] remains, deliberately.** Whether the operator merge QUEUE is built in
-this feature is a scope decision with no reasonable default: the merge capability already exists
-and FR-012 requires it, so the feature is coherent either way, and nobody has yet seen the volume
-of synonyms that would justify the surface. Guessing would either add real work nobody asked for
-or silently drop something the owner assumed. It is carried in the spec and asked below.
+**RESOLVED in the plan phase** (research R7): the operator merge **queue** is NOT built in this
+feature. The capability is, and already exists. Three reasons, the first of which is decisive: a
+queue must propose candidates, and the only signal available scores true synonyms BELOW every
+unrelated pair — a queue ranked by it would surface Golf/Wolf and never NYC/New York City.
+Building the surface before there is a signal worth surfacing is the declared-half pattern again.
+Revisit when a real installation has the volume, or when a better signal than edit distance
+exists.
 
 **Two naming notes for the implementer**, since this specification deliberately avoids
 implementation detail and the vocabulary does not match the code:
