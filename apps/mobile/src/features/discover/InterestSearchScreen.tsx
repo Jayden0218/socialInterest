@@ -1,9 +1,10 @@
 import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
 import type { InterestRef, PlaceSummary, PublicProfile } from '@sih/shared';
-import { activePalette as palette, radius, space, textStyle, touchTarget } from '../../ui/theme';
+import { activePalette as palette, radius, space, textStyle, touchTarget, MIN_TOUCH_TARGET } from '../../ui/theme';
 import { interestColour } from '../../ui/interest-colour';
 import { EmptyState, Row, Screen } from '../../ui/primitives';
 import { labelWithParent } from './InterestScreen';
+import { Icon } from '../../ui/Icon';
 
 /** 008/US6. Which of Discover's two searches is showing. */
 export type SearchMode = 'interests' | 'posts';
@@ -47,6 +48,7 @@ export function InterestSearchScreen({
   onSelectPlace,
   onSelectPerson,
   onSelectMode,
+  onCreatePlace,
   fallback,
 }: {
   query: string;
@@ -66,6 +68,11 @@ export function InterestSearchScreen({
   onSelectMode?: (next: SearchMode) => void;
   /** 012/FR-001. Rendered instead of the interest list; the fields stay put. */
   fallback?: React.ReactElement;
+  /**
+   * 012/T033, FR-015. Offered when a place search found nothing — the one path
+   * `create-place` was designed to be reached from, and never had.
+   */
+  onCreatePlace?: (initialName: string, initialLocality: string) => void;
 }) {
   const showPosts = mode === 'posts' && onSelectMode !== undefined;
   return (
@@ -147,6 +154,32 @@ export function InterestSearchScreen({
         posts
       ) : (
         <>
+        {/*
+          012/T033. "I looked for a place and it is not here" is the moment a
+          person wants to add one, and until now there was nothing to press:
+          `create-place` was a screen with no way in at all.
+
+          Shown only when a real search came back empty — both fields filled
+          and nothing found — because offering "Add a place" over a list of
+          results is noise, and offering it before anything is typed asks
+          somebody to name a place they have not looked for yet.
+        */}
+        {onCreatePlace && onSelectPlace && shouldQuery(query) && (locality ?? "").trim().length > 0 && places && places.length === 0 ? (
+          <Pressable
+            testID="create-place-from-search"
+            accessibilityRole="button"
+            onPress={() => onCreatePlace(query.trim(), (locality ?? "").trim())}
+            style={{ paddingVertical: space.md, minHeight: MIN_TOUCH_TARGET, justifyContent: 'center' }}
+          >
+            <Row style={{ alignItems: 'center', gap: space.sm }}>
+              <Icon name="plus" size="action" color={palette.intent.accent} />
+              <Text style={{ ...textStyle.body, color: palette.intent.accent }}>
+                Add “{query.trim()}” as a place
+              </Text>
+            </Row>
+          </Pressable>
+        ) : null}
+
         {places && places.length > 0 && onSelectPlace ? (
           <View testID="place-results" style={{ gap: space.xs }}>
             <Text style={{ ...textStyle.caption, color: palette.text.muted }}>Places</Text>

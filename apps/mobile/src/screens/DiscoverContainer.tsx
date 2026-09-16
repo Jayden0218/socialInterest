@@ -19,6 +19,7 @@ export function DiscoverContainer({
   onSelectPlace,
   onSelectPerson,
   onOpenPost,
+  onCreatePlace,
 }: {
   onSelect: (interestId: string) => void;
   /** 004/US2. Places live inside Discover rather than taking a sixth tab. */
@@ -27,6 +28,8 @@ export function DiscoverContainer({
   onSelectPerson?: (handle: string) => void;
   /** 008/US6. Absent means the Posts tab is not offered at all. */
   onOpenPost?: (postId: string) => void;
+  /** 012/T033. Absent means the "add a place" path is not offered. */
+  onCreatePlace?: (initialName: string, initialLocality: string) => void;
 }) {
   const data = useData();
   const [query, setQuery] = useState('');
@@ -117,6 +120,7 @@ export function DiscoverContainer({
       onQueryChange={setQuery}
       {...(onSelectPlace ? { onLocalityChange: setLocality, onSelectPlace } : {})}
       {...(onSelectPerson ? { onSelectPerson } : {})}
+      {...(onCreatePlace ? { onCreatePlace } : {})}
       {...(onOpenPost
         ? {
             onSelectMode: setMode,

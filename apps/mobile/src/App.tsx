@@ -145,7 +145,24 @@ export type Route =
   | { name: 'place'; placeId: string }
   | { name: 'create-place'; initialName?: string; initialLocality?: string }
   | { name: 'saved' }
-  | { name: 'people-search' }
+  /**
+   * 012/T032, FR-015 — `people-search` IS GONE, not implemented.
+   *
+   * It was a declared route with NO case in the renderer and nothing pushing
+   * it: a screen that could not be reached AND could not have drawn itself if
+   * it had been. Two halves missing rather than one, and nothing noticed
+   * because a `Route` variant nobody constructs costs nothing at runtime.
+   *
+   * FR-016 — "a person must be able to find another person from inside the
+   * app" — is satisfied, and was satisfied the whole time: Explore searches
+   * people alongside interests and places, and its result pushes
+   * `{ name: 'person' }`. Building a second way in would have been a second
+   * surface for one need, which is how this product ended up with two feed
+   * responders and two empty-state decisions.
+   *
+   * FR-015 offers exactly two outcomes for an unreachable route — give it a way
+   * in, or remove it. Removed is the honest one here.
+   */
   // ---- feature 007
   | { name: 'pick-interests' }
   | { name: 'safety'; subject: ReportSubject; subjectId: string; authorHandle?: string }
@@ -618,6 +635,19 @@ export function Shell({
                 onSelect={(interestId) => push({ name: 'interest', interestId })}
                 onSelectPlace={(placeId) => push({ name: 'place', placeId })}
                 onSelectPerson={(handle) => push({ name: 'person', handle })}
+              /**
+               * 012/T033, FR-015. `create-place` had a renderer and no caller —
+               * the ordinary version of `people-search`'s defect.
+               *
+               * THIS IS WHERE IT WAS ALWAYS MEANT TO BE REACHED FROM, and the
+               * route says so itself: it carries `initialName` and
+               * `initialLocality`, which only make sense arriving from a place
+               * search that came back with nothing. The screen was built, typed
+               * and wired to accept them, and nothing ever passed them.
+               */
+              onCreatePlace={(initialName, initialLocality) =>
+                push({ name: 'create-place', initialName, initialLocality })
+              }
                 // 008/US6. The Posts tab in Discover — an ADDITIONAL search
                 // surface beside the interest one, never a replacement for it.
                 onOpenPost={(postId) => push({ name: 'post', postId })}

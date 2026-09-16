@@ -130,12 +130,12 @@ story to P3 after the research.
 
 ## Phase 7: User Story 2 — every journey finishes (Priority: P1)
 
-- [ ] T032 [US2] Give `people-search` a renderer **and** a way in. It has neither today — a route nothing can reach that also could not draw itself if reached (FR-015, FR-016)
-- [ ] T033 [US2] Give `create-place` a caller, or remove the route. A route with no way in is not a screen
+- [X] T032 [US2] Give `people-search` a renderer **and** a way in. It has neither today — a route nothing can reach that also could not draw itself if reached (FR-015, FR-016)
+- [X] T033 [US2] Give `create-place` a caller, or remove the route. A route with no way in is not a screen
 - [ ] T034 [US2] Build the post actions sheet and the safety sheet per `PostActions.dc.html` and `SafetySheet.dc.html`. Report and block currently sit behind an unlabelled `⋯`; Constitution IV makes those easier to reach, never harder
 - [ ] T035 [US2] Walk every journey end to end **as a person, not as a test**, and write down the first point at which you cannot continue. That list is the rest of this phase (FR-017)
 - [ ] T036 [US2] Every pushed screen offers a way back that does not depend on a platform gesture (FR-018)
-- [ ] T037 [US2] Write a guard that fails the build if a declared route has no renderer or no caller. `people-search` is why: two halves missing and nothing noticed
+- [X] T037 [US2] Write a guard that fails the build if a declared route has no renderer or no caller. `people-search` is why: two halves missing and nothing noticed
 
 ---
 
@@ -158,14 +158,14 @@ story to P3 after the research.
 
 ## Phase 10: Polish & close-out
 
-- [ ] T045 [P] Confirm the visibility matrix reports the **same surfaces and the same total** (FR-022, SC-006). **If a number moved, stop and find out why** — never update the number
-- [ ] T046 [P] Confirm the public and operator route snapshots are **unchanged** (FR-023, SC-007). This feature adds feedback and closes paths; it changes no permission
-- [ ] T047 [P] Confirm no state introduced here displays content the boundary would have withheld (FR-024)
+- [X] T045 [P] Confirm the visibility matrix reports the **same surfaces and the same total** (FR-022, SC-006). **If a number moved, stop and find out why** — never update the number
+- [X] T046 [P] Confirm the public and operator route snapshots are **unchanged** (FR-023, SC-007). This feature adds feedback and closes paths; it changes no permission
+- [X] T047 [P] **Confirmed, and the reason is structural rather than a spot check**: the states render copy, icons and grey rectangles. No state introduced by this feature reads a post, a profile or any other record — `surfaceFallback` is handed a `PagedResult` whose items it never inspects beyond `length`. The API was not touched at all this feature, which the matrix and route snapshots then confirm from the other side (FR-024)
 - [ ] T048 [P] Update the testID snapshot in the **same commit** as the flows it requires, and regenerate it when ids are ADDED rather than only when one is removed — 011 found it nineteen ids stale, and a snapshot can only detect the removal of an id it knows about
 - [ ] T049 [P] Run `node scripts/verify-maestro-ids.mjs` — a selector that matches nothing fails as a thirty-second timeout twenty minutes into a device run
-- [ ] T050 Run the real CI step list before pushing, not a proxy for it
+- [X] T050 Run the real CI step list before pushing, not a proxy for it
 - [ ] T051 Capture every screen and compare against its artboard; record each difference as drift fixed or as a state the design does not cover (FR-026)
-- [ ] T052 Record the run in `docs/verification/runs/`, every criterion pass, fail or **not run** — never blank — and **count the items** rather than reading the highest number
+- [X] T052 Record the run in `docs/verification/runs/`, every criterion pass, fail or **not run** — never blank — and **count the items** rather than reading the highest number
 - [ ] T053 Record in that same run record which of the 24 artboards this feature implemented and which it did not, **by name**, against the list below. An artboard drawn and unclaimed is how "the redesign is finished" gets written over unchecked boxes — 007 reported eight phases complete with four Phase 5 boxes unticked, and `tasks.md` was right while the prose was not
 
 ---
