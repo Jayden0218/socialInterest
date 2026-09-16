@@ -70,9 +70,10 @@ describe('SC-001 — a session changes the next feed', () => {
     const author = await h.token(await h.createPerson('rankedauthor'));
     viewerToken = await h.token(await h.createPerson('rankedviewer'));
 
-    const tops = await request(h.app.getHttpServer()).get('/v1/interests?limit=50');
-    engagedInterest = tops.body.items[0].interestId;
-    skippedInterest = tops.body.items[1].interestId;
+    // Positional (`items[0]`, `items[1]`) until 2026-09-16, which needed the
+    // datastore to already hold two interests. It holds none on a fresh one.
+    engagedInterest = await h.topInterestId();
+    skippedInterest = await h.interestIdExcluding([engagedInterest]);
 
     /**
      * BOTH interests are declared, so both are in the candidate set from the

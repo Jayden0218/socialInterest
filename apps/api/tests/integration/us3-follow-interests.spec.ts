@@ -28,8 +28,7 @@ describe('US3 — follow interests to build a personal feed', () => {
     h = await bootHarness();
     token = await h.token(await h.createPerson('follower'));
     topId = await h.topInterestId();
-    const tops = await request(h.app.getHttpServer()).get('/v1/interests?limit=50');
-    otherTopId = tops.body.items.find((i: { interestId: string }) => i.interestId !== topId).interestId;
+    otherTopId = await h.interestIdExcluding([topId]);
   }, 90_000);
 
   afterAll(async () => h?.close());

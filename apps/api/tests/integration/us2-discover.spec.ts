@@ -58,11 +58,8 @@ describe('US2 — discover content by interest', () => {
      * the very interest under test: the post landed in it, and the assertion
      * "does not contain theirs" failed because `theirs` was legitimately there.
      */
-    const otherTop = await request(h.app.getHttpServer()).get('/v1/interests?limit=50');
-    const unrelated = otherTop.body.items.find(
-      (i: { interestId: string }) => i.interestId !== topId && i.interestId !== subId,
-    );
-    const theirs = await publishTo(unrelated.interestId);
+    const unrelatedId = await h.interestIdExcluding([topId, subId]);
+    const theirs = await publishTo(unrelatedId);
 
     const res = await request(h.app.getHttpServer()).get(`/v1/interests/${subId}/posts`);
     expect(res.status).toBe(200);

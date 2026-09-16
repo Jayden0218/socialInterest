@@ -16,6 +16,26 @@ export interface Harness {
   createPerson(handle: string): Promise<string>;
   topInterestId(): Promise<string>;
   /**
+   * 013's fixture gap, found by CI on 2026-09-16 and NOT by 2,165 local passes.
+   *
+   * `topInterestId()` creates one interest when the datastore holds none. Six
+   * suites then went looking for a SECOND — `items.find(i => i.interestId !==
+   * topId)` or, worse, `items[1]` — and on a fresh database there is no second
+   * to find. Two suites died with `Cannot read properties of undefined`; the
+   * other four passed ONLY because earlier suites in the same run had created
+   * interests in the shared database, which is passing by suite order.
+   *
+   * It could not fail locally: this project's local table has accumulated
+   * interests across every run. That is the grown-table shape CLAUDE.md records
+   * five times, with the sign REVERSED — the surplus hid the defect instead of
+   * causing one, so the usual "check the table size before believing a paging
+   * failure" advice would have pointed the wrong way.
+   *
+   * Creates only the shortfall, so the reuse property `topInterestId()` was
+   * given for the same reason is preserved.
+   */
+  interestIdExcluding(excluding: readonly string[]): Promise<string>;
+  /**
    * A REAL upload id for `userId`, obtained through POST /media/uploads.
    *
    * Publishing used to accept a fabricated id and a caller-supplied key, so every
@@ -42,6 +62,35 @@ export async function bootHarness(): Promise<Harness> {
   const identity = module.get<IdentityProvider>(IDENTITY_PROVIDER);
   const people = module.get(PersonRepository);
   const interests = module.get(InterestRepository);
+
+  /**
+   * An active interest that is none of `excluding`, created when the datastore
+   * holds no such thing. Shared by `topInterestId` and `interestIdExcluding`
+   * so there is one definition of "get me an interest to post into".
+   */
+  const anInterestExcluding = async (excluding: readonly string[]): Promise<string> => {
+    const page = await interests.listAll({ limit: 200 });
+    const existing = page.items.find(
+      (i) => i.state === 'active' && !excluding.includes(i.interestId),
+    );
+    if (existing) return existing.interestId;
+
+    const name = `Fixture ${ulid().slice(-8).toLowerCase()}`;
+    const item = {
+      interestId: ulid(),
+      name,
+      nameNormalised: name.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(),
+      slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      createdBy: 'fixture',
+      postCount: 1,
+      followerCount: 0,
+      state: 'active' as const,
+      createdAt: new Date().toISOString(),
+    };
+    await interests.create(item);
+    await module.get(InMemoryCatalogueCache).refresh();
+    return item.interestId;
+  };
 
   return {
     app,
@@ -89,25 +138,10 @@ export async function bootHarness(): Promise<Harness> {
      * "regressions" in this project have been a grown table.
      */
     async topInterestId() {
-      const page = await interests.listAll({ limit: 200 });
-      const existing = page.items.find((i) => i.state === 'active');
-      if (existing) return existing.interestId;
-
-      const name = `Fixture ${ulid().slice(-8).toLowerCase()}`;
-      const item = {
-        interestId: ulid(),
-        name,
-        nameNormalised: name.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(),
-        slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        createdBy: 'fixture',
-        postCount: 1,
-        followerCount: 0,
-        state: 'active' as const,
-        createdAt: new Date().toISOString(),
-      };
-      await interests.create(item);
-      await module.get(InMemoryCatalogueCache).refresh();
-      return item.interestId;
+      return anInterestExcluding([]);
+    },
+    async interestIdExcluding(excluding: readonly string[]) {
+      return anInterestExcluding(excluding);
     },
     close: async () => {
       await app.close();
