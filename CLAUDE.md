@@ -727,6 +727,16 @@ command`, `pg-pool` re-emits it on the Pool, and a Pool with no listener makes
 that an UNHANDLED error event. Both module-scoped pools in the harness have one
 now.
 
+**`db:create-local-pg --recreate` NEEDS THE API RESTARTED, and the symptom points
+elsewhere.** `InMemoryCatalogueCache` loads at boot and refreshes only when an
+interest is created, merged, retired or described — so recreating the table under
+a running API leaves it holding interests that no longer exist, and the first
+publish naming a new one comes back **201 with no interest on it**. That reads as
+a defect in publishing and is not one. Measured 2026-09-16: `seed:demo` died on
+its first post with `publish named "Birding" and came back with no interest`, and
+a restart was the whole fix. `create-local-schema.ts` says so on the `--recreate`
+path now, where somebody is standing when it bites.
+
 **Two API processes will lie to you.** A stale one holding port 3000 answers
 while a new one fails to bind with `EADDRINUSE` into a log nobody reads — which
 cost three wrong readings of a change that was already correct. `pgrep -f

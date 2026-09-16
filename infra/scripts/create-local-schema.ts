@@ -65,6 +65,19 @@ async function main(): Promise<void> {
       // also take anything a future feature puts beside it.
       await client.query('drop table if exists items');
       console.log('dropped items');
+      /**
+       * SAID HERE BECAUSE THIS IS WHERE SOMEBODY IS STANDING WHEN IT BITES.
+       *
+       * `InMemoryCatalogueCache` loads at boot and refreshes only when an
+       * interest is created, merged, retired or described. Recreating the table
+       * under a RUNNING API therefore leaves it holding interests that no
+       * longer exist — and the first publish naming a new one comes back 201
+       * with no interest on it, which reads as a defect in publishing and is
+       * not one. Measured 2026-09-16: `seed:demo` died on its first post with
+       * `publish named "Birding" and came back with no interest`, and a restart
+       * was the whole fix.
+       */
+      console.log('RESTART THE API: its interest cache still holds the dropped table\'s rows');
     }
     await client.query(SCHEMA);
 
