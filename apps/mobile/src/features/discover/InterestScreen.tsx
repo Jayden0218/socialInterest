@@ -1,7 +1,7 @@
 import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
 import type { Interest, InterestRef, Post } from '@sih/shared';
-import { activePalette as palette, radius, space, textStyle } from '../../ui/theme';
-import { Screen, ScreenHeader } from '../../ui/primitives';
+import { activePalette as palette, MIN_TOUCH_TARGET, radius, space, textStyle } from '../../ui/theme';
+import { Row, Screen, ScreenHeader } from '../../ui/primitives';
 import { interestColour } from '../../ui/interest-colour';
 import { PagedPostList, type PagedState } from '../../components/PagedPostList';
 import { FollowInterestControl } from './FollowInterestControl';
@@ -80,39 +80,77 @@ export function InterestScreen({
 
   return (
     <Screen testID="interest-screen">
-      <View style={{ gap: space.sm }}>
+      {/*
+        012/T039. A CARD, per `InterestSpace.dc.html` — and this screen had no
+        artboard at all until 012, which is why it drifted.
+
+        It was a 4pt rule, a plain header, a caption of counts and a follow
+        control stacked down the page as five separate things. The artboard
+        gathers them into one raised card: the name in the interest's own
+        colour, Follow on the same line, the description under it and the two
+        counts at the bottom. The premise of the product deserves a header that
+        looks composed rather than assembled.
+      */}
+      <View
+        style={{
+          backgroundColor: palette.bg.raised,
+          borderRadius: radius.md,
+          padding: space.md,
+          gap: space.sm,
+        }}
+      >
+        <Row style={{ alignItems: 'center', gap: space.sm }}>
+          {/*
+            006/FR-013. THE INTEREST'S OWN COLOUR, in the screen's own chrome.
+
+            This is the product's premise made visible: every interest space
+            looked identical, so the thing the whole app is organised around had
+            no presence at all. The artboard puts the colour on the NAME rather
+            than on a rule beside it, which is the same treatment a coloured
+            word gets everywhere else (007) — one idea, not two.
+
+            G1: this treatment belongs to INTERESTS ONLY. A place and a person
+            must never carry it — following a place deliberately does not put
+            its posts in your feed (004/FR-019), and a shared visual language
+            would say it does. `interest-treatment.test.ts` fails if it spreads.
+          */}
+          <View
+            testID="interest-identity"
+            style={{
+              height: 4,
+              width: 56,
+              borderRadius: radius.pill,
+              backgroundColor: interestColour({ interestId: data.interest.interestId }, palette),
+            }}
+          />
+          <View style={{ flex: 1 }} />
+          <FollowInterestControl
+            interest={data.interest}
+            followedCount={followedCount}
+            onToggle={onToggleFollow}
+          />
+        </Row>
+
         {/*
-          006/FR-013. THE INTEREST'S OWN COLOUR, in the screen's own chrome.
+          012/T039, 007. THE NAME IS THE COLOURED WORD — `InterestSpace.dc.html`
+          puts the interest's own colour on the name itself, which is the same
+          treatment it gets on a card, on a tile and in the cold start. A plain
+          heading beside a coloured rule was two ideas for one thing.
 
-          This is the product's premise made visible: every interest space looked
-          identical, so the thing the whole app is organised around had no
-          presence at all. A rule in the interest's derived colour is enough to
-          tell two spaces apart at a glance (SC-003) without competing with the
-          content below it.
-
-          G1: this treatment belongs to INTERESTS ONLY. A place and a person must
-          never carry it - following a place deliberately does not put its posts
-          in your feed (004/FR-019), and a shared visual language would say it
-          does. `interest-treatment.test.ts` fails if it spreads.
+          `ScreenHeader` is not used here for that reason: it takes a title, not
+          a colour, and widening it would push the interest treatment into a
+          shared primitive that a place and a person also use — which is exactly
+          what G1 and `interest-treatment.test.ts` forbid.
         */}
-        <View
-          testID="interest-identity"
+        <Text
+          testID="interest-name"
+          accessibilityRole="header"
           style={{
-            height: 4,
-            width: 56,
-            borderRadius: radius.pill,
-            backgroundColor: interestColour(
-              {
-                interestId: data.interest.interestId,
-
-              },
-              palette,
-            ),
+            ...textStyle.title,
+            color: interestColour({ interestId: data.interest.interestId }, palette),
           }}
-        />
-        <ScreenHeader title={data.interest.name} />
-        <Text testID="interest-counts" style={{ ...textStyle.caption, color: palette.text.muted }}>
-          {data.interest.postCount} posts · {data.interest.followerCount} followers
+        >
+          {data.interest.name}
         </Text>
 
         {/*
@@ -122,21 +160,59 @@ export function InterestScreen({
         */}
         {data.interest.description ? (
           <View style={{ gap: space.xs }}>
-            <Text testID="interest-description" style={{ ...textStyle.body, color: palette.text.primary }}>
+            <Text testID="interest-description" style={{ ...textStyle.body, color: palette.text.secondary }}>
               {data.interest.description}
             </Text>
             {onReportDescription ? (
-              <Pressable testID="report-description" onPress={onReportDescription}>
+              <Pressable
+                testID="report-description"
+                /*
+                  A SIZED BOX, NOT `hitSlop`, and the reason is worth stating:
+                  this file is in the touch-target guard's `ALLOWED` list as a
+                  whole-row-target file, so a `hitSlop` added here would not be
+                  measured by anything. That allowance was argued for the post
+                  rows; borrowing it for a small text link is the per-file
+                  weakness 007 took out of the sized branch and 011 took out of
+                  the slop branch, arriving by a third route.
+
+                  44 tall and 44 wide is true here and needs no registry entry.
+                */
+                style={{
+                  alignSelf: 'flex-start',
+                  minHeight: MIN_TOUCH_TARGET,
+                  minWidth: MIN_TOUCH_TARGET,
+                  justifyContent: 'center',
+                }}
+                onPress={onReportDescription}
+              >
                 <Text style={{ ...textStyle.caption, color: palette.text.muted }}>Report this description</Text>
               </Pressable>
             ) : null}
           </View>
         ) : null}
-        <FollowInterestControl
-          interest={data.interest}
-          followedCount={followedCount}
-          onToggle={onToggleFollow}
-        />
+
+        {/*
+          012/T039. THE NUMBERS CARRY THE EMPHASIS, per the artboard: the count
+          is what somebody is reading and the word is the unit. It was one flat
+          muted caption, which reads as chrome rather than as information — and
+          013 gave `postCount` a writer, so it is finally worth reading.
+        */}
+        {/* A `View`, not the shared `Row`, which takes no testID — and
+            `interest-counts` is in the testID snapshot and in two flows. */}
+        <View testID="interest-counts" style={{ flexDirection: 'row', gap: 18 }}>
+          <Text style={{ ...textStyle.small, color: palette.text.muted }}>
+            <Text style={{ color: palette.text.primary, fontWeight: '700' }}>
+              {data.interest.postCount.toLocaleString('en-US')}
+            </Text>
+            {` ${data.interest.postCount === 1 ? 'post' : 'posts'}`}
+          </Text>
+          <Text style={{ ...textStyle.small, color: palette.text.muted }}>
+            <Text style={{ color: palette.text.primary, fontWeight: '700' }}>
+              {data.interest.followerCount.toLocaleString('en-US')}
+            </Text>
+            {` ${data.interest.followerCount === 1 ? 'follower' : 'followers'}`}
+          </Text>
+        </View>
       </View>
 
       {/*

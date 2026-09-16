@@ -15,6 +15,7 @@ Read before doing anything substantive:
 | `specs/001-interest-media-sharing/contracts/` | OpenAPI + the visibility matrix contract |
 | `specs/001-interest-media-sharing/tasks.md` | 172 tasks, T001–T172, ordered |
 | `specs/007-ranked-feed-redesign/` | Ranked feed + redesign; all 8 phases implemented |
+| `specs/012-ui-states-and-flows/` | Loading/empty/failed states, the flows, Explore, the action sheets |
 | `specs/013-user-owned-interests/` | **The current feature.** Interests are user-owned, flat and hashtag-like; the curated twelve are gone |
 | `design/007-ui/` | The **approved** design, 20 artboards. Settled — implement, do not reopen |
 | the five seam READMEs — `apps/api/{src,tests}/overlay/`, `apps/mobile/src/overlay/`, `apps/mobile/src/screens/`, `contracts/` | **The overlay seams.** What a private downstream fork owns, and what that does not relax |
@@ -512,6 +513,137 @@ so GitHub-hosted standard runners are free on it, and CI runs 169-176 plus emula
 on this repository does not spend - so dispatching the emulator job is not the owner's
 call any more. Check the facts before repeating either claim; both halves of this one
 expired within a day.
+
+## What spec 012 built (2026-09-16) — the app says what it is doing
+
+`specs/012-ui-states-and-flows/`. The owner installed the app and said the
+interface was bad and the flows incomplete. **Every task is closed except T031,
+which needs their install and a device.** Record:
+`docs/verification/runs/2026-09-16-012-record.md`.
+
+### THE SANDBOX CAN RUN `apps/e2e` NOW, AND THAT IS THE BIGGEST CHANGE HERE
+
+Object storage is reachable: **`adobe/s3mock` from Docker Hub**, which is NOT
+MinIO (quay.io is still blocked). With it plus `scripts/ffmpeg-shim`, the
+end-to-end suite and `seed:demo` both run here for the first time.
+
+**PRINCIPLE V, LITERALLY.** S3Mock verifies no signatures and has no bucket
+policy, so **`N-04` — "does not serve media to a viewer who may not see it",
+which fetches a key with NO signature and expects a refusal — cannot pass
+against it and does not.** That failure is the environment. N-04 is still
+verifiable only against MinIO, in CI, and must be reported unverified.
+
+To run anything here: `.env.local` with the local values, the ffmpeg shim on
+`PATH`, and `docker run -d --name sih-s3mock -p 9000:9090 adobe/s3mock`.
+
+**Two API processes will lie to you.** A stale one holding port 3000 answers
+while a new one fails to bind with `EADDRINUSE` into a log nobody reads — which
+cost three wrong readings of a change that was already correct. `pgrep -f
+main.ts` and check `ps -o lstart=` before believing a result.
+
+### 013 left `apps/e2e` unrunnable and nothing could see it
+
+`reset.ts` records that `seed:catalogue`'s callers "were hunted rather than left
+to fail", and they were — nothing calls it. What was missed is the SECOND-ORDER
+dependency: **ninety-eight places opening `listTop({limit:1}).items[0]!`**,
+which depended not on the seeder but on what the seeder left behind. Forty-six
+tests failed. A grep for the removed thing cannot find those; only running the
+suite can, and this environment could not. **It would have been a red CI build.**
+`apps/e2e/support/interests.ts` creates one the way a person does, once per run.
+
+### Three live defects, all found by running rather than reading
+
+1. **`POST /v1/posts` RETURNED THE PERSISTENCE ROW.** `authorId`, `interestIds`
+   and `updatedAt` went out; `author`, `interests` and `media` did not, and the
+   contract requires two of those. **Seventh instance of this shape** — and the
+   comment forty lines below it, "Not `{ ...result.post }`: that is the
+   persistence row", was written about the DETAIL route while this one did
+   exactly that. The app reads only `postId` from a publish, so five features
+   went by.
+2. **AN UPDATE THAT MOVED A ROW BETWEEN INDEXES DID NOT MOVE IT.** `runUpdate`
+   wrote `update items set item = <jsonb>` and never the key COLUMNS, which
+   every query reads. On DynamoDB there was no distinction. Two silent journeys:
+   accepting a conversation left it out of the accepted inbox, leaving a group
+   left it in. **Neither was a product bug — both writes were right.** Guarded
+   by a QUERY, not a read, because a read passes throughout.
+3. **`postCount` HAD NO WRITER AND THE COUNTS CAME FROM A CACHE NOTHING
+   REFRESHED.** `incrementPostCount` had no caller anywhere (013 recorded that
+   and routed around it), and `detail`/the listing read
+   `InMemoryCatalogueCache`, which reloads only on create/merge/retire/describe
+   — so **`followerCount` had been stale since it was written** and
+   `suggested()` was sorting by it. The counter is written in the publish and
+   delete transactions now, beside the rows it counts; the values come from the
+   row.
+
+### What the feature added
+
+- **`Photo`** — the four-state rule applied to a photograph (R3: "six cards,
+  six empty grey boxes, on a product whose entire premise is photographs").
+  Placeholder OVER the image, not instead of it, because swapping remounts and
+  restarts the fetch; a retry bumps a key so React Native actually re-requests.
+- **Explore is tiles**: one field, a 2x2 mosaic, the name in the interest's
+  colour, the post count, busiest first. **Surface 17** — post media reaching a
+  viewer is a post read path whatever size it is drawn at — with a matrix row
+  and a probe, and `previewForInterests` calls `listByInterest` so the boundary
+  makes the decision it already makes. **The matrix is 1,586 assertions across
+  17 surfaces.**
+- **Action sheets** for a post and a person. A profile had Follow and Message
+  and nothing else, so **the only way to block somebody was to find one of their
+  posts and press a button labelled Report.**
+- **A way back from every pushed screen**, enumerated over all nineteen routes.
+- **The cold start per its artboard**, and the case 013 created: a catalogue
+  with nothing in it is not a question worth asking, so it records "none" and
+  goes through.
+
+### Decisions recorded rather than guessed
+
+- **A new account gets NOTHING** (T044). Not content — borrowing `seed:demo`
+  answers a product question with a script. What changed is the OFFER: "Explore
+  interests" opened a second empty room on a fresh install, failing both halves
+  of FR-020 and FR-021 on exactly the install they are about.
+- **"Report account" is on the artboard and is NOT built** (T034).
+  `ReportSubjectType` has no `person`, and adding one files a report an operator
+  cannot act on — a person's status is `active | deleting | deleted`, there is no
+  suspension, and no moderation action takes a person. **A real gap, needing an
+  operator action before it is a control.**
+- **"Busiest interests", not "Busy this week"**. There is no seven-day window
+  and nothing computes one; 008/T224 is the precedent for not shipping a
+  sentence the product cannot back.
+
+### Guards that refused this work, correctly
+
+The touch-target guard on an unmeasured `hitSlop` and an unsized tile;
+`no-hardcoded-style` on a scrim literal (now a palette token, heavier in the
+dark palette where 38% over a dark page is not a dim at all); React Native on a
+`numColumns` change to one `FlatList` instance (007's second-render lesson);
+and `verify-maestro-ids` on `sheet-${action.key}` with the message 005 got three
+times — the row keys are a closed union declared where the verifier reads them.
+
+**A PREFIX IS NOT A NAME, third occurrence.** `search-result-0` is a TILE before
+typing and a list row after, both preserved deliberately — so it is ambiguous
+for the instant between the keystroke and the re-render, and a click can land on
+a different interest. Passed alone, failed once in a full run, exactly as
+`share-person-.*` did.
+
+**And one file-level allowance that hid a control.** `InterestScreen.tsx` is in
+the touch-target guard's `ALLOWED` list as a whole-row-target file, so a
+`hitSlop` added there is measured by nothing. That allowance was argued for post
+rows; borrowing it for a text link is the per-file weakness 007 took out of the
+sized branch and 011 took out of the slop branch, arriving by a third route. The
+control is sized instead.
+
+### Still not verified for 012, and must be reported that way
+
+- **NOTHING IN 012 HAS RUN ON A DEVICE.** T031's browser half is answered — a
+  real photograph, a real presigned url, 200/image/jpeg/non-zero bytes — and the
+  device half is not: react-native-web renders an `Image` as a div with a CSS
+  background where React Native uses its own loader, which is the difference
+  that hid 006's `Avatar` overflow. **`naturalWidth` cannot be used to measure
+  this in a browser, and the first version of that test used it anyway.**
+- **`N-04`**, above.
+- **One API run in ten reported a single extra failure** (`SC-004 returns ONLY
+  followed authors`) that passed alone and on the next full run. Recorded as
+  unreproduced with no cause.
 
 ## What spec 013 built (2026-09-16) — the interests belong to the people using them
 

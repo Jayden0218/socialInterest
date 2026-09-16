@@ -29,6 +29,7 @@ import { resetStore } from '../support/reset';
 import { ensureJwtSecret } from '../support/secret';
 import { actor } from '../support/client';
 import { publishReadyImage } from '../support/publish';
+import { anInterest } from '../support/interests';
 
 const OUT = resolve(__dirname, '../../../docs/screens');
 const id = (t: string) => `[data-testid="${t}"]`;
@@ -106,8 +107,13 @@ async function main(): Promise<void> {
   await groupA.data.people.follow(me.handle);
   await groupB.data.people.follow(me.handle);
 
-  const interests = await me.data.interests.listTop({ limit: 5 });
-  const interest = interests.items[0]!;
+  /**
+   * 013/FR-017. THE CATALOGUE IS NOT SEEDED, so this makes one the way a person
+   * does. It read `listTop({ limit: 5 }).items[0]!` and would have been
+   * `undefined` on a reset store — the same second-order dependency that broke
+   * forty-six e2e tests. `support/interests.ts` is the one place that knows how.
+   */
+  const interest = await anInterest(me);
   await me.data.interests.follow(interest.interestId);
   /**
    * A REAL-LOOKING PHOTOGRAPH, not the suite's 1x1 pixel.

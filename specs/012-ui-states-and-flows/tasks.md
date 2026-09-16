@@ -86,7 +86,7 @@ story to P3 after the research.
 - [X] T012 [US4] Run T006 and watch it pass; then reintroduce a `♥` in one file and watch it fail again
 - [X] T013 [US4] Rebuild `PostCard` image-dominant per `CardAnatomy.dc.html`: **the avatar and handle come off the tile**, title first at the `label` role, then the interest word and the two counts. Target the artboard's ratio — roughly 78% photograph against today's 47% (FR-030)
 - [X] T014 [US4] **WRITTEN, NOT RUN** — `apps/e2e/browser/card-is-image-dominant.spec.ts`. It publishes real bytes, so it needs the object store this sandbox has no route to. Typechecks; the claim it makes is unverified here and must be reported that way. Assert the ratio in `apps/e2e/browser/` — measured, not eyeballed. **RNTL cannot make this claim**: it performs no layout, which is how 008 shipped `MediaPager` at zero height with nine green assertions
-- [ ] T015 [US4] Capture the feed and compare against `Main.dc.html`. Record drift as either a fix or a state the artboard does not cover (FR-026)
+- [X] T015 [US4] Capture the feed and compare against `Main.dc.html`. Record drift as either a fix or a state the artboard does not cover (FR-026)
 
 **Checkpoint**: the product stops looking like a prototype.
 
@@ -147,7 +147,7 @@ story to P3 after the research.
 
   What this did close: a profile had Follow and Message and nothing else, so the only way to
   block somebody was to find one of their posts and press a button labelled Report.
-- [ ] T035 [US2] Walk every journey end to end **as a person, not as a test**, and write down the first point at which you cannot continue. That list is the rest of this phase (FR-017)
+- [X] T035 [US2] Walk every journey end to end **as a person, not as a test**, and write down the first point at which you cannot continue. That list is the rest of this phase (FR-017)
 - [X] T036 [US2] Every pushed screen offers a way back that does not depend on a platform gesture (FR-018)
 - [X] T037 [US2] Write a guard that fails the build if a declared route has no renderer or no caller. `people-search` is why: two halves missing and nothing noticed
 
@@ -156,7 +156,7 @@ story to P3 after the research.
 ## Phase 8: User Story 5 — the app suggests instead of waiting (Priority: P2)
 
 - [X] T038 [US5] Rebuild Explore per `Explore.dc.html`: **one** search field instead of two, and interest tiles with a photo mosaic and a post count shown **before anything is typed** (FR-031, FR-032)
-- [ ] T039 [US5] Build the interest space per `InterestSpace.dc.html`. It is the product's premise — every space is browsed by one interest — and it had no artboard at all until this pass
+- [X] T039 [US5] Build the interest space per `InterestSpace.dc.html`. It is the product's premise — every space is browsed by one interest — and it had no artboard at all until this pass
 - [X] T040 [US5] Every primary surface offers a visible next action without scrolling (FR-033)
 - [X] T041 [US5] Build the cold start per `ColdStart.dc.html`, so a new account's first screen after sign-up leads somewhere rather than to an empty feed
 
@@ -197,9 +197,9 @@ story to P3 after the research.
 - [X] T048 [P] Update the testID snapshot in the **same commit** as the flows it requires, and regenerate it when ids are ADDED rather than only when one is removed — 011 found it nineteen ids stale, and a snapshot can only detect the removal of an id it knows about
 - [X] T049 [P] Run `node scripts/verify-maestro-ids.mjs` — a selector that matches nothing fails as a thirty-second timeout twenty minutes into a device run
 - [X] T050 Run the real CI step list before pushing, not a proxy for it
-- [ ] T051 Capture every screen and compare against its artboard; record each difference as drift fixed or as a state the design does not cover (FR-026)
+- [X] T051 Capture every screen and compare against its artboard; record each difference as drift fixed or as a state the design does not cover (FR-026)
 - [X] T052 Record the run in `docs/verification/runs/`, every criterion pass, fail or **not run** — never blank — and **count the items** rather than reading the highest number
-- [ ] T053 Record in that same run record which of the 24 artboards this feature implemented and which it did not, **by name**, against the list below. An artboard drawn and unclaimed is how "the redesign is finished" gets written over unchecked boxes — 007 reported eight phases complete with four Phase 5 boxes unticked, and `tasks.md` was right while the prose was not
+- [X] T053 Record in that same run record which of the 24 artboards this feature implemented and which it did not, **by name**, against the list below. An artboard drawn and unclaimed is how "the redesign is finished" gets written over unchecked boxes — 007 reported eight phases complete with four Phase 5 boxes unticked, and `tasks.md` was right while the prose was not
 
 ---
 

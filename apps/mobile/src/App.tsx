@@ -217,15 +217,54 @@ const appRootStyle = {
 } as const;
 
 /**
+ * 012/T051. THE HEADER WAS SHOWING THE ROUTE NAME, ON EVERY PUSHED SCREEN.
+ *
+ * "Every base route's `name` reads as its own title" was the claim, and the
+ * captures say otherwise: the interest space is headed `interest`, edit profile
+ * is headed `edit-profile`, and post detail is headed `post`. Those are
+ * identifiers with a hyphen in them, not titles — and they were in every
+ * screenshot this project has taken.
+ *
+ * It is the same shape as 004's notification categories: a list that DESCRIBES
+ * something and a list that RENDERS it, where the second was assumed to follow
+ * from the first. A route name is for the code; a title is for a person.
+ *
+ * WRITTEN OUT, not derived. A rule that title-cases and strips hyphens would
+ * turn `edit-post` into "Edit Post" and `open-conversation` into "Open
+ * Conversation", which are still not what anybody would write. Nineteen short
+ * strings cost less than a transformation that is wrong for a third of them.
+ */
+const ROUTE_TITLES: Record<Exclude<Route['name'], 'overlay'>, string> = {
+  'sign-in': 'Sign in',
+  post: 'Post',
+  comments: 'Comments',
+  interest: 'Interest',
+  compose: 'New post',
+  share: 'Share',
+  'edit-post': 'Edit post',
+  'edit-profile': 'Edit profile',
+  person: 'Profile',
+  'shared-post': 'Post',
+  'open-conversation': 'Message',
+  'new-group': 'New group',
+  conversation: 'Conversation',
+  place: 'Place',
+  'create-place': 'Add a place',
+  saved: 'Saved',
+  'pick-interests': 'Your interests',
+  safety: 'Safety',
+  'moderation-notices': 'Notices',
+};
+
+/**
  * The header's title.
  *
- * Every base route's `name` reads as its own title, which is why this was
- * `top.name` inline. An overlay route's name is the literal `'overlay'` for all
- * of them, so its title comes from the registry — without this every fork
- * screen would head the bar with the word "overlay".
+ * An overlay route's name is the literal `'overlay'` for all of them, so its
+ * title comes from the registry — without this every fork screen would head the
+ * bar with the word "overlay".
  */
 function headerTitle(route: Route): string {
-  if (route.name !== 'overlay') return route.name;
+  if (route.name !== 'overlay') return ROUTE_TITLES[route.name];
   return OVERLAY_SCREENS[route.screen]?.title ?? route.screen;
 }
 
