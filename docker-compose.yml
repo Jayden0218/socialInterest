@@ -97,7 +97,14 @@ services:
     #
     # quay.io is UNREACHABLE from the sandbox (egress denies it — same table),
     # so this line cannot be verified locally by anything. CI is the only
-    # instrument that can, and that is stated rather than papered over.
+    # instrument that can, and that was stated rather than papered over.
+    #
+    # VERIFIED 2026-09-16, run #345 on the PUBLIC repository: `docker compose
+    # up -d` succeeded on a GitHub runner, and the `Wait for Postgres and MinIO`
+    # step passed behind it — so this tag pulls, and MinIO answers its health
+    # endpoint. The claim stood unverified from the day MinIO left Docker Hub
+    # until the work moved somewhere a runner would start; the private fork's
+    # Actions are blocked at the account's billing and could not answer it.
     #
     # Pinned rather than floating for the original reason: a moving tag on a
     # registry somebody else controls puts CI's ability to START outside this

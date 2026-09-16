@@ -308,6 +308,41 @@ still stands for the product, but that is not evidence about a populated overlay
   catalogue is small and slow-changing. OpenSearch replaces it behind the same interface
   when post-content search arrives.
 
+## RUN THE GATES AGAINST AN EMPTY TABLE (2026-09-16)
+
+**`pnpm --filter @sih/infra db:create-local-pg --recreate` before a full run.** This is the
+cheapest rule in this file and it was learned the expensive way.
+
+The first CI run on the public repository failed the API suite with **10 failures** that
+2,165 local passes could not produce:
+
+```
+TypeError: Cannot read properties of undefined (reading 'interestId')
+  otherTopId = tops.body.items.find((i) => i.interestId !== topId).interestId;
+```
+
+`topInterestId()` creates ONE interest when the datastore holds none — 013's fixture, correct
+as far as it goes. **Six suites then went looking for a SECOND**, and a fresh database has not
+got one. Two died; the other four passed only because earlier suites in the same run had
+created interests in the shared database, which is passing by suite order. Two of the six were
+POSITIONAL (`items[0]`, `items[1]`) and never called `topInterestId()` at all.
+
+**THE GROWN TABLE WITH THE SIGN REVERSED, and that is the part worth keeping.** This file
+records the grown-table false regression five times — a bounded page over an accumulated table
+failing, diagnosed as a product defect every time. Here the accumulation HID a real defect
+instead of causing a false one. So the standing advice — "check the table size before believing
+a paging failure" — would have pointed the wrong way, and no amount of local running could
+have found it: the local table has held interests from every run since it was created.
+
+Fixed at the root with `Harness.interestIdExcluding(excluding)`, which creates only the
+shortfall so the reuse property `topInterestId()` exists for is preserved. **Watched RED on an
+empty table first**: the old code reproduces CI's exact error locally the moment the table is
+actually empty.
+
+**The lesson is not "test more".** It is that every gate here had been run against a datastore
+no runner and no new contributor will ever have, and the result reported as though the two
+environments were the same. That is Constitution V, at home rather than in a cloud service.
+
 ## Environment: cloud sandbox (Claude Code on the web)
 
 Docker **works** here, but two setup steps are needed and **neither survives a container
@@ -396,6 +431,7 @@ impossible regardless — the Simulator is macOS-only.
 | `apt-get install ffmpeg` | Fails, Debian repos blocked. Use the `linuxserver/ffmpeg` container |
 | MinIO binary from `dl.min.io` | 403. Use the `minio/minio` image |
 | `minio/minio` on Docker Hub | **The repository is GONE from Docker Hub** (hit 2026-09-11), not just a tag. `hub.docker.com/v2/repositories/minio/minio/` answers 404 and the `minio` namespace lists 20 repositories, none of them `minio`. MinIO publishes to **quay.io**, so `docker-compose.yml` uses `quay.io/minio/minio:RELEASE.*`. Docker Hub's message is `pull access denied ... repository does not exist or may require 'docker login'` — it names NO TAG, because it is about the repository; a missing tag reads `manifest for ...:TAG not found` instead |
+| `quay.io/minio/minio` pulling **on a runner** | **VERIFIED 2026-09-16**, run #345 on the public repository: `docker compose up -d` succeeded and `Wait for Postgres and MinIO` passed behind it. This sat unverified from the day MinIO left Docker Hub — the sandbox cannot reach quay.io at all, and the private fork's Actions are billing-blocked, so nothing could answer it until the work moved to a repository where a runner starts. Pinning the tag rather than floating it was the right call and is now evidence rather than argument |
 | Verifying a Docker Hub pull **in this sandbox** | **THE MIRROR WILL LIE TO YOU.** `/etc/docker/daemon.json` sets `registry-mirrors: [mirror.gcr.io]`, so a pull can be served from the mirror's CACHE of a repository that no longer exists upstream — which is exactly what happened above: a pinned `minio/minio` release tag pulled here and failed identically in CI, which has no mirror. A local pull is evidence about the MIRROR, never about Docker Hub. quay.io is unreachable here at all (egress), so anything hosted there can only be verified by CI |
 | `quay.io` | Unreachable. `public.ecr.aws`, `ghcr.io`, `mirror.gcr.io` all work |
 | **An S3-compatible store IN THIS SANDBOX** | **SOLVED 2026-09-16 — `adobe/s3mock`, and it is NOT MinIO.** MinIO is unreachable here (quay.io); the mirror no longer has a cached `minio/minio` either, and `ghcr.io/gaul/s3proxy` and `ghcr.io/seaweedfs/seaweedfs` both fail to pull. `docker run -d --name sih-s3mock -p 9000:9090 adobe/s3mock` answers presigned PUT and GET, so `apps/e2e`, `seed:demo` and every media path run here for the first time. **It verifies NO signatures and enforces NO bucket policy**, so `N-04` — an unsigned fetch must be REFUSED — cannot pass against it and does not. That one failure is the environment; N-04 is verifiable only against MinIO, in CI. `docker-compose.yml` still names quay.io, deliberately: this is a local substitute, not a change to what ships. Since 2026-09-16 the substitute is a COMMITTED, documented file — `docker-compose.s3mock.yml`, copied to `docker-compose.override.yml` (gitignored, so it can never reach CI) — which is what let `test:durability` run here for the first time |
@@ -598,7 +634,43 @@ the picker needs no storage permission.
   directly with props, which proves the screen works and says nothing about whether anything
   calls it. **A screen test is not a container test.**
 
-## The Actions allowance is BLOCKED AGAIN, and CI has not run since 2026-09-16 05:07
+## WHERE CI RUNS NOW: the public upstream (2026-09-16)
+
+**The work is on `socialInterest`, the PUBLIC repository, and that is where CI runs.**
+Pushed there on 2026-09-16 as a fast-forward — `a17aca2..4bee93a`, 45 commits, nothing
+overwritten. Public runners are free, so the billing block below stops mattering for CI.
+
+**The private fork had nothing private in it, and that decided the question.** Every overlay
+seam was EMPTY — `OVERLAY_MODULES = []`, `OVERLAY_PALETTES = {}`, `OVERLAY_SCREENS = {}`,
+`OVERLAY_SURFACES = []`, a one-line `openapi.overlay.yaml`. The fork "carrying its own UI and
+backend features" is an INTENTION, not a current fact, so everything in it was general
+product work, which the seam design says belongs upstream anyway. **Keep the private fork for
+when there are real private features; do not hold general work in it.**
+
+**Audited before publishing, not after.** 1,920 blobs across 132 commits scanned for ten
+credential shapes; `.env.local` never committed; every historical `ci.yml` masked
+`LOCAL_JWT_SECRET`; the only keystore is the standard RN debug one; `ci.yml` uses
+`pull_request` and not `pull_request_target`, so fork PRs get no secrets. The one real
+exposure is the owner's Gmail on 18 commit authors — not a credential, but scrapeable.
+
+### GITHUB PUSH PROTECTION REFUSED THE PUSH, OVER THIS REPOSITORY'S OWN GUARD
+
+`no-credentials-in-the-tree.spec.ts` plants fake credentials to prove each pattern fires.
+Three of the eight were already assembled from fragments (`gh${'p'}_…`) so no complete shape
+existed as a literal; **five were written whole**, and GitHub's Slack detector caught the one
+of those five it knows. The token is `xoxb-` and twenty-four ZEROES — a shape detector cannot
+tell a planted example from a real credential, which is what makes it a shape detector.
+
+All eight are assembled now, and the two commits that carried the literal were **rewritten**
+rather than waved through with the unblock link, so no bypass is on record and the history
+never contained a whole credential shape. Verified `git diff backup HEAD --stat` came back
+EMPTY: history changed, content did not.
+
+**The general rule: a fixture that plants a credential shape must assemble it at runtime.**
+Written whole, it is indistinguishable from the thing it is testing for — to GitHub, and to
+this file's own scanner.
+
+## The Actions allowance is BLOCKED on the PRIVATE fork, and CI has not run there since 2026-09-16 05:07
 
 **CHECKED, NOT ASSUMED, 2026-09-16.** `visibility: private` (this is the fork). CI runs
 **69 through 73** — every push of 012 and 013 — are all `conclusion: failure`, each
@@ -621,15 +693,15 @@ curl -s https://api.github.com/repos/<owner>/<repo>/check-runs/<job_id>/annotati
 (the job id comes from `list_workflow_jobs`; the job's LOGS 404, because a job that never
 started produced none — which is why the annotation is the thing to read).
 
-**WHAT THAT MEANS FOR EVERY "gates green" LINE IN THOSE FIVE COMMITS.** They are LOCAL
-results. Nothing in 012 or 013 has been through CI, so the frozen lockfile, the ffmpeg
-install, the MinIO pull from quay.io, `playwright install`, `test:durability` and the
-Postgres wait have all been unverified on a runner since 2026-09-16 05:07. In particular
-`quay.io/minio` has never been proven to pull from a runner since MinIO left Docker Hub —
-this sandbox cannot reach quay.io at all, so **CI is the only instrument for it and CI has
-not run**.
+**WHAT THAT MEANT FOR EVERY "gates green" LINE IN THOSE FIVE COMMITS.** They were LOCAL
+results — the frozen lockfile, the ffmpeg install, the MinIO pull from quay.io,
+`playwright install`, `test:durability` and the Postgres wait, none of them seen by a runner.
+**Resolved by moving the work to the public upstream** (section above), where the first run
+verified the lockfile, the ffmpeg install and the quay.io pull, and found a real defect in
+the API fixtures that no local run could produce.
 
-**Only the owner can clear this** — it is the billing on their account.
+**Only the owner can clear the block itself** — it is the billing on their account — and it
+now costs nothing to leave: the private fork holds no work that needs CI.
 
 The 2026-09-06 occurrence, for the pattern: every workflow failed ~6 seconds in with the
 same message, blocking ordinary CI as well as the emulator job.
