@@ -87,6 +87,33 @@ export class InterestService {
   }
 
   /** 013/T013. Makes a just-created interest postable and searchable at once. */
+  /**
+   * The stored interest, counts included.
+   *
+   * Separate from `CatalogueSearch.byId` on purpose: that one answers from the
+   * in-memory index, which is right for a name and wrong for a number nothing
+   * refreshes it for. See `interest.controller.ts` § detail.
+   */
+  async findById(interestId: string): Promise<InterestItem | null> {
+    return this.repo.findById(interestId);
+  }
+
+  /**
+   * Fresh counts for a page of interests, keyed by id.
+   *
+   * ONE READ PER ROW, BOUNDED BY THE PAGE. The listing serves at most fifty,
+   * and 012/FR-032 needs the numbers on it to be true — a tile whose count is
+   * whatever the process booted with is exactly the "choosing is guessing" the
+   * requirement is about. A batch read here beats the alternative, which is
+   * refreshing a whole catalogue on every publish and every follow.
+   */
+  async countsFor(interestIds: string[]): Promise<Map<string, InterestItem>> {
+    const rows = await Promise.all(interestIds.map((id) => this.repo.findById(id)));
+    const out = new Map<string, InterestItem>();
+    for (const row of rows) if (row) out.set(row.interestId, row);
+    return out;
+  }
+
   async refreshCatalogue(): Promise<void> {
     await this.cache.refresh();
   }
@@ -148,8 +175,19 @@ export class InterestService {
       nameNormalised,
       slug: await this.uniqueSlug(trimmed),
       createdBy,
-      // FR-004: born with the post being written beside it.
-      postCount: 1,
+      /**
+       * ZERO, AND THE SAME TRANSACTION TAKES IT TO ONE.
+       *
+       * It was written as `1` because FR-004 makes an interest with no posts
+       * unrepresentable and nothing maintained the counter — so the literal was
+       * standing in for a writer that did not exist. 012/FR-032 gave it one
+       * (`post.transaction.ts`, "ADD postCount :one"), and both writes are in
+       * the ONE transaction that also writes the post: this row and the
+       * increment land together or not at all, so no reader ever sees an
+       * interest at zero. Leaving the literal at 1 beside a real increment
+       * would have made every interest's first post count twice.
+       */
+      postCount: 0,
       followerCount: 0,
       state: 'active',
       createdAt: new Date().toISOString(),

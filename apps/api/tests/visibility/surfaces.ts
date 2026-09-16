@@ -120,6 +120,20 @@ export const BASE_SURFACES: readonly Surface[] = [
    * what is IN it.
    */
   { name: 'collection posts', built: true, story: '008/US15 (T211)' },
+  /**
+   * ---- 012's one. SURFACE 17.
+   *
+   * `GET /interests` shows four photographs above each interest name so that
+   * Explore has something worth looking at before anything is typed
+   * (FR-031, FR-032, `Explore.dc.html`). Post media reaching a viewer is a post
+   * read path whatever it is drawn at, and 48x44 is not an exemption.
+   *
+   * `surface-routing.spec.ts` predicted it on the `interest search` row, in
+   * writing: "if a post count is ever added to that response it becomes a real
+   * post read path and needs a probe here, not a comment." The count came
+   * first; the photographs came with it.
+   */
+  { name: 'interest preview', built: true, story: '012/US5 (T038)' },
 ] as const;
 
 /**
@@ -157,6 +171,8 @@ export const BASE_EVER_BUILT: readonly string[] = [
   'post search',
   'comment replies',
   'collection posts',
+  // 012
+  'interest preview',
 ];
 
 /**

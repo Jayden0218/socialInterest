@@ -1,3 +1,4 @@
+import { Photo } from '../ui/Photo';
 import { useState } from 'react';
 import { Image, type NativeScrollEvent, type NativeSyntheticEvent, ScrollView, Text, View } from 'react-native';
 import type { MediaItem, Post } from '@sih/shared';
@@ -193,14 +194,15 @@ function MediaFrame({
       </View>
     );
   }
-  const uri = item.posterUrl ?? Object.values(item.renditions ?? {})[0] ?? '';
+  // 012/FR-006a. `?? ''` used to reach `Image` as a source pointed at nothing,
+  // which renders as the frame's background and says nothing. `Photo` has a
+  // state for it.
+  const uri = item.posterUrl ?? Object.values(item.renditions ?? {})[0] ?? null;
   return (
-    <Image
+    <Photo
       testID={`media-image-${index}`}
-      source={{ uri }}
-      resizeMode="cover"
+      uri={uri}
       accessibilityLabel={label}
-      accessibilityIgnoresInvertColors
       style={{ flex: 1, width: '100%', height: '100%' }}
     />
   );

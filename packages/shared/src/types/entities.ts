@@ -44,6 +44,15 @@ export const interestSchema = z.object({
   followerCount: z.number().int().nonnegative(),
   state: interestStateSchema,
   viewerIsFollowing: z.boolean().optional(),
+  /**
+   * 012/FR-031, FR-032. A few photographs for an Explore tile's mosaic.
+   *
+   * Optional and usually absent: it is present only on `GET /interests` with no
+   * `q`, and only for the first few results. Every url has been through the
+   * visibility boundary — surface 17, built on the interest space's own read
+   * path — and is signed for fifteen minutes like any other media url.
+   */
+  preview: z.array(z.string()).max(4).optional(),
 });
 export type Interest = z.infer<typeof interestSchema>;
 

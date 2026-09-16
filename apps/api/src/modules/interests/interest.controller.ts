@@ -23,6 +23,7 @@ import { CATALOGUE_SEARCH, type CatalogueSearch } from './catalogue.cache';
 import { InterestSearch, type SearchResult } from './catalogue.search';
 import { DuplicateInterestError, InterestService } from './interest.service';
 import { InterestFollowService } from './interest-follow.service';
+import { PostQueryService } from '../posts/post-query.service';
 
 // 013/FR-004. `createInterestSchema` IS DELETED with `POST /interests`. It
 // survived the route's removal as a declared-but-unreferenced const — and it
@@ -39,6 +40,12 @@ const toRef = (r: SearchResult) => ({
   state: r.interest.state,
 });
 
+/**
+ * How many tiles get a mosaic. Above the fold on a 390pt phone is six; eight
+ * leaves a row in hand without turning a browse into a fan-out.
+ */
+const PREVIEW_TILES = 8;
+
 @Controller('interests')
 export class InterestController {
   constructor(
@@ -46,6 +53,7 @@ export class InterestController {
     @Inject(InterestSearch) private readonly search: InterestSearch,
     @Inject(CATALOGUE_SEARCH) private readonly catalogue: CatalogueSearch,
     @Inject(InterestFollowService) private readonly follows: InterestFollowService,
+    @Inject(PostQueryService) private readonly posts: PostQueryService,
   ) {}
 
   /**
@@ -75,13 +83,61 @@ export class InterestController {
   // unread. Interests are flat, so neither has anything to filter by — and an
   // accepted-and-ignored filter is one a caller cannot tell from a filter that
   // matched everything. The contract declared both until this change too.
-  browseOrSearch(@Query('q') q?: string, @Query('limit') limit?: string) {
+  async browseOrSearch(
+    @Req() req: AppRequest,
+    @Query('q') q?: string,
+    @Query('limit') limit?: string,
+  ) {
     const opts = {
       limit: limit ? Math.min(50, Math.max(1, Number(limit))) : 20,
     };
     const results = q ? this.search.search(q, opts) : this.search.browse(opts);
+    /**
+     * 012/FR-032. THE COUNTS COME FROM THE ROWS, for the reason spelled out on
+     * the detail route below: the catalogue cache is a search index and the
+     * numbers on it are whatever the process booted with. An Explore tile whose
+     * count is stale is the "choosing is guessing" this requirement exists to
+     * end, so the page's own rows are read — bounded at fifty by `limit`.
+     */
+    const fresh = await this.interests.countsFor(results.map((r) => r.interest.interestId));
+
+    /**
+     * 012/FR-031, FR-032. THE MOSAIC — AND THIS IS A POST READ PATH.
+     *
+     * `Explore.dc.html` draws four photographs above each interest's name, so
+     * that a browse surface shows something worth looking at before anything is
+     * typed. That means post MEDIA reaches a viewer here, and Constitution II
+     * applies: this is surface 17, `interest preview`, with a row in the matrix
+     * and a probe in `surface-routing.spec.ts`.
+     *
+     * `surface-routing` predicted this change in writing, on the `interest
+     * search` row: "if a post count is ever added to that response it becomes a
+     * real post read path and needs a probe here, not a comment". It was right
+     * about the direction and this is that probe.
+     *
+     * NO SECOND PREDICATE. `previewForInterests` calls `listByInterest` — the
+     * interest space's own method — so the boundary makes exactly the decision
+     * it already makes, N times. See its note.
+     *
+     * BROWSE ONLY, AND BOUNDED. A type-ahead answers per keystroke and must
+     * stay a name lookup; the mosaic is for the resting state. Eight tiles is
+     * what a phone shows above the fold.
+     */
+    const previews =
+      q || results.length === 0
+        ? new Map<string, string[]>()
+        : await this.posts.previewForInterests(
+            req.viewer ?? null,
+            results.slice(0, PREVIEW_TILES).map((r) => r.interest.interestId),
+          );
+
     return {
-      items: results.map(toRef),
+      items: results.map((r) => ({
+        ...toRef({ ...r, interest: fresh.get(r.interest.interestId) ?? r.interest }),
+        ...(previews.has(r.interest.interestId)
+          ? { preview: previews.get(r.interest.interestId) }
+          : {}),
+      })),
       page: {
         nextCursor: null,
         emptyStateHint: results.length === 0 ? 'no_results' : null,
@@ -175,8 +231,33 @@ export class InterestController {
   /** FR-025, and FR-030's redirect for a merged interest. */
   @Public()
   @Get(':interestId')
-  detail(@Param('interestId') interestId: string, @Res({ passthrough: true }) res: Response) {
-    const interest = this.catalogue.byId(interestId);
+  async detail(
+    @Param('interestId') interestId: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    /**
+     * THE ROW, NOT THE CACHE — AND THE COUNTS WERE STALE UNTIL THIS.
+     *
+     * `InMemoryCatalogueCache` loads once at boot and refreshes only when an
+     * interest is CREATED, merged, retired or described. It is a search index:
+     * names, slugs and state, which is what it was built for (research D3).
+     * `postCount` and `followerCount` are neither, and serving them from it
+     * meant a follow incremented the ITEM while every reader went on seeing
+     * whatever the number was when the process started.
+     *
+     * `setDescription` already knew this and says so in its own comment — "a
+     * description written to the item and not to the cache would be invisible
+     * until the next restart, which is the kind of 'saved but not showing' that
+     * reads as data loss". It refreshes for that reason. A follow cannot: a
+     * full catalogue reload per follow, and per POST once 012/FR-032 gave
+     * `postCount` a writer, is a table scan on a hot path.
+     *
+     * So the counts come from the row. One point read, on a route that is
+     * already a round trip, and the cache keeps the job it is good at.
+     */
+    const stored = await this.interests.findById(interestId);
+    const cached = this.catalogue.byId(interestId);
+    const interest = stored ?? cached;
     if (!interest) throw new DomainError(HttpStatus.NOT_FOUND, 'No such interest');
 
     if (interest.state === 'merged' && interest.mergedIntoId) {

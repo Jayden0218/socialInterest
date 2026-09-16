@@ -2,7 +2,7 @@ import { Image, Pressable, Text, View } from 'react-native';
 import type { MediaItem, Post } from '@sih/shared';
 import { Avatar } from './Avatar';
 import { InterestWord } from './InterestWord';
-import { Skeleton } from './Skeleton';
+import { Photo } from '../ui/Photo';
 import { mediaLabel } from './mediaLabel';
 import { Icon } from '../ui/Icon';
 import { useTheme } from '../ui/useTheme';
@@ -141,16 +141,21 @@ export function PostCard({
                 This media could not be processed.
               </Text>
             </View>
-          ) : url ? (
-            <Image
+          ) : (
+            /*
+              012/FR-006a. `Photo`, not `Image` — and the `url ? ... : Skeleton`
+              ternary this replaces is why. It drew a placeholder while the URL
+              was on its way and then mounted a bare `Image` that had three
+              states of its own with nothing drawn for any of them. A photograph
+              still arriving and a presigned URL the store refused rendered as
+              the same grey box, which is R3's finding exactly.
+            */
+            <Photo
               testID={`post-image-${post.postId}`}
-              source={{ uri: url }}
-              resizeMode="cover"
+              uri={url}
               accessibilityLabel={mediaLabel(post, item)}
               style={{ width: '100%', height: '100%' }}
             />
-          ) : (
-            <Skeleton style={{ width: '100%', height: '100%' }} />
           )}
 
           {/*
@@ -371,16 +376,13 @@ export function PostTile({ post, onOpen }: { post: Post; onOpen: (postId: string
             Not processed
           </Text>
         </View>
-      ) : url ? (
-        <Image
+      ) : (
+        <Photo
           testID={`post-image-${post.postId}`}
-          source={{ uri: url }}
-          resizeMode="cover"
+          uri={url}
           accessibilityLabel={mediaLabel(post, item)}
           style={{ width: '100%', height: '100%' }}
         />
-      ) : (
-        <Skeleton style={{ width: '100%', height: '100%' }} />
       )}
 
       {/*

@@ -378,11 +378,54 @@ const BASE_PROBES: Probe[] = [
   },
   {
     surface: 'interest search',
+    /**
+     * 012. THE NOTE THAT USED TO BE HERE SAID "no post content and no post
+     * counts", AND BOTH HALVES HAVE NOW CHANGED. It also said what to do about
+     * it — "it becomes a real post read path and needs a probe here, not a
+     * comment" — so this row is split in two rather than reworded.
+     *
+     * WHAT STAYS TRUE OF *SEARCH*: a type-ahead answers per keystroke and
+     * returns names. `GET /interests?q=` carries no preview at all (the
+     * controller skips it when `q` is present), so there is still nothing here
+     * for the filter to decide.
+     *
+     * THE POST COUNT IS AN AGGREGATE AND IS NOT VIEWER-FILTERED, which is a
+     * stated position rather than an oversight. It counts posts FILED in an
+     * interest, not posts this viewer may see, and a determined viewer could
+     * infer from it that something exists they cannot open. That is the same
+     * accepted leak 005 recorded for a place's rating average — "filtering it
+     * would make it not an average" — pinned by
+     * `interest-post-count.spec.ts` so a change in either direction is
+     * deliberate. Filtering a count per viewer would also mean a scan of every
+     * tile on a browse surface, per viewer.
+     *
+     * The MOSAIC is different in kind and gets its own row below: it is post
+     * media, and post media goes through the boundary.
+     */
     returnsNoPosts:
-      'GET /interests?q= returns interest refs only - no post content and no post counts - ' +
-      'so there is nothing for the filter to decide. If a post count is ever added to that ' +
-      'response it becomes a real post read path and needs a probe here, not a comment.',
+      'GET /interests?q= returns interest refs only. The preview is skipped when `q` is ' +
+      'present, and `postCount` is a deliberately unfiltered aggregate — see the note above ' +
+      'and interest-post-count.spec.ts.',
     run: async () => undefined,
+  },
+  {
+    surface: 'interest preview',
+    /**
+     * 012/FR-031. SURFACE 17, and the probe is deliberately the interest
+     * space's own method.
+     *
+     * `PostQueryService.previewForInterests` calls `listByInterest` once per
+     * tile and takes the first media of each result. So the boundary makes
+     * exactly the decision it already makes on surface 1 — there is no second
+     * predicate to get wrong, which is the point. `in-interest search` is the
+     * same argument on the same method with a `q`.
+     *
+     * Probed anyway rather than waved through: this suite exists because 462
+     * matrix assertions would otherwise mean "one function was tested 66
+     * times", and a surface with no probe is a surface nobody proved CONSULTS
+     * the filter.
+     */
+    run: ({ queries }) => queries.previewForInterests(VIEWER, ['i1'], 4),
   },
   {
     surface: 'place reviews',

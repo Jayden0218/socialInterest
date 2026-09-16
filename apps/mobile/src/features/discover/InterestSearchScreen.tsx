@@ -1,9 +1,10 @@
 import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
-import type { InterestRef, PlaceSummary, PublicProfile } from '@sih/shared';
+import type { Interest, InterestRef, PlaceSummary, PublicProfile } from '@sih/shared';
 import { activePalette as palette, radius, space, textStyle, touchTarget, MIN_TOUCH_TARGET } from '../../ui/theme';
 import { interestColour } from '../../ui/interest-colour';
 import { EmptyState, Row, Screen } from '../../ui/primitives';
 import { labelWithParent } from './InterestScreen';
+import { InterestTile } from './InterestTile';
 import { Icon } from '../../ui/Icon';
 
 /** 008/US6. Which of Discover's two searches is showing. */
@@ -79,8 +80,9 @@ export function InterestSearchScreen({
     <Screen testID="interest-search-screen">
       <TextInput
         testID="interest-search-input"
-        accessibilityLabel="Search interests"
-        placeholder="Search interests"
+        // The artboard's words, and the better ones: this searches all three.
+        accessibilityLabel="Search interests, people and places"
+        placeholder="Interests, people, places"
         value={query}
         onChangeText={onQueryChange}
         autoCorrect={false}
@@ -94,11 +96,25 @@ export function InterestSearchScreen({
         }}
       />
 
-      {onLocalityChange ? (
+      {/*
+        012/FR-031. ONE FIELD BEFORE ANYTHING IS TYPED.
+        `Explore.dc.html` draws a single search field reading "Interests,
+        people, places". This screen opened with TWO — an interest field and a
+        locality field — which is the spec's complaint almost verbatim: "Explore
+        opens with two empty text fields and asks you to type before it shows
+        anything".
+
+        The locality field is not deleted, because the reason it exists is still
+        true and is written above: a place search without a locality cannot
+        dedupe and returns the wrong "Joe's". It appears once somebody is
+        actually searching, as a REFINEMENT of a search in progress rather than
+        as a second thing to fill in before starting.
+      */}
+      {onLocalityChange && shouldQuery(query) ? (
         <TextInput
           testID="place-search-locality"
           accessibilityLabel="City or area, to search places"
-          placeholder="City or area (to find places)"
+          placeholder="City or area, to narrow places"
           value={locality ?? ''}
           onChangeText={onLocalityChange}
           autoCorrect={false}
@@ -236,7 +252,34 @@ export function InterestSearchScreen({
             body="Try a shorter word, or create a sub-interest for it."
           />
         ) : (
+          /*
+            012/FR-031, FR-032. TILES AT REST, A LIST WHILE TYPING.
+
+            Before anything is typed this is a BROWSE surface and the artboard
+            draws it as a grid: a mosaic, the name, and how many posts are
+            behind it. "Busy this week" is the heading, and the ordering is the
+            server's — the listing is by name today, which is noted as open in
+            the run record rather than quietly claimed.
+
+            While typing it stays a LIST. A type-ahead is scanned top to bottom
+            and a two-column grid of photographs is the wrong shape for that —
+            and the preview is not sent for a query anyway, so every tile would
+            be an empty mosaic.
+          */
+          shouldQuery(query) ? (
           <FlatList
+            /*
+              A `key` THAT DIFFERS FROM THE GRID'S, and React Native says why:
+              "Changing numColumns on the fly is not supported. Change the key
+              prop on FlatList when changing the number of columns."
+
+              These read as two elements in the source and reconcile as ONE —
+              same type, same position — so typing a character turned a
+              two-column grid into a one-column list on the same instance and
+              threw. Same family as 007's `onViewableItemsChanged`: a FlatList
+              has invariants across renders that no single render can show you.
+            */
+            key="interest-list"
             testID="interest-list"
             data={results}
             keyExtractor={(i) => i.interestId}
@@ -275,6 +318,35 @@ export function InterestSearchScreen({
               </Pressable>
             )}
           />
+          ) : (
+            <FlatList
+              key="interest-tiles"
+              testID="interest-tiles"
+              data={results as Interest[]}
+              keyExtractor={(i) => i.interestId}
+              numColumns={2}
+              columnWrapperStyle={{ gap: space.sm }}
+              contentContainerStyle={{ gap: space.sm }}
+              ListHeaderComponent={
+                <Text
+                  style={{ ...textStyle.caption, color: palette.text.muted, marginBottom: space.xs }}
+                >
+                  Busy this week
+                </Text>
+              }
+              renderItem={({ item, index }) => (
+                <InterestTile
+                  // `search-result-<index>` is preserved: every Maestro flow and
+                  // browser journey selects Explore's first result by it, and a
+                  // layout change is not a reason to rename an id. 005 cost three
+                  // attempts to a testID that moved.
+                  testID={`search-result-${index}`}
+                  interest={item}
+                  onPress={() => onSelect(item.interestId)}
+                />
+              )}
+            />
+          )
         ))}
         </>
       )}

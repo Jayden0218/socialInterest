@@ -233,6 +233,25 @@ export class PostUpdateTransaction {
           Key: keys.postInterestIndex(interestId, post.createdAt, post.postId),
         },
       })),
+      /**
+       * 012/FR-032. AND THE COUNT COMES DOWN WITH THE ROWS IT COUNTS.
+       *
+       * In the SAME transaction as the index deletes above, for the reason
+       * FR-012 already gives for those: "the post and every index item leave
+       * together". A counter decremented afterwards can be lost to a crash
+       * between the two writes, and then the number and the rows disagree with
+       * nothing to notice — 005's argument for the rating aggregate, and the
+       * reason the increment sits in the publish transaction rather than beside
+       * it.
+       */
+      ...expandedInterestIds.map((interestId) => ({
+        Update: {
+          TableName: table,
+          Key: keys.interest(interestId),
+          UpdateExpression: "ADD postCount :minusOne",
+          ExpressionAttributeValues: { ":minusOne": -1 },
+        },
+      })),
       // 008/US6. And from every term partition, for exactly the same
       // reason: a deleted post lingering in a search index is a row the
       // filter would have to remove on every query forever.

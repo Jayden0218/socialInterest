@@ -144,6 +144,19 @@ describe('every control is reliably tappable', () => {
       slop: { top: 14, bottom: 14, left: 14, right: 14 },
     },
     {
+      file: 'src/ui/Photo.tsx',
+      // 012/FR-006a. Matched on the accessibility label, because this control's
+      // testID is built from a PROP — `${testID}-retry` — and a computed id is
+      // exactly what a source-scanning guard cannot resolve. The label is a
+      // literal in the file and names the same control.
+      match: 'Try loading this photo again',
+      label: 'try loading this photo again',
+      // A `small` line box inside a photo frame, with a declared `minWidth`.
+      boxHeight: typeScale.small.lineHeight,
+      boxWidth: MIN_TOUCH_TARGET,
+      slop: { top: 14, bottom: 14, left: 14, right: 14 },
+    },
+    {
       file: 'src/App.tsx',
       match: 'open-compose',
       label: 'the compose square',

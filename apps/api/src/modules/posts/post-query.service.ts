@@ -242,6 +242,46 @@ export class PostQueryService {
    *
    * The filter decides WHAT is visible. It was never the shape of what to send.
    */
+  /**
+   * 012/FR-032. A FEW PHOTOGRAPHS FROM EACH OF SEVERAL INTERESTS, for the
+   * Explore tiles — `Explore.dc.html` draws a 2x2 mosaic above each name.
+   *
+   * IT CALLS `listByInterest`, AND THAT IS THE WHOLE DESIGN. A mosaic shows
+   * post MEDIA, so it is a read path for posts and Constitution II applies to
+   * it — but it is not a NEW decision. Written any other way (a raw index query
+   * and "just take the media") it would be a second visibility predicate
+   * agreeing with the boundary today and one refactor from disagreeing, which
+   * is the shape 008 deleted `MediaPager`'s `viewerIsAuthor` prop for.
+   *
+   * `in-interest search` is the precedent and says the same thing about itself:
+   * "the same method as the interest space, with `q`. That is the point."
+   *
+   * BOUNDED TWICE. `interestIds` is the page the caller is rendering, and each
+   * interest is asked for `perInterest` posts. A browse surface may not turn
+   * into an unbounded fan-out.
+   */
+  async previewForInterests(
+    viewer: Viewer,
+    interestIds: string[],
+    perInterest = 4,
+  ): Promise<Map<string, string[]>> {
+    const pages = await Promise.all(
+      interestIds.map((interestId) => this.listByInterest(viewer, interestId, { limit: perInterest })),
+    );
+    const out = new Map<string, string[]>();
+    interestIds.forEach((interestId, i) => {
+      const urls = (pages[i]?.items ?? [])
+        .map((post) => {
+          const first = (post as { media?: { renditions?: Record<string, string>; posterUrl?: string | null }[] })
+            .media?.[0];
+          return first?.posterUrl ?? Object.values(first?.renditions ?? {})[0] ?? null;
+        })
+        .filter((url): url is string => Boolean(url));
+      if (urls.length > 0) out.set(interestId, urls);
+    });
+    return out;
+  }
+
   async listByInterest(
     viewer: Viewer,
     interestId: string,

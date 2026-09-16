@@ -473,8 +473,12 @@ describe('SC-005 review visibility (005 addendum)', () => {
       // somebody has to raise to add a surface HERE. What it no longer does is
       // collide with a downstream fork raising it for a surface of their own:
       // theirs lands in ../overlay/ and is counted below. See ../overlay/README.md.
-      expect(BASE_SURFACES.length).toBe(16);
-      expect(BASE_EVER_BUILT.length).toBe(16);
+      // 012/T038: SIXTEEN BECAME SEVENTEEN, and this is the deliberate edit
+      // the literal exists to force. Explore's tiles draw four photographs above
+      // each interest name, which is post media reaching a viewer on a surface
+      // that did not return any before — `interest preview`.
+      expect(BASE_SURFACES.length).toBe(17);
+      expect(BASE_EVER_BUILT.length).toBe(17);
       // And the composed list really is base plus overlay - so an overlay that
       // dropped or duplicated an entry cannot pass the two checks above.
       //
@@ -523,19 +527,19 @@ describe('SC-005 review visibility (005 addendum)', () => {
      * THIS REPOSITORY'S NUMBER, still pinned as a literal.
      *
      * Derived from the base surface list so the literal can be checked against
-     * something rather than restated: 15 built post surfaces x 98 + 18 = 1,488.
+     * something rather than restated: 16 built post surfaces x 98 + 18 = 1,586.
      * Raising it is exactly as deliberate an edit as it was before.
      */
     const baseTotal =
       postSurfacesIn(BASE_SURFACES).filter((s) => s.built).length * ASSERTIONS_PER_POST_SURFACE +
       reviewAssertions;
-    expect(baseTotal).toBe(1488);
+    expect(baseTotal).toBe(1586);
 
     /**
      * AND WHAT THIS BUILD ACTUALLY RAN: base plus the overlay's contribution.
-     * Upstream's overlay is empty, so this is the same 1,488 assertion it always
-     * was. A fork adding two post surfaces expects 1,684 without touching this
-     * file. See ../overlay/README.md.
+     * Upstream's overlay is empty, so this is the 1,586 assertions the base list
+     * describes. A fork adding two post surfaces expects 1,782 without touching
+     * this file. See ../overlay/README.md.
      */
     const overlayTotal =
       postSurfacesIn(OVERLAY_SURFACES).filter((s) => s.built).length * ASSERTIONS_PER_POST_SURFACE;

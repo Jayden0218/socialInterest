@@ -113,6 +113,39 @@ export class PostTransaction {
         },
       })),
       /**
+       * 013/FR-032. THE WRITER `postCount` NEVER HAD.
+       *
+       * `InterestRepository.incrementPostCount` existed, and nothing anywhere
+       * called it — so every interest reported `postCount: 1` for ever, the
+       * value `create` wrote. 013 recorded that and routed housekeeping around
+       * it (`retireIfEmpty` reads index ROWS), because retiring on a number
+       * nothing maintains would have retired nothing and looked implemented.
+       *
+       * 012/FR-032 needs the number itself: an Explore tile must convey "how
+       * much is behind this", so choosing an interest is not guessing. A count
+       * that is 1 everywhere conveys nothing, and a count derived per request
+       * would be a full scan of each interest's index per tile.
+       *
+       * IN THIS TRANSACTION, beside the index rows it counts. A counter written
+       * afterwards can be lost to a crash between the two writes, and then the
+       * number and the rows disagree with nothing to notice — which is the same
+       * argument 005 made for the rating aggregate.
+       *
+       * NOT VIEWER-FILTERED, and that is a stated, accepted position rather
+       * than an oversight: it counts the posts filed here, not the posts this
+       * viewer may see. Filtering it per viewer would make it not a count, and
+       * it is the same class as 005's place rating average — "a stated,
+       * accepted leak", pinned there rather than left to be discovered.
+       */
+      ...expandedInterestIds.map((interestId) => ({
+        Update: {
+          TableName: table,
+          Key: keys.interest(interestId),
+          UpdateExpression: "ADD postCount :one",
+          ExpressionAttributeValues: { ":one": 1 },
+        },
+      })),
+      /**
        * 008/A46. One row per distinct caption term, capped at 40.
        *
        * Same shape as the interest and place index items above, deliberately -

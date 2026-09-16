@@ -92,8 +92,8 @@ two sides never edit the same lines.**
 | `keys.ts`'s `X#` namespace | every overlay row in the single table |
 
 **Where a literal stays pinned, it is pinned against the BASE and the composed
-expectation is derived.** `matrix.spec.ts` still asserts `BASE_SURFACES.length === 16`
-and a `baseTotal` of 1,488 — raising either is still a deliberate, reviewable edit. What
+expectation is derived.** `matrix.spec.ts` still asserts `BASE_SURFACES.length === 17`
+and a `baseTotal` of 1,586 — raising either is still a deliberate, reviewable edit. What
 it no longer does is collide with a fork raising the same literal for a surface of their
 own. Same for the route snapshot, which is still exact in BOTH directions.
 

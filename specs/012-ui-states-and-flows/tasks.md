@@ -106,7 +106,7 @@ story to P3 after the research.
 - [X] T022 [US1] Every failure is visibly distinct from empty and offers a retry that re-attempts the request (FR-009, FR-010)
 - [X] T023 [US1] **An empty list caused by the visibility boundary says nothing about why** (FR-011). The considerate message is the wrong one: Constitution II makes absence and refusal indistinguishable on purpose, and a helpful empty state here is an oracle
 - [X] T024 [US1] Write `apps/mobile/src/__tests__/four-states.test.ts`: every surface that fetches renders something in each of the four states — **and watch it red first**, against the four primary surfaces that have no loading state today
-- [ ] T025 [US1] Assert in the browser that the three states are visually distinguishable from one another (SC-008). A person who has not been told which is which must be able to tell
+- [X] T025 [US1] Assert in the browser that the three states are visually distinguishable from one another (SC-008). A person who has not been told which is which must be able to tell
 
 **Checkpoint**: the app stops looking broken while it works.
 
@@ -122,9 +122,9 @@ story to P3 after the research.
 
 ## Phase 6: User Story 1 continued — a photograph is a surface too (Priority: P1)
 
-- [ ] T029 [US1] Create `apps/mobile/src/ui/Photo.tsx` — an image carrying its own loading, failed and absent states (FR-006a). Research R3: every image in the captures is the same grey box in all three cases, on a product whose premise is photographs
-- [ ] T030 [US1] Replace every direct `Image` on a content surface with `Photo`
-- [ ] T031 [US1] **Determine on the owner's own install whether images load at all.** They render as grey boxes in this sandbox because object storage is unreachable here, and that is an artefact — if they are grey on a real device too, that is 006/R4b's media defect in a third place and a larger problem than this feature
+- [X] T029 [US1] Create `apps/mobile/src/ui/Photo.tsx` — an image carrying its own loading, failed and absent states (FR-006a). Research R3: every image in the captures is the same grey box in all three cases, on a product whose premise is photographs
+- [X] T030 [US1] Replace every direct `Image` on a content surface with `Photo`
+- [ ] T031 [US1] **Determine on the owner's own install whether images load at all.** They render as grey boxes in this sandbox because object storage is unreachable here, and that is an artefact — if they are grey on a real device too, that is 006/R4b's media defect in a third place and a larger problem than this feature. **PARTLY ANSWERED, 2026-09-16, and the rest is honestly open.** Object storage IS reachable in this sandbox now (adobe/s3mock, not MinIO), and `apps/e2e/browser/photo-loads.spec.ts` publishes a real photograph, waits for the app's own placeholder to go away, and fetches the presigned url the API issued: **200, image/jpeg, non-zero bytes**. So the path works end to end in a browser against a real store. What that does NOT answer, and what keeps this box open: the OWNER'S install, and a DEVICE — react-native-web renders an `Image` as a div with a CSS background where React Native uses its own loader, which is the same difference that hid 006's `Avatar` overflow.
 
 ---
 
@@ -141,9 +141,9 @@ story to P3 after the research.
 
 ## Phase 8: User Story 5 — the app suggests instead of waiting (Priority: P2)
 
-- [ ] T038 [US5] Rebuild Explore per `Explore.dc.html`: **one** search field instead of two, and interest tiles with a photo mosaic and a post count shown **before anything is typed** (FR-031, FR-032)
+- [X] T038 [US5] Rebuild Explore per `Explore.dc.html`: **one** search field instead of two, and interest tiles with a photo mosaic and a post count shown **before anything is typed** (FR-031, FR-032)
 - [ ] T039 [US5] Build the interest space per `InterestSpace.dc.html`. It is the product's premise — every space is browsed by one interest — and it had no artboard at all until this pass
-- [ ] T040 [US5] Every primary surface offers a visible next action without scrolling (FR-033)
+- [X] T040 [US5] Every primary surface offers a visible next action without scrolling (FR-033)
 - [ ] T041 [US5] Build the cold start per `ColdStart.dc.html`, so a new account's first screen after sign-up leads somewhere rather than to an empty feed
 
 ---
@@ -161,8 +161,8 @@ story to P3 after the research.
 - [X] T045 [P] Confirm the visibility matrix reports the **same surfaces and the same total** (FR-022, SC-006). **If a number moved, stop and find out why** — never update the number
 - [X] T046 [P] Confirm the public and operator route snapshots are **unchanged** (FR-023, SC-007). This feature adds feedback and closes paths; it changes no permission
 - [X] T047 [P] **Confirmed, and the reason is structural rather than a spot check**: the states render copy, icons and grey rectangles. No state introduced by this feature reads a post, a profile or any other record — `surfaceFallback` is handed a `PagedResult` whose items it never inspects beyond `length`. The API was not touched at all this feature, which the matrix and route snapshots then confirm from the other side (FR-024)
-- [ ] T048 [P] Update the testID snapshot in the **same commit** as the flows it requires, and regenerate it when ids are ADDED rather than only when one is removed — 011 found it nineteen ids stale, and a snapshot can only detect the removal of an id it knows about
-- [ ] T049 [P] Run `node scripts/verify-maestro-ids.mjs` — a selector that matches nothing fails as a thirty-second timeout twenty minutes into a device run
+- [X] T048 [P] Update the testID snapshot in the **same commit** as the flows it requires, and regenerate it when ids are ADDED rather than only when one is removed — 011 found it nineteen ids stale, and a snapshot can only detect the removal of an id it knows about
+- [X] T049 [P] Run `node scripts/verify-maestro-ids.mjs` — a selector that matches nothing fails as a thirty-second timeout twenty minutes into a device run
 - [X] T050 Run the real CI step list before pushing, not a proxy for it
 - [ ] T051 Capture every screen and compare against its artboard; record each difference as drift fixed or as a state the design does not cover (FR-026)
 - [X] T052 Record the run in `docs/verification/runs/`, every criterion pass, fail or **not run** — never blank — and **count the items** rather than reading the highest number

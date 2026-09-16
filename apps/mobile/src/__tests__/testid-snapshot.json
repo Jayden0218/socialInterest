@@ -88,6 +88,7 @@
     "interest-search-input",
     "interest-search-screen",
     "interest-selector",
+    "interest-tiles",
     "join-prompt",
     "leave-group",
     "library-permission-denied",
@@ -243,6 +244,7 @@
     "withdraw-rating"
   ],
   "prefixes": [
+    "",
     "alt-text-",
     "appeal-",
     "appeal-state-",

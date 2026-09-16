@@ -2381,6 +2381,25 @@ components:
             followerCount: { type: integer }
             state: { type: string, enum: [active, merging, merged, retired] }
             viewerIsFollowing: { type: boolean }
+            preview:
+              type: array
+              maxItems: 4
+              description: >
+                012/FR-031, FR-032. A few photographs from this interest, for the
+                mosaic on an Explore tile — so a browse surface shows something
+                worth looking at before anything is typed.
+
+
+                PRESENT ONLY ON `GET /interests` WITHOUT `q`, and only for the
+                first few results: a type-ahead answers per keystroke and stays a
+                name lookup. Absent everywhere else.
+
+
+                Every url here has been through the visibility boundary — it is
+                surface 17, `interest preview`, and the service builds it by
+                calling the interest space's own read path rather than a second
+                one. Signed for fifteen minutes, like every other media url.
+              items: { type: string }
 
     # 013/FR-021. `InterestDetail` NO LONGER ADDS ANYTHING TO `Interest`.
     # It carried `subInterests`, which the flat model withdraws. Kept as a name

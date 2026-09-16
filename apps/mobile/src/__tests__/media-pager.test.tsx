@@ -61,7 +61,17 @@ describe('008/FR-001 every ready item is reachable', () => {
 
   it('renders each item with its OWN url, so "renders all" cannot pass by repeating one', () => {
     const t = renderPager(multiImagePost);
-    const uris = t.getAllByTestId(/^media-image-/).map((i) => (i.props.source as { uri: string }).uri);
+    /**
+     * ANCHORED. `/^media-image-/` matched `media-image-0-loading` too once
+     * `Photo` gave each state its own id, and a placeholder has no `source`.
+     *
+     * Same family as the two selector defects this project has already paid
+     * for — `share-person-.*` matching the search FIELD, and `post-.*` matching
+     * four different elements: a prefix is not a name.
+     */
+    const uris = t
+      .getAllByTestId(/^media-image-\d+$/)
+      .map((i) => (i.props.source as { uri: string }).uri);
     expect(new Set(uris).size).toBe(3);
   });
 });
