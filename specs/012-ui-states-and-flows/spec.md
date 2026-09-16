@@ -203,6 +203,13 @@ replaced would be work done twice.
 **Independent Test**: Put a loading, empty and failed state beside the finished design for
 the same screen and confirm they read as one product.
 
+**This story has no phase of its own in `tasks.md`, and that is a decision rather than an
+omission.** It is delivered inside other tasks — T016 builds the states from the existing
+tokens per `States.dc.html` (FR-025), T015 and T051 record drift against the artboards
+(FR-026). Giving it a phase after US4 would mean styling the states twice: once against the
+language being replaced and again against the one replacing it, which is the work-twice
+ordering this story was demoted to avoid in the first place.
+
 **Acceptance Scenarios**:
 
 1. **Given** a state the design does not cover, **When** it is designed, **Then** it uses the

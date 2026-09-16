@@ -25,8 +25,18 @@ published as a canvas. **Implementation follows it; this plan does not reopen it
 
 **Language/Version**: TypeScript 5.7, React Native / Expo SDK 54
 
-**Primary Dependencies**: `react-native-svg` for the icon set — **already present** via Expo;
-no new runtime dependency and no icon font. Everything else is in the app already
+**Primary Dependencies**: `react-native-svg` for the icon set — **NOT present; it must be
+installed, and the first version of this plan said otherwise.** Measured during
+`/speckit-analyze`: zero occurrences in `pnpm-lock.yaml`, no directory under any
+`node_modules`. It IS a known Expo native module (`expo/bundledNativeModules.json` pins
+**15.12.1**), so it goes in with `expo install` and that file is the authoritative version
+because `expo install` cannot reach its API from this sandbox. One new runtime dependency,
+no icon font. Everything else is in the app already.
+
+> The claim "already present" was never checked. It cost nothing here because the analysis
+> pass caught it, but T008 as first written said to **stop and report** if the package did
+> not resolve — so the false premise was pointed at the one phase that blocks every other
+> visible change, and it would have halted there. Install it first (T003).
 
 **Storage**: none. This feature writes nothing and reads no new data
 
@@ -84,9 +94,18 @@ Nothing may draw an icon any other way, and a guard enforces it.
 
 ### The four states come from the data hook, not from each screen
 
-`usePaged` already knows whether a request is in flight, whether it failed, and whether the
-result is empty. Every list screen already calls it. So the state is **derived once** and
-handed down, rather than each of twenty-five screens deciding for itself what "empty" means.
+`usePaged` (`apps/mobile/src/containers/usePaged.ts`) already knows whether a request is in
+flight, whether it failed, and whether the result is empty. So the state is **derived once**
+and handed down, rather than each of twenty-five screens deciding for itself what "empty"
+means.
+
+**"Every list screen already calls it" is not true, and the exception is one of the five
+surfaces this feature exists for.** Six hooks in `containers/index.ts` wrap it —
+`useHomeFeed`, `useFollowingFeed`, `useInterestSearch`, `usePostSearch`, `useNotifications`,
+`useProfilePosts` — which covers Feed, Explore, Activity and Profile. **Chats does not.**
+`InboxContainer` hand-rolls `useState`/`useEffect`, and its `load` sets no loading flag at
+all. So deriving in `usePaged` reaches four of the five, and Chats would get the
+twenty-sixth hand-written state machine this decision exists to prevent. T017a moves it.
 
 That is D6's argument about `VisibilityFilter` applied to a presentational fact: twenty-five
 hand-written state machines is twenty-five chances to render a blank screen, and the five
@@ -112,7 +131,10 @@ apps/mobile/src/
 ├── components/
 │   └── PostCard.tsx            # rebuilt: image-dominant, avatar removed
 ├── features/*/…Screen.tsx      # the four states applied; icons replace dots and ♥
-├── screens/*Container.tsx      # refresh plumbed through; people-search given a way in
+├── containers/
+│   ├── usePaged.ts             # the four states derived HERE, once
+│   └── index.ts                # the six hooks that wrap it — where refresh plumbs through
+├── screens/*Container.tsx      # people-search given a way in; InboxContainer moved onto usePaged
 └── App.tsx                     # the tab bar gains icons
 
 apps/mobile/src/__tests__/

@@ -23,6 +23,22 @@ below asserts at the tier that supports its claim, and the device tier is **not 
 - **[P]**: can run in parallel (different files, no dependencies)
 - **[Story]**: which user story this serves
 
+## The surfaces, under the three names each of them has
+
+The spec and the artboards use the product's names. **The code uses different ones**, and
+004 records what that costs: notification preferences were reported unimplemented in the
+spec, the plan, the task list and CLAUDE.md because the grep was `notificationPreferences`
+and the code says `notificationPrefs`. R1 of this very feature made the same class of error
+— grepping `screens/*Container.tsx` for empty states that live in `features/*/…Screen.tsx`.
+
+| Spec / artboard | Container | Screen |
+|---|---|---|
+| Feed | `HomeFeedContainer` | `features/feed/…` |
+| Explore | **`DiscoverContainer`** | `features/discover/…` |
+| Activity | **`NotificationsContainer`** | `features/notifications/…` |
+| Chats | **`InboxContainer`** | `features/conversations/InboxScreen` |
+| Profile | `ProfileContainer` | `features/profile/ProfileScreen` |
+
 ---
 
 ## The sequencing decision that is not a preference
@@ -47,12 +63,12 @@ story to P3 after the research.
 
 **⚠️ No other visible work begins until T003–T008 are done.**
 
-- [ ] T003 Create `apps/mobile/src/ui/icons.ts` holding the 16 paths from `design/012-ui/_icons.txt` verbatim — home, explore, plus, chats, activity, profile, heart, comment, share, save, back, search, more, close, camera, check
-- [ ] T004 Create `apps/mobile/src/ui/Icon.tsx`: one component over `react-native-svg`, `stroke-width` 1.75, round caps and joins, `currentColor` semantics via a `color` prop, and **three sizes only** — 13 for counts, 20 for actions, 23 for navigation. A free-form size is how a set stops being a set
-- [ ] T005 Write `apps/mobile/src/__tests__/every-action-has-an-icon.test.ts`: no source file outside `ui/Icon.tsx` may draw an icon, and **no typographic character may stand in for one** — `♥ ★ ☆ → ← ✓ ✕ ×` and friends in a rendered string are offenders (SC-009, FR-027)
-- [ ] T006 **Run T005 against the product as it stands and watch it FAIL.** It must name `PostCard.tsx`'s `♥ {post.reactionCount}` and `App.tsx`'s 8×8 dot. A guard that has only ever passed is not a guard, and this feature's whole premise is that those two exist
-- [ ] T007 [P] Register the new icon controls in `touch-target.test.tsx`'s `SLOP_TARGETS` where they use `hitSlop` — **per control, not per file**, per the weakness 011 found in that guard's other branch
-- [ ] T008 Confirm `react-native-svg` resolves without adding a dependency. If it does not, stop and report rather than adding an icon font — the artboards define an exact stroke and a borrowed family will not match it
+- [ ] T003 **Install `react-native-svg` FIRST, and with `expo install`.** It is **NOT** present: zero occurrences in `pnpm-lock.yaml` and no directory under any `node_modules`, though the plan said otherwise until this analysis. It IS a known Expo native module — `node_modules/expo/bundledNativeModules.json` pins **15.12.1**, which is authoritative and must be read directly because `expo install` cannot reach its API from this sandbox. Run `pnpm --filter @sih/mobile exec expo install react-native-svg`. **Never `pnpm add`**: that is defect #1 of the seven only a device found — it took `expo-image-picker@57` against SDK 54's `expo-modules-core@3` and killed the app during module registration with `NoClassDefFoundError`. If the install genuinely cannot be made to work, stop and report rather than reaching for an icon font — the artboards define an exact stroke and a borrowed family will not match it
+- [ ] T004 Create `apps/mobile/src/ui/icons.ts` holding the 16 paths from `design/012-ui/_icons.txt` verbatim — home, explore, plus, chats, activity, profile, heart, comment, share, save, back, search, more, close, camera, check
+- [ ] T005 Create `apps/mobile/src/ui/Icon.tsx`: one component over `react-native-svg`, `stroke-width` 1.75, round caps and joins, `currentColor` semantics via a `color` prop, and **three sizes only** — 13 for counts, 20 for actions, 23 for navigation. A free-form size is how a set stops being a set
+- [ ] T006 Write `apps/mobile/src/__tests__/every-action-has-an-icon.test.ts`: no source file outside `ui/Icon.tsx` may draw an icon, and **no typographic character may stand in for one** (SC-009, FR-027). Assert the PROPERTY — no non-ASCII presentational character in a rendered string, against a short allow-list — **not** a hand-picked list of offenders like `♥ ★ ☆ → ← ✓ ✕ ×`. A hand-picked list only covers the mistakes already made: it is why 004's first auth-surface guard missed the second occurrence of the defect it was written for, and why 011's constant-time guard passed a deliberate break past three hand-guessed spellings
+- [ ] T007 **Run T006 against the product as it stands and watch it FAIL.** It must name `PostCard.tsx`'s `♥ {post.reactionCount}` and `App.tsx`'s 8×8 dot. A guard that has only ever passed is not a guard, and this feature's whole premise is that those two exist
+- [ ] T008 [P] Register the new icon controls in `touch-target.test.tsx`'s `SLOP_TARGETS` where they use `hitSlop` — **per control, not per file**, per the weakness 011 found in that guard's other branch
 
 **Checkpoint**: an icon can be drawn, exactly once, in one way.
 
@@ -67,7 +83,7 @@ story to P3 after the research.
 - [ ] T009 [US4] Replace the tab bar's 8×8 `View` in `apps/mobile/src/App.tsx` with `Icon` at 23, label beneath, per the artboards (FR-028)
 - [ ] T010 [US4] Replace `♥ {post.reactionCount} · {post.commentCount}` in `components/PostCard.tsx` with heart and comment icons at 13 (FR-027)
 - [ ] T011 [P] [US4] Give every action across the feature screens its icon at 20 — react, comment, share, save, back, search, more, close, camera (FR-027, FR-029)
-- [ ] T012 [US4] Run T005 and watch it pass; then reintroduce a `♥` in one file and watch it fail again
+- [ ] T012 [US4] Run T006 and watch it pass; then reintroduce a `♥` in one file and watch it fail again
 - [ ] T013 [US4] Rebuild `PostCard` image-dominant per `CardAnatomy.dc.html`: **the avatar and handle come off the tile**, title first at the `label` role, then the interest word and the two counts. Target the artboard's ratio — roughly 78% photograph against today's 47% (FR-030)
 - [ ] T014 [US4] Assert the ratio in `apps/e2e/browser/` — measured, not eyeballed. **RNTL cannot make this claim**: it performs no layout, which is how 008 shipped `MediaPager` at zero height with nine green assertions
 - [ ] T015 [US4] Capture the feed and compare against `Main.dc.html`. Record drift as either a fix or a state the artboard does not cover (FR-026)
@@ -82,7 +98,8 @@ story to P3 after the research.
 
 - [ ] T016 [US1] Create `apps/mobile/src/ui/states.tsx` — `Skeleton`, `EmptyState`, `FailedState` — built from the existing tokens per `States.dc.html`, introducing no new ones (FR-025)
 - [ ] T017 [US1] Derive the four states **once**, in the data hook (`usePaged`), and hand them down. Twenty-five screens each deciding what "empty" means is twenty-five chances to render blank, and the five that exist today already disagree (FR-001)
-- [ ] T018 [US1] Apply the states to Feed, Explore, Activity, Chats and Profile. A skeleton is **shaped like the content it replaces**, never a centred spinner (FR-003, FR-004)
+- [ ] T017a [US1] **Move `InboxContainer` onto `usePaged` before T018 touches it**, or record in the plan why it cannot. T017 derives the states in `apps/mobile/src/containers/usePaged.ts`, and six hooks in `containers/index.ts` wrap it — `useHomeFeed`, `useFollowingFeed`, `useInterestSearch`, `usePostSearch`, `useNotifications`, `useProfilePosts` — which reaches Feed, Explore, Activity and Profile. **Chats does not**: `InboxContainer` hand-rolls `useState`/`useEffect` and its `load` sets no loading flag at all, so T018 would otherwise hand-write a twenty-sixth state machine on the one surface this feature is supposed to fix. Its two real constraints — two inboxes each its own request, and a separate badge read — are why this is a task and not a footnote (numbered `a` rather than renumbering thirty-five tasks, the same way the spec carries FR-006a)
+- [ ] T018 [US1] Apply the states to Feed, Explore, Activity, Chats and Profile. A skeleton is **shaped like the content it replaces**, never a centred spinner (FR-003, FR-004). **The spec's names are not the code's**, and this project has already paid for that confusion — see the mapping below
 - [ ] T019 [US1] Add the delay threshold: no loading indicator for a request that resolves under ~200ms (FR-005). A skeleton that flashes for 40ms reads as a glitch, not as progress
 - [ ] T020 [US1] Add the upper bound: a request pending past ~15s is reported **failed**, not shown loading forever (FR-006). Without it a dropped connection shows a skeleton for ever, which is a blank screen wearing a costume
 - [ ] T021 [US1] Every empty state names an action and offers the control that performs it (FR-007), and offers nothing that person cannot do (FR-008)
@@ -149,6 +166,7 @@ story to P3 after the research.
 - [ ] T050 Run the real CI step list before pushing, not a proxy for it
 - [ ] T051 Capture every screen and compare against its artboard; record each difference as drift fixed or as a state the design does not cover (FR-026)
 - [ ] T052 Record the run in `docs/verification/runs/`, every criterion pass, fail or **not run** — never blank — and **count the items** rather than reading the highest number
+- [ ] T053 Record in that same run record which of the 24 artboards this feature implemented and which it did not, **by name**, against the list below. An artboard drawn and unclaimed is how "the redesign is finished" gets written over unchecked boxes — 007 reported eight phases complete with four Phase 5 boxes unticked, and `tasks.md` was right while the prose was not
 
 ---
 
@@ -164,9 +182,34 @@ story to P3 after the research.
 | SC-006 matrix unchanged | T045 |
 | SC-007 snapshots unchanged | T046 |
 | SC-008 the three states are distinguishable | T025 |
-| SC-009 zero typographic characters as icons | T005, T012 |
+| SC-009 zero typographic characters as icons | T006, T012 |
 | SC-010 a stranger reaches content without typing | T038 — **needs a person** |
 | SC-011 the nav does not read as unfinished | T009, T015 — **needs a person**; a capture is evidence about layout, not about judgement |
+
+## User Story 6, and the fourteen artboards this feature does not implement
+
+Two pieces of bookkeeping that `/speckit-analyze` found missing. Both are honest scoping
+rather than hidden work, and both are written down because the alternative is discovering
+them at close-out.
+
+**US6 has no phase of its own, deliberately.** "The states look like the rest of the
+product" is P3 and is delivered *inside* other tasks rather than after them: **T016** builds
+`states.tsx` from the existing tokens per `States.dc.html` (FR-025), and **T015** and
+**T051** record drift against the artboards (FR-026). Giving it a phase would mean styling
+the states twice — once against 007's language and again against 012's — which is the exact
+work-twice ordering the spec demoted the story to avoid. It carries no `[US6]` label for
+that reason, and this paragraph is the record that the omission was a decision.
+
+**Fourteen of the 24 artboards are drawn and NOT implemented here**: `Activity`, `Auth`,
+`Chats`, `Compose`, `Conversation`, `EditProfile`, `MediaPicker`, `NewMessage`,
+`OwnProfile`, `Place`, `PostDetail`, `Profile`, `Saved`, `Search`. The ten this feature does
+implement are `Main`, `CardAnatomy`, `States`, `Explore`, `InterestSpace`, `ColdStart`,
+`PostActions`, `SafetySheet`, plus `Icons` and `FlowMap` as reference rather than as screens.
+
+That is the right scope and not an oversight: **the MVP is Phases 1–3**, the plan says to
+ship that and look at it on a phone before ordering the rest, and the fourteen are screens
+that already work and are not what the owner was complaining about. What would be wrong is
+leaving it unsaid. T053 makes the split part of the run record.
 
 ## Dependencies
 
@@ -186,7 +229,7 @@ Phase 9 follows Phase 8 because the cold start is where a new account's first ac
 ## Parallel opportunities
 
 - T002 with T001
-- T007 with T003–T006
+- T008 with T004–T007
 - T011 with T009–T010 (different files)
 - Every task in Phase 10 except T050, T051 and T052
 
