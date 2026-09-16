@@ -35,7 +35,6 @@ import {
   ProfileContainer,
   ComposeFlowContainer,
   ShareContainer,
-  CreateInterestContainer,
   EditPostContainer,
   EditProfileContainer,
   SharedPostContainer,
@@ -150,7 +149,15 @@ export type Route =
   | { name: 'edit-profile' }
   | { name: 'person'; handle: string }
   | { name: 'shared-post'; postId: string }
-  | { name: 'create-interest'; parentId: string; parentName: string }
+  /**
+   * 013/FR-004. `create-interest` IS REMOVED, with the route behind it.
+   *
+   * A standalone "propose an interest" screen creates an interest with no
+   * posts, which FR-004 makes unrepresentable: an interest comes into existence
+   * only as part of publishing into it. Naming one now happens on the compose
+   * screen, where a person is deciding what their photograph is about rather
+   * than administering a taxonomy.
+   */
   // ---- feature 004
   | { name: 'open-conversation'; handle: string }
   // ---- feature 005
@@ -417,20 +424,6 @@ export function Shell({
                   requireSignIn({ name: 'safety', subject: 'interest-description', subjectId })
                 }
               />
-              <Row style={{ padding: space.sm }}>
-                <Button
-                  testID="open-create-interest"
-                  label="Propose a sub-interest"
-                  variant="secondary"
-                  onPress={() =>
-                    requireSignIn({
-                      name: 'create-interest',
-                      parentId: top.interestId,
-                      parentName: '',
-                    })
-                  }
-                />
-              </Row>
             </View>
           );
         case 'compose':
@@ -558,16 +551,6 @@ export function Shell({
           // is to enter the app, not to return to a screen that was never open.
           return (
             <SharedPostContainer postId={top.postId} onJoin={() => setStack([])} />
-          );
-        case 'create-interest':
-          return signedIn ? (
-            <CreateInterestContainer
-              parentId={top.parentId}
-              parentName={top.parentName}
-              onCreated={(interestId) => setStack([{ name: 'interest', interestId }])}
-            />
-          ) : (
-            <SignedOutNotice onSignIn={() => push({ name: 'sign-in' })} />
           );
         case 'safety':
           return (

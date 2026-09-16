@@ -60,7 +60,9 @@ async function main(): Promise<void> {
   );
   const parentId = (topLevel.Items?.[0]?.['interestId'] as string | undefined) ?? undefined;
   if (!parentId) {
-    console.error('No top-level interest found. Run seed:catalogue first.');
+    // 013. There is no seeded catalogue; an interest exists once somebody names
+    // one while publishing.
+    console.error('No interest found. Publish a post naming one first.');
     process.exit(1);
   }
   console.log(`attaching bench interests to top-level ${parentId}`);

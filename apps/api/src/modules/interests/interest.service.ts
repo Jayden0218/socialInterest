@@ -36,13 +36,21 @@ export class InterestService {
   ) {}
 
   /**
-   * FR-022: any signed-in person may create a sub-interest beneath exactly one
-   * top-level parent.
+   * 013/FR-004. `createSubInterest` AND `POST /v1/interests` ARE BOTH GONE.
    *
-   * Order matters. Name policy (FR-031) runs BEFORE the duplicate check and
-   * before the conditional write, so a prohibited name is never compared against
-   * the catalogue and never reaches the table.
+   * It wrote `postCount: 0`, which is the state FR-004 makes unrepresentable:
+   * an interest comes into existence only as part of publishing a post into it.
+   * `resolveOrPrepare` below replaces it — same name policy, same duplicate
+   * gate, same claim rows — but it returns transaction items for the CALLER
+   * instead of writing on its own, so the interest and the post that justifies
+   * it land together or not at all.
    */
+
+  /** 013/T013. Makes a just-created interest postable and searchable at once. */
+  async refreshCatalogue(): Promise<void> {
+    await this.cache.refresh();
+  }
+
   /**
    * 013/T013, FR-004. RESOLVE A NAME, OR PREPARE TO CREATE IT — never write.
    *
@@ -54,11 +62,6 @@ export class InterestService {
    *
    * Contract §1, rows 3, 4 and 7. Rows 1, 2 and 5 throw.
    */
-  /** 013/T013. Makes a just-created interest postable and searchable at once. */
-  async refreshCatalogue(): Promise<void> {
-    await this.cache.refresh();
-  }
-
   async resolveOrPrepare(
     name: string,
     createdBy: string,
@@ -91,7 +94,8 @@ export class InterestService {
       if (target && target.state === 'active') return { interest: target, items: [] };
     }
 
-    // Rows 2, 5, 6, 7 — the same policy and duplicate gate creation uses.
+    // Rows 2, 5, 6, 7 — the policy and duplicate gate, in that order: a
+    // prohibited name is never compared against the catalogue.
     this.namePolicy.assertAllowed(trimmed);
     const similar = this.search.findSimilar(trimmed);
     const acknowledged = new Set(acknowledgedSimilarTo ?? []);
@@ -104,55 +108,13 @@ export class InterestService {
       nameNormalised,
       slug: await this.uniqueSlug(trimmed),
       createdBy,
-      // FR-004: it is born with the post that is being written beside it.
+      // FR-004: born with the post being written beside it.
       postCount: 1,
       followerCount: 0,
       state: 'active',
       createdAt: new Date().toISOString(),
     };
     return { interest, items: this.repo.createItems(interest) };
-  }
-
-  async createSubInterest(input: CreateSubInterestInput): Promise<InterestItem> {
-    this.namePolicy.assertAllowed(input.name);
-
-    const name = input.name.trim();
-    const nameNormalised = normaliseName(name);
-
-    // FR-023: an exact collision under this parent always refuses.
-    const exact = this.search.findExact(name);
-    if (exact) throw new DuplicateInterestError([{ interest: exact, parent: null, similarity: 1 }]);
-
-    const similar = this.search.findSimilar(name);
-    const acknowledged = new Set(input.acknowledgedSimilarTo ?? []);
-    const unacknowledged = similar.filter((c) => !acknowledged.has(c.interest.interestId));
-    if (this.search.isTooSimilar(unacknowledged)) {
-      // Not a silent rejection: the candidates come back so the client can offer
-      // "join this one instead", which is what SC-008 measures.
-      throw new DuplicateInterestError(unacknowledged);
-    }
-
-    const interestId = ulid();
-    const slug = await this.uniqueSlug(name);
-    const now = new Date().toISOString();
-
-    const item: InterestItem = {
-      interestId,
-      name,
-      nameNormalised,
-      slug,
-      createdBy: input.createdBy,
-      ...(input.description ? { description: input.description } : {}),
-      postCount: 0,
-      followerCount: 0,
-      state: 'active',
-      createdAt: now,
-    };
-
-    await this.repo.create(item);
-    // Refresh so the new interest is immediately searchable and postable.
-    await this.cache.refresh();
-    return item;
   }
 
   private async uniqueSlug(name: string): Promise<string> {

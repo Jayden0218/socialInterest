@@ -100,7 +100,6 @@ STEP="2. create the table and bucket, seed the catalogue"
 say "==> $STEP"
 pnpm --filter @sih/infra db:create-local-pg
 pnpm --filter @sih/infra s3:create-local
-pnpm --filter @sih/infra seed:catalogue
 
 # ---------------------------------------------------------------------------
 # Tunnel helper. Used for both addresses.

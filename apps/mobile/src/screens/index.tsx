@@ -20,7 +20,6 @@ export { ProfileContainer } from './ProfileContainer';
 export { ComposeFlowContainer } from './ComposeFlowContainer';
 export { ComposeContainer } from './ComposeContainer';
 export { ShareContainer } from './ShareContainer';
-export { CreateInterestContainer } from './CreateInterestContainer';
 export { EditPostContainer } from './EditPostContainer';
 export { EditProfileContainer } from './EditProfileContainer';
 export { SharedPostContainer } from './SharedPostContainer';

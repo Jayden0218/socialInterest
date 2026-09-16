@@ -6,6 +6,7 @@ import type { AppRequest } from '../../common/http/request';
 import { zodBody } from '../../common/http/validation';
 import { Public } from '../../common/auth/auth.guard';
 import { RateLimit } from '../../common/rate-limit/rate-limit.guard';
+import { DuplicateInterestError } from '../interests/interest.service';
 import { PostService } from './post.service';
 import { DismissalRepository } from '../../persistence/dismissal.repository';
 import { EVENT_BUS, type EventBus } from '../../ports';
@@ -152,20 +153,48 @@ export class PostController {
   @RateLimit({ capacity: 10, refillPerSecond: 0.2 })
   async create(@Req() req: AppRequest, @Body() body: unknown) {
     const input = zodBody(createPostSchema, body);
-    const post = await this.posts.create({
-      authorId: req.viewer!.userId,
-      uploadIds: input.uploadIds,
-      ...(input.altTexts ? { altTexts: input.altTexts } : {}),
-      ...(input.draftId ? { draftId: input.draftId } : {}),
-      interestIds: input.interestIds ?? [],
-      ...(input.interestNames ? { interestNames: input.interestNames } : {}),
-      ...(input.acknowledgedSimilarTo ? { acknowledgedSimilarTo: input.acknowledgedSimilarTo } : {}),
-      ...(input.caption ? { caption: input.caption } : {}),
-      visibility: input.visibility,
-      keepLocationMetadata: input.keepLocationMetadata,
-      ...(input.placeId ? { placeId: input.placeId } : {}),
-    });
-    return post;
+    try {
+      return await this.posts.create({
+        authorId: req.viewer!.userId,
+        uploadIds: input.uploadIds,
+        ...(input.altTexts ? { altTexts: input.altTexts } : {}),
+        ...(input.draftId ? { draftId: input.draftId } : {}),
+        interestIds: input.interestIds ?? [],
+        ...(input.interestNames ? { interestNames: input.interestNames } : {}),
+        ...(input.acknowledgedSimilarTo
+          ? { acknowledgedSimilarTo: input.acknowledgedSimilarTo }
+          : {}),
+        ...(input.caption ? { caption: input.caption } : {}),
+        visibility: input.visibility,
+        keepLocationMetadata: input.keepLocationMetadata,
+        ...(input.placeId ? { placeId: input.placeId } : {}),
+      });
+    } catch (e) {
+      /**
+       * 013/FR-009, FR-010. THE 409 MUST CARRY THE CANDIDATES.
+       *
+       * A near-duplicate name is refused WITH the interests it resembles, so a
+       * client can offer "join this one instead" — which is the whole sprawl
+       * control, and useless as a bare refusal.
+       *
+       * It moved here with the naming, and the move nearly lost it: the removed
+       * interest controller attached them and the publish route did not, so the
+       * first run after the move refused correctly and told the person nothing.
+       * `us2-discover` caught it within the minute.
+       */
+      if (e instanceof DuplicateInterestError) {
+        const problem = e.getResponse() as Record<string, unknown>;
+        problem['candidates'] = e.candidates.map((r) => ({
+          interest: {
+            interestId: r.interest.interestId,
+            name: r.interest.name,
+            slug: r.interest.slug,
+          },
+          similarity: Number(r.similarity.toFixed(3)),
+        }));
+      }
+      throw e;
+    }
   }
 
   /**

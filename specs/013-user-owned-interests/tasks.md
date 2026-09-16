@@ -79,7 +79,7 @@ catalogue, and find the post in that interest's space afterwards.
 - [X] T015 [US1] Write `apps/api/tests/integration/interest-needs-a-post.spec.ts`: fail a publish deliberately after a new name is resolved, and assert **zero** interests were created. One transaction, so it rolls back with the post
 - [X] T016 [US1] Write `apps/api/tests/integration/interest-naming.spec.ts` covering contract §1 rows **1, 3, 4 and 7** — empty, joins existing (FR-007), joins a merged interest's target (FR-014), creates new
 - [X] T017 [US1] `apps/mobile/src/features/publish/ComposeScreen`: name an interest by typing. **No picker over a list the product owns** (FR-001, FR-002). The interest step must still be required — FR-005, there is no uncategorised post
-- [ ] T018 [US1] Run `apps/e2e` over HTTP. 002's lesson is the reason this is a task: both sides generated from one document agree with each other by construction, so a contract test and a generated client cannot catch a publish whose shape changed. Only a request can
+- [X] T018 [US1] Run `apps/e2e` over HTTP. 002's lesson is the reason this is a task: both sides generated from one document agree with each other by construction, so a contract test and a generated client cannot catch a publish whose shape changed. Only a request can
 
 **Checkpoint**: a person can publish about anything, and the catalogue is no longer in the way.
 
@@ -95,7 +95,7 @@ is offered before a second is made.
 - [X] T019 [US2] Write `apps/api/tests/integration/interest-normalisation.spec.ts` for SC-003: publish with "Bouldering", "bouldering" and "  BOULDERING!! ". Expect **one** interest and three posts (FR-006). **Generated over a set of variants, not three hand-picked ones** — a hand-picked list only covers the cases somebody already thought of, which is how 004's first `auth-surface` guard missed the second occurrence of its own defect
 - [X] T020 [US2] Confirm `acknowledgedSimilarTo` still gates creation with no parent in scope (FR-009, FR-010), and that `DuplicateInterestError` still returns the candidates so a client can offer "join this one instead"
 - [X] T021 [US2] `apps/mobile/src/features/publish/`: when the API returns candidates, show them and offer **joining one** as the primary action, with "create it anyway" secondary. The prior research found this is where sprawl is won or lost — the interface at the moment of creation
-- [ ] T022 [P] [US2] Assert in a test that **no code path merges on a similarity score** (FR-011). A structural guard, because the temptation is a one-line threshold and research R4's table is the reason not to: the typo band (0.86–0.91) and the unrelated band (0.75–0.83) overlap, and a merge here is irreversible
+- [X] T022 [P] [US2] Assert in a test that **no code path merges on a similarity score** (FR-011). A structural guard, because the temptation is a one-line threshold and research R4's table is the reason not to: the typo band (0.86–0.91) and the unrelated band (0.75–0.83) overlap, and a merge here is irreversible
 
 **Checkpoint**: two people naming the same thing end up in the same place.
 
@@ -108,13 +108,13 @@ to file a post at all.
 
 **Goal**: no screen, requirement or sentence still describes a product where we own the vocabulary.
 
-- [ ] T023 [US3] Delete `infra/scripts/seed-catalogue.ts` and its `seed:catalogue` script (FR-017). **Every caller must go too** — `apps/e2e/support/reset.ts` calls it, and 007 lost a whole 25-minute device run to a runner still invoking a fixture that had been deleted with the requirement it served
+- [X] T023 [US3] Delete `infra/scripts/seed-catalogue.ts` and its `seed:catalogue` script (FR-017). **Every caller must go too** — `apps/e2e/support/reset.ts` calls it, and 007 lost a whole 25-minute device run to a runner still invoking a fixture that had been deleted with the requirement it served
 - [X] T024 [US3] Write the migration in `infra/scripts/`: every interest holding posts survives **under its own name**, the parent edge is dropped, and seeded interests with no posts are removed (FR-020). **Children are never folded into parents** — folding moves somebody's post to a subject they did not choose, the imposition this feature exists to end. It **counts name collisions first and refuses to run if the count is not zero**
 - [X] T025 [US3] Remove the parent fan-out from `postInterestIndex` writes: 001/FR-024 wrote one index row per interest in the post's EXPANDED set — the sub-interest and its parent. With no parents a post writes one row per interest it carries (FR-021)
-- [ ] T026 [US3] Rebuild the cold start in `apps/mobile/src/screens/PickInterestsContainer.tsx` around the most-used live interests (FR-019). **Rebuilt, not removed**: removing it lands a new account on an empty feed, which is 012/US3's unsolved problem arriving by another route
+- [X] T026 [US3] Rebuild the cold start in `apps/mobile/src/screens/PickInterestsContainer.tsx` around the most-used live interests (FR-019). **Rebuilt, not removed**: removing it lands a new account on an empty feed, which is 012/US3's unsolved problem arriving by another route
 - [X] T026a [US3] **Accept and implement the colour change, which is user-visible and was nearly shipped unstated.** `apps/mobile/src/ui/interest-colour.ts:34` seeds the hue from `interest.parentId ?? interest.interestId`, so a child borrows its parent's hue, and line 46 shifts lightness by ±0.045–0.05 for a child. With no parents **every existing sub-interest changes both hue and lightness**. That is the right outcome — borrowing a parent's hue is meaningless once there are no parents, and preserving it would mean keeping `parentId` for ever, which T010 deletes precisely to stop the hierarchy re-growing. So: delete the `isChild` branch **and the matching branch in `everyInterestColour`**, because that generator enumerates 360 hues × 2 lightnesses and the second lightness becomes unreachable — leaving it would keep the contrast guard passing over half a space that can no longer occur, which is a guard losing half its subject
-- [ ] T027 [US3] `apps/mobile/src/features/discover/`: Explore stops browsing a hierarchy and browses what people have created
-- [ ] T028 [P] [US3] **Grep the COPY, not only the code** (FR-018, SC-009): `grep -rin "sub-interest\|parent interest\|choose an interest\|catalogue" apps/mobile/src apps/api/src`. 007 shipped a follow hint describing a withdrawn requirement because only the code was updated, and 008/T224 found two live defects by doing exactly this
+- [X] T027 [US3] `apps/mobile/src/features/discover/`: Explore stops browsing a hierarchy and browses what people have created
+- [X] T028 [P] [US3] **Grep the COPY, not only the code** (FR-018, SC-009): `grep -rin "sub-interest\|parent interest\|choose an interest\|catalogue" apps/mobile/src apps/api/src`. 007 shipped a follow hint describing a withdrawn requirement because only the code was updated, and 008/T224 found two live defects by doing exactly this
 - [X] T029 [P] [US3] Mark 001/FR-024's sub-interest roll-up **withdrawn** in `specs/001-interest-media-sharing/spec.md`, and update `CLAUDE.md`'s description of the interest model. A withdrawn requirement left described is how 007's follow hint survived
 
 **Checkpoint**: the product's vocabulary belongs to the people using it, everywhere.
@@ -149,7 +149,7 @@ to file a post at all.
 - [X] T039 [P] Confirm the public and operator route snapshots against T002 (FR-025). Whether `POST /v1/interests` survives as a standalone route once publishing creates interests is a **deliberate, reviewed decision** (research R5), never an incidental diff
 - [ ] T040 [P] Confirm no state or surface introduced here shows content the boundary would have withheld, and that an empty interest space says nothing about why (FR-026)
 - [ ] T041 [P] Update the testID snapshot in the **same commit** as the flows requiring it, and regenerate on ADDITIONS rather than only removals — 011 found it nineteen ids stale, and a snapshot can only detect the removal of an id it knows about
-- [ ] T042 [P] Run `node scripts/verify-maestro-ids.mjs`. A selector matching nothing fails as a thirty-second timeout twenty minutes into a device run
+- [X] T042 [P] Run `node scripts/verify-maestro-ids.mjs`. A selector matching nothing fails as a thirty-second timeout twenty minutes into a device run
 - [ ] T043 Run the real CI step list before pushing, not a proxy for it. Two red builds came from checking typecheck/lint/tests and assuming that covered CI
 - [ ] T044 Run every scenario in [quickstart.md](./quickstart.md)
 - [ ] T045 Record the run in `docs/verification/runs/`, every criterion pass, fail or **not run** — never blank — and **count the items** rather than reading the highest number. The device tier is **not run**: no emulator here, and nothing since 011 has run on one

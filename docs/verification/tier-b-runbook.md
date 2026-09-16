@@ -28,7 +28,6 @@ background suspension, and the rendered UI itself.
 docker compose up -d
 pnpm --filter @sih/infra db:create-local
 pnpm --filter @sih/infra s3:create-local
-pnpm --filter @sih/infra seed:catalogue
 pnpm --filter @sih/api dev                       # binds 0.0.0.0:3000
 
 # The device must reach your machine, so use its LAN address, not localhost.

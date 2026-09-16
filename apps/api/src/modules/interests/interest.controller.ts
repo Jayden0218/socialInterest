@@ -101,13 +101,12 @@ export class InterestController {
    */
   @Public()
   @Get('similar')
-  similar(@Query('name') name: string, @Query('parentId') parentId: string) {
-    if (!name || !parentId) {
-      throw new DomainError(
-        HttpStatus.UNPROCESSABLE_ENTITY,
-        'Validation failed',
-        'name and parentId are both required',
-      );
+  // 013/FR-008. `parentId` IS NO LONGER REQUIRED OR READ. The comparison is
+  // global, so scoping it to a parent is meaningless — and demanding one would
+  // have made this endpoint unreachable from a compose screen that has none.
+  similar(@Query('name') name: string) {
+    if (!name) {
+      throw new DomainError(HttpStatus.UNPROCESSABLE_ENTITY, 'Validation failed', 'name is required');
     }
     return {
       candidates: this.search.findSimilar(name).map((r) => ({
@@ -117,32 +116,25 @@ export class InterestController {
     };
   }
 
-  /** FR-022, FR-023, FR-031. */
-  @Post()
-  @RateLimit({ capacity: 5, refillPerSecond: 0.05 })
-  async create(@Req() req: AppRequest, @Body() body: unknown) {
-    const input = zodBody(createInterestSchema, body);
-    try {
-      const created = await this.interests.createSubInterest({
-        name: input.name,
-        parentId: input.parentId,
-        ...(input.description ? { description: input.description } : {}),
-        createdBy: req.viewer!.userId,
-        ...(input.acknowledgedSimilarTo ? { acknowledgedSimilarTo: input.acknowledgedSimilarTo } : {}),
-      });
-      return toRef({ interest: created, parent: null, similarity: 1 });
-    } catch (e) {
-      if (e instanceof DuplicateInterestError) {
-        // 409 carrying the candidates, so the client can offer "join this one".
-        const problem = e.getResponse() as Record<string, unknown>;
-        problem['candidates'] = e.candidates.map((r) => ({
-          interest: toRef(r),
-          similarity: Number(r.similarity.toFixed(3)),
-        }));
-      }
-      throw e;
-    }
-  }
+  /**
+   * 013/FR-004, FR-025. `POST /v1/interests` IS REMOVED, DELIBERATELY.
+   *
+   * It created an interest with `postCount: 0`, which FR-004 now forbids: an
+   * interest comes into existence only as part of publishing a post into it, so
+   * that an interest with no posts cannot be created. Leaving the route would
+   * have made FR-004 a thing the product says rather than a thing it enforces.
+   *
+   * THE ROUTE SNAPSHOT MOVES, AND THAT IS THE REVIEWED EDIT FR-025 ALLOWS.
+   * Research R5 named this consequence before the work started rather than
+   * discovering it as a diff: "POST /v1/interests as a standalone creation
+   * route becomes unreachable for ordinary use. Whether it is removed is an
+   * FR-025 question." It is removed.
+   *
+   * Naming an interest now happens on `POST /v1/posts` via `interestNames`,
+   * which is also the only place the duplicate gate can be answered usefully —
+   * a person is choosing what their photograph is about, not administering a
+   * taxonomy.
+   */
 
   /**
    * 004/FR-025, FR-030.

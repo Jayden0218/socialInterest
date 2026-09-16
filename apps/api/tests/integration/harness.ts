@@ -6,6 +6,7 @@ import { ProblemFilter } from '../../src/common/errors/problem.filter';
 import { IDENTITY_PROVIDER, type IdentityProvider } from '../../src/ports';
 import { PersonRepository } from '../../src/persistence/person.repository';
 import { InterestRepository } from '../../src/persistence/interest.repository';
+import { InMemoryCatalogueCache } from '../../src/modules/interests/catalogue.cache';
 import { ulid } from 'ulid';
 
 export interface Harness {
@@ -75,24 +76,38 @@ export async function bootHarness(): Promise<Harness> {
       }
       return res.body.uploadId as string;
     },
+    /**
+     * 013/T023. THE PRODUCT SHIPS NO INTERESTS, SO THE FIXTURE MAKES ONE.
+     *
+     * This read the seeded catalogue, which is deleted: FR-017 says the product
+     * has no interests of its own, and `seed:catalogue` went with it. A test
+     * that needs an interest to post into now creates one, the same way a
+     * person does — by naming it.
+     *
+     * Reused across a run when one already exists, so suites that call this
+     * repeatedly do not each add a row to a shared local table. Three
+     * "regressions" in this project have been a grown table.
+     */
     async topInterestId() {
-      /**
-       * 013. FILTERED TO `active`, and the reason is worth keeping.
-       *
-       * This read `listChildren(null)`, which returned only TOP-LEVEL interests
-       * — all of them seeded and alive. `listAll` returns the flat catalogue,
-       * which includes the merged and retired ones other suites leave behind,
-       * and the alphabetically first happened to be `retired`. Publishing into
-       * it is correctly refused with 422, so ~40 unrelated suites failed at
-       * their first publish with no apparent connection to interests.
-       *
-       * A lookup that silently changed what it returns, which is the same shape
-       * as a constraint and a lookup disagreeing about what a name is.
-       */
       const page = await interests.listAll({ limit: 200 });
-      const first = page.items.find((i) => i.state === 'active');
-      if (!first) throw new Error('catalogue is empty - publish a post naming an interest (013: there is no seeded catalogue)');
-      return first.interestId;
+      const existing = page.items.find((i) => i.state === 'active');
+      if (existing) return existing.interestId;
+
+      const name = `Fixture ${ulid().slice(-8).toLowerCase()}`;
+      const item = {
+        interestId: ulid(),
+        name,
+        nameNormalised: name.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(),
+        slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        createdBy: 'fixture',
+        postCount: 1,
+        followerCount: 0,
+        state: 'active' as const,
+        createdAt: new Date().toISOString(),
+      };
+      await interests.create(item);
+      await module.get(InMemoryCatalogueCache).refresh();
+      return item.interestId;
     },
     close: async () => {
       await app.close();

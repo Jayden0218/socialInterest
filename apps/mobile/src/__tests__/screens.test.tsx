@@ -5,7 +5,6 @@ import { DataProvider } from '../data-provider';
 import { HomeFeedScreen, emptyStateCopy } from '../features/feed/HomeFeedScreen';
 import { InterestScreen } from '../features/discover/InterestScreen';
 import { InterestSearchScreen } from '../features/discover/InterestSearchScreen';
-import { CreateInterestScreen, stateForCandidates } from '../features/discover/CreateInterestScreen';
 import { ProfileScreen } from '../features/profile/ProfileScreen';
 import { EditProfileScreen } from '../features/profile/EditProfileScreen';
 import { EngagementBar } from '../features/engagement/EngagementBar';
@@ -130,38 +129,15 @@ describe('013: a search result is just its name', () => {
   });
 });
 
-describe('CreateInterestScreen — FR-023 warns before submission', () => {
-  it('blocks and offers to join when a near-duplicate exists', () => {
-    const candidates = [{ interest, similarity: 0.95 }];
-    render(
-      <CreateInterestScreen
-        name="Bouldring"
-        parentName="Climbing"
-        state={stateForCandidates(candidates)}
-        onNameChange={() => undefined}
-        onJoinExisting={() => undefined}
-        onSubmit={() => undefined}
-      />,
-    );
-    expect(screen.getByTestId('similar-warning')).toHaveTextContent(/Join it instead/);
-    expect(screen.getByTestId('create-interest-submit').props.accessibilityState.disabled).toBe(true);
-    expect(screen.getByTestId('join-existing-0')).toBeTruthy();
-  });
-
-  it('only warns, without blocking, below the threshold', () => {
-    render(
-      <CreateInterestScreen
-        name="Slab climbing"
-        parentName="Climbing"
-        state={stateForCandidates([{ interest, similarity: 0.78 }])}
-        onNameChange={() => undefined}
-        onJoinExisting={() => undefined}
-        onSubmit={() => undefined}
-      />,
-    );
-    expect(screen.getByTestId('create-interest-submit').props.accessibilityState.disabled).toBe(false);
-  });
-});
+/**
+ * 013/FR-004. REMOVED: "CreateInterestScreen — FR-023 warns before submission".
+ *
+ * The screen is gone with the standalone create route: it produced an interest
+ * with no posts, which FR-004 makes unrepresentable. The warning it tested is
+ * not lost — the same duplicate gate answers on publish, and the 409 carries
+ * the candidates so compose can offer "join this one instead" (FR-009/FR-010),
+ * asserted in `us2-discover`.
+ */
 
 describe('ProfileScreen — FR-038 and the narrow meaning of following', () => {
   it('shows counts and explains what following actually does here', () => {

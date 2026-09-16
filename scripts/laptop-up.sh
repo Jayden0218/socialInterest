@@ -120,7 +120,6 @@ export API_PORT="$PORT"
 # ---------------------------------------------------------------------------
 say "==> preparing the schema in Supabase (safe to re-run)"
 pnpm --filter @sih/infra db:create-local-pg >/dev/null
-pnpm --filter @sih/infra seed:catalogue >/dev/null
 
 say ""
 say "  ┌──────────────────────────────────────────────────────────────"

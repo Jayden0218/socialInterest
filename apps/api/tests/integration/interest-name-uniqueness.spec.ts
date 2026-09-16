@@ -40,12 +40,14 @@
  */
 import type { Pool } from 'pg';
 import { InterestService } from '../../src/modules/interests/interest.service';
+import { InterestRepository } from '../../src/persistence/interest.repository';
 import { InMemoryCatalogueCache, normaliseName } from '../../src/modules/interests/catalogue.cache';
 import { PG_POOL } from '../../src/persistence/pg-pool';
 import { bootHarness, type Harness } from './harness';
 
 let h: Harness;
 let interests: InterestService;
+let repo: InterestRepository;
 let cache: InMemoryCatalogueCache;
 let pool: Pool;
 
@@ -70,6 +72,7 @@ const holdersOf = async (nameNormalised: string): Promise<number> => {
 beforeAll(async () => {
   h = await bootHarness();
   interests = h.module.get(InterestService);
+  repo = h.module.get(InterestRepository);
   cache = h.module.get(InMemoryCatalogueCache);
   pool = h.module.get<Pool>(PG_POOL);
 }, 120_000);
@@ -80,7 +83,6 @@ afterAll(async () => {
 
 describe('013/SC-004 — one interest per name, under concurrency', () => {
   it('N simultaneous creations of one name produce exactly one interest', async () => {
-    const parentId = await h.topInterestId();
     const creator = await h.createPerson(`namer${Math.random().toString(36).slice(2, 7)}`);
     // Unique per run: the local table is shared across runs, and this project
     // has three recorded "regressions" that were a grown table.
@@ -89,10 +91,23 @@ describe('013/SC-004 — one interest per name, under concurrency', () => {
     await cache.refresh();
 
     const ATTEMPTS = 8;
+    /**
+     * 013. Driven through `resolveOrPrepare` + the repository's transactional
+     * `create`, which is the path publishing takes — `createSubInterest` and
+     * `POST /v1/interests` are gone (FR-004: an interest is born with a post).
+     *
+     * Still the SERVICE and not the HTTP route, so no rate limiter is in the
+     * path at all: 011's concurrency test would otherwise have passed for the
+     * wrong reason, with most attempts refused 429 before reaching the
+     * constraint.
+     */
     const results = await Promise.allSettled(
-      Array.from({ length: ATTEMPTS }, () =>
-        interests.createSubInterest({ name, parentId, createdBy: creator }),
-      ),
+      Array.from({ length: ATTEMPTS }, async () => {
+        const { interest, items } = await interests.resolveOrPrepare(name, creator);
+        if (items.length === 0) return interest;
+        await repo.create(interest);
+        return interest;
+      }),
     );
 
     const succeeded = results.filter((r) => r.status === 'fulfilled').length;

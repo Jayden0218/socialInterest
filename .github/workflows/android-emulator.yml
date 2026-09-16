@@ -87,7 +87,6 @@ jobs:
           echo "backing services never became ready"; docker compose logs; exit 1
       - run: pnpm --filter @sih/infra db:create-local-pg
       - run: pnpm --filter @sih/infra s3:create-local
-      - run: pnpm --filter @sih/infra seed:catalogue
 
       # ONE address that both clients can reach.
       #

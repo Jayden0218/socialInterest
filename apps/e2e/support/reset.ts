@@ -59,5 +59,13 @@ function ensureBucket(): void {
 export function resetStore(): void {
   run('db:create-local-pg', ['--recreate']);
   ensureBucket();
-  run('seed:catalogue');
+  /**
+   * 013/T023. `seed:catalogue` IS GONE, and so is every caller.
+   *
+   * FR-017: the product ships with no interests of its own. A suite that needs
+   * one creates it by naming it while publishing, which is the path a person
+   * takes. 007 lost a whole 25-minute device run to a runner still invoking a
+   * fixture that had been deleted with the requirement it served, which is why
+   * the callers were hunted rather than left to fail.
+   */
 }

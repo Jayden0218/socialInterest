@@ -24,18 +24,27 @@ describe('FR-030 — interest merge, re-parent and retire', () => {
     await h.module.get(ProcessingService).reconcile(postId);
   };
 
+  /**
+   * 013/FR-004. An interest is created by NAMING it on a publish — there is no
+   * standalone create route, because it would produce an interest with no post.
+   */
   const makeSub = async (name: string) => {
+    const owner = await h.token(await h.createPerson('subowner'));
     const res = await request(h.app.getHttpServer())
-      .post('/v1/interests')
-      .set('authorization', `Bearer ${await h.token(await h.createPerson('subowner'))}`)
+      .post('/v1/posts')
+      .set('authorization', `Bearer ${owner}`)
       // The suffix must be HIGH-ENTROPY, not merely unique. A timestamp suffix makes
       // consecutive names minimally different - "ParentA 123456" vs "ParentB 123457"
       // scores 0.857, over the 0.85 blocking threshold - so the near-duplicate check
       // (FR-029) correctly refuses the second one with a 409. That made this suite fail
       // only when two calls landed within ~10ms of each other.
-      .send({ name: `${name} ${randomUUID().slice(0, 8)}`, parentId: topId });
+      .send({
+        uploadIds: [await h.uploadId(owner)],
+        interestNames: [`${name} ${randomUUID().slice(0, 8)}`],
+      });
     expect(res.status).toBe(201);
-    return res.body.interestId as string;
+    // 013. A publish returns the POST; the interest it created is in its list.
+    return (res.body.interestIds as string[])[0]!;
   };
 
   beforeAll(async () => {

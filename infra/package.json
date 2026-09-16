@@ -7,7 +7,6 @@
     "db:create-local": "tsx scripts/create-local-table.ts",
     "db:create-local-pg": "tsx scripts/create-local-schema.ts",
     "s3:create-local": "tsx scripts/create-local-bucket.ts",
-    "seed:catalogue": "tsx scripts/seed-catalogue.ts",
     "verify:local": "tsx scripts/verify-local.ts",
     "synth": "tsx bin/infra.ts",
     "seed:load": "tsx scripts/seed-load.ts",
