@@ -64,16 +64,18 @@ export class InterestPostsController {
               : 'interest_has_no_posts'
             : null,
       },
+      /**
+       * 013/FR-021. `rollsUpFrom` IS GONE WITH THE ROLL-UP.
+       *
+       * 001/FR-024 made a top-level space a roll-up of its children, and this
+       * field told the client where the posts had come from. Interests are flat,
+       * so a space lists its own posts and nothing else — a field explaining a
+       * roll-up that no longer happens would be 007's follow hint again, copy
+       * describing a withdrawn requirement.
+       */
       interest: {
         interestId: interest.interestId,
         name: interest.name,
-        level: interest.level,
-        // A top-level listing is a roll-up of its children (FR-024); saying so
-        // lets the client explain where the posts came from.
-        rollsUpFrom:
-          interest.level === 'top'
-            ? this.catalogue.childrenOf(interest.interestId).map((i) => i.interestId)
-            : [],
       },
     };
   }

@@ -17,12 +17,10 @@ import { Failed } from './shared';
 
 export function InterestContainer({
   interestId,
-  onOpenSubInterest,
   onOpenPost,
   onReportDescription,
 }: {
   interestId: string;
-  onOpenSubInterest: (id: string) => void;
   onOpenPost: (postId: string) => void;
   /** 004/FR-030. A description is content, so it is reportable. */
   onReportDescription?: (interestId: string) => void;
@@ -46,7 +44,8 @@ export function InterestContainer({
     ])
       .then(([interest, children, me]) => {
         if (!live) return;
-        setDetail({ interest, subInterests: children.items, rollsUpFrom: [] });
+        // 013. Flat: no children to fetch or show.
+        setDetail({ interest });
         setFollowedCount(me?.interestFollowCount ?? 0);
       })
       .catch((e: unknown) => live && setError(e instanceof DataError ? e.message : String(e)));
@@ -83,7 +82,6 @@ export function InterestContainer({
       query={query}
       onLoadMore={loadMore}
       onToggleFollow={toggleFollow}
-      onOpenSubInterest={onOpenSubInterest}
       onOrderChange={setOrder}
       onQueryChange={setQuery}
       {...(onReportDescription ? { onReportDescription: () => onReportDescription(interestId) } : {})}

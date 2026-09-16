@@ -5,7 +5,7 @@ import { mediaLabel } from '../components/mediaLabel';
  */
 const post = {
   caption: 'a walk at dawn',
-  interests: [{ interestId: 'i1', name: 'Photography', slug: 'photography', level: 'top' as const, parent: null }],
+  interests: [{ interestId: 'i1', name: 'Photography', slug: 'photography' as const, parent: null }],
   author: { userId: 'u1', handle: 'ada', displayName: 'Ada Baird' },
 } as unknown as Parameters<typeof mediaLabel>[0];
 

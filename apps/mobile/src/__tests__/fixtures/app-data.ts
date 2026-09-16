@@ -76,7 +76,6 @@ export function fakeData(over: Partial<Record<string, unknown>> = {}): AppData {
         interestId: 'i1',
         name: 'Bouldering',
         slug: 'bouldering',
-        level: 'top',
         postCount: 0,
         followerCount: 0,
         state: 'active',

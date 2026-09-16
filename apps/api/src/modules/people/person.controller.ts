@@ -69,7 +69,8 @@ export class PersonController {
       .slice(0, 5)
       .map(([id]) => this.catalogue.byId(id))
       .filter((i): i is NonNullable<typeof i> => i !== undefined)
-      .map((i) => ({ interestId: i.interestId, name: i.name, slug: i.slug, level: i.level }));
+      // 013/T009a. `level` is gone from the contract with the hierarchy.
+      .map((i) => ({ interestId: i.interestId, name: i.name, slug: i.slug }));
 
     return {
       ...(await this.profiles.toPublicProfile(person)),

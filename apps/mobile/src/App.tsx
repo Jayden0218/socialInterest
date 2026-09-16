@@ -412,7 +412,6 @@ export function Shell({
             <View style={{ flex: 1 }}>
               <InterestContainer
                 interestId={top.interestId}
-                onOpenSubInterest={(id) => push({ name: 'interest', interestId: id })}
                 onOpenPost={(postId) => push({ name: 'post', postId })}
                 onReportDescription={(subjectId) =>
                   requireSignIn({ name: 'safety', subject: 'interest-description', subjectId })

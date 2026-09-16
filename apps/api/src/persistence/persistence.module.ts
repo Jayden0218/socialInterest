@@ -5,6 +5,7 @@ import { createPool, PG_POOL } from './pg-pool';
 import { Transactor } from './transactor';
 import { PersonRepository } from './person.repository';
 import { HandleClaimRepository } from './handle-claim.repository';
+import { InterestNameClaimRepository } from './interest-name-claim.repository';
 import { CredentialRepository } from './credential.repository';
 import { InterestRepository } from './interest.repository';
 import { PersonFollowRepository } from './person-follow.repository';
@@ -48,6 +49,7 @@ const providers: Provider[] = [
   Transactor,
   repo(PersonRepository),
   repo(HandleClaimRepository),
+  repo(InterestNameClaimRepository),
   repo(CredentialRepository),
   repo(InterestRepository),
   repo(PersonFollowRepository),
@@ -89,6 +91,7 @@ const providers: Provider[] = [
     Transactor,
     PersonRepository,
     HandleClaimRepository,
+    InterestNameClaimRepository,
     CredentialRepository,
     InterestRepository,
     PersonFollowRepository,

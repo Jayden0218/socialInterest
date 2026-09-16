@@ -29,38 +29,50 @@ describe('interest colour derivation (006/US2)', () => {
     expect(distinct.size).toBeGreaterThan(120);
   });
 
-  it('T027 gives a sub-interest its PARENT hue', () => {
-    const parent = { interestId: 'INT#food' };
-    const child = { interestId: 'INT#ramen', parentId: 'INT#food' };
-    expect(interestHue(child)).toBe(interestHue(parent));
-  });
-
-  it('T027 still tells a parent and its child apart, by lightness', () => {
-    const parent = { interestId: 'INT#food' };
-    const child = { interestId: 'INT#ramen', parentId: 'INT#food' };
-    for (const palette of [dark, light]) {
-      expect(interestColour(child, palette)).not.toBe(interestColour(parent, palette));
-    }
-  });
-
   /**
-   * Two children of the SAME parent share a colour, and that is the design
-   * rather than a defect: 001/FR-024 rolls both their posts into the parent, so
-   * they are one place as far as a feed is concerned. Pinned so nobody
-   * "fixes" it into per-child hues and quietly contradicts the feed.
+   * ────────────────────────────────────────────────────────────────────────
+   * 013/T026a. THREE ASSERTIONS INVERTED, NOT DELETED.
+   * ────────────────────────────────────────────────────────────────────────
+   *
+   * 006/T027 pinned three facts: a sub-interest took its PARENT's hue, a child
+   * was told apart from its parent by lightness, and two children of one parent
+   * shared a colour — "they are one place as far as a feed is concerned",
+   * because 001/FR-024 rolled both their posts into the parent.
+   *
+   * 013 makes interests flat. The roll-up is withdrawn, so siblings are not one
+   * place, and there is no parent to borrow from. Every interest takes its own
+   * hue at the base lightness.
+   *
+   * These are INVERTED rather than removed, for the reason the PostCard byline
+   * was: a test that simply stops mentioning a behaviour cannot distinguish
+   * "we meant to remove this" from "it fell off".
    */
-  it('T027 gives siblings the same colour, because a feed treats them as one place', () => {
-    const a = { interestId: 'INT#ramen', parentId: 'INT#food' };
-    const b = { interestId: 'INT#pasta', parentId: 'INT#food' };
-    expect(interestColour(a, dark)).toBe(interestColour(b, dark));
+  it('013: an interest takes its OWN hue — a parent id no longer changes it', () => {
+    const child = { interestId: 'INT#ramen' };
+    const parent = { interestId: 'INT#food' };
+    expect(interestHue(child)).not.toBe(interestHue(parent));
+  });
+
+  it('013: two interests that were siblings no longer share a colour', () => {
+    const a = { interestId: 'INT#ramen' };
+    const b = { interestId: 'INT#pasta' };
+    expect(interestColour(a, dark)).not.toBe(interestColour(b, dark));
   });
 
   it('produces the full hue range in both palettes, with no duplicates from rounding', () => {
     for (const palette of [dark, light]) {
       const all = everyInterestColour(palette);
-      expect(all).toHaveLength(720);
+      // 013/T026a. 360, not 720. The generator enumerated each hue at two
+      // lightnesses because a child sat one step from its parent; with no
+      // children the second is unreachable, and an enumeration covering colours
+      // the product cannot produce is a guard covering something that is not
+      // there.
+      expect(all).toHaveLength(360);
       // Rounding to 8-bit sRGB merges near neighbours; most must still survive.
-      expect(new Set(all).size).toBeGreaterThan(400);
+      // 013/T026a: the floor was 400 against 720 inputs. With 360 inputs the
+      // ceiling IS 360, so the floor moves with it — a bound that can never be
+      // met is not a bound, and leaving it would have read as a real regression.
+      expect(new Set(all).size).toBeGreaterThan(300);
     }
   });
 });

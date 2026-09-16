@@ -50,7 +50,6 @@ export class SearchController {
               interestId: m.interest.interestId,
               name: m.interest.name,
               slug: m.interest.slug,
-              level: m.interest.level,
             })),
             people: await Promise.all(
               (await this.people.search(req.viewer!.userId, query, 5)).map((p) =>

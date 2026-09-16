@@ -76,9 +76,22 @@ export async function bootHarness(): Promise<Harness> {
       return res.body.uploadId as string;
     },
     async topInterestId() {
-      const page = await interests.listChildren(null, { limit: 1 });
-      const first = page.items[0];
-      if (!first) throw new Error('catalogue is empty - run `pnpm --filter @sih/infra seed:catalogue`');
+      /**
+       * 013. FILTERED TO `active`, and the reason is worth keeping.
+       *
+       * This read `listChildren(null)`, which returned only TOP-LEVEL interests
+       * — all of them seeded and alive. `listAll` returns the flat catalogue,
+       * which includes the merged and retired ones other suites leave behind,
+       * and the alphabetically first happened to be `retired`. Publishing into
+       * it is correctly refused with 422, so ~40 unrelated suites failed at
+       * their first publish with no apparent connection to interests.
+       *
+       * A lookup that silently changed what it returns, which is the same shape
+       * as a constraint and a lookup disagreeing about what a name is.
+       */
+      const page = await interests.listAll({ limit: 200 });
+      const first = page.items.find((i) => i.state === 'active');
+      if (!first) throw new Error('catalogue is empty - publish a post naming an interest (013: there is no seeded catalogue)');
       return first.interestId;
     },
     close: async () => {

@@ -8,14 +8,13 @@ import { InterestRepository } from '../../persistence/interest.repository';
 import { CATALOGUE_SEARCH, type CatalogueSearch } from '../interests/catalogue.cache';
 import { InterestJobService } from './interest-job.service';
 
+// 013. `reparent` and its `newParentId` are gone with the hierarchy. The ROUTE
+// is unchanged — this is one operator route with an `action` discriminator, and
+// one value of that discriminator no longer exists (FR-025).
 const actionSchema = z
   .object({
-    action: z.enum(['reparent', 'merge', 'retire']),
-    newParentId: z.string().optional(),
+    action: z.enum(['retire', 'merge']),
     mergeIntoId: z.string().optional(),
-  })
-  .refine((v) => (v.action === 'reparent' ? !!v.newParentId : true), {
-    message: 'newParentId is required to reparent',
   })
   .refine((v) => (v.action === 'merge' ? !!v.mergeIntoId : true), {
     message: 'mergeIntoId is required to merge',
@@ -49,14 +48,19 @@ export class InterestAdminController {
     }
 
     if (input.action === 'retire') {
-      const liveChildren = this.catalogue
-        .childrenOf(interestId)
-        .filter((c) => c.state === 'active');
-      if (liveChildren.length > 0) {
+      /**
+       * 013. THE ORPHANED-CHILDREN CHECK IS GONE, because there are no children.
+       *
+       * It refused to retire a top-level interest that still had live
+       * sub-interests. Flat interests cannot orphan anything — what a retirement
+       * must not orphan now is POSTS, which FR-022/FR-023 handle by keying
+       * retirement on whether the interest has any.
+       */
+      if (interest.postCount > 0) {
         throw new DomainError(
           HttpStatus.CONFLICT,
           'Would orphan posts',
-          `"${interest.name}" still has ${liveChildren.length} live sub-interest(s). Re-parent or merge them first.`,
+          `"${interest.name}" still has ${interest.postCount} post(s). Merge it instead.`,
         );
       }
       await this.interests.setState(interestId, 'retired');
@@ -72,14 +76,17 @@ export class InterestAdminController {
       return this.jobs.startMerge(interestId, target.interestId);
     }
 
-    const newParent = this.catalogue.byId(input.newParentId!);
-    if (!newParent || newParent.level !== 'top') {
-      throw new DomainError(
-        HttpStatus.UNPROCESSABLE_ENTITY,
-        'Invalid parent',
-        'A sub-interest must be re-parented beneath a top-level interest',
-      );
-    }
-    return this.jobs.startReparent(interestId, newParent.interestId);
+    /**
+     * 013. `reparent` IS NO LONGER AN ACTION. Interests are flat.
+     *
+     * THE ROUTE ITSELF DOES NOT MOVE, which is what FR-025 is about: this is one
+     * operator route with an `action` discriminator, and one value of that
+     * discriminator is gone. The operator route snapshot is unchanged.
+     */
+    throw new DomainError(
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      'Unknown action',
+      'Interests are flat; re-parenting is no longer possible.',
+    );
   }
 }

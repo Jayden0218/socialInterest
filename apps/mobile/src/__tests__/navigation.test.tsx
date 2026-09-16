@@ -267,8 +267,7 @@ describe('the shell reaches every screen', () => {
    */
   it('opens an interest from a search result (03-follow-interest)', async () => {
     const found = {
-      interestId: 'i-climbing', name: 'Climbing', slug: 'climbing',
-      level: 'top', postCount: 0, followerCount: 0, state: 'active',
+      interestId: 'i-climbing', name: 'Climbing', slug: 'climbing', postCount: 0, followerCount: 0, state: 'active',
     };
     const data = fakeData({
       interests: {

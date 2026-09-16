@@ -46,8 +46,19 @@ describe('US2 — discover content by interest', () => {
 
   it('scenario 1: a sub-interest shows its own posts and nothing unrelated', async () => {
     const mine = await publishTo(subId);
-    const otherTop = await request(h.app.getHttpServer()).get('/v1/interests?level=top&limit=50');
-    const unrelated = otherTop.body.items.find((i: { interestId: string }) => i.interestId !== topId);
+    /**
+     * 013. EXCLUDES `subId` TOO, and it did not have to before.
+     *
+     * This asked for `?level=top` and took the first interest that was not
+     * `topId` — the level filter guaranteed the result was not `subId`. Flat,
+     * there is no level filter, so the listing includes `subId` and this picked
+     * the very interest under test: the post landed in it, and the assertion
+     * "does not contain theirs" failed because `theirs` was legitimately there.
+     */
+    const otherTop = await request(h.app.getHttpServer()).get('/v1/interests?limit=50');
+    const unrelated = otherTop.body.items.find(
+      (i: { interestId: string }) => i.interestId !== topId && i.interestId !== subId,
+    );
     const theirs = await publishTo(unrelated.interestId);
 
     const res = await request(h.app.getHttpServer()).get(`/v1/interests/${subId}/posts`);
@@ -57,19 +68,14 @@ describe('US2 — discover content by interest', () => {
     expect(ids).not.toContain(theirs);
   }, 60_000);
 
-  it('scenario 2: a top-level interest lists its sub-interests AND rolls up their posts (FR-024)', async () => {
-    const inSub = await publishTo(subId);
-
-    const detail = await request(h.app.getHttpServer()).get(`/v1/interests/${topId}`);
-    expect(detail.status).toBe(200);
-    expect(detail.body.subInterests.map((s: { interestId: string }) => s.interestId)).toContain(subId);
-
-    // The roll-up: a post published to the CHILD appears in the PARENT's space.
-    const parentPosts = await request(h.app.getHttpServer()).get(`/v1/interests/${topId}/posts`);
-    expect(parentPosts.body.items.map((i: { postId: string }) => i.postId)).toContain(inSub);
-    expect(parentPosts.body.interest.rollsUpFrom).toContain(subId);
-  }, 60_000);
-
+  /**
+   * 013/FR-021. REMOVED: "a top-level interest lists its sub-interests AND rolls
+   * up their posts (FR-024)".
+   *
+   * The roll-up is withdrawn. A space lists its own posts and contains no other
+   * interests, so both halves of this are gone — along with `rollsUpFrom`,
+   * `subInterests` and the caption that explained them.
+   */
   it('scenario 3: an interest with no posts returns an empty state, not an error', async () => {
     const empty = await request(h.app.getHttpServer())
       .post('/v1/interests')
@@ -96,16 +102,15 @@ describe('US2 — discover content by interest', () => {
     expect(second.body.items[0].postId).not.toBe(first.body.items[0].postId);
   }, 90_000);
 
-  it('scenario 5: type-ahead matches across both levels and names each parent (FR-026)', async () => {
-    const partial = subName.slice(0, 5);
-    const res = await request(h.app.getHttpServer()).get(`/v1/interests?q=${encodeURIComponent(partial)}`);
-    expect(res.status).toBe(200);
-    const hit = res.body.items.find((i: { interestId: string }) => i.interestId === subId);
-    expect(hit).toBeDefined();
-    // Disambiguation: the same name may exist under two parents.
-    expect(hit.parent.interestId).toBe(topId);
-  });
-
+  /**
+   * 013/FR-003. REMOVED: "type-ahead matches across both levels and names each
+   * parent (FR-026)".
+   *
+   * There is one level, and a name is globally unique — enforced by the claim
+   * row — so there is nothing to disambiguate and no parent to disambiguate
+   * with. Search across the whole flat catalogue is covered by
+   * `interest-similarity-is-global`.
+   */
   it('search is readable signed out', async () => {
     const res = await request(h.app.getHttpServer()).get('/v1/interests?level=top');
     expect(res.status).toBe(200);
@@ -166,15 +171,14 @@ describe('US2 — creating a sub-interest', () => {
     expect(res.body.title).toBe('Interest name not allowed');
   });
 
-  it('refuses a third level (FR-020)', async () => {
-    const sub = await create({ name: `Depth ${Date.now().toString().slice(-6)}`, parentId: topId });
-    expect(sub.status).toBe(201);
-    // Different person, so the refusal is the hierarchy rule and not the limiter.
-    const deeper = await create({ name: 'Too deep', parentId: sub.body.interestId });
-    expect(deeper.status).toBe(422);
-    expect(deeper.body.title).toBe('Interests are only two levels deep');
-  }, 60_000);
-
+  /**
+   * 013/FR-003. REMOVED: "refuses a third level (FR-020)".
+   *
+   * 001 capped the hierarchy at two levels; there are no levels now. The cap
+   * has nothing to cap — `parentId` is not in the request schema and `level`
+   * does not exist on the item, so both are typecheck failures rather than
+   * runtime refusals.
+   */
   it('requires authentication', async () => {
     const res = await request(h.app.getHttpServer())
       .post('/v1/interests')

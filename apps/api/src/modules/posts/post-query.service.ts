@@ -80,7 +80,6 @@ export class PostQueryService {
           interestId: i.interestId,
           name: i.name,
           slug: i.slug,
-          level: i.level,
         })),
       // 008/FR-030. The stored list, never re-parsed from the caption.
       visibility: post.visibility,

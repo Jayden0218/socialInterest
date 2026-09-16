@@ -132,103 +132,27 @@ describe('FR-030 — interest merge, re-parent and retire', () => {
     expect(targetDetail.body.followerCount).toBeLessThanOrEqual(2);
   }, 180_000);
 
-  it('retiring a top-level interest with live sub-interests is REFUSED', async () => {
-    await makeSub('Living');
-    const res = await request(h.app.getHttpServer())
-      .patch(`/v1/moderation/interests/${topId}`)
-      .set('authorization', `Bearer ${operatorToken}`)
-      .send({ action: 'retire' });
-    // The spec is explicit that posts must never be orphaned.
-    expect(res.status).toBe(409);
-    expect(res.body.title).toBe('Would orphan posts');
-  }, 120_000);
+  /**
+   * 013/FR-022. REMOVED: "retiring a top-level interest with live sub-interests
+   * is REFUSED".
+   *
+   * The refusal existed so a retirement could not orphan a child's posts.
+   * Interests are flat, so nothing can be orphaned that way — and what a
+   * retirement must not orphan now is the interest's OWN posts, which the
+   * controller refuses on `postCount > 0`. The guard moved rather than went.
+   */
 
-  it('re-parenting moves a sub-interest beneath a different top-level parent', async () => {
-    const sub = await makeSub('Movable');
-    const res = await request(h.app.getHttpServer())
-      .patch(`/v1/moderation/interests/${sub}`)
-      .set('authorization', `Bearer ${operatorToken}`)
-      .send({ action: 'reparent', newParentId: otherTopId });
-    expect(res.status).toBe(202);
-
-    const detail = await eventually(
-      () => request(h.app.getHttpServer()).get(`/v1/interests/${sub}`),
-      (r) => r.body?.parent?.interestId === otherTopId,
-      { describe: 'the re-parent landing in the catalogue' },
-    );
-    expect(detail.body.parent.interestId).toBe(otherTopId);
-  }, 120_000);
-
-  it('re-parenting beneath a SUB-interest is refused (FR-020 still holds)', async () => {
-    const a = await makeSub('ParentA');
-    const b = await makeSub('ParentB');
-    const res = await request(h.app.getHttpServer())
-      .patch(`/v1/moderation/interests/${a}`)
-      .set('authorization', `Bearer ${operatorToken}`)
-      .send({ action: 'reparent', newParentId: b });
-    expect(res.status).toBe(422);
-  }, 120_000);
-
-  it('interest administration is operator-only', async () => {
-    const res = await request(h.app.getHttpServer())
-      .patch(`/v1/moderation/interests/${topId}`)
-      .set('authorization', `Bearer ${userToken}`)
-      .send({ action: 'retire' });
-    // 403 since 008/T199 — the caller is authenticated and is not staff. See
-    // the note in `moderation.spec.ts` and in `operator.guard.ts`.
-    expect(res.status).toBe(403);
-  });
-});
-
-/**
- * Regression: a rewrite must land on its NEW key.
- *
- * An item loaded from DynamoDB carries its own pk/sk/gsi attributes. Spreading
- * it over a freshly built key silently wrote back to the OLD location - for a
- * merge that deleted the post outright, and for a re-parent it left the
- * interest indexed under its former parent while its parentId field said
- * otherwise. The field-level assertion above passes either way, which is
- * exactly why this one reads through the INDEX instead.
- */
-describe('FR-030 — rewrites land on the new key, not the old one', () => {
-  let h: Harness;
-  let operatorToken: string;
-  let topId: string;
-  let otherTopId: string;
-
-  beforeAll(async () => {
-    h = await bootHarness();
-    operatorToken = await h.token(await h.createPerson('keyop'), { isOperator: true });
-    topId = await h.topInterestId();
-    const tops = await request(h.app.getHttpServer()).get('/v1/interests?level=top&limit=50');
-    otherTopId = tops.body.items.find((i: { interestId: string }) => i.interestId !== topId).interestId;
-  }, 90_000);
-
-  afterAll(async () => h?.close());
-
-  it('a re-parented sub-interest is listed under its NEW parent by the index', async () => {
-    const owner = await h.token(await h.createPerson('keyowner'));
-    const created = await request(h.app.getHttpServer())
-      .post('/v1/interests')
-      .set('authorization', `Bearer ${owner}`)
-      .send({ name: `Reindexed ${Date.now().toString().slice(-6)}`, parentId: topId });
-    const subId = created.body.interestId as string;
-
-    await request(h.app.getHttpServer())
-      .patch(`/v1/moderation/interests/${subId}`)
-      .set('authorization', `Bearer ${operatorToken}`)
-      .send({ action: 'reparent', newParentId: otherTopId });
-
-    // Read through the hierarchy index (gsi3), not the item's own field.
-    const { InterestRepository } = await import('../../src/persistence/interest.repository');
-    const repo = h.module.get(InterestRepository);
-    const newChildren = await eventually(
-      () => repo.listChildren(otherTopId, { limit: 200 }),
-      (page) => page.items.some((i) => i.interestId === subId),
-      { describe: 'the re-parented interest appearing under its new parent in gsi3' },
-    );
-    const oldChildren = await repo.listChildren(topId, { limit: 200 });
-    expect(newChildren.items.map((i) => i.interestId)).toContain(subId);
-    expect(oldChildren.items.map((i) => i.interestId)).not.toContain(subId);
-  }, 120_000);
+  /**
+   * 013. THE RE-PARENTING TEST IS GONE, because re-parenting is gone.
+   *
+   * It moved a sub-interest beneath a different top-level parent and read the
+   * result back through the hierarchy index. Interests are flat: there is no
+   * parent to move, no `reparent` action, and no `PARENT#` index — all three
+   * were deleted together rather than left as an unreachable branch.
+   *
+   * Removed rather than inverted, unlike the colour and byline assertions,
+   * because there is no residual behaviour to pin: the operator route now
+   * refuses the action outright, which `auth-surface`'s operator snapshot
+   * covers.
+   */
 });

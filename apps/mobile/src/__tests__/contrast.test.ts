@@ -119,7 +119,8 @@ describe.each(palettes)('%s palette meets WCAG AA', (name, p) => {
    */
   it('every interest colour the generator can produce is legible AS TEXT', () => {
     const colours = everyInterestColour(p);
-    expect(colours).toHaveLength(720);
+    // 013/T026a. 360, not 720: the child lightness is unreachable now.
+      expect(colours).toHaveLength(360);
 
     const failures = colours
       .flatMap((c) => [

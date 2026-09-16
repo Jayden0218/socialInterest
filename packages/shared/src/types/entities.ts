@@ -10,30 +10,35 @@ import {
   visibilitySchema,
 } from '../schemas/common';
 
+/**
+ * 013/T009a. `level` AND `parent` ARE GONE FROM THE CONTRACT.
+ *
+ * Interests are flat and user-named; there is no hierarchy to describe. This is
+ * the shape every client consumes, so it changes here in the same commit as the
+ * server item — 002's first defect was the contract and the API disagreeing
+ * about publishing, where "any client generated from the contract 400s on every
+ * publish". It is milder here only by luck: this schema is never used to parse
+ * a response, so the disagreement would have surfaced as a typecheck failure
+ * rather than at runtime.
+ */
 export const interestRefSchema: z.ZodType<InterestRef> = z.lazy(() =>
   z.object({
     interestId: z.string(),
     name: z.string(),
     slug: z.string(),
-    level: interestLevelSchema,
-    /** Present for sub-interests so search results disambiguate (FR-026). */
-    parent: interestRefSchema.nullable().optional(),
   }),
 );
 export interface InterestRef {
   interestId: string;
   name: string;
   slug: string;
-  level: z.infer<typeof interestLevelSchema>;
-  parent?: InterestRef | null;
 }
 
 export const interestSchema = z.object({
   interestId: z.string(),
   name: z.string().min(2).max(50),
   slug: z.string(),
-  level: interestLevelSchema,
-  parentId: z.string().nullable().optional(),
+  // 013/T009a. `level` and `parentId` gone with the hierarchy.
   description: z.string().max(500).nullable().optional(),
   postCount: z.number().int().nonnegative(),
   followerCount: z.number().int().nonnegative(),

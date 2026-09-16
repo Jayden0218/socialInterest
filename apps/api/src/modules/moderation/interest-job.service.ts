@@ -29,15 +29,11 @@ export class InterestJobService {
     return this.start('merge', sourceId, targetId);
   }
 
-  startReparent(interestId: string, newParentId: string): InterestJob {
-    return this.start('reparent', interestId, newParentId);
-  }
-
   getJob(jobId: string): InterestJob | undefined {
     return this.jobs.get(jobId);
   }
 
-  private start(action: 'merge' | 'reparent', sourceId: string, targetId: string): InterestJob {
+  private start(action: 'merge', sourceId: string, targetId: string): InterestJob {
     const job: InterestJob = {
       jobId: ulid(),
       action,
@@ -58,10 +54,8 @@ export class InterestJobService {
           await this.interests.setMergedInto(id, into);
           await this.cache.refresh();
         },
-        setParent: async (id, parentId) => {
-          await this.interests.setParent(id, parentId);
-          await this.cache.refresh();
-        },
+        // 013. `setParent` is gone: re-parenting is meaningless when interests
+        // are flat, so the job's reparent branch goes with it.
         movePosts: async (from, to) => this.index.moveInterest(from, to),
         moveFollowers: async (from, to) => {
           const page = await this.follows.listFollowers(from, { limit: 1000 });

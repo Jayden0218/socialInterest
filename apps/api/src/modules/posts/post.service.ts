@@ -66,7 +66,15 @@ export class PostService {
         );
       }
       expanded.add(id);
-      if (interest.parentId) expanded.add(interest.parentId);
+      /**
+       * 013/T025, FR-021. THE PARENT ROLL-UP IS WITHDRAWN.
+       *
+       * 001/FR-024 expanded a post's interest set to include each interest's
+       * PARENT, so a parent's space listed its children's posts and every
+       * publish wrote an extra index row per level. Interests are flat now, so
+       * there is nothing to roll up: a post writes one index row per interest
+       * it actually carries.
+       */
     }
     return [...expanded];
   }

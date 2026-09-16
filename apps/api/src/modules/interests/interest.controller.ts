@@ -31,19 +31,11 @@ const createInterestSchema = z.object({
   acknowledgedSimilarTo: z.array(z.string()).optional(),
 });
 
+// 013/T009a. `level` and `parent` are gone from the contract with the hierarchy.
 const toRef = (r: SearchResult) => ({
   interestId: r.interest.interestId,
   name: r.interest.name,
   slug: r.interest.slug,
-  level: r.interest.level,
-  parent: r.parent
-    ? {
-        interestId: r.parent.interestId,
-        name: r.parent.name,
-        slug: r.parent.slug,
-        level: r.parent.level,
-      }
-    : null,
   postCount: r.interest.postCount,
   followerCount: r.interest.followerCount,
   state: r.interest.state,
@@ -118,7 +110,7 @@ export class InterestController {
       );
     }
     return {
-      candidates: this.search.findSimilar(name, parentId).map((r) => ({
+      candidates: this.search.findSimilar(name).map((r) => ({
         interest: toRef(r),
         similarity: Number(r.similarity.toFixed(3)),
       })),
@@ -138,7 +130,7 @@ export class InterestController {
         createdBy: req.viewer!.userId,
         ...(input.acknowledgedSimilarTo ? { acknowledgedSimilarTo: input.acknowledgedSimilarTo } : {}),
       });
-      return toRef({ interest: created, parent: this.catalogue.byId(created.parentId!) ?? null, similarity: 1 });
+      return toRef({ interest: created, parent: null, similarity: 1 });
     } catch (e) {
       if (e instanceof DuplicateInterestError) {
         // 409 carrying the candidates, so the client can offer "join this one".
@@ -179,14 +171,14 @@ export class InterestController {
     if (!interest) throw new DomainError(HttpStatus.NOT_FOUND, 'No such interest');
 
     const isOperator = req.viewer?.isOperator === true;
-    const isCreator = interest.level === 'sub' && interest.createdBy === req.viewer?.userId;
+    // 013. Every interest has a creator now — there is no curated tier whose
+    // description only an operator may set.
+    const isCreator = interest.createdBy === req.viewer?.userId;
     if (!isOperator && !isCreator) {
       throw new DomainError(
         HttpStatus.FORBIDDEN,
         'Not permitted to describe this interest',
-        interest.level === 'top'
-          ? 'Top-level interests are curated by operators.'
-          : 'Only the person who created a sub-interest, or an operator, can describe it.',
+        'Only the person who created an interest, or an operator, can describe it.',
       );
     }
 
@@ -208,20 +200,14 @@ export class InterestController {
       return { mergedInto: interest.mergedIntoId };
     }
 
-    const base = toRef({ interest, parent: interest.parentId ? this.catalogue.byId(interest.parentId) ?? null : null, similarity: 1 });
+    const base = toRef({ interest, parent: null, similarity: 1 });
     return {
       ...base,
       ...(interest.description ? { description: interest.description } : {}),
       ...(interest.descriptionUpdatedAt ? { descriptionUpdatedAt: interest.descriptionUpdatedAt } : {}),
-      // Sub-interests are listed for a top-level interest only (FR-020).
-      ...(interest.level === 'top'
-        ? {
-            subInterests: this.catalogue
-              .childrenOf(interest.interestId)
-              .sort((a, b) => a.name.localeCompare(b.name))
-              .map((i) => toRef({ interest: i, parent: interest, similarity: 1 })),
-          }
-        : {}),
+      // 013/FR-003. `subInterests` is gone: interests are flat, so there are no
+      // children to list. 001/FR-020's listing described a hierarchy that no
+      // longer exists.
     };
   }
 }

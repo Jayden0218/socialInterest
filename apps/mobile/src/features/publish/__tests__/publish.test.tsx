@@ -11,7 +11,7 @@ import type { PickedMedia } from '../MediaPickerScreen';
  * anything appeared on screen.
  */
 const media: PickedMedia = { uri: 'file://a.jpg', kind: 'image', contentType: 'image/jpeg', sizeBytes: 1024 };
-const interest: InterestRef = { interestId: 'i1', name: 'Bouldering', slug: 'bouldering', level: 'top' };
+const interest: InterestRef = { interestId: 'i1', name: 'Bouldering', slug: 'bouldering' };
 const uploaded = (): UploadSlot => ({ ...newSlot(media), stage: 'uploaded', progress: 1 });
 
 const compose = (over: Partial<React.ComponentProps<typeof ComposeScreen>> = {}) =>

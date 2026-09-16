@@ -39,16 +39,14 @@ describe('stableHash is pinned, because it decides what the product looks like',
     expect(a).toBeLessThan(360);
   });
 
-  it('gives a sub-interest its PARENT hue, at a different lightness (FR-012)', () => {
-    const parent = { interestId: 'INT#food' };
-    const child = { interestId: 'INT#ramen', parentId: 'INT#food' };
-
-    // Same hue - a family, because 001/FR-024 rolls the child's posts into the
-    // parent and unrelated colours would make the screen disagree with that.
-    expect(interestHue(child)).toBe(interestHue(parent));
-    // Different colour, so they are still told apart.
-    expect(interestColour(child, dark)).not.toBe(interestColour(parent, dark));
-    expect(interestColour(child, light)).not.toBe(interestColour(parent, light));
+  /**
+   * 013/T026a. WAS: "gives a sub-interest its PARENT hue, at a different
+   * lightness (FR-012)". Interests are flat, so there is no parent to borrow
+   * from and no child lightness. Inverted rather than deleted so the change
+   * stays legible — see interest-colour.test.ts.
+   */
+  it('013: an interest hue comes from its own id, never another interest', () => {
+    expect(interestHue({ interestId: 'INT#ramen' })).not.toBe(interestHue({ interestId: 'INT#food' }));
   });
 
   it('gives the same interest a different colour in each palette', () => {

@@ -170,9 +170,48 @@ export const keys = {
 
   interest: (interestId: string) => ({ pk: `INTEREST#${interestId}`, sk: '#META' }),
   interestBySlug: (slug: string) => ({ gsi1pk: `ISLUG#${slug}`, gsi1sk: '#META' }),
-  interestHierarchy: (parentId: string | null, nameNormalised: string) => ({
-    gsi3pk: `PARENT#${parentId ?? 'ROOT'}`,
-    gsi3sk: `NAME#${nameNormalised}`,
+  /**
+   * 013/T003. THE ROW THAT MAKES AN INTEREST NAME UNIQUE.
+   *
+   * This replaces `interestHierarchy`, which indexed an interest under its
+   * parent by normalised name. There are no parents now, so the hierarchy half
+   * has no meaning — but the NAME half is exactly the claim this feature needs,
+   * and 013/T001 measured why: eight of eight simultaneous creations of one
+   * name succeeded, because `create` guards `attribute_not_exists(pk)` on a
+   * fresh ULID and can never fire for a name. Identical to 011's handles.
+   */
+  /**
+   * 013. EVERY INTEREST, IN ONE PARTITION, SORTED BY NAME.
+   *
+   * The flat replacement for `PARENT#<id>` on gsi3. `loadAll` walked the
+   * hierarchy — top level, then each top's children — and with no parents that
+   * walk returns nothing, which silently emptied the catalogue cache and made
+   * the duplicate gate accept everything.
+   *
+   * One partition is what `PARENT#ROOT` already was for the top level, and D3
+   * already accepts a small, wholly in-memory catalogue. It is also the thing
+   * that stops being appropriate first: when this partition is too big to load,
+   * that is the measurement that moves `CatalogueSearch` to OpenSearch, which
+   * D3 names as its successor.
+   */
+  interestCatalogue: (nameNormalised: string) => ({
+    gsi3pk: 'ICATALOGUE',
+    gsi3sk: nameNormalised,
+  }),
+  interestNameClaim: (nameNormalised: string) => ({
+    pk: `INAME#${nameNormalised}`,
+    sk: '#CLAIM',
+  }),
+  /**
+   * 013/T003. The same for a slug.
+   *
+   * `uniqueSlug` is a read-then-write in a loop and races exactly as the name
+   * does. Fixing one half and leaving the other is the declared-half shape this
+   * repository has recorded seven times, so both are claimed in one transaction.
+   */
+  interestSlugClaim: (slug: string) => ({
+    pk: `ISLUG#${slug}`,
+    sk: '#CLAIM',
   }),
 
   interestFollow: (userId: string, interestId: string) => ({

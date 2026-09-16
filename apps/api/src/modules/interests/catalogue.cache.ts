@@ -19,7 +19,8 @@ export interface CatalogueMatch {
  */
 export interface CatalogueSearch {
   search(query: string, opts?: { level?: 'top' | 'sub'; parentId?: string; limit?: number }): CatalogueMatch[];
-  findSimilar(name: string, parentId: string, limit?: number): CatalogueMatch[];
+  findSimilar(name: string, limit?: number): CatalogueMatch[];
+  findExactByName(name: string): InterestItem | undefined | null;
   byId(interestId: string): InterestItem | undefined;
   /**
    * 007/R1: every active interest id, for the ranked feed's candidate source.
@@ -30,14 +31,17 @@ export interface CatalogueSearch {
    * stops a ranked feed collapsing to one subject.
    */
   allIds(): string[];
-  childrenOf(parentId: string): InterestItem[];
+  /** 013. Every live interest, flat. Was `childrenOf(parentId)`. */
+  active(): InterestItem[];
   size(): number;
 }
 
 export const CATALOGUE_SEARCH = Symbol('CatalogueSearch');
 
-export const normaliseName = (s: string): string =>
-  s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+// 013. Moved to a leaf module to break a cycle; re-exported so the ~dozen
+// existing importers are untouched. See ./normalise-name.ts for why.
+export { normaliseName } from './normalise-name';
+import { normaliseName } from './normalise-name';
 
 /** Normalised Levenshtein similarity in [0,1]. */
 export function similarity(a: string, b: string): number {
@@ -60,7 +64,8 @@ export function similarity(a: string, b: string): number {
 export class InMemoryCatalogueCache implements CatalogueSearch, OnModuleInit {
   private readonly logger = new Logger(InMemoryCatalogueCache.name);
   private byIdMap = new Map<string, InterestItem>();
-  private byParent = new Map<string, InterestItem[]>();
+  /** 013. Every ACTIVE interest, flat. Replaces the parent-keyed buckets. */
+  private flatActive: InterestItem[] = [];
 
   constructor(@Inject(InterestRepository) private readonly repo: InterestRepository) {}
 
@@ -72,21 +77,22 @@ export class InMemoryCatalogueCache implements CatalogueSearch, OnModuleInit {
   async refresh(): Promise<void> {
     const all = await this.repo.loadAll();
     const byId = new Map<string, InterestItem>();
-    const byParent = new Map<string, InterestItem[]>();
+    const flat: InterestItem[] = [];
     for (const item of all) {
       // Merged and retired interests STAY in byId: FR-030 requires a merged
       // interest to redirect to its survivor, and a redirect cannot resolve an
       // interest the cache has forgotten. Existing links would 404 instead.
       byId.set(item.interestId, item);
 
-      // ...but they are excluded from the hierarchy and from search, so they
-      // never appear as somewhere to browse, follow, or post to.
+      // ...but they are excluded from search, so they never appear as somewhere
+      // to browse, follow, or post to.
       if (item.state !== 'active') continue;
-      const parent = item.parentId ?? 'ROOT';
-      byParent.set(parent, [...(byParent.get(parent) ?? []), item]);
+      // 013. One flat list. `byParent` is gone with the hierarchy, and with it
+      // the 'ROOT' bucket that made a sibling-scoped lookup work by accident.
+      flat.push(item);
     }
     this.byIdMap = byId;
-    this.byParent = byParent;
+    this.flatActive = flat;
     this.logger.log(`catalogue loaded: ${this.size()} active interests (${byId.size} total)`);
   }
 
@@ -94,8 +100,9 @@ export class InMemoryCatalogueCache implements CatalogueSearch, OnModuleInit {
     return this.byIdMap.get(interestId);
   }
 
-  childrenOf(parentId: string): InterestItem[] {
-    return this.byParent.get(parentId) ?? [];
+  /** 013. Every live interest, flat. Was `childrenOf(parentId)`. */
+  active(): InterestItem[] {
+    return this.flatActive;
   }
 
   allIds(): string[] {
@@ -122,8 +129,6 @@ export class InMemoryCatalogueCache implements CatalogueSearch, OnModuleInit {
     for (const interest of this.byIdMap.values()) {
       // Search never surfaces a merged or retired interest.
       if (interest.state !== 'active') continue;
-      if (opts.level && interest.level !== opts.level) continue;
-      if (opts.parentId && interest.parentId !== opts.parentId) continue;
       const name = interest.nameNormalised;
       const score = name.startsWith(q) ? 1 : name.includes(q) ? 0.9 : similarity(q, name);
       if (score >= 0.6) out.push({ interest, similarity: score });
@@ -133,13 +138,42 @@ export class InMemoryCatalogueCache implements CatalogueSearch, OnModuleInit {
       .slice(0, opts.limit ?? 20);
   }
 
-  /** FR-023: near-duplicates, scoped to one parent - "portraits" may exist under two. */
-  findSimilar(name: string, parentId: string, limit = 5): CatalogueMatch[] {
+  /**
+   * 013/FR-008. NEAR-DUPLICATES, ACROSS THE WHOLE CATALOGUE.
+   *
+   * It was scoped to one parent — "portraits" could legitimately exist under
+   * two — and with flat interests that scoping has nothing to mean.
+   *
+   * THE FAILURE MODE IS WORTH STATING PRECISELY, because the first version of
+   * this note overstated it. `refresh()` files a parentless item under a
+   * `'ROOT'` bucket, so a sibling-scoped lookup does NOT return empty
+   * unconditionally — it returns everything if the caller passes `'ROOT'`, and
+   * nothing if the caller passes a parent id that no longer exists. The old
+   * caller passed `parent.interestId`. So the gate would have failed OPEN, but
+   * by way of a stale argument rather than by construction, and a magic
+   * `'ROOT'` string working by luck is not a constraint either.
+   *
+   * Either way nothing errors and no test goes red: the gate simply stops
+   * having an opinion. That is the "guard can lose its subject and pass" shape,
+   * and it is why `interest-similarity-is-global.spec.ts` was written first.
+   */
+  findSimilar(name: string, limit = 5): CatalogueMatch[] {
     const q = normaliseName(name);
-    return (this.byParent.get(parentId) ?? [])
-      .map((interest) => ({ interest, similarity: similarity(q, interest.nameNormalised) }))
-      .filter((m) => m.similarity >= 0.75)
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, limit);
+    const out: CatalogueMatch[] = [];
+    for (const interest of this.byIdMap.values()) {
+      if (interest.state !== 'active') continue;
+      const score = similarity(q, interest.nameNormalised);
+      if (score >= 0.75) out.push({ interest, similarity: score });
+    }
+    return out.sort((a, b) => b.similarity - a.similarity).slice(0, limit);
+  }
+
+  /** 013/FR-008. An exact normalised-name collision anywhere in the catalogue. */
+  findExactByName(name: string): InterestItem | null {
+    const q = normaliseName(name);
+    for (const interest of this.byIdMap.values()) {
+      if (interest.state === 'active' && interest.nameNormalised === q) return interest;
+    }
+    return null;
   }
 }

@@ -20,7 +20,6 @@ describe('PickInterestsContainer', () => {
     interestId,
     name,
     slug: name.toLowerCase(),
-    level: 'top' as const,
     postCount: 0,
     followerCount: 0,
     state: 'active' as const,

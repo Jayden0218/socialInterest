@@ -36,7 +36,9 @@ export function InterestWord({
 }) {
   const palette = useTheme();
   const colour = interestColour(
-    { interestId: interest.interestId, parentId: interest.parent?.interestId ?? null },
+    // 013/T026a. Flat: no parent to borrow a hue from, so every interest takes
+    // its own. Existing interests visibly change colour, which is accepted.
+    { interestId: interest.interestId },
     palette,
   );
 

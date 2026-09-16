@@ -1,6 +1,7 @@
 export interface InterestJob {
   jobId: string;
-  action: 'merge' | 'reparent';
+  // 013. `reparent` is gone with the hierarchy; a merge is the only action.
+  action: 'merge';
   state: 'queued' | 'running' | 'complete' | 'failed';
   itemsProcessed: number;
   itemsTotal: number;
@@ -16,7 +17,6 @@ export interface InterestJobInput {
 export interface InterestJobDeps {
   setState(interestId: string, state: 'active' | 'merging' | 'merged' | 'retired'): Promise<void>;
   setMergedInto(interestId: string, mergedIntoId: string): Promise<void>;
-  setParent(interestId: string, parentId: string): Promise<void>;
   movePosts(fromInterestId: string, toInterestId: string): Promise<number>;
   moveFollowers(fromInterestId: string, toInterestId: string): Promise<number>;
   onProgress(job: InterestJob): void;
@@ -45,15 +45,14 @@ export async function handleInterestJob(
   deps.onProgress(job);
 
   try {
-    if (input.job.action === 'reparent') {
-      // Re-parenting moves no posts: index items are keyed by interest, and the
-      // interest keeps its identity. Only the hierarchy edge changes.
-      await deps.setParent(input.sourceId, input.targetId);
-      job = { ...job, state: 'complete', itemsProcessed: 1, itemsTotal: 1 };
-      deps.onProgress(job);
-      return job;
-    }
-
+    /**
+     * 013. THE `reparent` BRANCH IS GONE.
+     *
+     * It moved the hierarchy edge and no posts. Interests are flat, so there is
+     * no edge to move — deleted rather than left unreachable, which is the same
+     * rule that deleted `parentId` itself: a branch that exists is a branch
+     * somebody routes to.
+     */
     // Merge. Mark the source first so reads redirect for the whole operation.
     await deps.setState(input.sourceId, 'merging');
     deps.onProgress(job);

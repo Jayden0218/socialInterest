@@ -19,7 +19,7 @@ import { SafetyActions } from '../features/safety/SafetyActions';
 import { initialPagedState } from '../components/PagedPostList';
 import { View } from 'react-native';
 
-const ref: InterestRef = { interestId: 'i1', name: 'Bouldering', slug: 'bouldering', level: 'top' };
+const ref: InterestRef = { interestId: 'i1', name: 'Bouldering', slug: 'bouldering' };
 const interest: Interest = { ...ref, postCount: 3, followerCount: 2, state: 'active' };
 const author = { userId: 'u1', handle: 'someone', displayName: 'Someone' };
 const post: Post = {
@@ -80,35 +80,53 @@ describe('HomeFeedScreen — FR-036 empty states are distinct', () => {
   });
 });
 
-describe('InterestScreen — FR-024 roll-up is explained', () => {
-  it('lists sub-interests and says where rolled-up posts came from', () => {
-    render(
+/**
+ * 013/FR-021. WAS: "InterestScreen — FR-024 roll-up is explained", asserting a
+ * sub-interest list and a caption naming where rolled-up posts came from.
+ *
+ * Interests are flat: a space lists its own posts and contains no others, so
+ * both the strip and the caption are gone. Inverted rather than deleted — a
+ * suite that stops mentioning a behaviour cannot tell a deliberate removal from
+ * an accidental one.
+ */
+describe('013: an interest space contains no other interests', () => {
+  it('shows no sub-interest strip and no roll-up caption', () => {
+    const t = render(
       <InterestScreen
-        data={{ interest, subInterests: [{ ...interest, interestId: 'i2', name: 'Highball' }], rollsUpFrom: ['i2'] }}
+        data={{ interest }}
         posts={initialPagedState<Post>()}
-        followedCount={0}
+        query=""
         onLoadMore={() => undefined}
         onToggleFollow={() => undefined}
-        onOpenSubInterest={() => undefined}
-        renderPost={() => <View />}
+        onOrderChange={() => undefined}
+        onQueryChange={() => undefined}
+        followedCount={0}
+        renderPost={() => <></>}
       />,
     );
-    expect(screen.getByTestId('sub-interest-list')).toBeTruthy();
-    expect(screen.getByTestId('rollup-caption')).toHaveTextContent(/Including posts from 1 sub-interest/);
+    expect(t.queryByTestId('sub-interest-list')).toBeNull();
+    expect(t.queryByTestId('rollup-caption')).toBeNull();
   });
 });
 
-describe('InterestSearchScreen — FR-026 parent disambiguation', () => {
-  it('shows each sub-interest with its parent', () => {
-    render(
+/**
+ * 013/FR-003. WAS: "FR-026 parent disambiguation" — a sub-interest rendered as
+ * "Portraits · Bouldering" so two same-named interests could be told apart.
+ *
+ * Names are globally unique now, enforced by the claim row, so there is nothing
+ * to disambiguate and no parent to disambiguate with.
+ */
+describe('013: a search result is just its name', () => {
+  it('renders the interest name with no parent qualifier', () => {
+    const t = render(
       <InterestSearchScreen
-        query="port"
-        results={[{ interestId: 'i3', name: 'Portraits', slug: 'portraits', level: 'sub', parent: ref }]}
+        query="portraits"
+        results={[{ interestId: 'i3', name: 'Portraits', slug: 'portraits' }]}
         onQueryChange={() => undefined}
         onSelect={() => undefined}
       />,
     );
-    expect(screen.getByTestId('search-result-0')).toHaveTextContent(/Portraits · Bouldering/);
+    expect(t.getByTestId('search-result-0')).toHaveTextContent('Portraits');
   });
 });
 

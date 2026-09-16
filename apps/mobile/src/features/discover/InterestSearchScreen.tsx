@@ -265,10 +265,8 @@ export function InterestSearchScreen({
                       width: 10,
                       height: 10,
                       borderRadius: radius.pill,
-                      backgroundColor: interestColour(
-                        { interestId: item.interestId, parentId: item.parent?.interestId ?? null },
-                        palette,
-                      ),
+                      // 013/T026a. Flat: every interest has its own hue.
+                      backgroundColor: interestColour({ interestId: item.interestId }, palette),
                     }}
                   />
                   {/* Always parent-qualified, so two same-named interests are distinguishable. */}

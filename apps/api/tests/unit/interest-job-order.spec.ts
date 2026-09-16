@@ -34,9 +34,6 @@ describe('handleInterestJob step order (FR-030)', () => {
         setMergedInto: async () => {
           calls.push('setMergedInto');
         },
-        setParent: async () => {
-          calls.push('setParent');
-        },
         movePosts: async () => {
           calls.push('movePosts');
           return 2;

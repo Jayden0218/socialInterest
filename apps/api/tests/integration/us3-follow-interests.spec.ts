@@ -136,27 +136,15 @@ describe('US3 — follow interests to build a personal feed', () => {
     expect(again.status).toBe(204);
   });
 
-  it('scenario 3: a post in a SUB-interest reaches a follower of its parent (FR-028)', async () => {
-    // Follow explicitly rather than relying on scenario 1 having run. Test order
-    // coupling hides itself until someone runs a filtered subset, and then the
-    // failure looks like a product bug rather than a test one.
-    await request(h.app.getHttpServer())
-      .put(`/v1/interests/${topId}/follow`)
-      .set('authorization', `Bearer ${token}`);
-
-    const creator = await h.token(await h.createPerson('subcreator'));
-    const sub = await request(h.app.getHttpServer())
-      .post('/v1/interests')
-      .set('authorization', `Bearer ${creator}`)
-      .send({ name: `Nested ${Date.now().toString().slice(-6)}`, parentId: topId });
-    expect(sub.status).toBe(201);
-
-    const inSub = await publishTo(sub.body.interestId);
-    const res = await feed();
-    expect(res.body.items.map((i: { postId: string }) => i.postId)).toContain(inSub);
-    // The fan-in read the parent and its children.
-    expect(res.body.meta.fanOutWidth).toBeGreaterThan(1);
-  }, 90_000);
+  /**
+   * 013/FR-021. REMOVED: "a post in a SUB-interest reaches a follower of its
+   * parent (FR-028)".
+   *
+   * 001/FR-028 made following a top-level interest deliver its children's posts,
+   * because FR-024 rolled them into the parent. Interests are flat: a follow
+   * delivers posts from the interest it names and from nothing else, which
+   * scenario 2 above already asserts.
+   */
 
   it('scenario 4 (007/FR-030): unfollowing withdraws the declaration from the ranking', async () => {
     // Ensure the follow exists first, for the same reason as scenario 3.

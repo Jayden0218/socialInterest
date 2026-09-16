@@ -3,7 +3,6 @@ import { ulid } from 'ulid';
 import { DomainError } from '../../common/errors/problem.filter';
 import { InterestRepository, type InterestItem } from '../../persistence/interest.repository';
 import { InMemoryCatalogueCache, normaliseName } from './catalogue.cache';
-import { HierarchyValidator } from './hierarchy.validator';
 import { NamePolicy } from './name-policy';
 import { InterestSearch, type SearchResult } from './catalogue.search';
 
@@ -31,7 +30,6 @@ export class InterestService {
   constructor(
     @Inject(InterestRepository) private readonly repo: InterestRepository,
     @Inject(InMemoryCatalogueCache) private readonly cache: InMemoryCatalogueCache,
-    @Inject(HierarchyValidator) private readonly hierarchy: HierarchyValidator,
     @Inject(NamePolicy) private readonly namePolicy: NamePolicy,
     @Inject(InterestSearch) private readonly search: InterestSearch,
   ) {}
@@ -45,17 +43,16 @@ export class InterestService {
    * the catalogue and never reaches the table.
    */
   async createSubInterest(input: CreateSubInterestInput): Promise<InterestItem> {
-    const parent = this.hierarchy.requireTopLevelParent(input.parentId);
     this.namePolicy.assertAllowed(input.name);
 
     const name = input.name.trim();
     const nameNormalised = normaliseName(name);
 
     // FR-023: an exact collision under this parent always refuses.
-    const exact = this.search.findExact(name, parent.interestId);
-    if (exact) throw new DuplicateInterestError([{ interest: exact, parent, similarity: 1 }]);
+    const exact = this.search.findExact(name);
+    if (exact) throw new DuplicateInterestError([{ interest: exact, parent: null, similarity: 1 }]);
 
-    const similar = this.search.findSimilar(name, parent.interestId);
+    const similar = this.search.findSimilar(name);
     const acknowledged = new Set(input.acknowledgedSimilarTo ?? []);
     const unacknowledged = similar.filter((c) => !acknowledged.has(c.interest.interestId));
     if (this.search.isTooSimilar(unacknowledged)) {
@@ -73,8 +70,6 @@ export class InterestService {
       name,
       nameNormalised,
       slug,
-      level: 'sub',
-      parentId: parent.interestId,
       createdBy: input.createdBy,
       ...(input.description ? { description: input.description } : {}),
       postCount: 0,
@@ -83,7 +78,7 @@ export class InterestService {
       createdAt: now,
     };
 
-    await this.repo.createSubInterest(item);
+    await this.repo.create(item);
     // Refresh so the new interest is immediately searchable and postable.
     await this.cache.refresh();
     return item;

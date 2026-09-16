@@ -27,7 +27,8 @@ export class InterestsData {
 
   listTop(opts: { limit?: number; cursor?: string } = {}): Promise<InterestPage> {
     return this.client.call<InterestPage>('getInterests', {
-      query: { level: 'top', limit: opts.limit, cursor: opts.cursor },
+      // 013. No `level` filter: interests are flat, so this lists them all.
+      query: { limit: opts.limit, cursor: opts.cursor },
     });
   }
 

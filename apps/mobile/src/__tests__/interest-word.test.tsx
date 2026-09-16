@@ -14,7 +14,6 @@ const bouldering: InterestRef = {
   interestId: 'INT#bouldering',
   name: 'Bouldering',
   slug: 'bouldering',
-  level: 'top',
 };
 
 describe('InterestWord (006/US2, 007/FR-024)', () => {
@@ -28,8 +27,6 @@ describe('InterestWord (006/US2, 007/FR-024)', () => {
       interestId: 'INT#ramen',
       name: 'Ramen',
       slug: 'ramen',
-      level: 'sub',
-      parent: bouldering,
     };
     const t = render(<InterestWord interest={ramen} />);
     expect(t.getByText('Ramen')).toBeTruthy();

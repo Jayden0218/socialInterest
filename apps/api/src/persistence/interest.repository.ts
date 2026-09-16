@@ -1,14 +1,23 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository, type Page } from './base.repository';
 import { keys } from './keys';
+import { InterestNameClaimRepository } from './interest-name-claim.repository';
+import type { TransactionItems } from './transactor';
 
 export interface InterestItem {
   interestId: string;
   name: string;
   nameNormalised: string;
   slug: string;
-  level: 'top' | 'sub';
-  parentId?: string;
+  /**
+   * 013/T010. `level: 'top' | 'sub'` and `parentId?: string` are GONE.
+   *
+   * Deleted rather than defaulted. 006's rule, proved when the `theme.color.*`
+   * shim was removed rather than left exported: a name that does not exist is a
+   * typecheck failure the moment somebody writes it again, which is a stronger
+   * guard than a test and costs nothing to keep. A `parentId` left on the item
+   * as `undefined` is an invitation to re-grow the hierarchy.
+   */
   createdBy: string;
   description?: string;
   /** 004/FR-025. Only the SET half shipped in 001; this is the edit half. */
@@ -41,17 +50,41 @@ export class InterestRepository extends BaseRepository {
     });
   }
 
-  async createSubInterest(item: InterestItem): Promise<void> {
-    await this.putItem(
+  /**
+   * 013/T005. CREATE, WITH THE NAME AND SLUG CLAIMED IN THE SAME TRANSACTION.
+   *
+   * Renamed from `createSubInterest` because there are no sub-interests.
+   *
+   * THE OLD CONDITION IS STILL HERE AND STILL PROVES NOTHING ABOUT A NAME.
+   * `attribute_not_exists(pk)` on `INTEREST#<interestId>` guards against writing
+   * the same interest twice, which nothing was trying to do — `interestId` is a
+   * fresh ULID on every call. It is kept because it is correct, and noted
+   * because it is the thing that LOOKED like the constraint: measured at eight
+   * of eight simultaneous creations of one name succeeding, identical to 011's
+   * handles. The claims below are the actual constraint.
+   *
+   * `extraItems` lets publishing put the post in the same transaction (T013), so
+   * an interest cannot exist without one.
+   */
+  async create(item: InterestItem, extraItems: TransactionItems = []): Promise<void> {
+    await this.transact([
       {
-        ...keys.interest(item.interestId),
-        ...keys.interestBySlug(item.slug),
-        ...keys.interestHierarchy(item.parentId ?? null, item.nameNormalised),
-        type: 'Interest',
-        ...item,
+        Put: {
+          TableName: this.tableName,
+          Item: {
+            ...keys.interest(item.interestId),
+            ...keys.interestBySlug(item.slug),
+            ...keys.interestCatalogue(item.nameNormalised),
+            type: 'Interest',
+            ...item,
+          },
+          ConditionExpression: 'attribute_not_exists(pk)',
+        },
       },
-      'attribute_not_exists(pk)',
-    );
+      InterestNameClaimRepository.claimItem(item.nameNormalised, item.interestId, this.tableName),
+      InterestNameClaimRepository.slugClaimItem(item.slug, item.interestId, this.tableName),
+      ...extraItems,
+    ]);
   }
 
   /** Atomic counter - no read-modify-write, so concurrent follows cannot race. */
@@ -70,7 +103,7 @@ export class InterestRepository extends BaseRepository {
     await this.putItem({
       ...keys.interest(interestId),
       ...keys.interestBySlug(updated.slug),
-      ...keys.interestHierarchy(updated.parentId ?? null, updated.nameNormalised),
+      ...keys.interestCatalogue(updated.nameNormalised),
       type: 'Interest',
       ...updated,
     });
@@ -84,9 +117,13 @@ export class InterestRepository extends BaseRepository {
     await this.rewrite(interestId, { state: 'merged', mergedIntoId });
   }
 
-  async setParent(interestId: string, parentId: string): Promise<void> {
-    await this.rewrite(interestId, { parentId });
-  }
+  /**
+   * 013/T010. `setParent` IS GONE.
+   *
+   * Re-parenting an interest is meaningless once interests are flat, and the
+   * merge job's `reparent` branch went with it. Deleted rather than left
+   * throwing: a method that exists is a method somebody calls.
+   */
 
   async findBySlug(slug: string): Promise<InterestItem | null> {
     const page = await this.query<InterestItem>(`ISLUG#${slug}`, { indexName: 'gsi1', limit: 1 });
@@ -94,11 +131,32 @@ export class InterestRepository extends BaseRepository {
   }
 
   /** A13. `null` parent lists the curated top level. */
-  async listChildren(
-    parentId: string | null,
-    opts: { limit?: number; cursor?: string | null } = {},
-  ): Promise<Page<InterestItem>> {
-    return this.query<InterestItem>(`PARENT#${parentId ?? 'ROOT'}`, {
+  /**
+   * 013. LOADS EVERY INTEREST, FLAT — and the way this broke is the feature's
+   * own failure mode, which is worth recording where it happened.
+   *
+   * It read `listChildren(null)` for the top level and then `listChildren(top)`
+   * for each of those, walking the hierarchy through a `PARENT#` index that
+   * 013/T003 deleted. Flat interests are under no parent, so the walk returned
+   * NOTHING: the catalogue cache loaded empty, `findSimilar` had nothing to
+   * compare against, and the duplicate gate accepted every near-duplicate.
+   *
+   * Exactly the shape FR-008 exists for — the gate failing OPEN in silence —
+   * arriving through the loader instead of the comparison. Nothing errored; an
+   * integration test caught it because it published a near-duplicate and got
+   * 201 where it wanted 409.
+   *
+   * AND THE UNIT GUARD COULD NOT HAVE CAUGHT IT: `interest-similarity-is-global`
+   * stubs `loadAll`, so it proves the comparison is global and is structurally
+   * blind to the loader feeding it. That is 007's `ApiPage<T>` defect in
+   * miniature — a stub agreeing with the test rather than with the datastore.
+   *
+   * A14 stays cheap: one scan of the interest partition, which the cache already
+   * held entirely in memory.
+   */
+  /** 013. One page of the flat catalogue, by name. Replaces `listChildren`. */
+  async listAll(opts: { limit?: number; cursor?: string | null } = {}): Promise<Page<InterestItem>> {
+    return this.query<InterestItem>('ICATALOGUE', {
       indexName: 'gsi3',
       ascending: true,
       limit: opts.limit ?? 100,
@@ -106,23 +164,16 @@ export class InterestRepository extends BaseRepository {
     });
   }
 
-  /**
-   * A14. Loads the whole catalogue for the in-process cache (research D3). Safe
-   * because the catalogue is small - hundreds of top-level, thousands of sub.
-   */
   async loadAll(): Promise<InterestItem[]> {
-    const all: InterestItem[] = [];
-    const tops = await this.pageAll(null);
-    all.push(...tops);
-    for (const top of tops) all.push(...(await this.pageAll(top.interestId)));
-    return all;
-  }
-
-  private async pageAll(parentId: string | null): Promise<InterestItem[]> {
     const out: InterestItem[] = [];
     let cursor: string | null = null;
     do {
-      const page: Page<InterestItem> = await this.listChildren(parentId, { limit: 200, cursor });
+      const page: Page<InterestItem> = await this.query<InterestItem>('ICATALOGUE', {
+        indexName: 'gsi3',
+        ascending: true,
+        limit: 200,
+        cursor,
+      });
       out.push(...page.items);
       cursor = page.nextCursor;
     } while (cursor);

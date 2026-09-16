@@ -27,8 +27,7 @@ const author = {
 const interest = {
   interestId: 'INT#bouldering',
   name: 'Bouldering',
-  slug: 'bouldering',
-  level: 'top' as const,
+  slug: 'bouldering' as const,
 };
 
 const base: Post = {

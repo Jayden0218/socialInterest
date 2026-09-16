@@ -76,9 +76,10 @@ export class InterestFollowService {
    */
   async suggest(userId: string, limit = 12): Promise<string[]> {
     const following = new Set(await this.followedIds(userId));
+    // 013. Flat: every live interest, not the former 'ROOT' bucket.
     return this.catalogue
-      .childrenOf('ROOT')
-      .filter((i) => i.state === 'active' && !following.has(i.interestId))
+      .active()
+      .filter((i) => !following.has(i.interestId))
       .sort((a, b) => b.postCount - a.postCount || b.followerCount - a.followerCount)
       .slice(0, limit)
       .map((i) => i.interestId);

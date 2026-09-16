@@ -42,29 +42,37 @@ export class InterestSearch {
 
   /** Browsing with no query: the curated top level, or one parent's children. */
   browse(opts: { level?: 'top' | 'sub'; parentId?: string; limit?: number } = {}): SearchResult[] {
-    const items = opts.parentId
-      ? this.catalogue.childrenOf(opts.parentId)
-      : this.catalogue.childrenOf('ROOT');
-    return items
-      .filter((i) => (opts.level ? i.level === opts.level : true))
+    // 013. Flat: there is no hierarchy to walk and no 'ROOT' to stand in for one.
+    return this.catalogue
+      .active()
+      .slice()
       .sort((a, b) => a.name.localeCompare(b.name))
       .slice(0, opts.limit ?? 50)
       .map((interest) => this.withParent({ interest, similarity: 1 }));
   }
 
   /**
-   * FR-023. Scoped to one parent on purpose: the same name under two different
-   * parents is legitimate (spec.md edge case), so a global duplicate check would
-   * block valid interests.
+   * 013/FR-008. ACROSS THE WHOLE CATALOGUE.
+   *
+   * It was scoped to one parent because "portraits" could legitimately exist
+   * under two. Flat, there is no second place for a name to live, so a global
+   * check blocks nothing valid — and scoping it to a parent that no longer
+   * exists is how the gate would have stopped having an opinion at all.
    */
-  findSimilar(name: string, parentId: string, limit = 5): SearchResult[] {
-    return this.catalogue.findSimilar(name, parentId, limit).map((m) => this.withParent(m));
+  findSimilar(name: string, limit = 5): SearchResult[] {
+    return this.catalogue.findSimilar(name, limit).map((m) => this.withParent(m));
   }
 
-  /** An exact normalised-name collision under the same parent, if one exists. */
-  findExact(name: string, parentId: string): InterestItem | null {
-    const target = normaliseName(name);
-    return this.catalogue.childrenOf(parentId).find((i) => i.nameNormalised === target) ?? null;
+  /**
+   * 013/FR-008. An exact normalised-name collision ANYWHERE.
+   *
+   * Was scoped to one parent. This is the branch that makes "Bouldering" and
+   * "bouldering" one interest that was never duplicated — contract §1 row 3 —
+   * so scoping it to a parent that no longer exists would have quietly turned
+   * every repeat into a new interest.
+   */
+  findExact(name: string): InterestItem | null {
+    return this.catalogue.findExactByName(name) ?? null;
   }
 
   /**
@@ -98,8 +106,12 @@ export class InterestSearch {
     return similarity(normaliseName(name), normaliseName(other));
   }
 
+  /**
+   * 013. Interests are flat, so a result has no parent to resolve. Kept as a
+   * mapper rather than inlined, because every caller shapes a `SearchResult`
+   * and one place to change beats six.
+   */
   private withParent(match: CatalogueMatch): SearchResult {
-    const parent = match.interest.parentId ? this.catalogue.byId(match.interest.parentId) : undefined;
-    return { interest: match.interest, parent: parent ?? null, similarity: match.similarity };
+    return { interest: match.interest, parent: null, similarity: match.similarity };
   }
 }

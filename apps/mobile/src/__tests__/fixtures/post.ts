@@ -30,8 +30,7 @@ export const fixtureAuthor = {
 export const fixtureInterest = {
   interestId: 'INT#bouldering',
   name: 'Bouldering',
-  slug: 'bouldering',
-  level: 'top' as const,
+  slug: 'bouldering' as const,
 };
 
 const image = (n: number, state: MediaItem['processingState'] = 'ready'): MediaItem => ({

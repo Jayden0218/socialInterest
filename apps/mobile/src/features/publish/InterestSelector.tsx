@@ -18,7 +18,8 @@ export function canPublish(selected: InterestRef[]): boolean {
   return selected.length > 0;
 }
 
-const label = (ref: InterestRef): string => (ref.parent ? `${ref.name} · ${ref.parent.name}` : ref.name);
+// 013. Flat: names are globally unique, so there is nothing to disambiguate.
+const label = (ref: InterestRef): string => ref.name;
 
 export function InterestSelector({ selected, options, onChange }: InterestSelectorProps) {
   const toggle = (ref: InterestRef): void => {

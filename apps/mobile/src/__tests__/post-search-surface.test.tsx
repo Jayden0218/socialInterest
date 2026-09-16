@@ -25,7 +25,7 @@ const state = (items: Post[]): PagedState<Post> => ({
 
 const fallback = {
   interests: [
-    { interestId: 'i-climb', name: 'Climbing', slug: 'climbing', level: 'top' as const, parent: null },
+    { interestId: 'i-climb', name: 'Climbing', slug: 'climbing' },
   ],
   people: [
     {
@@ -122,7 +122,7 @@ describe('008/T103 interest search stays reachable', () => {
     render(
       <InterestSearchScreen
         query="climbing"
-        results={[{ interestId: 'i-climb', name: 'Climbing', slug: 'climbing', level: 'top' as const, parent: null }]}
+        results={[{ interestId: 'i-climb', name: 'Climbing', slug: 'climbing' }]}
         mode={mode}
         posts={<PostSearchResults
           query="climbing"

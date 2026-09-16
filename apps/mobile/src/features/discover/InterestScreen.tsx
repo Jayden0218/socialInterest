@@ -8,25 +8,29 @@ import { FollowInterestControl } from './FollowInterestControl';
 
 export interface InterestScreenData {
   interest: Interest;
-  subInterests?: Interest[];
   /** Sub-interests whose posts are rolled up into this listing (FR-024). */
-  rollsUpFrom: string[];
 }
 
-/** FR-025: a top-level interest shows its sub-interests AND their posts. */
-export function isRollUpView(data: InterestScreenData): boolean {
-  return data.interest.level === 'top' && data.rollsUpFrom.length > 0;
-}
+/**
+ * 013/FR-021. THE ROLL-UP VIEW IS GONE.
+ *
+ * 001/FR-024 made a top-level space list its children's posts as well as its
+ * own, and `rollsUpFrom` told this screen when to say so. Interests are flat, so
+ * a space lists its own posts and nothing else. Kept as a function returning
+ * false would be copy describing a withdrawn requirement — 007's follow hint.
+ */
 
-/** Explains where rolled-up posts came from, so the listing is not surprising. */
-export function rollUpCaption(data: InterestScreenData): string | null {
-  if (!isRollUpView(data)) return null;
-  const n = data.rollsUpFrom.length;
-  return `Including posts from ${n} sub-interest${n === 1 ? '' : 's'}`;
-}
+/**
+ * 013/FR-021. `rollUpCaption` goes with the roll-up.
+ *
+ * It said "Including posts from N sub-interests" — a sentence about a behaviour
+ * the product no longer has. FR-018 and T028 exist because 007 shipped exactly
+ * this: copy left behind describing a withdrawn requirement.
+ */
 
 export function labelWithParent(ref: InterestRef): string {
-  return ref.parent ? `${ref.name} · ${ref.parent.name}` : ref.name;
+  // 013. Flat: a name qualifies itself, because there is only one of it.
+  return ref.name;
 }
 
 export const ORDERS: { key: 'new' | 'top'; label: string }[] = [
@@ -54,7 +58,6 @@ export function InterestScreen({
   query,
   onLoadMore,
   onToggleFollow,
-  onOpenSubInterest,
   onOrderChange,
   onQueryChange,
   onReportDescription,
@@ -67,13 +70,11 @@ export function InterestScreen({
   query?: string;
   onLoadMore: () => void;
   onToggleFollow: (next: boolean) => void;
-  onOpenSubInterest: (interestId: string) => void;
   onOrderChange?: (next: 'new' | 'top') => void;
   onQueryChange?: (next: string) => void;
   onReportDescription?: () => void;
   renderPost: (post: Post, index: number) => React.ReactElement;
 }) {
-  const caption = rollUpCaption(data);
   const empty = interestEmptyCopy(query ?? '');
 
   return (
@@ -102,7 +103,7 @@ export function InterestScreen({
             backgroundColor: interestColour(
               {
                 interestId: data.interest.interestId,
-                parentId: data.interest.parentId ?? null,
+
               },
               palette,
             ),
@@ -137,40 +138,10 @@ export function InterestScreen({
         />
       </View>
 
-      {data.subInterests && data.subInterests.length > 0 ? (
-        <View testID="sub-interest-list" style={{ gap: space.sm }}>
-          <Text style={{ ...textStyle.caption, color: palette.text.muted }}>Within {data.interest.name}</Text>
-          <FlatList
-            horizontal
-            data={data.subInterests}
-            keyExtractor={(i) => i.interestId}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: space.sm }}
-            renderItem={({ item, index }) => (
-              <Pressable
-                testID={`sub-interest-${index}`}
-                accessibilityRole="button"
-                onPress={() => onOpenSubInterest(item.interestId)}
-                style={{
-                  paddingVertical: space.sm,
-                  paddingHorizontal: space.md,
-                  borderRadius: radius.pill,
-                  borderWidth: 1,
-                  borderColor: palette.line.hairline,
-                }}
-              >
-                <Text style={{ ...textStyle.caption, color: palette.text.primary }}>{item.name}</Text>
-              </Pressable>
-            )}
-          />
-        </View>
-      ) : null}
-
-      {caption ? (
-        <Text testID="rollup-caption" style={{ ...textStyle.caption, color: palette.text.muted }}>
-          {caption}
-        </Text>
-      ) : null}
+      {/*
+        013/FR-003. The "Within <interest>" strip is gone: interests are flat, so
+        an interest contains no others.
+      */}
 
       {/* 004/FR-027 to FR-029. Order and search sit directly above the list
           they act on, so it is obvious which set they are changing. */}
