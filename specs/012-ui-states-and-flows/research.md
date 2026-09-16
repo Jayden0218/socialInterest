@@ -130,3 +130,57 @@ rather than one.
   about aesthetics-versus-feedback re-stated now that somebody has looked.
 - **US3 grows in importance** (R4). "♥ 0 · 0 everywhere" is the strongest negative signal in
   the captures and is a product problem, not a design one.
+
+---
+
+## R8 — THERE ARE NO ICONS IN THIS APPLICATION. AT ALL.
+
+**R2 said the visual design is not the problem. The owner said it is, twice. R2 was wrong,
+and this is why — it is objective rather than a matter of taste.**
+
+```
+icon libraries in apps/mobile/package.json:   NONE
+the tab bar's "icon":                          a View, 8px × 8px, borderRadius pill
+a post's engagement row:                       ♥ {reactionCount} · {commentCount}
+```
+
+Five navigation destinations are drawn as **an eight-pixel dot above a word**. A reaction is
+the Unicode character `♥`. A comment count is a bare number after a middot. There is no icon
+set, no icon component, and nothing to be consistent with.
+
+**Material Design 3 is unambiguous**: each destination in a navigation bar is represented by
+**an icon and a label**. Every mainstream social application follows this, and a person has
+been trained by every app on their phone to read a row of icons as navigation. A row of dots
+reads as a prototype, because that is what it is.
+
+This single fact explains more of "the UI is very bad" than every state, skeleton and empty
+message in this specification combined, and **no amount of the US1 work touches it.**
+
+**Why R2 missed it.** I compared the render against `design/007-ui` and found they matched,
+then concluded the design was fine. The artboards are the standard being met — so a gap
+present in both is invisible to that comparison. Checking an implementation against its
+design cannot find a deficiency the design shares. The owner, comparing against every other
+app on their phone, was using the better reference.
+
+**A second, smaller version of the same thing: the cards are mostly chrome.** In the feed
+capture each card gives roughly half its height to the photograph and the rest to a white
+footer — avatar, handle, heart, dot, count, interest word. Image-first products invert that:
+the picture dominates and the metadata is small, overlaid or deferred. On a product whose
+premise is photographs, the photograph is currently the minority of the card.
+
+---
+
+## R9 — WHAT "THE FLOW IS NOT EASY" MEANS, CONCRETELY
+
+Separate from the visual layer and not fixed by it.
+
+- **Explore opens with two empty text fields.** The first thing the tab asks is that you
+  type, before showing anything. A discovery surface should discover *for* you first.
+- **The interest list carries no information.** Twelve names, twelve dots. Nothing conveys
+  how much is behind any of them, so choosing is guessing.
+- **Nothing on the feed says what to do.** A newcomer with an unengaged feed has no prompt
+  toward publishing, following, or exploring.
+- **`people-search` is unreachable**, so "find a person" has no entry point at all.
+
+The common shape: **the app waits to be driven and never suggests.** That is what makes a
+flow feel hard even when every screen works.

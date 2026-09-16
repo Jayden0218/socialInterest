@@ -132,26 +132,83 @@ whether there is anything to do.
 
 ---
 
-### User Story 4 - The states look like the rest of the product (Priority: P3)
+### User Story 4 - The app looks like an app (Priority: P1)
 
-The placeholders, empty states and failures are recognisably part of the same app as the
-screens they stand in for.
+Someone opening this beside the other applications on their phone sees something of the same
+kind, not a prototype.
 
-**Why this priority**: P3 and deliberately last. It is the part most easily mistaken for the
-whole request, and doing it first would put polish on top of blank screens. The approved
-design does not cover these states, so they are the one place new visual decisions are
-needed — and they must extend the existing language rather than start a second one.
+**Why this priority**: **Raised from P3 to P1 by the owner, twice, and they were right.**
+The research first concluded the visual design was sound because it matched the approved
+artboards — but an implementation cannot be found wanting against a design that shares its
+deficiency, and the owner was comparing against every other app on their phone, which is the
+better reference. The measurement that settles it is not a matter of taste: **this
+application contains no icons of any kind.** Five navigation destinations are drawn as an
+eight-pixel dot above a word; a reaction is the character `♥`; a comment count is a bare
+number. None of the US1 work touches any of that.
 
-**Independent Test**: Put a loading, empty and failed state beside the artboard for the same
-screen and confirm they read as the same product.
+**Independent Test**: Put this app's tab bar and a post card beside any mainstream social
+application and ask somebody which one is finished.
 
 **Acceptance Scenarios**:
 
-1. **Given** a state the approved design does not cover, **When** it is designed, **Then**
-   it uses the existing tokens, spacing and type scale and introduces no new ones.
-2. **Given** an implemented screen and its artboard, **When** they are compared, **Then**
-   differences are recorded as either drift to be fixed or as a state the artboard does not
-   cover.
+1. **Given** the navigation bar, **When** a person looks at it, **Then** each destination is
+   an icon with a label, drawn from one consistent set — not a dot.
+2. **Given** an action anywhere in the product — react, comment, share, save, back, search,
+   compose — **When** it is presented, **Then** it uses an icon from that same set, at a
+   consistent size, weight and treatment.
+3. **Given** a post card, **When** it is laid out, **Then** the photograph is the dominant
+   element and the metadata around it is subordinate to it.
+4. **Given** any two screens, **When** their spacing and type are compared, **Then** both
+   come from the one scale and neither introduces a value of its own.
+
+---
+
+### User Story 5 - The app suggests, instead of waiting (Priority: P2)
+
+Someone who does not yet know what they want is shown something worth looking at, on every
+surface, before they type anything.
+
+**Why this priority**: the second half of the owner's report — "the flow of the user to be
+easy". Every screen in the product currently waits to be driven. Explore opens with two
+empty text fields and asks you to type before it shows anything; the interest list is twelve
+names and twelve dots with nothing to say how much is behind any of them; nothing anywhere
+prompts a newcomer toward the thing they should do next. Each screen works and the path
+through them is still hard.
+
+**Independent Test**: Hand the app to somebody who has never seen it, say nothing, and watch
+where they stop.
+
+**Acceptance Scenarios**:
+
+1. **Given** the Explore tab, **When** a person opens it, **Then** it shows something worth
+   looking at before any text is typed.
+2. **Given** a browsable list of interests, **When** a person reads it, **Then** each entry
+   conveys how much is behind it, so choosing is not guessing.
+3. **Given** a person who has just arrived, **When** they look at any primary surface,
+   **Then** there is a next action visible without scrolling.
+4. **Given** a person who wants to find somebody by name, **When** they look for a way,
+   **Then** there is one, from a place they would think to look.
+
+---
+
+### User Story 6 - The states look like the rest of the product (Priority: P3)
+
+The placeholders, empty states and failures introduced by US1 are recognisably part of the
+same app as the screens they stand in for.
+
+**Why this priority**: P3, and only now that US4 has established what "the rest of the
+product" is going to be. Designing states to match a visual language that is itself being
+replaced would be work done twice.
+
+**Independent Test**: Put a loading, empty and failed state beside the finished design for
+the same screen and confirm they read as one product.
+
+**Acceptance Scenarios**:
+
+1. **Given** a state the design does not cover, **When** it is designed, **Then** it uses the
+   established tokens, spacing and type scale and introduces no new ones.
+2. **Given** an implemented screen and its design, **When** they are compared, **Then**
+   differences are recorded as drift to be fixed or as a state the design does not cover.
 
 ---
 
@@ -240,6 +297,24 @@ screen and confirm they read as the same product.
 - **FR-024**: No state introduced by this feature may display content the boundary would
   have withheld.
 
+#### Looking like an app
+
+- **FR-027**: The product MUST have one icon set, and every action and navigation
+  destination MUST draw from it. No action may be represented by a typographic character
+  standing in for an icon.
+- **FR-028**: Every navigation destination MUST be an icon with a label.
+- **FR-029**: Icons MUST be consistent in size, weight and treatment across the product. A
+  set that varies per screen is the defect this requirement exists to prevent, not a
+  lesser version of meeting it.
+- **FR-030**: On a post, the photograph MUST be the dominant element and its metadata
+  subordinate to it.
+
+#### Suggesting rather than waiting
+
+- **FR-031**: A discovery surface MUST show content before any input is given.
+- **FR-032**: A browsable list of interests MUST convey how much is behind each entry.
+- **FR-033**: Every primary surface MUST offer a visible next action without scrolling.
+
 #### Looking like the product
 
 - **FR-025**: States not covered by the approved design MUST be built from the existing
@@ -273,6 +348,12 @@ screen and confirm they read as the same product.
 - **SC-007**: The public route snapshot and the operator route snapshot are **unchanged**.
 - **SC-008**: Loading, empty and failed states for a given surface are distinguishable from
   one another by somebody who has not been told which is which.
+- **SC-009**: **Zero** actions or navigation destinations are represented by a typographic
+  character or an undifferentiated shape. Counted mechanically across the product.
+- **SC-010**: Somebody who has never seen the app, given no instructions, reaches a piece of
+  content worth looking at without typing anything.
+- **SC-011**: Shown this app's navigation bar and a mainstream social application's, a
+  person not told which is which does not identify this one as unfinished.
 
 ## Assumptions
 
@@ -287,8 +368,12 @@ rather than as a surprise in the build.
   genuinely the weakest screen in the product (research R5) on the tab a lost newcomer
   presses first. The second is a US4 item and its priority is a judgement for the plan
   rather than the automatic last place this spec first gave it.
-- **The approved design is not reopened.** `design/007-ui/` is settled. This feature
-  implements it, records drift from it, and designs only the states it does not cover.
+- **`design/007-ui/` IS reopened, by the owner, deliberately.** CLAUDE.md records it as
+  approved and not to be revisited. The owner has said twice that the result is bad and has
+  asked for a redesign learning from mainstream social applications, which is their call to
+  make. The artboards remain the reference for everything this feature does not explicitly
+  replace — palette, ground, card idiom — and the replacement is bounded by US4's
+  requirements rather than open-ended.
 - **A placeholder threshold of around 200ms and a failure limit of around 15 seconds.** Both
   are conventional rather than measured, and both are named in one place so they can be
   changed by somebody who disagrees.
