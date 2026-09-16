@@ -1,5 +1,20 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, SafeAreaView, StatusBar, Text, View } from 'react-native';
+import { Pressable, StatusBar, Text, View } from 'react-native';
+/**
+ * 012/FIX-1 — `SafeAreaView` FROM `react-native` DOES NOTHING ON ANDROID.
+ *
+ * It is documented as iOS-only: on Android it renders a plain `View` and the
+ * inset is silently zero. So the app's content sat under the status bar on
+ * every Android device, which is what the owner saw — "it's too top on the
+ * screen" — while the code read as though the case was handled. A no-op that
+ * looks like a fix is worse than an absent one, because nothing draws attention
+ * to it.
+ *
+ * `react-native-safe-area-context` measures the real insets on both platforms,
+ * including the notch and the gesture bar. It is a NATIVE module, so it needs a
+ * prebuild and a fresh APK — a JS-only reload will not pick it up.
+ */
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { activePalette as palette, radius, space, textStyle, MIN_TOUCH_TARGET } from './ui/theme';
 import { Button, Row } from './ui/primitives';
 import { Icon } from './ui/Icon';
@@ -833,15 +848,30 @@ export default function App() {
   // built-in default first would fire the feed's opening requests at the wrong
   // backend and show a person an error about a server they never chose.
   if (address === null) {
-    return <SafeAreaView style={{ flex: 1, backgroundColor: palette.bg.base }} />;
+    return (
+      <SafeAreaProvider>
+        <SafeAreaView style={{ flex: 1, backgroundColor: palette.bg.base }} />
+      </SafeAreaProvider>
+    );
   }
 
   return (
-    <DataProvider baseUrl={getBaseUrl} tokens={stores.tokens}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: palette.bg.base }}>
-        <StatusBar />
-        <Shell backend={{ address, onChange: changeAddress }} />
-      </SafeAreaView>
-    </DataProvider>
+    <SafeAreaProvider>
+      <DataProvider baseUrl={getBaseUrl} tokens={stores.tokens}>
+        {/*
+          `edges` names all four explicitly rather than taking the default.
+          The bottom one is the gesture bar: without it the tab bar's labels sit
+          under the system's own pill on a modern Android device, which is the
+          same defect as the status bar at the other end of the screen.
+        */}
+        <SafeAreaView
+          style={{ flex: 1, backgroundColor: palette.bg.base }}
+          edges={['top', 'bottom', 'left', 'right']}
+        >
+          <StatusBar />
+          <Shell backend={{ address, onChange: changeAddress }} />
+        </SafeAreaView>
+      </DataProvider>
+    </SafeAreaProvider>
   );
 }
