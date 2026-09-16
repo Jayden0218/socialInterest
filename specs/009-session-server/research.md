@@ -54,9 +54,30 @@ option would have required rewriting it; a runner has one.
 | Option | Why not |
 |---|---|
 | Oracle Always Free ARM VM | Best technical fit — always-on, permanent address, zero code change, and `linuxserver/ffmpeg` and `amazon/dynamodb-local` both publish `linux/arm64`. **Requires a card.** Ruled out by FR-009, not by merit. Revisit if the constraint changes |
-| Render / Koyeb / Cloud Run | No Docker socket, so the media path cannot run. Render's free tier also has no persistent disk and sleeps after 15 idle minutes |
+| Render / Koyeb / Cloud Run | No Docker socket, so the media path cannot run. Render's free tier also has no persistent disk and sleeps after 15 idle minutes. **BOTH REASONS EXPIRED — see the note below this table** |
 | The owner's own machine | Stated constraint: it is out of memory and cannot run the stack |
 | This sandbox | Cannot accept inbound connections; the tunnel is denied at the egress layer (`403 host_not_allowed`), and the container is ephemeral |
+
+> **THIS TABLE'S REASON FOR RULING OUT RENDER STOPPED BEING TRUE ON 2026-09-16, and the
+> paragraph above it too.** Left standing rather than edited, in this file's own convention
+> (see R8 in 010), because what expired is more instructive than a corrected row.
+>
+> Both statements rest on ONE fact: that the media adapter shells out to `docker run`. It did,
+> and 010/T026 moved it off — `ffmpeg-media-processor.ts` executes `ffmpeg` and `ffprobe` as
+> BINARIES now, and 010/T027's `Dockerfile` installs them into the image with `apt-get`. So
+> there is no socket for a platform-as-a-service to be missing, and "every PaaS option would
+> have required rewriting it" describes a rewrite that has since happened for other reasons.
+> The second half went the same way: the API writes nothing durable to disk (`mkdtemp` under
+> `tmpdir()`, removed after each transcode), so "no persistent disk" costs it nothing.
+>
+> What survives is the sleep, and **010/R8a re-decided the question on the day with that
+> priced in**: Render's free web service, no card, 512 MB, 30-60s to wake. 010/T029 is the
+> task that deploys there.
+>
+> **The general lesson is R8a's, arriving by a second route.** A decision resting on a fact
+> about somebody else's platform expires; a decision resting on a fact about YOUR OWN code
+> expires the moment you change that code, and nothing tells you. This row was wrong for
+> three features and no test could have said so.
 
 **Cost of the choice, stated plainly**: a job is capped at **6 hours** on a GitHub-hosted
 runner and the cap is hard. Sessions are therefore ephemeral by construction, not by
