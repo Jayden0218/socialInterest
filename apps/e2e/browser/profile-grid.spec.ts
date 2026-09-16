@@ -4,6 +4,7 @@ import { startWebServer, type WebServer } from '../support/web-server';
 import { baseUrl } from '../support/base-url';
 import { actor } from '../support/client';
 import { publishReadyImage } from '../support/publish';
+import { anInterest } from '../support/interests';
 
 /**
  * 007/T051 — A PROFILE IS A GRID, and run 46's device capture is why this test
@@ -36,7 +37,7 @@ describe('007/T051 - the profile posts are a grid, not a column', () => {
 
   it('renders three tiles across', async () => {
     const me = await actor(`grid${Math.random().toString(36).slice(2, 6)}`);
-    const interest = (await me.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(me);
     const ids: string[] = [];
     /**
      * SEVEN, not six, and the odd one is the point.

@@ -5,6 +5,7 @@ import { baseUrl } from '../support/base-url';
 import { actor } from '../support/client';
 import { giveCredentials } from '../support/people';
 import { publishReadyImage } from '../support/publish';
+import { anInterest } from '../support/interests';
 
 /**
  * The screens that were unreachable, driven against a running API.
@@ -142,7 +143,7 @@ describe('browser journeys - the screens the shell could not reach', () => {
 
   it('J-03/J-07 discover opens an interest space, and following it sticks', async () => {
     const person = await actor('webfollow');
-    const catalogue = await person.data.interests.listTop({ limit: 1 });
+    const catalogue = { items: [await anInterest(person)] };
     const target = catalogue.items[0];
     expect(target).toBeDefined();
 
@@ -167,7 +168,7 @@ describe('browser journeys - the screens the shell could not reach', () => {
   it('J-08 a comment typed on screen reaches the server', async () => {
     const author = await actor('webcommentauthor');
     const reader = await actor('webcommentreader');
-    const catalogue = await author.data.interests.listTop({ limit: 1 });
+    const catalogue = { items: [await anInterest(author)] };
     const interestId = catalogue.items[0]!.interestId;
     await author.data.interests.follow(interestId);
     await reader.data.interests.follow(interestId);
@@ -193,7 +194,7 @@ describe('browser journeys - the screens the shell could not reach', () => {
   it('reacting reaches the server - the control had no mount point at all', async () => {
     const author = await actor('webreactauthor');
     const reader = await actor('webreactreader');
-    const catalogue = await author.data.interests.listTop({ limit: 1 });
+    const catalogue = { items: [await anInterest(author)] };
     const interestId = catalogue.items[0]!.interestId;
     await author.data.interests.follow(interestId);
     await reader.data.interests.follow(interestId);
@@ -219,7 +220,7 @@ describe('browser journeys - the screens the shell could not reach', () => {
   it('a notification opens its post, not a dead end', async () => {
     const author = await actor('webnotifauthor');
     const reader = await actor('webnotifreader');
-    const catalogue = await author.data.interests.listTop({ limit: 1 });
+    const catalogue = { items: [await anInterest(author)] };
     const interestId = catalogue.items[0]!.interestId;
     await author.data.interests.follow(interestId);
     await reader.data.interests.follow(interestId);
@@ -245,7 +246,7 @@ describe('browser journeys - the screens the shell could not reach', () => {
 
   it('an author edits their own post, and the change reaches the server', async () => {
     const author = await actor('webeditauthor');
-    const catalogue = await author.data.interests.listTop({ limit: 1 });
+    const catalogue = { items: [await anInterest(author)] };
     const interestId = catalogue.items[0]!.interestId;
     await author.data.interests.follow(interestId);
     const postId = await publishReadyImage(author, [interestId], { caption: 'before' });
@@ -288,7 +289,7 @@ describe('browser journeys - the screens the shell could not reach', () => {
 
   it('a share link opens the app at the post, and says what the link grants', async () => {
     const author = await actor('websharedauthor');
-    const catalogue = await author.data.interests.listTop({ limit: 1 });
+    const catalogue = { items: [await anInterest(author)] };
     const interestId = catalogue.items[0]!.interestId;
     await author.data.interests.follow(interestId);
     const postId = await publishReadyImage(author, [interestId], { caption: 'shared' });
@@ -302,7 +303,7 @@ describe('browser journeys - the screens the shell could not reach', () => {
   it('J-09/J-10 report and block are reachable, and Block knows whose post it is', async () => {
     const author = await actor('websafetyauthor');
     const reader = await actor('websafetyreader');
-    const catalogue = await author.data.interests.listTop({ limit: 1 });
+    const catalogue = { items: [await anInterest(author)] };
     const interestId = catalogue.items[0]!.interestId;
     await author.data.interests.follow(interestId);
     await reader.data.interests.follow(interestId);
@@ -364,7 +365,7 @@ describe('browser journeys - the screens the shell could not reach', () => {
   it('004/J-14 the Message button on a profile is present and wired', async () => {
     const me = await actor('webmsgbtnme');
     const them = await actor('webmsgbtnthem');
-    const catalogue = await me.data.interests.listTop({ limit: 1 });
+    const catalogue = { items: [await anInterest(me)] };
     const interestId = catalogue.items[0]!.interestId;
     await me.data.interests.follow(interestId);
     const postId = await publishReadyImage(them, [interestId], { caption: 'find the author' });
@@ -407,7 +408,7 @@ describe('browser journeys - the screens the shell could not reach', () => {
   it('004/J-16 a place chip opens its page, and following it reaches the server', async () => {
     const author = await actor('webplaceauthor');
     const viewer = await actor('webplaceviewer');
-    const catalogue = await author.data.interests.listTop({ limit: 1 });
+    const catalogue = { items: [await anInterest(author)] };
     const interestId = catalogue.items[0]!.interestId;
     await viewer.data.interests.follow(interestId);
 
@@ -459,7 +460,7 @@ describe('browser journeys - the screens the shell could not reach', () => {
   it('004/J-17 saving a post reaches the server and the saved list shows it', async () => {
     const author = await actor('websaveauthor');
     const saver = await actor('websaver');
-    const catalogue = await author.data.interests.listTop({ limit: 1 });
+    const catalogue = { items: [await anInterest(author)] };
     const interestId = catalogue.items[0]!.interestId;
     await saver.data.interests.follow(interestId);
     const postId = await publishReadyImage(author, [interestId], { caption: 'save me' });

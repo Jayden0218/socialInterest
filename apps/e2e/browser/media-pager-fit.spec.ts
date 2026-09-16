@@ -4,6 +4,7 @@ import { startWebServer, type WebServer } from '../support/web-server';
 import { baseUrl } from '../support/base-url';
 import { actor } from '../support/client';
 import { publishReadyImages } from '../support/publish';
+import { anInterest } from '../support/interests';
 
 /**
  * 008/US1 — THE PAGER HAS TO OCCUPY SPACE, AND NINE COMPONENT TESTS CANNOT SAY SO.
@@ -37,7 +38,7 @@ describe('008/US1 the media pager occupies its frame', () => {
 
   it('renders with real width and height on the post detail surface', async () => {
     const author = await actor(`pager${Math.random().toString(36).slice(2, 8)}`);
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     const postId = await publishReadyImages(author, [interest.interestId], 3, {
       caption: 'three to page through',
     });

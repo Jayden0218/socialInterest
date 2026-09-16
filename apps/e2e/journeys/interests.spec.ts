@@ -1,10 +1,10 @@
 import { actor } from '../support/client';
+import { anInterest } from '../support/interests';
 
 describe('core journeys - interests', () => {
   it('J-03 follows an interest and it persists', async () => {
     const me = await actor('follower');
-    const top = await me.data.interests.listTop({ limit: 1 });
-    const interest = top.items[0]!;
+    const interest = await anInterest(me);
 
     await me.data.interests.follow(interest.interestId);
 

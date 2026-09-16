@@ -25,7 +25,7 @@ describe('US2 — discover content by interest', () => {
       .set('authorization', `Bearer ${token}`)
       .send({ uploadIds: [await h.uploadId(token)], interestNames: [subName] });
     expect(created.status).toBe(201);
-    subId = (created.body.interestIds as string[])[0]!;
+    subId = (created.body.interests as { interestId: string }[])[0]!.interestId;
   }, 90_000);
 
   afterAll(async () => h?.close());

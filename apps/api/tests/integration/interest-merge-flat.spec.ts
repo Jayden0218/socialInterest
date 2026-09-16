@@ -24,7 +24,10 @@ const publishNaming = async (name: string) => {
   expect(res.status).toBe(201);
   return {
     postId: res.body.postId as string,
-    interestId: (res.body.interestIds as string[])[0]!,
+    // The CONTRACT's field. Publishing used to answer with the persistence
+    // row, whose `interestIds` is an internal id list; it answers with the
+    // document's `interests` now, which is what every client reads.
+    interestId: (res.body.interests as { interestId: string }[])[0]!.interestId,
   };
 };
 

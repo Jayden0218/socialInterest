@@ -4,6 +4,7 @@ import { startWebServer, type WebServer } from '../support/web-server';
 import { baseUrl } from '../support/base-url';
 import { actor } from '../support/client';
 import { publishReadyImage } from '../support/publish';
+import { anInterest } from '../support/interests';
 
 /**
  * 007/SC-003 — FINDABLE AND CLEARABLE FROM THE MAIN SCREEN.
@@ -41,7 +42,7 @@ describe('007/SC-003 - the feed disclosure is reachable and the reset works', ()
   it('a person reaches the disclosure from the main screen and clears it', async () => {
     const author = await actor('disclosureauthor');
     const reader = await actor('disclosurereader');
-    const interest = (await reader.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(reader);
     const postId = await publishReadyImage(author, [interest.interestId], { caption: 'learned from' });
 
     // Something for the feed to have learned, recorded the way the app records
@@ -102,7 +103,7 @@ describe('007/SC-003 - the feed disclosure is reachable and the reset works', ()
   it('no browse or post surface explains why a post was ranked', async () => {
     const author = await actor('nowhyauthor');
     const reader = await actor('nowhyreader');
-    const interest = (await reader.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(reader);
     const postId = await publishReadyImage(author, [interest.interestId], { caption: 'no explanation' });
     await reader.data.interests.follow(interest.interestId);
 

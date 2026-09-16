@@ -1,11 +1,12 @@
 import { actor } from '../support/client';
 import { publishReadyImage } from '../support/publish';
+import { anInterest } from '../support/interests';
 
 describe('core journeys - engagement', () => {
   it('J-08 comments on a post and a permitted viewer reads it', async () => {
     const author = await actor('commentauthor');
     const reader = await actor('commentreader');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     const postId = await publishReadyImage(author, [interest.interestId]);
 
     const comment = await reader.data.engagement.comment(postId, 'a real comment over HTTP');
@@ -18,7 +19,7 @@ describe('core journeys - engagement', () => {
   it('J-08 a reaction is recorded once per person (FR-039)', async () => {
     const author = await actor('reactauthor');
     const fan = await actor('reactfan');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     const postId = await publishReadyImage(author, [interest.interestId]);
 
     await fan.data.engagement.react(postId);

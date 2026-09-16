@@ -144,6 +144,23 @@ describe('sign-in fits with the keyboard up', () => {
    */
   it('the submit stays above EVERY field, however many there are', async () => {
     await open(FULL);
+    /**
+     * 011/FR-029. THE ADDRESS FIELD IS BEHIND A CONTROL IN THIS BUILD, and this
+     * test did not know that.
+     *
+     * The e2e bundle is built with `EXPO_PUBLIC_API_BASE_URL` set (global-setup
+     * does it so the browser cannot be pointed at the wrong API), so
+     * `ADDRESS_IS_COMPILED_IN` is true, `addressFixed` is true, and the address
+     * starts hidden behind `sign-in-change-server` — "the address stays
+     * reachable and stops being part of the ordinary path", which is the
+     * product working. The test waited thirty seconds for a field the build is
+     * specified not to show and failed on a `boundingBox` of nothing.
+     *
+     * Revealing it is also the STRICTER measurement: three fields push the fold
+     * further up than two, and the invariant is that no number of them can
+     * reach a control that sits above all of them.
+     */
+    await page.click('[data-testid="sign-in-change-server"]');
     const submit = await box('sign-in-submit');
     const address = await box('sign-in-address');
     const email = await box('sign-in-email');

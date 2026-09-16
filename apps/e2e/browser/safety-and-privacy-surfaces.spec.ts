@@ -4,6 +4,7 @@ import { startWebServer, type WebServer } from '../support/web-server';
 import { baseUrl } from '../support/base-url';
 import { actor } from '../support/client';
 import { publishReadyImage } from '../support/publish';
+import { anInterest } from '../support/interests';
 
 /**
  * 008/US13 and US14 — THE TWO SURFACES BOTH STORIES COULD SHIP WITHOUT.
@@ -140,7 +141,7 @@ describe('008/US13, US14 - the privacy and safety surfaces are reachable and rea
     const author = await actor('appealsurfaceauthor');
     const reporter = await actor('appealsurfacereporter');
     const operator = await actor('appealsurfaceoperator', { isOperator: true });
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
 
     const postId = await publishReadyImage(author, [interest.interestId], {
       caption: 'about to be removed',

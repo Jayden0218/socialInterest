@@ -1,5 +1,6 @@
 import { actor } from '../support/client';
 import { publishReadyImage, publishReadyImages } from '../support/publish';
+import { anInterest } from '../support/interests';
 
 /**
  * 008/T013, T014 — SC-001 and SC-002.
@@ -16,7 +17,7 @@ import { publishReadyImage, publishReadyImages } from '../support/publish';
 describe('008/SC-001 a ten-photograph post carries ten items', () => {
   it('returns ten ready media items, in publication order', async () => {
     const author = await actor('mediaSetTen');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     const postId = await publishReadyImages(author, [interest.interestId], 10, {
       caption: 'ten from the session',
     });
@@ -45,7 +46,7 @@ describe('008/SC-002 zero published media items are unreachable', () => {
   it('holds across single-image, multi-image and video posts', async () => {
     const author = await actor('mediaSetMixed');
     const viewer = await actor('mediaSetViewer');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
 
     const singleId = await publishReadyImage(author, [interest.interestId], { caption: 'one' });
     const multiId = await publishReadyImages(author, [interest.interestId], 3, { caption: 'three' });

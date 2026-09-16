@@ -1,6 +1,7 @@
 import { actor } from '../support/client';
 import { eventually } from '../support/eventually';
 import { publishReadyImage } from '../support/publish';
+import { anInterest } from '../support/interests';
 
 /**
  * 008/T024 — SC-003, over real HTTP, through the APP'S OWN DATA LAYER.
@@ -21,7 +22,7 @@ describe('008/SC-003 after viewing, zero notifications remain unread', () => {
   it('marks read through the app data layer, and the count is the true number', async () => {
     const author = await actor('notifReadAuthor');
     const fan = await actor('notifReadFan');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     const postId = await publishReadyImage(author, [interest.interestId], { caption: 'read me' });
 
     await fan.data.engagement.react(postId);
@@ -52,7 +53,7 @@ describe('008/SC-003 after viewing, zero notifications remain unread', () => {
   it('a notification arriving AFTER the mark is unread again (FR-006)', async () => {
     const author = await actor('notifReadAuthor2');
     const fan = await actor('notifReadFan2');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     const postId = await publishReadyImage(author, [interest.interestId], { caption: 'again' });
 
     await fan.data.people.follow(author.handle);

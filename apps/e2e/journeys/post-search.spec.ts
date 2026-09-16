@@ -1,5 +1,6 @@
 import { actor } from '../support/client';
 import { publishReadyImage, publishReadyNamingInterest } from '../support/publish';
+import { anInterest } from '../support/interests';
 
 /**
  * 008/T091, US6 — POST SEARCH, OVER REAL HTTP, THROUGH THE APP'S OWN DATA LAYER.
@@ -25,7 +26,7 @@ describe('008/SC-009 finding a post by its words', () => {
 
   it('finds a post by a distinctive caption word, and not one it does not contain', async () => {
     const author = await actor('psAuthor');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     const wanted = await publishReadyImage(author, [interest.interestId], {
       caption: `a morning on the ${word('escarpment')}`,
     });
@@ -50,7 +51,7 @@ describe('008/SC-009 finding a post by its words', () => {
   it('SC-009 a post the viewer may not see is UNFINDABLE, and its words do not leak', async () => {
     const author = await actor('psPrivateAuthor');
     const stranger = await actor('psStranger');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     await publishReadyImage(author, [interest.interestId], {
       caption: `a private ${word('cairn')}`,
       visibility: 'followers',
@@ -127,7 +128,7 @@ describe('008/SC-009 finding a post by its words', () => {
 
   it('FR-021 searching moves no ranking weight', async () => {
     const me = await actor('psSignals');
-    const interest = (await me.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(me);
     await publishReadyImage(me, [interest.interestId], { caption: `a ${word('tarn')} at dusk` });
 
     const before = JSON.stringify(await me.data.signals.disclosure());

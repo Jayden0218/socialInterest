@@ -1,5 +1,6 @@
 import { actor } from '../support/client';
 import { publishReadyImage } from '../support/publish';
+import { anInterest } from '../support/interests';
 
 /**
  * 008/T041, US3 — THE FOLLOWING FEED, OVER REAL HTTP, THROUGH THE APP'S OWN
@@ -22,7 +23,7 @@ describe('008/SC-004 the Following feed', () => {
     const viewer = await actor('followViewer');
     const friend = await actor('followFriend');
     const stranger = await actor('followStranger');
-    const interest = (await viewer.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(viewer);
 
     const mine: string[] = [];
     for (let i = 0; i < 4; i++) {
@@ -67,7 +68,7 @@ describe('008/SC-004 the Following feed', () => {
   it('SC-005 reading it moves no ranking weight', async () => {
     const viewer = await actor('followSignalViewer');
     const friend = await actor('followSignalFriend');
-    const interest = (await viewer.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(viewer);
     await publishReadyImage(friend, [interest.interestId], { caption: 'should not train' });
     await viewer.data.people.follow(friend.handle);
 

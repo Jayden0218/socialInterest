@@ -1,10 +1,11 @@
 import { actor } from '../support/client';
 import { jpegPlain } from '../support/media';
+import { anInterest } from '../support/interests';
 
 describe('core journeys - publish image', () => {
   it('J-04 presigns, uploads and publishes an image post', async () => {
     const me = await actor('imgauthor');
-    const interest = (await me.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(me);
     const bytes = jpegPlain();
 
     // 1. Caps are checked here, before any bytes move (FR-005).

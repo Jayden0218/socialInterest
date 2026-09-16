@@ -4,6 +4,7 @@ import { startWebServer, type WebServer } from '../support/web-server';
 import { baseUrl } from '../support/base-url';
 import { actor } from '../support/client';
 import { publishReadyImage } from '../support/publish';
+import { anInterest } from '../support/interests';
 
 /**
  * 008/US4 — WHAT HAPPENS AFTER THE SEND, MEASURED RATHER THAN ASSUMED.
@@ -50,7 +51,7 @@ describe('008/US4 the share screen after a send', () => {
      * own comment claims it does, and cannot.
      */
     const recipient = await actor('shrecipient');
-    const interest = (await sender.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(sender);
     const postId = await publishReadyImage(sender, [interest.interestId], {
       caption: 'a post that travels',
     });

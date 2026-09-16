@@ -4,6 +4,7 @@ import { startWebServer, type WebServer } from '../support/web-server';
 import { baseUrl } from '../support/base-url';
 import { actor } from '../support/client';
 import { publishReadyImage } from '../support/publish';
+import { anInterest } from '../support/interests';
 
 /**
  * 012/T014, FR-030 — THE PHOTOGRAPH IS THE DOMINANT ELEMENT OF A CARD.
@@ -51,7 +52,7 @@ describe('012/FR-030 - the photograph dominates the card', () => {
 
   it('gives the media at least 65% of the card, and shows no byline on it', async () => {
     const me = await actor(`card${Math.random().toString(36).slice(2, 6)}`);
-    const interest = (await me.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(me);
     const postId = await publishReadyImage(me, [interest.interestId], {
       caption: 'Goldcrest, finally still',
     });

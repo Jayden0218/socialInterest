@@ -1,6 +1,7 @@
 import { actor, anonymous } from '../support/client';
 import { DataError } from '@sih/mobile/data';
 import { publishReadyImage } from '../support/publish';
+import { anInterest, someInterests } from '../support/interests';
 
 describe('core journeys - onboarding', () => {
   it('J-01 signs in and makes an authenticated request', async () => {
@@ -16,10 +17,18 @@ describe('core journeys - onboarding', () => {
 
   it('J-02 browses the interest catalogue', async () => {
     const me = await actor('browse');
+    /**
+     * 013/FR-017. THE CATALOGUE IS NOT SEEDED ANY MORE, so this browses one
+     * somebody made. It asserted "the seeded catalogue, not an empty shell";
+     * the product ships with no interests of its own now, and an empty listing
+     * on a fresh install is CORRECT rather than a broken fixture.
+     *
+     * What is still worth asserting, and is what this journey was for, is that
+     * the listing is browsable and returns real rows once anything exists.
+     */
+    await anInterest(me);
     const page = await me.data.interests.listTop({ limit: 10 });
     expect(page.items.length).toBeGreaterThan(0);
-    // The seeded catalogue, not an empty shell that would make every later
-    // journey vacuous.
     expect(page.items[0]).toHaveProperty('interestId');
     expect(page.items[0]).toHaveProperty('name');
   });
@@ -47,7 +56,7 @@ describe('core journeys - onboarding', () => {
    */
   it('J-47 a new account reaches a populated feed, past no empty state (SC-002)', async () => {
     const author = await actor('sc002author');
-    const tops = await author.data.interests.listTop({ limit: 3 });
+    const tops = { items: await someInterests(author, 3) };
     for (const t of tops.items) {
       await publishReadyImage(author, [t.interestId], { caption: `sc002 ${t.slug}` });
     }
@@ -56,6 +65,10 @@ describe('core journeys - onboarding', () => {
 
     // 1. The catalogue is browsable before anything is chosen, or the cold
     //    start has nothing to offer.
+    // 013: an interest exists because somebody published into it, which is what
+    // `anInterest` does. On a store with none, the cold start has nothing to
+    // offer and SC-002 is a claim about a product with no content in it.
+    await anInterest(newcomer);
     const catalogue = await newcomer.data.interests.listTop({ limit: 30 });
     expect(catalogue.items.length).toBeGreaterThan(0);
 
@@ -80,7 +93,7 @@ describe('core journeys - onboarding', () => {
    */
   it('J-47 the same holds for an account that skips the picks (FR-015)', async () => {
     const author = await actor('sc002skipauthor');
-    const tops = await author.data.interests.listTop({ limit: 3 });
+    const tops = { items: await someInterests(author, 3) };
     for (const t of tops.items) {
       await publishReadyImage(author, [t.interestId], { caption: `sc002 skip ${t.slug}` });
     }

@@ -44,7 +44,12 @@ describe('US1 — publish media to an interest', () => {
       caption: 'first post',
     });
     expect(res.status).toBe(201);
-    expect(res.body.interestIds).toEqual([interestId]);
+    // The CONTRACT's `interests`, not the row's `interestIds`: publishing
+    // returned the persistence row until this was fixed, so this assertion
+    // was reading a field no client ever receives.
+    expect((res.body.interests as { interestId: string }[]).map((i) => i.interestId)).toEqual([
+      interestId,
+    ]);
     expect(res.body.mediaKind).toBe('images');
   });
 

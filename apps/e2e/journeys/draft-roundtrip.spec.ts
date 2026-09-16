@@ -1,5 +1,6 @@
 import { actor } from '../support/client';
 import { jpegPlain } from '../support/media';
+import { anInterest } from '../support/interests';
 
 /**
  * 008/T147, US11 — SC-012. SAVE, LEAVE, COME BACK, LOSE NOTHING.
@@ -15,7 +16,7 @@ import { jpegPlain } from '../support/media';
 describe('008/SC-012 a draft restores everything', () => {
   it('keeps caption, interests, place, media and descriptions', async () => {
     const me = await actor('draftKeeper');
-    const interest = (await me.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(me);
     const bytes = jpegPlain();
     const target = await me.data.posts.createUploadTarget({
       kind: 'image',
@@ -51,7 +52,7 @@ describe('008/SC-012 a draft restores everything', () => {
 
   it('FR-038 publishing FROM a draft leaves no draft behind', async () => {
     const me = await actor('draftPublisher');
-    const interest = (await me.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(me);
     const bytes = jpegPlain();
     const target = await me.data.posts.createUploadTarget({
       kind: 'image',

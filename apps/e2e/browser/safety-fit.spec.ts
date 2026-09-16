@@ -4,6 +4,7 @@ import { startWebServer, type WebServer } from '../support/web-server';
 import { baseUrl } from '../support/base-url';
 import { actor } from '../support/client';
 import { publishReadyImage } from '../support/publish';
+import { anInterest } from '../support/interests';
 
 /**
  * 006/J-09: THE BLOCK CONTROL IS REACHABLE ON A SHORT SCREEN.
@@ -43,7 +44,7 @@ describe('006/J-09 - the safety sheet on a short screen', () => {
     page = await browser.newPage({ viewport: { width, height } });
     const author = await actor(`sfa${width}x${height}`);
     const reader = await actor(`sfr${width}x${height}`);
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     const postId = await publishReadyImage(author, [interest.interestId], { caption: 'safety fit' });
     await reader.data.interests.follow(interest.interestId);
     await page.addInitScript((t) => {
@@ -314,7 +315,7 @@ describe('006/J-09 - the safety sheet on a short screen', () => {
     {
       name: 'post detail share',
       prepare: async (reader) => {
-        const interest = (await reader.data.interests.listTop({ limit: 1 })).items[0]!;
+        const interest = await anInterest(reader);
         return { postId: await publishReadyImage(reader, [interest.interestId], { caption: 'fit share' }) };
       },
       open: async (page, ctx) => {
@@ -343,7 +344,7 @@ describe('006/J-09 - the safety sheet on a short screen', () => {
     {
       name: 'comment reply',
       prepare: async (reader) => {
-        const interest = (await reader.data.interests.listTop({ limit: 1 })).items[0]!;
+        const interest = await anInterest(reader);
         const postId = await publishReadyImage(reader, [interest.interestId], { caption: 'fit thread' });
         await reader.data.engagement.comment(postId, 'a remark to reply to');
         return { postId };
@@ -538,7 +539,7 @@ describe('006/J-09 - the safety sheet on a short screen', () => {
   it('SC-008 four or more posts are visible on the feed without scrolling', async () => {
     const author = await actor('sc008author');
     const reader = await actor('sc008reader');
-    const interest = (await reader.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(reader);
     for (let i = 0; i < 8; i++) {
       await publishReadyImage(author, [interest.interestId], { caption: `sc008 ${i}` });
     }

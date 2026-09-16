@@ -154,7 +154,7 @@ export class PostController {
   async create(@Req() req: AppRequest, @Body() body: unknown) {
     const input = zodBody(createPostSchema, body);
     try {
-      return await this.posts.create({
+      const created = await this.posts.create({
         authorId: req.viewer!.userId,
         uploadIds: input.uploadIds,
         ...(input.altTexts ? { altTexts: input.altTexts } : {}),
@@ -169,6 +169,30 @@ export class PostController {
         keepLocationMetadata: input.keepLocationMetadata,
         ...(input.placeId ? { placeId: input.placeId } : {}),
       });
+      /**
+       * THE PUBLISH RESPONSE WAS THE PERSISTENCE ROW, AND HAD ALWAYS BEEN.
+       *
+       * `PostService.create` returns a `PostItem`, and this route returned it
+       * directly — so publishing answered with `authorId`, `interestIds` and
+       * `updatedAt`, and WITHOUT `author`, `interests` or `media`. The contract
+       * declares the last three, and `interests` and `author` are REQUIRED, so
+       * a client generated from the document reads `undefined` off every one of
+       * them and `post.interests.map` throws.
+       *
+       * That is the SEVENTH instance of this shape here, and the comment forty
+       * lines below — "Not `{ ...result.post }`: that is the persistence row,
+       * and spreading it is what shipped authorId/interestIds/type/updatedAt to
+       * every client" — was written about the DETAIL route while this one did
+       * exactly that. Nothing caught it because the app reads only `postId`
+       * from a publish; it was found by a fixture reading `post.interests`,
+       * which is the field the contract promises.
+       *
+       * `responseFor` is the one responder, for the same reason there is one
+       * `VisibilityFilter`: applied to the shape rather than to the decision.
+       * No visibility question arises — the author may always see what they
+       * just published.
+       */
+      return (await this.queries.responseFor(created.postId)) ?? created;
     } catch (e) {
       /**
        * 013/FR-009, FR-010. THE 409 MUST CARRY THE CANDIDATES.

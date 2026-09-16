@@ -327,6 +327,52 @@ describe.each(ENGINES)('datastore primitives — $name', ({ make }) => {
       expect(await db.read({ pk, sk: '#META' })).toEqual({ a: 1, b: 2, c: 'three' });
     });
 
+    /**
+     * VERIFIED BY BREAKING IT: AN UPDATE THAT MOVES A ROW BETWEEN INDEXES MUST
+     * MOVE IT, and this is the one guarantee the contract left implicit.
+     *
+     * On the old engine there was nothing to get wrong: writing `gsi5pk` WAS
+     * updating the index. Here the value lives in two places — the JSONB body
+     * and a column the partial indexes are built on — and `runUpdate` was
+     * writing only the body. The item read back correctly, every existing
+     * assertion in this file passed, and the ROW STAYED IN ITS OLD PARTITION.
+     *
+     * It cost two journeys, both silent: accepting a conversation left it out
+     * of the accepted inbox, and leaving a group left it in. Neither was a
+     * product bug; both writes were right.
+     *
+     * The assertion is therefore a QUERY, not a read. `read()` returns the body
+     * and would have passed throughout — which is precisely how this survived.
+     */
+    it('moves the row when it rewrites an index key, not just the stored body', async () => {
+      const pk = partition();
+      const before = partition();
+      const after = partition();
+      await db.write({ pk, sk: '#META', gsi5pk: before, gsi5sk: '#001', state: 'requested' });
+      expect((await db.find(before, { indexName: 'gsi5' })).items).toHaveLength(1);
+
+      await db.patch({ pk, sk: '#META' }, { state: 'accepted', gsi5pk: after });
+
+      // The body says so...
+      expect(await db.read({ pk, sk: '#META' })).toMatchObject({ state: 'accepted' });
+      // ...and so does the index, which is the half that was missing.
+      expect((await db.find(after, { indexName: 'gsi5' })).items).toHaveLength(1);
+      expect((await db.find(before, { indexName: 'gsi5' })).items).toHaveLength(0);
+    });
+
+    /**
+     * And the same for a row this update CREATES. An upsert that writes the
+     * body and leaves the column null produces a row no index can find — the
+     * same defect, one branch along, which is why `setClause` and the insert
+     * columns are built from one list.
+     */
+    it('indexes a row it creates, not only one it finds', async () => {
+      const pk = partition();
+      const into = partition();
+      await db.patch({ pk, sk: '#META' }, { gsi5pk: into, gsi5sk: '#001', fresh: true });
+      expect((await db.find(into, { indexName: 'gsi5' })).items).toHaveLength(1);
+    });
+
     it('writes nothing at all when given no attributes', async () => {
       const pk = partition();
       await db.write({ pk, sk: '#META', untouched: true });

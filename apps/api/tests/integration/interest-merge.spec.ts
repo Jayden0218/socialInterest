@@ -44,7 +44,7 @@ describe('FR-030 — interest merge, re-parent and retire', () => {
       });
     expect(res.status).toBe(201);
     // 013. A publish returns the POST; the interest it created is in its list.
-    return (res.body.interestIds as string[])[0]!;
+    return (res.body.interests as { interestId: string }[])[0]!.interestId;
   };
 
   beforeAll(async () => {

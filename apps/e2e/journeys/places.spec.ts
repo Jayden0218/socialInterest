@@ -3,6 +3,7 @@ import { publishReadyImage } from '../support/publish';
 import { consistently } from '../support/eventually';
 import { EXISTING_PLACES, MUST_DEDUPE, MUST_NOT_DEDUPE, SC007_CASE_COUNT } from '../support/places';
 import type { PlaceSummary } from '@sih/shared';
+import { anInterest, someInterests } from '../support/interests';
 
 /**
  * 004/US2 over HTTP.
@@ -18,7 +19,7 @@ describe('004/US2 - a post can be about a place', () => {
   it('J-15 a place is created, attached at publish, and appears on its page (FR-013, FR-015, FR-016)', async () => {
     const author = await actor('placeAuthor');
     const reader = await actor('placeReader');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     const locality = uniqueLocality('attach');
 
     const place = await author.data.places.create({
@@ -42,7 +43,7 @@ describe('004/US2 - a post can be about a place', () => {
 
   it('J-15 a post with NO place behaves exactly as before (FR-024)', async () => {
     const author = await actor('noPlaceAuthor');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     const postId = await publishReadyImage(author, [interest.interestId], { caption: 'no place' });
     const post = await author.data.posts.get(postId);
     expect(post.place ?? null).toBeNull();
@@ -109,7 +110,7 @@ describe('004/US2 - a post can be about a place', () => {
     const follower = await actor('placeVisFollower');
     const stranger = await actor('placeVisStranger');
     await follower.data.people.follow(author.handle);
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     const locality = uniqueLocality('vis');
     const place = await author.data.places.create({ name: 'Visible', category: 'cafe', locality });
 
@@ -168,7 +169,7 @@ describe('004/US2 - a post can be about a place', () => {
   it('SC-006 following a place does not feed you its posts (FR-019)', async () => {
     const author = await actor('widenPlaceAuthor');
     const viewer = await actor('widenPlaceViewer');
-    const [followed, notFollowed] = (await author.data.interests.listTop({ limit: 2 })).items;
+    const [followed, notFollowed] = await someInterests(author, 2);
     const locality = uniqueLocality('widen');
     const place = await author.data.places.create({ name: 'The Widener', category: 'bar', locality });
 
@@ -214,7 +215,7 @@ describe('004/US2 - a post can be about a place', () => {
    */
   it('SC-008 a place is never derived from media metadata (FR-021)', async () => {
     const author = await actor('exifAuthor');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
 
     const postId = await publishReadyImage(author, [interest.interestId], {
       caption: 'carries GPS',

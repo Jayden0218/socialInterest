@@ -1,5 +1,6 @@
 import { actor } from '../support/client';
 import { publishReadyImage } from '../support/publish';
+import { anInterest, someInterests } from '../support/interests';
 
 describe('core journeys - feed', () => {
   /**
@@ -19,7 +20,7 @@ describe('core journeys - feed', () => {
   it('J-06 a post flipped to private leaves the ranked feed on the NEXT request (SC-005)', async () => {
     const author = await actor('feedauthor');
     const reader = await actor('feedreader');
-    const tops = await author.data.interests.listTop({ limit: 2 });
+    const tops = { items: await someInterests(author, 2) };
     const declared = tops.items[0]!;
 
     const postId = await publishReadyImage(author, [declared.interestId], { caption: 'about to vanish' });
@@ -52,7 +53,7 @@ describe('core journeys - feed', () => {
   it('J-06b the ranked feed reaches beyond what the reader has declared (FR-007)', async () => {
     const author = await actor('exploreauthor');
     const reader = await actor('explorereader');
-    const tops = await author.data.interests.listTop({ limit: 2 });
+    const tops = { items: await someInterests(author, 2) };
     const declared = tops.items[0]!;
     const undeclared = tops.items[1]!;
 
@@ -71,7 +72,7 @@ describe('core journeys - feed', () => {
   it('J-07 interest space returns that interest posts', async () => {
     const author = await actor('spaceauthor');
     const reader = await actor('spacereader');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
 
     const postId = await publishReadyImage(author, [interest.interestId], { caption: 'in the space' });
 
@@ -82,7 +83,7 @@ describe('core journeys - feed', () => {
   it('J-07 a private post is absent from the interest space for everyone else', async () => {
     const author = await actor('privauthor');
     const reader = await actor('privreader');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
 
     const postId = await publishReadyImage(author, [interest.interestId], { visibility: 'private' });
 
@@ -111,7 +112,7 @@ describe('core journeys - feed', () => {
     const author = await actor('t053author');
     const stranger = await actor('t053stranger');
     const reader = await actor('t053reader');
-    const interest = (await reader.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(reader);
 
     // The STRANGER publishes second, so recency alone puts them first and the
     // follow has something to overturn.
@@ -155,7 +156,7 @@ describe('core journeys - feed', () => {
    */
   it("returns a person's own posts hydrated, not as visibility rows", async () => {
     const author = await actor('ownposts');
-    const tops = await author.data.interests.listTop({ limit: 1 });
+    const tops = { items: await someInterests(author, 1) };
     const interestId = tops.items[0]!.interestId;
     await publishReadyImage(author, [interestId], { caption: 'on my own profile' });
 

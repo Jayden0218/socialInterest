@@ -8,6 +8,7 @@ import { jpegPlain } from '../support/media';
 import { startApi, stopApi, killApi } from '../support/api-process';
 import { baseUrl } from '../support/base-url';
 import { e2eEnv } from '../support/env';
+import { anInterest } from '../support/interests';
 
 /**
  * 003/US2. The stack keeps what it is given.
@@ -72,7 +73,7 @@ describe('durability — the stack keeps what it is given', () => {
 
   it('data written before a full restart is readable after it', async () => {
     const author = await actor('durauthor');
-    const catalogue = await author.data.interests.listTop({ limit: 1 });
+    const catalogue = { items: [await anInterest(author)] };
     const interestId = catalogue.items[0]!.interestId;
     await author.data.interests.follow(interestId);
     const postId = await publishReadyImage(author, [interestId], { caption: 'survives a restart' });
@@ -135,7 +136,7 @@ describe('durability — the stack keeps what it is given', () => {
    */
   it('an event whose handler was killed mid-flight is replayed on restart', async () => {
     const author = await actor('durevent');
-    const catalogue = await author.data.interests.listTop({ limit: 1 });
+    const catalogue = { items: [await anInterest(author)] };
     const interestId = catalogue.items[0]!.interestId;
 
     const bytes = jpegPlain();

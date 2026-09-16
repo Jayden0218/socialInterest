@@ -1,5 +1,6 @@
 import { actor } from '../support/client';
 import { publishReadyImage } from '../support/publish';
+import { anInterest } from '../support/interests';
 
 /**
  * 008/T060, T061 — US4. A POST TRAVELS TO SOMEBODY YOU HAVE NEVER MESSAGED.
@@ -27,7 +28,7 @@ describe('008/SC-006 sending a post to a stranger', () => {
   it('creates a REQUEST, and the recipient can open the post', async () => {
     const sender = await actor('sendSender');
     const recipient = await actor('sendRecipient');
-    const interest = (await sender.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(sender);
     const postId = await publishReadyImage(sender, [interest.interestId], {
       caption: 'sent to somebody new',
     });
@@ -86,7 +87,7 @@ describe('008/SC-006 sending a post to a stranger', () => {
   it('FR-016 the post\'s share link still confers no access of its own', async () => {
     const author = await actor('sendLinkAuthor');
     const outsider = await actor('sendLinkOutsider');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     const postId = await publishReadyImage(author, [interest.interestId], {
       caption: 'followers only',
       visibility: 'followers',

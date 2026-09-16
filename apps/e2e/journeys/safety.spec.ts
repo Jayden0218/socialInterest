@@ -1,11 +1,12 @@
 import { actor } from '../support/client';
 import { publishReadyImage } from '../support/publish';
+import { anInterest } from '../support/interests';
 
 describe('core journeys - safety', () => {
   it('J-09 reports content and it enters the moderation queue', async () => {
     const author = await actor('reported');
     const reporter = await actor('reporter');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     const postId = await publishReadyImage(author, [interest.interestId]);
 
     const filed = await reporter.data.safety.report({
@@ -20,7 +21,7 @@ describe('core journeys - safety', () => {
   it('J-10 blocks a person and the block takes effect on every surface', async () => {
     const author = await actor('blocked');
     const blocker = await actor('blocker');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     const postId = await publishReadyImage(author, [interest.interestId]);
 
     // Visible before the block - otherwise the assertion after it proves nothing.

@@ -375,6 +375,34 @@ export async function runUpdate(
   const params: unknown[] = [key['pk'], key['sk']];
   let expression = 'item';
 
+  /**
+   * AN UPDATE THAT MOVES A ROW BETWEEN INDEXES MUST MOVE THE COLUMN TOO.
+   *
+   * This wrote `update items set item = <jsonb expression>` and nothing else,
+   * so a `SET gsi5pk = :x` landed in the JSONB BODY and left the `gsi5pk`
+   * COLUMN at its old value — and every query reads the column. On the old
+   * engine there was no distinction to get wrong: writing the attribute WAS
+   * updating the index. Here it is two places, and only one was being written.
+   *
+   * It cost two journeys, both silent and both in the same shape — a row that
+   * did not move:
+   *
+   *   - ACCEPTING a conversation writes `state` and `gsi5pk` together
+   *     (`conversation.repository.ts` § setState, whose own comment says
+   *     "Rewriting gsi5pk is what moves it between inboxes"). The body said
+   *     accepted; the column still said requested; the conversation never
+   *     appeared in the accepted inbox.
+   *   - LEAVING a group writes `state: 'left'` and a `left` gsi5pk. The column
+   *     still said accepted, so a group somebody had left stayed in their
+   *     inbox — which is the FR-037 guarantee, failing as a stale index rather
+   *     than as a wrong decision.
+   *
+   * Both read as product bugs and neither was: the product's write was right.
+   * `KEY_ATTRIBUTES` is the list the put path already lifts out, so the same
+   * list decides it here and the two paths cannot disagree.
+   */
+  const columnWrites: string[] = [];
+
   for (const write of writes) {
     const path = `$${params.length + 1}`;
     params.push(`{${write.attribute}}`);
@@ -382,6 +410,11 @@ export async function runUpdate(
     if (write.op === 'set') {
       params.push(JSON.stringify(write.value ?? null));
       expression = `jsonb_set(${expression}, ${path}::text[], ${value}::jsonb, true)`;
+      if ((KEY_ATTRIBUTES as readonly string[]).includes(write.attribute)) {
+        // The column takes the raw value, not JSON: these columns are `text`.
+        params.push(write.value ?? null);
+        columnWrites.push(`${write.attribute} = $${params.length}`);
+      }
     } else {
       params.push(Number(write.value));
       // `coalesce(..., 0)` is the `ADD` semantic: an attribute that was never
@@ -416,7 +449,7 @@ export async function runUpdate(
 
   if (condition.kind === 'must-exist') {
     const { rowCount } = await db.query(
-      `update items set item = ${expression} where pk = $1 and sk = $2`,
+      `update items set ${setClause(expression, columnWrites)} where pk = $1 and sk = $2`,
       params,
     );
     if (rowCount === 0) throw new ConditionFailed('no item exists at that key');
@@ -439,7 +472,7 @@ export async function runUpdate(
      * away; it is not a decision anyone made, it is an artifact of the engine.
      */
     const { rowCount } = await db.query(
-      `update items set item = ${expression}
+      `update items set ${setClause(expression, columnWrites)}
        where pk = $1 and sk = $2 and (item ->> '${condition.attribute}') is null`,
       params,
     );
@@ -449,9 +482,21 @@ export async function runUpdate(
     return;
   }
 
+  /**
+   * The insert paths need the key columns too, for the same reason: a row this
+   * creates with a `gsi5pk` in its body and a NULL column is a row no index can
+   * find. `columnWrites` carries `name = $n`; an insert wants the two halves
+   * apart, so they are split back out here rather than built twice.
+   */
+  const columnNames = columnWrites.map((w) => w.slice(0, w.indexOf(' = ')));
+  const columnParams = columnWrites.map((w) => w.slice(w.indexOf(' = ') + 3));
+  const insertColumns = columnNames.length > 0 ? `, ${columnNames.join(', ')}` : '';
+  const insertValues = columnParams.length > 0 ? `, ${columnParams.join(', ')}` : '';
+
   if (condition.kind === 'must-not-exist') {
     const { rowCount } = await db.query(
-      `insert into items (pk, sk, item) select $1, $2, ${expression.replace(/\bitem\b/g, `'${seed}'::jsonb`)}
+      `insert into items (pk, sk, item${insertColumns})
+       select $1, $2, ${expression.replace(/\bitem\b/g, `'${seed}'::jsonb`)}${insertValues}
        on conflict (pk, sk) do nothing`,
       params,
     );
@@ -460,10 +505,25 @@ export async function runUpdate(
   }
 
   await db.query(
-    `insert into items (pk, sk, item) values ($1, $2, ${expression.replace(/\bitem\b/g, `'${seed}'::jsonb`)})
-     on conflict (pk, sk) do update set item = ${expression.replace(/\bitem\b/g, 'items.item')}`,
+    `insert into items (pk, sk, item${insertColumns})
+     values ($1, $2, ${expression.replace(/\bitem\b/g, `'${seed}'::jsonb`)}${insertValues})
+     on conflict (pk, sk) do update set ${setClause(
+       expression.replace(/\bitem\b/g, 'items.item'),
+       columnWrites,
+     )}`,
     params,
   );
+}
+
+/**
+ * `item = <expression>`, plus any key COLUMNS this update moves.
+ *
+ * One place, because the four branches above all issue an UPDATE and three of
+ * them were writing only the body. A fifth branch that forgets is the shape
+ * this function exists to make impossible.
+ */
+function setClause(expression: string, columnWrites: string[]): string {
+  return [`item = ${expression}`, ...columnWrites].join(', ');
 }
 
 /** Applies every descriptor inside one `begin`/`commit`, or none of them. */

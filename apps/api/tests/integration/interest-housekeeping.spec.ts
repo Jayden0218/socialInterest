@@ -25,7 +25,7 @@ const publishNaming = async (name: string) => {
   expect(res.status).toBe(201);
   return {
     postId: res.body.postId as string,
-    interestId: (res.body.interestIds as string[])[0]!,
+    interestId: (res.body.interests as { interestId: string }[])[0]!.interestId,
   };
 };
 

@@ -1,6 +1,7 @@
 import { actor } from '../support/client';
 import { publishReadyImage } from '../support/publish';
 import type { Post } from '@sih/shared';
+import { anInterest } from '../support/interests';
 
 /**
  * 004/US5. A save is a bookmark, not a copy.
@@ -13,7 +14,7 @@ describe('004/US5 - saving a post', () => {
   it('FR-037 save, list, unsave', async () => {
     const author = await actor('saveAuthor');
     const saver = await actor('saver');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     const postId = await publishReadyImage(author, [interest.interestId], { caption: 'worth keeping' });
 
     await saver.data.saved.save(postId);
@@ -31,7 +32,7 @@ describe('004/US5 - saving a post', () => {
   it('FR-037 saving twice is idempotent, not a duplicate row', async () => {
     const author = await actor('idemAuthor');
     const saver = await actor('idemSaver');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     const postId = await publishReadyImage(author, [interest.interestId]);
 
     await saver.data.saved.save(postId);
@@ -44,7 +45,7 @@ describe('004/US5 - saving a post', () => {
     const author = await actor('privAuthor');
     const saver = await actor('privSaver');
     const nosy = await actor('privNosy');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     const postId = await publishReadyImage(author, [interest.interestId]);
     await saver.data.saved.save(postId);
 
@@ -56,7 +57,7 @@ describe('004/US5 - saving a post', () => {
   it('FR-037 saving a post you cannot see is refused', async () => {
     const author = await actor('secretAuthor');
     const stranger = await actor('secretStranger');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     const postId = await publishReadyImage(author, [interest.interestId], { visibility: 'private' });
 
     // Refused, so a save can never be a way to acquire access.
@@ -73,7 +74,7 @@ describe('004/US5 - saving a post', () => {
   it('SC-013 a post the saver may no longer see is absent from their saved list', async () => {
     const author = await actor('flipAuthor');
     const saver = await actor('flipSaver');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     const postId = await publishReadyImage(author, [interest.interestId], { caption: 'about to vanish' });
 
     await saver.data.saved.save(postId);
@@ -88,7 +89,7 @@ describe('004/US5 - saving a post', () => {
   it('SC-013 and a deleted post leaves no trace in a saved list', async () => {
     const author = await actor('delAuthor');
     const saver = await actor('delSaver');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     const postId = await publishReadyImage(author, [interest.interestId]);
     await saver.data.saved.save(postId);
 
@@ -101,7 +102,7 @@ describe('004/US5 - saving a post', () => {
   it('FR-037 a post reports whether the viewer has saved it', async () => {
     const author = await actor('flagAuthor');
     const saver = await actor('flagSaver');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     const postId = await publishReadyImage(author, [interest.interestId]);
 
     expect((await saver.data.posts.get(postId)).viewerHasSaved).toBe(false);

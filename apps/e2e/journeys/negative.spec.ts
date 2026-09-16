@@ -4,6 +4,7 @@ import { baseUrl } from '../support/base-url';
 import { raw } from '../support/http';
 import { mintForgedToken, mintPublishedSecretToken } from '../support/identity';
 import { e2eEnv } from '../support/env';
+import { anInterest } from '../support/interests';
 
 /**
  * These deliberately bypass apps/mobile/src/data and issue raw requests.
@@ -25,7 +26,7 @@ describe('negative journeys - driven as a hostile client', () => {
   it('N-02 does not return a private post to a non-author', async () => {
     const author = await actor('n2author');
     const stranger = await actor('n2stranger');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     const postId = await publishReadyImage(author, [interest.interestId], { visibility: 'private' });
 
     const asAuthor = await raw(baseUrl(), `/v1/posts/${postId}`, { token: author.token });
@@ -40,7 +41,7 @@ describe('negative journeys - driven as a hostile client', () => {
   it('N-03 does not return a blocked person post on any surface', async () => {
     const author = await actor('n3author');
     const blocker = await actor('n3blocker');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     const postId = await publishReadyImage(author, [interest.interestId]);
 
     await blocker.data.safety.block(author.handle);
@@ -61,7 +62,7 @@ describe('negative journeys - driven as a hostile client', () => {
 
   it('N-04 does not serve media to a viewer who may not see it', async () => {
     const author = await actor('n4author');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     const postId = await publishReadyImage(author, [interest.interestId], { visibility: 'private' });
 
     const detail = await raw(baseUrl(), `/v1/posts/${postId}`, { token: author.token });

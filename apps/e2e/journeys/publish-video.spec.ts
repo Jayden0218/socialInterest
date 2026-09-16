@@ -2,6 +2,7 @@ import { actor } from '../support/client';
 import { mp4Short } from '../support/media';
 import { eventually } from '../support/eventually';
 import type { Post } from '@sih/shared';
+import { anInterest } from '../support/interests';
 
 /**
  * 001/FR-005 and 001/FR-009, EXERCISED FOR THE FIRST TIME.
@@ -22,7 +23,7 @@ import type { Post } from '@sih/shared';
 describe('core journeys - publish video (001/FR-005, FR-009)', () => {
   it('J-05 a real video is uploaded, transcoded, and reaches ready with a poster frame', async () => {
     const me = await actor('vidreal');
-    const interest = (await me.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(me);
 
     const bytes = mp4Short(1);
     // A real file, not a declared size. The server derives kind and duration
@@ -70,7 +71,7 @@ describe('core journeys - publish video (001/FR-005, FR-009)', () => {
   it('J-05 a permitted viewer can see the video once it is ready', async () => {
     const author = await actor('vidauthor2');
     const viewer = await actor('vidviewer');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
 
     const bytes = mp4Short(1);
     const target = await author.data.posts.createUploadTarget({

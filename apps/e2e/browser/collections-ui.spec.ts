@@ -4,6 +4,7 @@ import { startWebServer, type WebServer } from '../support/web-server';
 import { baseUrl } from '../support/base-url';
 import { actor } from '../support/client';
 import { publishReadyImage } from '../support/publish';
+import { anInterest } from '../support/interests';
 
 /**
  * 008/US15 — THE SHELVES ARE REACHABLE, AND FILING REALLY FILES.
@@ -39,7 +40,7 @@ describe('008/US15 collections, from the app', () => {
   it('a shelf is created from Saved, a post is filed from post detail, and it stays in All', async () => {
     const me = await actor(`collui${Math.random().toString(36).slice(2, 7)}`);
     const author = await actor(`colluiauthor${Math.random().toString(36).slice(2, 7)}`);
-    const interest = (await me.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(me);
     const postId = await publishReadyImage(author, [interest.interestId], {
       caption: 'something to file',
     });

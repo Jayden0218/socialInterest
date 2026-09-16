@@ -5,6 +5,7 @@ import { eventually } from '../support/eventually';
 import { publishReadyImage } from '../support/publish';
 import { jpegPlain } from '../support/media';
 import type { Post } from '@sih/shared';
+import { anInterest } from '../support/interests';
 
 /**
  * EVERY surface that returns a post must return a POST, not a candidate row.
@@ -51,7 +52,7 @@ describe('no surface returns VisibilityFilter candidates as a response', () => {
   it('every list surface returns hydrated posts', async () => {
     const author = await actor('shapeAuthor');
     const viewer = await actor('shapeViewer');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     await viewer.data.interests.follow(interest.interestId);
     await viewer.data.people.follow(author.handle);
 
@@ -113,7 +114,7 @@ describe('no surface returns VisibilityFilter candidates as a response', () => {
 
   it('media items carry URLs, not storage keys, and leak no internal fields', async () => {
     const author = await actor('mediaShape');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     const postId = await publishReadyImage(author, [interest.interestId], { caption: 'media shape' });
 
     const post = await author.data.posts.get(postId);
@@ -219,7 +220,7 @@ describe('007/T053 the notification thumbnail', () => {
   it('is present for a post notification, null for a follow, and actually fetchable', async () => {
     const author = await actor('thumbAuthor');
     const reactor = await actor('thumbReactor');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     const postId = await publishReadyImage(author, [interest.interestId], { caption: 'thumb' });
 
     await reactor.data.engagement.react(postId);
@@ -312,7 +313,7 @@ const DECLARED_FIELDS: readonly DeclaredField[] = [
     observe: async () => {
       const author = await actor('readAtAuthor');
       const reactor = await actor('readAtReactor');
-      const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+      const interest = await anInterest(author);
       const postId = await publishReadyImage(author, [interest.interestId], { caption: 'readAt' });
       await reactor.data.engagement.react(postId);
 
@@ -369,7 +370,7 @@ const DECLARED_FIELDS: readonly DeclaredField[] = [
      */
     observe: async () => {
       const author = await actor('replyField');
-      const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+      const interest = await anInterest(author);
       const postId = await publishReadyImage(author, [interest.interestId], { caption: 'a thread' });
       const parent = await author.data.engagement.comment(postId, 'the first remark');
       await author.data.engagement.comment(postId, 'an answer', parent.commentId);
@@ -389,7 +390,7 @@ const DECLARED_FIELDS: readonly DeclaredField[] = [
      */
     observe: async () => {
       const author = await actor('altTextField');
-      const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+      const interest = await anInterest(author);
       const bytes = jpegPlain();
       const target = await author.data.posts.createUploadTarget({
         kind: 'image',
@@ -451,7 +452,7 @@ const DECLARED_FIELDS: readonly DeclaredField[] = [
       const author = await actor('noticeField');
       const reporter = await actor('noticeFieldReporter');
       const operator = await actor('noticeFieldOperator', { isOperator: true });
-      const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+      const interest = await anInterest(author);
       const postId = await publishReadyImage(author, [interest.interestId], { caption: 'to remove' });
       const filed = await reporter.data.safety.report({
         subjectType: 'post',
@@ -479,7 +480,7 @@ const DECLARED_FIELDS: readonly DeclaredField[] = [
     observe: async () => {
       const me = await actor('collectionCountField');
       const author = await actor('collectionCountAuthor');
-      const interest = (await me.data.interests.listTop({ limit: 1 })).items[0]!;
+      const interest = await anInterest(me);
       const postId = await publishReadyImage(author, [interest.interestId], { caption: 'to file' });
       const shelf = await me.data.saved.createCollection('Counted');
       await me.data.saved.addToCollection(shelf.collectionId, postId);

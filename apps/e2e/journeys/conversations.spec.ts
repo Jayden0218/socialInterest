@@ -1,6 +1,7 @@
 import { actor, type Actor } from '../support/client';
 import { publishReadyImage } from '../support/publish';
 import { consistently, eventually } from '../support/eventually';
+import { anInterest, someInterests } from '../support/interests';
 
 /**
  * 004/US1 over HTTP, driving the app's own data layer.
@@ -193,7 +194,7 @@ describe('004/US1 - two people can talk', () => {
     const author = await actor('shareAuthor');
     const reader = await actor('shareReader');
     await reader.data.people.follow(author.handle);
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     const postId = await publishReadyImage(author, [interest.interestId]);
 
     const conv = await author.data.conversations.open(reader.handle);
@@ -268,7 +269,7 @@ describe('004/US1 - two people can talk', () => {
   it('FR-012 a conversation changes neither the contents nor the order of a feed', async () => {
     const author = await actor('widenAuthor');
     const viewer = await actor('widenViewer');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     await viewer.data.interests.follow(interest.interestId);
     const declared = [
       await publishReadyImage(author, [interest.interestId]),
@@ -365,7 +366,7 @@ describe('004/US1 - two people can talk', () => {
     const stranger = await actor('widenStranger');
     const viewer = await actor('widenViewer2');
 
-    const [mine, theirs] = (await viewer.data.interests.listTop({ limit: 2 })).items;
+    const [mine, theirs] = await someInterests(viewer, 2);
     await viewer.data.interests.follow(mine!.interestId);
     // Published to an interest the viewer has not declared.
     await publishReadyImage(stranger, [theirs!.interestId]);

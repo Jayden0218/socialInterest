@@ -4,6 +4,7 @@ import { startWebServer, type WebServer } from '../support/web-server';
 import { baseUrl } from '../support/base-url';
 import { actor } from '../support/client';
 import { freshInterestName, publishReadyImage, publishReadyNamingInterest } from '../support/publish';
+import { anInterest } from '../support/interests';
 
 /**
  * ===========================================================================
@@ -57,7 +58,7 @@ describe('007/G2 - the interest space is reachable from a post', () => {
   it('one tap from a feed card opens the interest space, and it lists the post', async () => {
     const author = await actor('g2author');
     const reader = await actor('g2reader');
-    const interest = (await reader.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(reader);
     const postId = await publishReadyImage(author, [interest.interestId], { caption: 'g2 from the feed' });
     await reader.data.interests.follow(interest.interestId);
 
@@ -83,7 +84,7 @@ describe('007/G2 - the interest space is reachable from a post', () => {
   it('the post detail screen reaches it too, which it could not before 007', async () => {
     const author = await actor('g2dauthor');
     const reader = await actor('g2dreader');
-    const interest = (await reader.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(reader);
     const postId = await publishReadyImage(author, [interest.interestId], { caption: 'g2 from detail' });
     await reader.data.interests.follow(interest.interestId);
 

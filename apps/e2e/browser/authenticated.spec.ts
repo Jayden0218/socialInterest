@@ -4,6 +4,7 @@ import { startWebServer, type WebServer } from '../support/web-server';
 import { baseUrl } from '../support/base-url';
 import { actor } from '../support/client';
 import { publishReadyImage } from '../support/publish';
+import { anInterest, someInterests } from '../support/interests';
 
 /**
  * T105. Authenticated screens, rendered against a live API.
@@ -53,7 +54,7 @@ describe('browser journeys - signed in', () => {
   it('a signed-in person sees their followed-interest posts in the feed', async () => {
     const author = await actor('webfeedauthor');
     const reader = await actor('webfeedreader');
-    const interest = (await author.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(author);
     await publishReadyImage(author, [interest.interestId], { caption: 'rendered in a browser' });
     await reader.data.interests.follow(interest.interestId);
 
@@ -86,7 +87,7 @@ describe('browser journeys - signed in', () => {
   it('renders the ranked order, with a declared interest first (FR-030)', async () => {
     const author = await actor('webnofollowauthor');
     const reader = await actor('webnofollowreader');
-    const tops = await author.data.interests.listTop({ limit: 2 });
+    const tops = { items: await someInterests(author, 2) };
     const declared = tops.items[0]!;
     const other = tops.items[1]!;
 

@@ -1,29 +1,32 @@
 /**
  * Fills a fresh session with a product somebody can actually use.
  *
- * A session server comes up with an EMPTY datastore — twelve catalogue
- * interests and nothing else — so the first thing anyone sees after signing in
- * is a feed with no posts in it. That reads as a broken app and is not one, and
+ * A session server comes up with an EMPTY datastore — since 013 there is not
+ * even a catalogue, because the twelve curated interests are deleted and an
+ * interest cannot exist without a post — so the first thing anyone sees after
+ * signing in is a feed with no posts in it. That reads as a broken app and is not one, and
  * it is the same failure shape `capture-screens.ts` already guards against with
  * its "so no screen is captured empty and pretending to be the product" note.
  * This script is that note applied to the session server.
  *
  * What it builds: six people with names, bios and photographs, posts across
- * every catalogue interest, comments, reactions, follows in both directions,
- * two places with reviews, a saved collection, and two conversations waiting in
- * the device person's inbox.
+ * eleven interests THE PEOPLE THEMSELVES NAME, comments, reactions, follows in
+ * both directions, two places with reviews, a saved collection, and two
+ * conversations waiting in the device person's inbox.
  *
  * WHAT IT DELIBERATELY DOES NOT DO is declare the device person's interests.
  * `coldStartComplete` is `seeds.asked(userId)` and nothing else, so leaving the
  * seed-interests call unmade means the person signing in still meets the cold
  * start (007/FR-014) — a real product surface, and the one that puts the first
  * screen of the app in their hands rather than in a fixture's. The feed is
- * populated whatever they pick, because every catalogue interest carries posts.
+ * populated whatever they pick, because every interest this creates carries
+ * posts BY CONSTRUCTION: 013 made that the only way one can come to exist.
  *
  * Usage: npx tsx apps/e2e/scripts/seed-demo.ts <device-token>
  * Prints a short summary on stderr; stdout stays empty so a caller can ignore it.
  */
-import { execFileSync } from 'node:child_process';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { randomUUID } from 'node:crypto';
 import { Pool } from 'pg';
 import jwt from 'jsonwebtoken';
@@ -31,7 +34,9 @@ import { createAppData, MemoryTokenStore, type AppData } from '@sih/mobile/data'
 import { PersonRepository } from '../../api/src/persistence/person.repository';
 import { baseUrl } from '../support/base-url';
 import { e2eEnv } from '../support/env';
-import { publishReadyImage } from '../support/publish';
+import { publishReadyImage, publishReadyNamingInterest } from '../support/publish';
+
+const execFileAsync = promisify(execFile);
 
 const argToken = process.argv[2];
 if (!argToken) {
@@ -141,9 +146,30 @@ async function person(handle: string, displayName: string, bio: string): Promise
 // thumbnail size instead of as a colour swatch.
 const FFMPEG_IMAGE = process.env['FFMPEG_IMAGE'] ?? 'linuxserver/ffmpeg:latest';
 
-function render(source: string, filters: string | null): Buffer {
+/**
+ * ASYNCHRONOUS, AND THAT IS THE WHOLE POINT OF THIS FUNCTION'S SHAPE.
+ *
+ * It was `execFileSync`, which BLOCKS THE EVENT LOOP for as long as ffmpeg
+ * takes — and ffmpeg here is a CONTAINER START, so seconds rather than
+ * milliseconds. Two separate failures came out of that, and the second is why
+ * reordering was not the fix:
+ *
+ *   1. Called from inside `inBatches`'s concurrent mapper, one draft's render
+ *      blocked while another draft's request was in flight. `DataError: fetch
+ *      failed`, on the batched drafts only, every time.
+ *   2. Rendering everything UP FRONT instead moved the failure to the FIRST
+ *      publish: a forty-second block leaves the keep-alive sockets opened by
+ *      the avatar step to go stale, and undici's next request on a dead socket
+ *      fails rather than reopening.
+ *
+ * Both are the same defect — a synchronous subprocess beside a live HTTP
+ * client — and only not blocking fixes both. The environment made it visible
+ * rather than causing it: on a laptop with a native ffmpeg the block is short
+ * enough to get away with, which is luck and not a difference in kind.
+ */
+async function render(source: string, filters: string | null): Promise<Buffer> {
   try {
-    return execFileSync(
+    const { stdout } = await execFileAsync(
       'docker',
       [
         'run', '--rm', '-i', '--entrypoint', 'ffmpeg', FFMPEG_IMAGE,
@@ -156,8 +182,9 @@ function render(source: string, filters: string | null): Buffer {
       // twenty-two times - which buried the one line that mattered when this
       // run actually failed. Captured here and re-raised below, so a real
       // ffmpeg error is the only ffmpeg output anyone ever reads.
-      { maxBuffer: 32 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] },
+      { maxBuffer: 32 * 1024 * 1024, encoding: 'buffer' as const },
     );
+    return stdout;
   } catch (err: unknown) {
     const stderr = (err as { stderr?: Buffer }).stderr?.toString() ?? '';
     throw new Error(`ffmpeg could not render ${source}\n${stderr.split('\n').slice(-12).join('\n')}`);
@@ -165,7 +192,7 @@ function render(source: string, filters: string | null): Buffer {
 }
 
 /** A two-tone gradient, grained and softened. The angle varies with the seed. */
-function gradient(c0: string, c1: string, seed: number): Buffer {
+async function gradient(c0: string, c1: string, seed: number): Promise<Buffer> {
   const x0 = 60 + ((seed * 137) % 900);
   const y0 = 40 + ((seed * 89) % 700);
   return render(
@@ -175,12 +202,12 @@ function gradient(c0: string, c1: string, seed: number): Buffer {
 }
 
 /** A fractal, for the two posts whose captions are about pattern. No duration. */
-function fractal(scale: number): Buffer {
+async function fractal(scale: number): Promise<Buffer> {
   return render(`mandelbrot=size=1200x900:rate=1:start_scale=${scale}:inner=period`, null);
 }
 
 /** A small square for an avatar. Same treatment, cheaper. */
-function avatar(c0: string, c1: string, seed: number): Buffer {
+async function avatar(c0: string, c1: string, seed: number): Promise<Buffer> {
   const x0 = 20 + ((seed * 53) % 300);
   return render(
     `gradients=size=400x400:c0=${c0}:c1=${c1}:n=2:duration=1:rate=1:x0=${x0}:y0=20:x1=${400 - x0}:y1=380`,
@@ -207,12 +234,30 @@ async function main(): Promise<void> {
   const me = createAppData({ baseUrl: `${baseUrl()}/v1`, tokens });
   const myProfile = await me.session.me();
 
-  const catalogue = await me.interests.listTop({ limit: 25 });
-  if (catalogue.items.length === 0) throw new Error('the catalogue is empty; seed it first');
+  /**
+   * 013/FR-004. THE INTERESTS ARE NAMED INTO EXISTENCE, NOT LOOKED UP.
+   *
+   * This read `interests.listTop()` and resolved 'Birding', 'Photography' and
+   * nine more against the curated twelve. There is no catalogue to resolve
+   * against: 013 deleted it, and an interest now comes into existence only as
+   * part of publishing into it. So the first post filed under each name CREATES
+   * that interest, exactly as a person's would, and `interestId` below is
+   * filled in as that happens.
+   *
+   * Which also means the demo is a demo of the product rather than of a
+   * fixture: nothing here is privileged, and every interest it leaves behind is
+   * one somebody typed.
+   */
+  const named = new Map<string, string>();
   const id = (name: string): string => {
-    const found = catalogue.items.find((i) => i.name === name);
-    if (!found) throw new Error(`the catalogue has no interest named ${name}`);
-    return found.interestId;
+    const found = named.get(name);
+    if (!found) {
+      throw new Error(
+        `no interest named ${name} has been published into yet — since 013 an interest ` +
+          'exists only once a post names it, so the publish step must run first',
+      );
+    }
+    return found;
   };
 
   say('creating people...');
@@ -246,19 +291,15 @@ async function main(): Promise<void> {
     bio: 'This is you. Change the name and picture from Edit profile.',
   });
 
-  // ---- interests each person cares about, so a profile means something
-  say('following interests...');
-  const declared: [Person, string[]][] = [
-    [maya!, ['Photography', 'Birding']],
-    [tomas!, ['Climbing', 'Running']],
-    [ingrid!, ['Ceramics', 'Painting']],
-    [rafael!, ['Cooking', 'Gardening']],
-    [noor!, ['Cycling', 'Travel']],
-    [jonas!, ['Woodworking', 'Music']],
-  ];
-  for (const [who, names] of declared) {
-    for (const name of names) await who.data.interests.follow(id(name));
-  }
+  /**
+   * 013/FR-004. FOLLOWING INTERESTS MOVED BELOW THE PUBLISH STEP, and it had to.
+   *
+   * It ran here, ninth of nine steps deliberately ordered so everything needing
+   * no media came first. An interest cannot be followed before it exists and
+   * cannot exist before a post names it, so this one step now genuinely depends
+   * on an upload having succeeded. The ordering comment above still holds for
+   * every other step.
+   */
 
   // ---- follows, in both directions, so counts are real on every profile
   say('following people...');
@@ -324,9 +365,17 @@ async function main(): Promise<void> {
     ['0x1B4E5E', '0x7FD4C1'],
     ['0x3E3A2F', '0xC9A227'],
   ];
+  // Rendered before the batch, for the reason spelled out at the posts step
+  // below: `render()` is synchronous, and blocking the event loop while another
+  // draft's request is in flight is what makes that request fail. This step had
+  // exactly the same shape and got away with it because an avatar is a cheaper
+  // render — which is luck, not a difference in kind.
+  const avatarBytes = await Promise.all(
+    cast.map((_, i) => avatar(avatarColours[i]![0], avatarColours[i]![1], i + 1)),
+  );
   await inBatches(cast, 3, async (who) => {
     const i = cast.indexOf(who);
-    const bytes = avatar(avatarColours[i]![0], avatarColours[i]![1], i + 1);
+    const bytes = avatarBytes[i]!;
     const target = await who.data.posts.createUploadTarget({
       kind: 'avatar',
       contentType: 'image/jpeg',
@@ -344,7 +393,7 @@ async function main(): Promise<void> {
     who: Person;
     interest: string;
     caption: string;
-    bytes: () => Buffer;
+    bytes: () => Promise<Buffer>;
     /** 004/FR-015. Optional — most posts have no place, two of these do. */
     placeId?: string;
   }
@@ -365,21 +414,86 @@ async function main(): Promise<void> {
     { who: maya!, interest: 'Birding', caption: 'Heron, absolutely unbothered by me.', bytes: () => gradient('0x24413A', '0xA8C686', 12) },
   ];
 
-  const postIds = await inBatches(drafts, 3, (d) =>
-    publishReadyImage(d.who, [id(d.interest)], {
-      caption: d.caption,
-      bytes: d.bytes(),
-      ...(d.placeId ? { placeId: d.placeId } : {}),
-    }),
-  );
+  /**
+   * 013. THE FIRST POST UNDER A NAME IS PUBLISHED ALONE, AND THAT IS THE
+   * CONSTRAINT WORKING RATHER THAN A SLOW SEED.
+   *
+   * `inBatches(drafts, 3, ...)` ran three publishes at once. Two of these
+   * drafts name `Photography` and sit next to each other, so both would have
+   * raced to claim that name — and since 013 exactly one claim can win, the
+   * loser's publish is REFUSED. That is the uniqueness constraint doing its
+   * job; a seed that raced it would fail intermittently and look like a flake.
+   *
+   * So a draft whose interest nothing has named yet is published on its own and
+   * its new interest recorded; every later draft quotes the id and batches as
+   * before. Three of the fourteen are first-of-their-name, so the cost is three
+   * serial publishes.
+   */
+  /**
+   * EVERY IMAGE IS RENDERED BEFORE ANY REQUEST IS MADE, and that is a
+   * correctness fix rather than a tidy-up.
+   *
+   * `render()` is asynchronous now — see its own note for the two failures that
+   * forced that — and the renders still happen here rather than inside
+   * `inBatches`'s mapper, so the publishing loop below reads a ready buffer and
+   * the two concerns stay separable.
+   */
+  say('rendering images...');
+  const rendered = await Promise.all(drafts.map((d) => d.bytes()));
 
-  say(`published ${postIds.length} posts`);
+  const postIds: string[] = new Array<string>(drafts.length);
+  const pending: { index: number; draft: Draft }[] = [];
+  for (const [index, d] of drafts.entries()) {
+    if (named.has(d.interest)) {
+      pending.push({ index, draft: d });
+      continue;
+    }
+    say(`publishing ${index + 1}/${drafts.length} — ${d.interest}, naming it...`);
+    const created = await publishReadyNamingInterest(d.who, d.interest, {
+      caption: d.caption,
+      bytes: rendered[index]!,
+      ...(d.placeId ? { placeId: d.placeId } : {}),
+    });
+    named.set(d.interest, created.interestId);
+    postIds[index] = created.postId;
+  }
+  const rest = await inBatches(pending, 3, (p) => {
+    say(`publishing ${p.index + 1}/${drafts.length} — ${p.draft.interest}...`);
+    return publishReadyImage(p.draft.who, [id(p.draft.interest)], {
+      caption: p.draft.caption,
+      bytes: rendered[p.index]!,
+      ...(p.draft.placeId ? { placeId: p.draft.placeId } : {}),
+    });
+  });
+  for (const [i, p] of pending.entries()) postIds[p.index] = rest[i]!;
+
+  say(`published ${postIds.length} posts across ${named.size} interests people named`);
+
+  // ---- interests each person cares about, so a profile means something. Runs
+  // HERE because the interests exist only now (013/FR-004, note above).
+  say('following interests...');
+  const declared: [Person, string[]][] = [
+    [maya!, ['Photography', 'Birding']],
+    [tomas!, ['Climbing', 'Running']],
+    [ingrid!, ['Ceramics', 'Painting']],
+    [rafael!, ['Cooking', 'Gardening']],
+    [noor!, ['Cycling', 'Travel']],
+    [jonas!, ['Woodworking', 'Music']],
+  ];
+  for (const [who, names] of declared) {
+    for (const name of names) await who.data.interests.follow(id(name));
+  }
 
   // ---- the device person's own two posts, so their profile is not empty
   const mine = await publishReadyImage(
     { data: me, handle: myProfile.handle, userId: myProfile.userId, token: deviceToken },
     [id('Photography')],
-    { caption: 'First post from the phone.', bytes: gradient('0x1F6B3F', '0xF5E6C8', 13) },
+    {
+      caption: 'First post from the phone.',
+      // Awaited into a local first: an argument position is a place a render
+      // can hide, which is how it ended up inside a concurrent mapper above.
+      bytes: await gradient('0x1F6B3F', '0xF5E6C8', 13),
+    },
   );
 
   // ---- comments and reactions, so a post detail screen has something below it

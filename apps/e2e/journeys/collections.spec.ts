@@ -1,5 +1,6 @@
 import { actor } from '../support/client';
 import { publishReadyImage } from '../support/publish';
+import { anInterest } from '../support/interests';
 
 /**
  * 008/T204, US15 — FR-049 and FR-051, over HTTP, through the app's own data
@@ -28,7 +29,7 @@ describe('008/US15 collections are shelves, not boxes', () => {
   it('FR-051 filing a post leaves it in the saved list, and FR-049 it can be in two collections', async () => {
     const me = await actor('collections');
     const author = await actor('collectionsauthor');
-    const interest = (await me.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(me);
     const postId = await publishReadyImage(author, [interest.interestId], {
       caption: 'a post worth filing twice',
     });
@@ -94,7 +95,7 @@ describe('008/US15 collections are shelves, not boxes', () => {
   it('FR-049 a collection cannot hold a post its owner cannot see', async () => {
     const me = await actor('collectionsnosee');
     const author = await actor('collectionsprivate');
-    const interest = (await me.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(me);
     const postId = await publishReadyImage(author, [interest.interestId], {
       caption: 'followers only',
       visibility: 'followers',

@@ -1,5 +1,6 @@
 import { actor } from '../support/client';
 import { publishReadyImage } from '../support/publish';
+import { anInterest, someInterests } from '../support/interests';
 
 /**
  * 007/US1 AND US2, THROUGH THE APP'S OWN DATA LAYER.
@@ -18,7 +19,7 @@ describe('core journeys - signals and the ranked feed', () => {
   it('J-42 a session moves the profile the ranker reads', async () => {
     const author = await actor('signalauthor');
     const reader = await actor('signalreader');
-    const tops = await reader.data.interests.listTop({ limit: 2 });
+    const tops = { items: await someInterests(reader, 2) };
     const engaged = tops.items[0]!;
     const ignored = tops.items[1]!;
 
@@ -45,7 +46,7 @@ describe('core journeys - signals and the ranked feed', () => {
   it('J-43 the disclosure and the reset are reachable and real (FR-011, FR-012)', async () => {
     const author = await actor('resetauthor');
     const reader = await actor('resetreader');
-    const interest = (await reader.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(reader);
     const postId = await publishReadyImage(author, [interest.interestId], { caption: 'to be forgotten' });
 
     await reader.data.signals.record([{ kind: 'save', postId }]);
@@ -63,7 +64,7 @@ describe('core journeys - signals and the ranked feed', () => {
 
   it('J-44 the cold-start picks are a seed and NOT a follow (FR-014, research R4)', async () => {
     const reader = await actor('seedreader');
-    const interest = (await reader.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(reader);
 
     const stored = await reader.data.signals.chooseSeedInterests([interest.interestId]);
     expect(stored.seedInterests).toEqual([interest.interestId]);
@@ -86,7 +87,7 @@ describe('core journeys - signals and the ranked feed', () => {
   it('J-45 an account that picked nothing still gets a feed (FR-015)', async () => {
     const author = await actor('coldauthor');
     const newcomer = await actor('coldnewcomer');
-    const tops = await author.data.interests.listTop({ limit: 3 });
+    const tops = { items: await someInterests(author, 3) };
     for (const t of tops.items) {
       await publishReadyImage(author, [t.interestId], { caption: `cold ${t.slug}` });
     }
@@ -112,7 +113,7 @@ describe('core journeys - signals and the ranked feed', () => {
   it('J-46 paging never repeats a post within a session (FR-008)', async () => {
     const author = await actor('pagingauthor');
     const reader = await actor('pagingreader');
-    const interest = (await reader.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(reader);
     for (let i = 0; i < 8; i++) {
       await publishReadyImage(author, [interest.interestId], { caption: `paging ${i}` });
     }

@@ -4,6 +4,7 @@ import { startWebServer, type WebServer } from '../support/web-server';
 import { baseUrl } from '../support/base-url';
 import { actor } from '../support/client';
 import { publishReadyImage } from '../support/publish';
+import { anInterest } from '../support/interests';
 
 /**
  * 008/US12 — WHERE `dismiss-post` LEAVES YOU.
@@ -47,7 +48,7 @@ describe('008/US12 - the route through the safety sheet, and where it returns to
   it('dismiss returns to post detail, not to the feed, and both writes reach the server', async () => {
     const author = await actor('u12author');
     const reader = await actor('u12reader');
-    const interest = (await reader.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(reader);
     const postId = await publishReadyImage(author, [interest.interestId], { caption: 'us12 quieter options' });
     await reader.data.interests.follow(interest.interestId);
 

@@ -2,6 +2,7 @@ import { actor } from '../support/client';
 import { jpegPlain } from '../support/media';
 import { publishReadyImage } from '../support/publish';
 import { eventually } from '../support/eventually';
+import { anInterest } from '../support/interests';
 
 /**
  * 008/T070, US5 — SC-008: AN AVATAR APPEARS ON 100% OF SURFACES SHOWING THAT
@@ -20,7 +21,7 @@ describe('008/SC-008 the avatar reaches every surface', () => {
   it('is present and fetchable on all seven profile-bearing responses', async () => {
     const me = await actor('avatarMe');
     const friend = await actor('avatarFriend');
-    const interest = (await me.data.interests.listTop({ limit: 1 })).items[0]!;
+    const interest = await anInterest(me);
 
     /**
      * Through the app's own data layer and the real upload path.
