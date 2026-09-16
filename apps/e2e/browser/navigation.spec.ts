@@ -1,4 +1,4 @@
-import type { Browser, Page } from 'playwright';
+import type { Browser, Page, Response } from 'playwright';
 import { launchChromium } from '../support/browser';
 import { startWebServer, type WebServer } from '../support/web-server';
 import { baseUrl } from '../support/base-url';
@@ -76,16 +76,67 @@ describe('browser journeys - the screens the shell could not reach', () => {
     await signInThroughTheScreen(email, password);
   }
 
+  /**
+   * MAKE THE FAILURE VISIBLE BEFORE CHANGING ANYTHING (2026-09-16).
+   *
+   * `005/J-21` fails on CI — runs #346 and #348 — with twenty seconds of
+   * `44 × locator resolved to visible <div data-testid="sign-in-screen">` and
+   * NOTHING about why. That message says the screen did not close. It does not
+   * say whether the API refused, was slow, or was never asked.
+   *
+   * I have had two confident explanations for it already. The first was a rate
+   * limit, which I dropped after counting 13 sign-ins against a budget of ~15.9
+   * — and that dismissal was itself too quick, because the binding constraint is
+   * not the TOTAL but every PREFIX: eleven sign-ins clustered into ten seconds
+   * exhausts a capacity-10 bucket whatever the total says. Both readings fit the
+   * symptom. Neither is an observation.
+   *
+   * This project has retracted two such explanations before and spent six
+   * emulator runs on a third. So: capture what the API actually said, what the
+   * app actually rendered, and whether the page threw — and put it in the
+   * failure message, where the next run will simply tell us.
+   */
   async function signInThroughTheScreen(email: string, password: string): Promise<void> {
-    await page.goto(web.url, { waitUntil: 'domcontentloaded' });
-    await page.click(id('open-sign-in'));
-    await page.fill(id('sign-in-email'), email);
-    await page.fill(id('sign-in-password'), password);
-    await page.click(id('sign-in-submit'));
-    // The sign-in screen closing is the assertion: the data layer calls
-    // GET /v1/me with the new credential before returning, so this only happens
-    // if the API both issued one and accepted it.
-    await page.waitForSelector(id('sign-in-screen'), { state: 'detached', timeout: 20_000 });
+    const authCalls: string[] = [];
+    const pageErrors: string[] = [];
+    const onResponse = (r: Response) => {
+      const u = r.url();
+      if (/\/v1\/(auth|me)\b/.test(u)) {
+        authCalls.push(`${r.request().method()} ${new URL(u).pathname} -> ${r.status()}`);
+      }
+    };
+    const onPageError = (e: Error) => pageErrors.push(e.message);
+    page.on('response', onResponse);
+    page.on('pageerror', onPageError);
+
+    try {
+      await page.goto(web.url, { waitUntil: 'domcontentloaded' });
+      await page.click(id('open-sign-in'));
+      await page.fill(id('sign-in-email'), email);
+      await page.fill(id('sign-in-password'), password);
+      await page.click(id('sign-in-submit'));
+      // The sign-in screen closing is the assertion: the data layer calls
+      // GET /v1/me with the new credential before returning, so this only happens
+      // if the API both issued one and accepted it.
+      await page.waitForSelector(id('sign-in-screen'), { state: 'detached', timeout: 20_000 });
+    } catch (cause) {
+      // The app's OWN words, if it rendered any. A 429 and a wrong password
+      // are different sentences, and this is where the difference shows.
+      const banner = await page
+        .locator(id('sign-in-error'))
+        .textContent()
+        .catch(() => null);
+      throw new Error(
+        `sign-in did not complete for ${email}.\n` +
+          `  API calls : ${authCalls.length ? authCalls.join(' | ') : 'NONE — the request never left the browser'}\n` +
+          `  on screen : ${banner ?? 'no error banner rendered'}\n` +
+          `  page errors: ${pageErrors.length ? pageErrors.join(' | ') : 'none'}\n` +
+          `  original  : ${(cause as Error).message.split('\n')[0]}`,
+      );
+    } finally {
+      page.off('response', onResponse);
+      page.off('pageerror', onPageError);
+    }
 
     /**
      * 007/FR-014. SIGNING IN NOW LANDS ON THE COLD START, which is a PUSHED
