@@ -74,9 +74,21 @@ describe('PostCard shows the post (006/US1)', () => {
     expect(t.getByTestId('post-image-p1').props.source).toEqual({
       uri: 'https://example.test/a.jpg',
     });
-    // FR-002: the author, with an avatar.
-    expect(t.getByText('Ada Baird')).toBeTruthy();
-    expect(t.getByTestId('avatar-u1')).toBeTruthy();
+    /**
+     * 006/FR-002's byline is GONE FROM THE CARD, deliberately — 012/T013.
+     *
+     * `design/012-ui/CardAnatomy.dc.html` removes the avatar and handle from
+     * the tile and that is the single largest cut taking the photograph from
+     * 47% of the card to 78%. They repeat down every row of a two-column grid
+     * and say nothing a reader needs BEFORE tapping.
+     *
+     * This assertion is INVERTED rather than deleted, because "we meant to
+     * remove it" and "it fell off" look identical in a test that simply stops
+     * mentioning something. Authorship is asserted where it now lives: post
+     * detail and the profile, both of which show it.
+     */
+    expect(t.queryByText('Ada Baird')).toBeNull();
+    expect(t.queryByTestId('avatar-u1')).toBeNull();
     // FR-003: which interest this belongs to.
     expect(t.getByText('Bouldering')).toBeTruthy();
     // FR-004: the counts.

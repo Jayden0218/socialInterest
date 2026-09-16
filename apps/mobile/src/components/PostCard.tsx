@@ -222,12 +222,26 @@ export function PostCard({
       ) : null}
 
       {/*
-        The artboard's own metrics: 12pt padding, 8pt between the three lines.
-        Every point here is multiplied by the number of cards on screen, which
-        is what SC-008 measures — the text block was 134 points before the
-        interest word stopped reserving a 44pt tap target in layout.
+        THE FOOTER, REBUILT IMAGE-DOMINANT — 012/T013, `CardAnatomy.dc.html`.
+
+        The card gave roughly half its height to the photograph and the rest to
+        a white footer: avatar, handle, heart, middot, count, interest word. On
+        a product whose premise is photographs, the photograph was the MINORITY
+        of the card (012/R8). The artboard's answer is 78% against 47%, and it
+        gets there by removing rather than by shrinking.
+
+        THE AVATAR AND HANDLE COME OFF THE TILE. That is the largest cut and the
+        one worth defending: they repeat down every row of a two-column grid and
+        say nothing a reader needs BEFORE tapping. Authorship belongs on post
+        detail and on a profile, both of which show it — this is not information
+        being lost, it is information moving to where it is asked for.
+
+        Two rows now, not three: the title, then the interest word and the two
+        counts sharing a line. The artboard's own metrics — 9/10/11 padding, 5
+        between the rows — and every point is multiplied by the number of cards
+        on screen, which is what SC-008 measures.
       */}
-      <View style={{ padding: space.md, gap: space.sm }}>
+      <View style={{ paddingHorizontal: space.sm, paddingTop: space.xs, paddingBottom: space.sm, gap: space.xs }}>
         {post.caption ? (
           <Text
             testID="post-caption"
@@ -246,30 +260,27 @@ export function PostCard({
           </Text>
         ) : null}
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>
-          <Avatar userId={post.author.userId} displayName={post.author.displayName} url={post.author.avatarUrl} size={18} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
           {/*
-            The DISPLAY NAME, not the handle.
+            THE ONE QUIET SIGNATURE. One interest, as a word, in its own colour.
 
-            The artboard shows one lowercase word per byline, which reads as
-            either; the form it settles is the line — 11.5/500, muted, beside an
-            18pt avatar — and the display name is what a person recognises. It
-            also has to be this one for the card to agree with itself: `Avatar`
-            draws its initial from the display name, so a handle beside it can
-            show "m" next to "perla".
+            006 rendered every interest on the post as a row of chips. The design
+            shows the first, because a card is 178 points wide and three chips
+            wrap into a paragraph of furniture - and because the point of the
+            colour is that the eye can sort a feed by it at a glance, which a row
+            of them defeats.
           */}
-          <Text
-            numberOfLines={1}
-            style={{
-              flexShrink: 1,
-              color: palette.text.muted,
-              fontSize: typeScale.small.size,
-              lineHeight: typeScale.small.lineHeight,
-            }}
-          >
-            {post.author.displayName}
-          </Text>
+          {interest ? (
+            <View style={{ flexShrink: 1 }}>
+              <InterestWord
+                interest={interest}
+                {...(onOpenInterest ? { onPress: onOpenInterest } : {})}
+              />
+            </View>
+          ) : null}
+
           <View style={{ flexGrow: 1 }} />
+
           {/*
             012/T010, FR-027. This read `♥ {reactionCount} · {commentCount}`:
             a Unicode character doing an icon's job, a bare number doing
@@ -279,46 +290,34 @@ export function PostCard({
           */}
           <View
             testID={`post-counts-${post.postId}`}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}
           >
-            <Icon name="heart" size="count" color={palette.text.muted} />
-            <Text
-              style={{
-                color: palette.text.muted,
-                fontSize: typeScale.small.size,
-                lineHeight: typeScale.small.lineHeight,
-              }}
-            >
-              {post.reactionCount}
-            </Text>
-            <Icon name="comment" size="count" color={palette.text.muted} />
-            <Text
-              style={{
-                color: palette.text.muted,
-                fontSize: typeScale.small.size,
-                lineHeight: typeScale.small.lineHeight,
-              }}
-            >
-              {post.commentCount}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+              <Icon name="heart" size="count" color={palette.text.muted} />
+              <Text
+                style={{
+                  color: palette.text.muted,
+                  fontSize: typeScale.small.size,
+                  lineHeight: typeScale.small.lineHeight,
+                }}
+              >
+                {post.reactionCount}
+              </Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+              <Icon name="comment" size="count" color={palette.text.muted} />
+              <Text
+                style={{
+                  color: palette.text.muted,
+                  fontSize: typeScale.small.size,
+                  lineHeight: typeScale.small.lineHeight,
+                }}
+              >
+                {post.commentCount}
+              </Text>
+            </View>
           </View>
         </View>
-
-        {/*
-          THE ONE QUIET SIGNATURE. One interest, as a word, in its own colour.
-
-          006 rendered every interest on the post as a row of chips. The design
-          shows the first, because a card is 178 points wide and three chips
-          wrap into a paragraph of furniture - and because the point of the
-          colour is that the eye can sort a feed by it at a glance, which a row
-          of them defeats.
-        */}
-        {interest ? (
-          <InterestWord
-            interest={interest}
-            {...(onOpenInterest ? { onPress: onOpenInterest } : {})}
-          />
-        ) : null}
       </View>
     </Pressable>
   );
