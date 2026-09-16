@@ -1,0 +1,18 @@
+# Keep the build context small and keep secrets out of it. A file copied into a
+# layer is in the image even if a later layer deletes it.
+.git
+.env
+.env.*
+node_modules
+**/node_modules
+apps/mobile
+apps/e2e
+infra
+docs
+specs
+design
+.maestro
+**/coverage
+**/dist
+**/.expo
+docker-compose.override.yml

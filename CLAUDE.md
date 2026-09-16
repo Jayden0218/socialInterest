@@ -226,6 +226,32 @@ still stands for the product, but that is not evidence about a populated overlay
   Postgres is not an emulator, so the temptation is to stop calling a local run a stand-in
   — and the guard would then have classified a laptop container as a PRODUCTION datastore.
   Silent, and in the direction that flatters the number.
+- **THE API HAS A `Dockerfile` (010/T027), IT RUNS `tsx`, AND IT WAS BUILT AND RUN
+  BEFORE BEING CALLED DONE.** Render's native Node runtime has no ffmpeg, so a Node
+  service there would accept an upload, fail every transcode and leave every post
+  `pending` — 002's fourth defect exactly. It runs `tsx src/main.ts` rather than a
+  `tsc` build because CI and `smoke:boot` boot under tsx for a stated reason, and a
+  `dist/` would make the deployed path a SECOND runner nothing has exercised.
+  **The first version built green and the container died in under a second**:
+  `apps/api/tsconfig.json` extends `tsconfig.base.json`, which nothing copied into
+  the image, so tsx could not learn `experimentalDecorators` and esbuild refused
+  every Nest decorator in the application. Reading the file would never have shown
+  it. Verified after the fix: `GET /v1/health` 200, `GET /v1/interests` 200, and
+  `API listening on 0.0.0.0:8099` — bound to the platform's `PORT`, not 3000.
+  **The `apt-get` layer is UNVERIFIED** (Debian answers 403 here), which is the
+  one layer that puts ffmpeg in the image.
+- **`API_PORT`, THEN `PORT`, THEN 3000.** The service read only `API_PORT`, so on a
+  host that injects `PORT` it would have bound 3000 while the platform probed
+  something else — a deploy that goes green and answers nothing, which is the
+  failure `main.ts`'s own bind comment describes two files away.
+- **FIVE DEAD RUNTIME DEPENDENCIES IN `apps/api`, ~11.6 MB**, all AWS:
+  `client-cognito-identity-provider` (4.2M), `client-mediaconvert` (4.2M),
+  `client-dynamodb` (2.7M), `aws-jwt-verify` (436K) and `cloudfront-signer` (84K) —
+  zero importers between them, left behind when the four AWS adapters were deleted
+  and when 011 replaced Cognito with email and password. `lib-dynamodb` moved to
+  devDependencies: `transactor.ts` imports a TYPE from it, which is erased.
+  Removing a dependency nothing imports is free; noticing it is not, and it took
+  writing a Dockerfile for a 512 MB host to make anybody look.
 - **`config.dynamo.endpoint` and `.region` are DELETED; `tableName` is NOT**, and the
   difference is worth keeping. The first two had zero readers and sat in the file every new
   setting is copied from, which is how two of the four above got pointed at port 8000.

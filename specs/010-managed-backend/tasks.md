@@ -114,7 +114,7 @@ its media references and its counts are unchanged.
 **Independent Test**: Point the app at it. Come back a week later, from another network, without touching the address.
 
 - [x] T026 [US3] Change `apps/api/src/adapters/local/ffmpeg-media-processor.ts` to execute the `ffmpeg` binary directly instead of `docker run` — no managed host provides a container runtime, and this is the only code change outside `persistence/` the move strictly requires
-- [ ] T027 [US3] Add a `Dockerfile` for the API that provides the `ffmpeg` binary — built in CI or on the host, because `apt-get install ffmpeg` is in the dead-ends table as blocked in the development sandbox
+- [x] T027 [US3] Add a `Dockerfile` for the API that provides the `ffmpeg` binary — built in CI or on the host, because `apt-get install ffmpeg` is in the dead-ends table as blocked in the development sandbox
 - [ ] T028 [US3] Verify a **short** video transcodes with no Docker socket available — short because `-ss 00:00:01` seeks past the end of a sub-second clip and leaves the post `failed` forever, which is the defect the `thumbnail` filter exists for
 - [ ] T029 [US3] Deploy the API to **Render** (R8a — Koyeb's free tier closed to new sign-ups on acquisition) and record the address in `docs/verification/hosted-runbook.md`
 - [ ] T030 [US3] Confirm the address is encrypted and reachable from a phone on an unrelated network (FR-011, FR-012)

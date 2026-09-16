@@ -111,7 +111,19 @@ export function loadConfig(): AppConfig {
 
   return {
     profile,
-    port: Number(process.env['API_PORT'] ?? 3000),
+    /**
+     * 010/T027. `API_PORT` FIRST, THEN `PORT`, THEN 3000.
+     *
+     * `API_PORT` is this project's own name and the e2e harness passes it to
+     * every API it starts, so it has to win. `PORT` is the convention every
+     * managed host uses — Render injects it and routes to whatever it says —
+     * and reading only `API_PORT` would have bound 3000 while the platform
+     * probed something else. That failure is the one `main.ts` describes two
+     * files away: a deploy that goes green and answers nothing, with nothing
+     * in any log to say why, because from the server's point of view nothing
+     * went wrong.
+     */
+    port: Number(process.env['API_PORT'] ?? process.env['PORT'] ?? 3000),
     datastore: {
       /**
        * No default, and no fallback to a local value either. A service that
