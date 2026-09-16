@@ -9,6 +9,12 @@ import type { IdentityProvider, VerifiedPrincipal } from '../../ports';
 export class LocalIdentityProvider implements IdentityProvider {
   constructor(private readonly config: AppConfig) {}
 
+  /**
+   * NO EPOCH COMPARISON HERE, and `identity-provider.port.ts` used to say there
+   * was. See the corrected note on `issueForPerson` there: the claim is signed
+   * into every credential and read by nothing, dormant only because US4 —
+   * the one thing that would ever advance an epoch — is not built.
+   */
   async verify(token: string): Promise<VerifiedPrincipal | null> {
     try {
       const claims = jwt.verify(token, this.config.identity.jwtSecret, {

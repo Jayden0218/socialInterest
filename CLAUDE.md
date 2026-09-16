@@ -1067,6 +1067,26 @@ passwords.
   the overlay would make the app's front door a permanent private divergence and guarantee
   upstream builds a second one. The sync conflict is bought deliberately.
 
+### THE CREDENTIAL EPOCH IS WRITTEN AND NEVER READ (found 2026-09-16)
+
+`issueForPerson` signs an `epoch` into every credential, `credential.repository.ts` stores
+one, and `LocalIdentityProvider.verify` reads `sub` and `operator` **and nothing else**. Two
+halves out of three — and `identity-provider.port.ts` **claimed in a doc comment that it was
+compared on verify**, which is the eighth instance here of a comment describing a product
+that does not exist.
+
+**Dormant, not broken, and the distinction is the whole judgement.** Nothing advances an
+epoch, because the only thing that would is US4's password reset — which is not built, needs
+a mail provider nobody has an account with, and whose absence FR-022 makes a stated condition
+rather than a gap. A claim nobody has had a reason to check is not yet a defect.
+
+**It becomes one the instant a reset lands**, and silently: the reset would appear to work
+and every credential issued before it would keep working. 011/T042 is the task that adds the
+comparison, T048 the one that proves a pre-reset credential stops working, and T044 the
+reminder that comparing costs a datastore read on the hottest path in the product. The
+comment is corrected in place rather than deleted, so the next person to read the port finds
+the state of it rather than the intention.
+
 ### Still not verified for 011, and must be reported that way
 
 - **NOTHING IN 011 HAS RUN ON A DEVICE.** No emulator in this sandbox, so

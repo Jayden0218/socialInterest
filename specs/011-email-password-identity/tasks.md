@@ -156,6 +156,13 @@ the same posts.
 
 - [ ] T041 [P] [US4] Define `apps/api/src/ports/mail.port.ts` and **leave it unbound** (research R6). Binding a do-nothing adapter "for later" produces a reset that silently succeeds and sends nothing
 - [ ] T042 [US4] Add the credential **epoch**: stored on the credential record, carried in the credential, compared during verification (research R4, FR-021). **An absent epoch on either side verifies** — accounts created by the device-token tool hold no credential record and their credentials predate the claim
+  - **2026-09-16: two of the three halves already exist and the third does not.** The epoch is
+    stored (`credential.repository.ts`) and CARRIED (`issueForPerson` signs it), and
+    `verify()` reads `sub` and `operator` and nothing else — so it is written and never read.
+    `identity-provider.port.ts` **claimed in a doc comment that it was compared**; the comment
+    is corrected rather than left describing a product that does not exist. Dormant, not
+    broken: nothing advances an epoch because nothing resets a password. It becomes a real
+    defect the moment T045-T049 land, which is why T048 exists.
 - [X] T043 [US4] Confirm a **device-token account still works after T042** (FR-026): mint one, call `GET /v1/me`, and get 200. This is the assertion that fails if the epoch comparison fails closed, and the population it would sign out is every emulator journey and the laptop runbook
 - [ ] T044 [US4] **Measure what T042 costs.** Verification gains a datastore read on the hottest path in the product. If it costs, memoise per request beside `RelationshipCache`, which 008 already does for privacy — but measure before optimising and record the number either way
 - [ ] T045 [US4] Implement the reset request row, **storing the token hashed** — it is a bearer permission to take over an account, so the link in somebody's inbox must be the only copy of the secret
