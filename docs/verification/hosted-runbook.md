@@ -2,17 +2,34 @@
 
 **010/T029.** How the API gets a permanent public address, and what is owed once it has one.
 
-> ## NOTHING IN THIS DOCUMENT HAS BEEN EXECUTED
+> ## THE SERVICE IS DEPLOYED AND RUNNING — 2026-09-16
 >
-> This is a **procedure, not a record**. No Render service exists, no Supabase project
-> exists, and every step below is derived from this repository's own configuration
-> rather than from a deploy anybody has watched. Constitution V is the reason the
-> distinction is drawn this hard: a plausible runbook read off the source is exactly
-> the artefact that looks like evidence and answers nothing.
+> `https://socialinterest-api.onrender.com`, service `srv-dal9qdqd0e5s7391setg`,
+> Oregon, free plan, Docker runtime, branch `claude/pensive-goldberg-jjjni5`.
+> Boot line, read from Render's own logs rather than assumed:
 >
-> The measurements the deploy owes — **T030, T031, T032, T033** — are recorded at the
-> bottom as `not run`, with blanks to fill. Filling them is what turns this file into
-> a record. Until then, no claim here may be cited as verified.
+> ```
+> [InMemoryCatalogueCache] catalogue loaded: 0 active interests (0 total)
+> [NestApplication] Nest application successfully started  +145ms
+> [bootstrap] API listening on 0.0.0.0:10000 (profile=local)
+> ==> Your service is live
+> ```
+>
+> **What that boot proves, and it is more than it looks:** the image built with
+> ffmpeg (the `apt-get` layer the Dockerfile carried as UNVERIFIED — Debian answers
+> 403 from the sandbox, and answered normally from Render, fetching 9,378 kB);
+> `tsx` resolved `experimentalDecorators`, so `COPY tsconfig.base.json` was right;
+> the service bound **10000, the injected `PORT`, not 3000**, so the `API_PORT` trap
+> was avoided; and the datastore query that crashed the previous boot now returns.
+>
+> **What it does NOT prove, and must be reported that way.** THE ADDRESS HAS NOT BEEN
+> FETCHED FROM ANYWHERE. This sandbox's egress policy refuses `onrender.com`
+> (`connect_rejected`), so no HTTP response has been observed by the party writing
+> this file — only Render's own claim that the service is live. That is precisely the
+> Principle V distinction, and it is why T030 below is still open.
+>
+> The measurements the deploy owes — **T030, T031, T032, T033** — remain open, with
+> what has been measured recorded exactly and no more.
 
 ---
 
@@ -70,6 +87,35 @@ equivalent SQL into Supabase's own SQL editor. `infra/scripts/create-local-schem
 is the authoritative text; the partial `where gsiNpk is not null` clauses are **not
 optional** — they are what reproduces DynamoDB's sparse-index behaviour, and the
 contract calls getting it wrong out by name.
+
+### 2a-bis. ROW LEVEL SECURITY IS REQUIRED, and Supabase will offer to skip it
+
+Running the schema in Supabase's SQL editor raises a dialog offering **Run without
+RLS** or **Run and enable RLS**. **Take "Run and enable RLS".** This is not a
+formality and the wrong button fails silently forever.
+
+Supabase exposes every `public` schema table through PostgREST at
+`https://<ref>.supabase.co/rest/v1/`, authenticated with the **`anon` key — which is
+designed to be public and ships inside client apps.** `items` is the whole datastore:
+every post, person, message, block, report and credential row, in one table. Without
+RLS that REST endpoint is a second, unguarded read path straight into the raw rows,
+and it consults nothing on the way:
+
+- **Principle II** says one `VisibilityFilter` and every read path goes through it. A
+  PostgREST query is a read path that goes through none of it.
+- **Principle III** says privacy is enforced server-side and tested via the path a
+  hostile client would take. This IS that path, and it would be wide open.
+
+Enabling it does not affect the API. The service connects as the `postgres` role,
+which owns the table, and Postgres exempts a table's owner from RLS unless `FORCE ROW
+LEVEL SECURITY` is set. RLS with **no policies** therefore means "deny everything" for
+`anon` and `authenticated` and "unchanged" for the owner — which is exactly the
+division wanted.
+
+**Verified 2026-09-16 by the boot that followed**: with RLS enabled, the API's own
+reads work normally. If it had been wrong, the next boot would have thrown a
+permissions error in place of the missing-table one — which is the direction to fail
+in, because the other button fails open and nothing ever says so.
 
 ### 2b. The connection string
 
@@ -165,11 +211,11 @@ makes that a one-time step rather than a daily one.
 
 | Task | Criterion | Result |
 |---|---|---|
-| T029 | The API has a permanent public address | **not run** — address: `__________` |
-| T030 | Encrypted, and reachable from a phone on an unrelated network (FR-011, FR-012) | **not run** |
+| T029 | The API has a permanent public address | **PASS** — `https://socialinterest-api.onrender.com`, deploy `dep-dala59u7bikc73et9jr0`, live 2026-09-16T14:08:35Z |
+| T030 | Encrypted, and reachable from a phone on an unrelated network (FR-011, FR-012) | **NOT RUN.** The address is `https://`, and Render reports the service live — but **no HTTP response has been observed from outside Render**, because this sandbox's egress refuses `onrender.com`. Reachability from a phone is untested |
 | T031 | SC-007: publishing a post carrying a photograph completes in **under 30 s** | **not run** — measured: `______` |
 | T032 | SC-008: after 24 h of no use, the first request is served in **under 60 s** | **not run** — measured: `______` |
-| T033 | Does 512 MB and 0.1 vCPU transcode **video**? | **not run** |
+| T033 | Does 512 MB and 0.1 vCPU transcode **video**? | **not run.** Idle baseline measured: **185 MB of 512 MB** (193,859,580 / 536,870,900 bytes, 2026-09-16T14:09Z), ~326 MB headroom. That is the BASELINE, not the answer — ffmpeg runs as a subprocess against the same cgroup limit, and no transcode has been attempted |
 
 **T032 and T033 are real measurements with a real chance of failing, and must be reported
 as failures if they fail.** R8a prices the spin-up at 30–60 s, which puts SC-008 at the
