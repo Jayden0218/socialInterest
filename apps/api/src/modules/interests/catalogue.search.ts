@@ -40,13 +40,32 @@ export class InterestSearch {
     return this.catalogue.search(query, opts).map((m) => this.withParent(m));
   }
 
-  /** Browsing with no query: the whole flat catalogue, by name. */
+  /**
+   * Browsing with no query: the flat catalogue, BUSIEST FIRST.
+   *
+   * 012/FR-032. It was alphabetical, which put the first twenty names starting
+   * with A on a surface headed "the busiest interests" — an ordering that is
+   * arbitrary once the catalogue is user-created and unbounded, and a heading
+   * that would have been a claim the data did not support. Explore exists so
+   * that choosing is not guessing; "first twenty alphabetically" is guessing
+   * with extra steps.
+   *
+   * ORDERED BY THE CACHED COUNT, DISPLAYED FROM THE ROW, and the difference is
+   * deliberate. The cache refreshes when an interest is created, merged,
+   * retired or described, so its counts lag — which is tolerable for an
+   * ORDERING (a tile one place out of order is not a defect) and is not
+   * tolerable for the NUMBER on the tile, which the controller reads fresh.
+   * The alternative is a point read per interest in the whole catalogue just to
+   * sort it, on a surface that then shows twenty.
+   *
+   * Name breaks ties, so the order is total and a page boundary cannot wobble.
+   */
   browse(opts: { limit?: number } = {}): SearchResult[] {
     // 013. Flat: there is no hierarchy to walk and no 'ROOT' to stand in for one.
     return this.catalogue
       .active()
       .slice()
-      .sort((a, b) => a.name.localeCompare(b.name))
+      .sort((a, b) => b.postCount - a.postCount || a.name.localeCompare(b.name))
       .slice(0, opts.limit ?? 50)
       .map((interest) => this.withParent({ interest, similarity: 1 }));
   }

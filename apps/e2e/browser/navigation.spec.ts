@@ -150,6 +150,10 @@ describe('browser journeys - the screens the shell could not reach', () => {
     await signInAs(person);
     await page.click(id('tab-discover'));
     await page.fill(id('interest-search-input'), target!.name.slice(0, 4));
+    // The list, first: 012/T038 made `search-result-0` a TILE before anything is
+    // typed and a row afterwards, so it is ambiguous until the re-render lands.
+    // See the note in `interest-reachable.spec.ts`.
+    await page.waitForSelector(id('interest-list'), { timeout: 20_000 });
     await page.waitForSelector(id('search-result-0'), { timeout: 20_000 });
     await page.click(id('search-result-0'));
 

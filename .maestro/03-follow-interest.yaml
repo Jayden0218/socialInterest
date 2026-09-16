@@ -14,6 +14,14 @@ appId: app.socialinterest
 # fault - a container test drives this same press through the shell and the
 # interest screen opens - so this is about the tap landing, not the wiring.
 - hideKeyboard
+# 012/T038. WAIT FOR THE LIST FIRST. Explore draws TILES before anything is
+# typed and a LIST once something is, and both use `search-result-<index>` —
+# preserved on purpose, because this flow and eighteen others select the first
+# result by it. Until the re-render lands, `search-result-0` is still a tile for
+# a DIFFERENT interest, which is the `share-person-.*` failure in a new place:
+# a selector matching more than the thing it means.
+- assertVisible:
+    id: "interest-list"
 - tapOn:
     id: "search-result-0"
 

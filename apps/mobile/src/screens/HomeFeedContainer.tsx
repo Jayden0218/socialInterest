@@ -5,7 +5,7 @@
  * a single 2,726-line `screens/index.tsx`, which `index.tsx` now re-exports so
  * nothing outside this directory changed. See ./README.md for why.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { HomeFeedScreen } from '../features/feed/HomeFeedScreen';
 import { PostCard } from '../components/PostCard';
 import { useFollowingFeed, useHomeFeed } from '../containers';
@@ -16,10 +16,18 @@ import { surfaceFallback } from '../ui/SurfaceStates';
 
 export function HomeFeedContainer({
   onEmptyAction,
+  onCompose,
   onOpenPost,
   onOpenInterest,
 }: {
   onEmptyAction: () => void;
+  /**
+   * 012/FR-020, FR-021. Where "publish the first one" goes.
+   *
+   * Optional, so the screen keeps working without it — but see `emptyAction`
+   * below for why an install with nothing in it has no other honest offer.
+   */
+  onCompose?: () => void;
   onOpenPost: (postId: string) => void;
   /** 007/FR-017. One tap from a card to the interest's space. */
   onOpenInterest?: (interestId: string) => void;
@@ -63,11 +71,52 @@ export function HomeFeedContainer({
    * Following switcher in every state. Wrapping was the first attempt and it
    * left an empty feed with no control to change that it was empty.
    */
+  /**
+   * 012/T042-T044, FR-020, FR-021. IS THERE ANYTHING TO EXPLORE AT ALL?
+   *
+   * The empty state used to offer "Explore interests" unconditionally. FR-020
+   * asks for "a next action AVAILABLE TO THAT PERSON" and FR-021 for one that
+   * "visibly changes the feed" — and on a brand-new install BOTH fail: since 013
+   * the product ships with no interests of its own, so Explore is empty too, and
+   * the one control on an empty room opens another empty room.
+   *
+   * T044 asked for this to be DECIDED and recorded rather than guessed, and
+   * ruled out the obvious shortcut in advance: "`seed:demo` is a development
+   * tool and borrowing it would be answering a product question with a script."
+   * So the decision is not to give a newcomer content. It is to stop offering
+   * them somebody else's:
+   *
+   *   - something to explore  -> "Explore interests", as before
+   *   - nothing at all yet    -> "Share your first photo"
+   *
+   * The second is the only action that is genuinely available on an empty
+   * install and the only one that visibly changes the feed, because a person's
+   * own post is in it. That is also what the product IS: research R4 is blunt
+   * that "♥ 0 · 0 everywhere" is what an install with no real use looks like and
+   * that no state, skeleton or palette fixes it.
+   *
+   * ONE REQUEST, and its failure is swallowed. A catalogue lookup that is down
+   * must not decide the empty state wrongly in the alarming direction, so the
+   * default is the old copy.
+   */
+  const [catalogueHasAnything, setCatalogueHasAnything] = useState<boolean | null>(null);
+  useEffect(() => {
+    let live = true;
+    void data.interests
+      .listTop({ limit: 1 })
+      .then((page) => live && setCatalogueHasAnything(page.items.length > 0))
+      .catch(() => live && setCatalogueHasAnything(null));
+    return () => {
+      live = false;
+    };
+  }, [data]);
+  const nothingToExploreYet = catalogueHasAnything === false && onCompose !== undefined;
+
   const fallback = surfaceFallback(active, {
     shape: 'feed',
     ids: { loading: 'feed-loading', empty: 'feed-empty', failed: 'feed-failed' },
     empty: {
-      icon: 'explore',
+      icon: nothingToExploreYet ? 'camera' : 'explore',
       title: 'Nothing here yet',
       /**
        * FR-007: names an action and offers the control that performs it.
@@ -78,9 +127,11 @@ export function HomeFeedContainer({
        * indistinguishable, so an empty state that explained the difference
        * would be an oracle.
        */
-      body: 'Follow a few interests and your feed fills up.',
-      actionLabel: 'Explore interests',
-      onAction: onEmptyAction,
+      body: nothingToExploreYet
+        ? 'Nobody has posted here yet. Put something up and it will be the first thing in it.'
+        : 'Follow a few interests and your feed fills up.',
+      actionLabel: nothingToExploreYet ? 'Share your first photo' : 'Explore interests',
+      onAction: nothingToExploreYet ? (onCompose ?? onEmptyAction) : onEmptyAction,
     },
   });
 

@@ -257,9 +257,15 @@ export function InterestSearchScreen({
 
             Before anything is typed this is a BROWSE surface and the artboard
             draws it as a grid: a mosaic, the name, and how many posts are
-            behind it. "Busy this week" is the heading, and the ordering is the
-            server's — the listing is by name today, which is noted as open in
-            the run record rather than quietly claimed.
+            behind it.
+
+            THE ARTBOARD SAYS "Busy this week" AND THIS SAYS "Busiest
+            interests", which is a deliberate departure. The server orders by
+            total post count; it has no seven-day window and nothing computes
+            one. Shipping the artboard's words over all-time data would be a
+            sentence the product cannot back — 008/T224's lesson, where the
+            share sheet said nothing for a public post and read as a promise.
+            When the data gains a window, the heading can have one.
 
             While typing it stays a LIST. A type-ahead is scanned top to bottom
             and a two-column grid of photographs is the wrong shape for that —
@@ -331,7 +337,7 @@ export function InterestSearchScreen({
                 <Text
                   style={{ ...textStyle.caption, color: palette.text.muted, marginBottom: space.xs }}
                 >
-                  Busy this week
+                  Busiest interests
                 </Text>
               }
               renderItem={({ item, index }) => (

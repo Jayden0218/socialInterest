@@ -67,6 +67,19 @@ jest.mock('../overlay/screens', () => ({
  */
 const minimalData = {
   session: { isSignedIn: async () => false, resume: async () => null },
+  /**
+   * 012/T042. The feed asks the catalogue whether there is anything to explore,
+   * so that an empty feed offers an action that EXISTS on this install rather
+   * than a tab that is also empty. The shell renders the feed at the root, so
+   * this stub reaches it.
+   *
+   * Added rather than defended against in the container: a real `AppData`
+   * always has `interests`, and a container written to tolerate a data layer
+   * missing half its namespaces would be defending against a shape only a
+   * fixture produces. This stub is cast `as unknown as AppData` and was simply
+   * lying about the interface.
+   */
+  interests: { listTop: async () => ({ items: [], page: { nextCursor: null } }) },
 } as unknown as AppData;
 
 const renderShell = (initialStack?: Route[]) =>

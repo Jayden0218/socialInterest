@@ -55,6 +55,9 @@ describe('a photograph loads, and its states are not one grey box', () => {
     await page.waitForSelector('[data-testid="tab-discover"]', { timeout: 30_000 });
     await page.click('[data-testid="tab-discover"]');
     await page.fill('[data-testid="interest-search-input"]', name);
+    // The list, first: `search-result-0` is also a TILE until the re-render
+    // lands. See the note in `interest-reachable.spec.ts`.
+    await page.waitForSelector('[data-testid="interest-list"]', { timeout: 30_000 });
     await page.waitForSelector('[data-testid="search-result-0"]', { timeout: 30_000 });
     await page.click('[data-testid="search-result-0"]');
     await page.waitForSelector('[data-testid="interest-screen"]', { timeout: 30_000 });

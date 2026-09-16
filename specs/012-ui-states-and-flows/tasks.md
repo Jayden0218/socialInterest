@@ -150,9 +150,28 @@ story to P3 after the research.
 
 ## Phase 9: User Story 3 — a new account is not an empty room (Priority: P2)
 
-- [ ] T042 [US3] A newly created account is never shown an unexplained empty feed (FR-019)
-- [ ] T043 [US3] Where it is empty, say why and offer a next action available to that person (FR-020), and taking it visibly changes the feed (FR-021)
-- [ ] T044 [US3] **Decide explicitly what a real new account gets**, and record the decision. `seed:demo` is a development tool and borrowing it would be answering a product question with a script. Research R4: every post in the captures shows `♥ 0 · 0`, and a feed of entirely unengaged posts reads as abandoned however well it is laid out
+- [X] T042 [US3] A newly created account is never shown an unexplained empty feed (FR-019)
+- [X] T043 [US3] Where it is empty, say why and offer a next action available to that person (FR-020), and taking it visibly changes the feed (FR-021)
+- [X] T044 [US3] **Decide explicitly what a real new account gets**, and record the decision. `seed:demo` is a development tool and borrowing it would be answering a product question with a script. Research R4: every post in the captures shows `♥ 0 · 0`, and a feed of entirely unengaged posts reads as abandoned however well it is laid out.
+
+  **DECIDED, 2026-09-16: a new account gets NOTHING, and the empty state stops pretending otherwise.**
+
+  Not content — this task ruled that out and was right: borrowing `seed:demo` answers a
+  product question with a script, and R4 is blunt that an install with no real use looks
+  like one however it is laid out. What changes is the OFFER. The empty feed said "Explore
+  interests" unconditionally, and since 013 removed the curated catalogue a brand-new
+  install has none, so that control opened a second empty room and changed nothing — failing
+  both halves of FR-020 ("available to that person") and FR-021 ("visibly changes the feed")
+  on exactly the install those requirements are about.
+
+  So the feed asks whether there is anything to explore, once, and offers accordingly:
+  something in the catalogue → "Explore interests"; nothing at all → "Share your first
+  photo", which is the one action that is genuinely theirs and the one whose result is in
+  their own feed. A failed lookup falls back to Explore, because "nobody has posted here" is
+  the more alarming message and a dropped request must not produce it.
+
+  `empty-feed-offers-something-real.test.ts` pins all three branches and was watched RED
+  against the old unconditional copy.
 
 ---
 

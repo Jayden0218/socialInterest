@@ -135,6 +135,22 @@ describe('007/G2 - the interest space is reachable from a post', () => {
     await page.waitForSelector(id('tab-discover'), { timeout: 30_000 });
     await page.click(id('tab-discover'));
     await page.fill(id('interest-search-input'), interest.name);
+    /**
+     * WAIT FOR THE LIST BEFORE CLICKING, and this is not belt-and-braces.
+     *
+     * 012/T038 made Explore render TILES before anything is typed and a LIST
+     * once something is, and both use `search-result-<index>` — deliberately,
+     * because nineteen Maestro flows and every browser journey select Explore's
+     * first result by that id and a layout change is not a reason to rename one.
+     *
+     * The cost is that `search-result-0` is ambiguous for the instant between
+     * the keystroke and the re-render: it can still be the TILE, which is a
+     * different interest. That is the `share-person-.*` failure in a new place —
+     * a selector that matches more than the thing you mean — and it showed up
+     * exactly as that one did: passing alone, failing once in a full run.
+     * Waiting for `interest-list` makes the click unambiguous.
+     */
+    await page.waitForSelector(id('interest-list'), { timeout: 30_000 });
     await page.waitForSelector(id('search-result-0'), { timeout: 30_000 });
     await page.click(id('search-result-0'));
     await page.waitForSelector(id('interest-screen'), { timeout: 30_000 });

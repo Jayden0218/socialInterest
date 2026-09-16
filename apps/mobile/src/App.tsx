@@ -618,6 +618,13 @@ export function Shell({
               <View style={{ flex: 1 }}>
                 <HomeFeedContainer
                   onEmptyAction={() => setTab('discover')}
+                  /**
+                   * 012/FR-020, FR-021. The empty feed's OTHER action, for an
+                   * install where "Explore interests" would open a second empty
+                   * room. Same destination as the `+` in the tab bar, so there
+                   * is one compose route and not two.
+                   */
+                  onCompose={() => requireSignIn({ name: 'compose' })}
                   onOpenPost={(postId) => push({ name: 'post', postId })}
                   // 007/FR-017. Tapping the coloured word opens its space, which
                   // is what keeps the taxonomy load-bearing once the feed stops
