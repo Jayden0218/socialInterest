@@ -168,9 +168,23 @@ That is this project's own standing rule — make the failure visible before
 changing anything, and prefer the free observation to the expensive guess — and
 it was available from the first failure and reached for only after the fourth.
 
-**The API URL is compiled in.** `EXPO_PUBLIC_API_BASE_URL` is inlined at build
-time, so an APK built with one address cannot be repointed. Build it with an
-address the device can actually reach.
+**The API URL is compiled in — BUT "cannot be repointed" IS NO LONGER TRUE, and
+this paragraph said it for two features.** `EXPO_PUBLIC_API_BASE_URL` is still
+inlined at build time, so the BUNDLE cannot be changed after the fact. What
+changed is that the app stopped depending on the bundle for this: 009/US1 added
+`sign-in-change-server` — "Use a different server" on the sign-in screen
+(`SignInScreen.tsx:222`) — which reveals the address field even when
+`ADDRESS_IS_COMPILED_IN` is true, and `PersistentSettingsStore` remembers what
+it is told. So a compiled-in address is a DEFAULT, not a pin.
+
+That distinction is the whole reason the control exists, and this paragraph
+argues against it: a build whose compiled address becomes unreachable — a
+moved DHCP lease, a new tunnel, a backend that changed host — would otherwise
+be an app that can reach nothing with no way to say so. A product that cannot
+be repaired from inside itself is worse than one that asks a question.
+
+Still build it with an address the device can reach, so nobody has to type one.
+It is just no longer the only chance to get it right.
 
 **A LAN address is the wrong default for a phone.** It is a property of the
 network the machine is on, so it changes when either end joins a different
