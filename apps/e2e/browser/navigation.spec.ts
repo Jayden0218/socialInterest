@@ -63,15 +63,49 @@ describe('browser journeys - the screens the shell could not reach', () => {
    * they provision a starting state rather than exercise sign-up.
    */
   /**
-   * Gives an actor a credential and signs in as them.
+   * SIGNED IN BY SEEDING THE CREDENTIAL, not by driving the screen — and the
+   * reason is a 429 that CI printed once the helper below was made to report one.
    *
-   * `giveCredentials` is called HERE rather than inside `actor()` because most
-   * fixture actors are never signed in as — they are people the signed-in
-   * account interacts with — and a `scrypt` derivation each would be ~100ms
-   * spent writing rows nothing reads. Paying it at the point of use keeps the
-   * cost where the need is.
+   *   API calls : POST /v1/auth/sign-in -> 429
+   *   on screen : Retry in 4s
+   *
+   * Sign-in is rate limited at capacity 10, refill 0.1/s, keyed on `req.ip` for
+   * a public route — so every browser sign-in in this file shared ONE bucket.
+   * Thirteen of them in fifty-two seconds is precisely the shape that limiter
+   * exists to refuse: it was working, and the suite was asking it not to.
+   *
+   * THE PRODUCT IS NOT CHANGED TO SUIT THE TEST. Raising the capacity, or
+   * binding a looser one for e2e, would mean the suite no longer exercises the
+   * shipped configuration — the same defect in miniature that deleting the four
+   * AWS adapters ended. What changes is the suite's claim: these tests need to
+   * BE signed in, and only two of them are ABOUT signing in.
+   *
+   * Seeding `sih.auth.token` is the pattern `card-is-image-dominant.spec.ts`
+   * and `collections-ui.spec.ts` already use, and it is how a returning person
+   * actually starts — so it exercises the persistence path rather than skipping
+   * one. It also drops thirteen `scrypt` derivations nothing was reading.
+   *
+   * `addInitScript` runs before any app code, and `beforeEach` gives every test
+   * a fresh page, so it cannot leak between them.
    */
-  async function signInAs(who: { userId: string; handle: string }): Promise<void> {
+  async function signInAs(who: { token: string }): Promise<void> {
+    await page.addInitScript((t) => {
+      (
+        globalThis as unknown as { localStorage: { setItem(k: string, v: string): void } }
+      ).localStorage.setItem('sih.auth.token', t as string);
+    }, who.token);
+    await page.goto(web.url, { waitUntil: 'domcontentloaded' });
+    await settleAfterSignIn();
+  }
+
+  /**
+   * Drives the REAL screen, for the tests where signing in is the thing under
+   * test rather than the way in. Two of them, which is well inside the bucket.
+   */
+  async function signInThroughTheScreenAs(who: {
+    userId: string;
+    handle: string;
+  }): Promise<void> {
     const { email, password } = await giveCredentials(who.userId, who.handle);
     await signInThroughTheScreen(email, password);
   }
@@ -138,17 +172,24 @@ describe('browser journeys - the screens the shell could not reach', () => {
       page.off('pageerror', onPageError);
     }
 
-    /**
-     * 007/FR-014. SIGNING IN NOW LANDS ON THE COLD START, which is a PUSHED
-     * screen — so the tab bar is not on it, exactly as 005/J-21 recorded for a
-     * pushed conversation. A journey that expected the tabs immediately after
-     * sign-in is waiting for something the app deliberately does not render
-     * yet, and that is what broke the whole browser suite in one commit.
-     *
-     * Dismissed rather than picked from: what the cold start does with picks is
-     * covered by `cold-start-container.test.tsx` and `signals.spec.ts`, and
-     * these journeys are about reaching the screens after it.
-     */
+    await settleAfterSignIn();
+  }
+
+  /**
+   * Whatever the route in — the screen or a seeded credential — the app lands
+   * in the same place, so both paths share this.
+   *
+   * 007/FR-014. SIGNING IN LANDS ON THE COLD START, which is a PUSHED screen —
+   * so the tab bar is not on it, exactly as 005/J-21 recorded for a pushed
+   * conversation. A journey that expected the tabs immediately after sign-in is
+   * waiting for something the app deliberately does not render yet, and that is
+   * what broke the whole browser suite in one commit.
+   *
+   * Dismissed rather than picked from: what the cold start does with picks is
+   * covered by `cold-start-container.test.tsx` and `signals.spec.ts`, and these
+   * journeys are about reaching the screens after it.
+   */
+  async function settleAfterSignIn(): Promise<void> {
     /**
      * WAIT for one of the two possible next screens before deciding.
      *
@@ -172,7 +213,7 @@ describe('browser journeys - the screens the shell could not reach', () => {
 
   it('J-01 a person signs in by typing a token, and the API accepts it', async () => {
     const person = await actor('websignin');
-    await signInAs(person);
+    await signInThroughTheScreenAs(person);
 
     // Signed in, so the sign-in affordance is gone and the profile tab resolves.
     expect(await page.$(id('open-sign-in'))).toBeNull();
