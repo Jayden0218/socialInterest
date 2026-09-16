@@ -1,0 +1,103 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+  <style>
+/* Tokens lifted verbatim from apps/mobile/src/ui/tokens.ts — not rounded. */
+:root{
+  --bg:#FBFAF8; --raised:#FFFFFF; --sunken:#F3F1EC;
+  --tx:#16211A; --tx2:#43514A; --tx3:#606C66; --on-accent:#FFFFFF;
+  --hair:#ECEAE4; --strong:#CFCABE;
+  --accent:#1F6B3F; --danger:#C0392B;
+  --r-card:14px; --r-btn:11px; --r-field:21px; --r-sheet:20px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);
+  font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;
+  -webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none} a:hover{color:#17512F}
+/* Type roles — exact values from tokens.ts */
+.t-display{font-size:20px;line-height:26px;font-weight:700}
+.t-title{font-size:18px;line-height:24px;font-weight:700}
+.t-body{font-size:14px;line-height:21px;font-weight:400}
+.t-label{font-size:13.5px;line-height:18px;font-weight:600}
+.t-caption{font-size:12.5px;line-height:17px;font-weight:500}
+.t-small{font-size:11.5px;line-height:16px;font-weight:500}
+.t-tab{font-size:10.5px;line-height:14px;font-weight:600}
+.phone{width:390px;height:844px;background:var(--bg);position:relative;overflow:hidden;
+  display:flex;flex-direction:column}
+/* No fake status bar — the real one paints here on a device. */
+.safe-top{height:44px;flex:none}
+.scroll{flex:1;overflow:hidden}
+.nav{flex:none;background:var(--raised);border-top:1px solid var(--hair);
+  padding:8px 8px 22px;display:grid;grid-template-columns:repeat(5,1fr);align-items:end}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;
+  justify-content:center;color:var(--tx3)}
+.nav-item.on{color:var(--accent)}
+.compose{width:46px;height:34px;border-radius:var(--r-btn);background:var(--accent);
+  display:flex;align-items:center;justify-content:center;color:#fff;margin-bottom:3px}
+/* Photographic stand-ins: muted, natural, never a bright gradient. */
+.ph{background-color:#C9C3B6;background-repeat:no-repeat;position:relative;overflow:hidden}
+.ph-1{background-image:radial-gradient(120% 90% at 20% 15%,#8FA089 0%,#6E8270 45%,#43574B 100%)}
+.ph-2{background-image:radial-gradient(110% 80% at 75% 20%,#D8C3A0 0%,#B79770 50%,#7E6242 100%)}
+.ph-3{background-image:radial-gradient(120% 95% at 30% 80%,#A9B6C2 0%,#7B8C9C 50%,#4C5A69 100%)}
+.ph-4{background-image:radial-gradient(100% 85% at 60% 25%,#C9A79A 0%,#A67E70 50%,#6F4F46 100%)}
+.ph-5{background-image:radial-gradient(130% 90% at 25% 30%,#BFC7AE 0%,#93A17F 50%,#5D6B4C 100%)}
+.ph-6{background-image:radial-gradient(110% 90% at 70% 70%,#C6B8C9 0%,#9A88A3 50%,#63566E 100%)}
+
+  </style>
+</helmet>
+<div style="width:720px;min-height:600px;background:var(--bg);padding:32px">
+  <div class="t-display" style="margin-bottom:6px">The card is mostly chrome</div>
+  <div class="t-body" style="color:var(--tx2);max-width:600px;margin-bottom:24px">
+    On a product whose premise is photographs, the photograph is currently the minority of the
+    card. The avatar and handle are the largest cut: they repeat down a two-column grid and say
+    nothing a reader needs before tapping.</div>
+  <div style="display:flex;gap:44px;align-items:start">
+    <div style="width:186px">
+  <div class="t-caption" style="color:var(--danger);font-weight:700;margin-bottom:8px">NOW — 47% photograph</div>
+  <div style="background:var(--raised);border-radius:var(--r-card);overflow:hidden">
+    <div class="ph ph-1" style="height:118px"></div>
+    <div style="padding:10px;display:flex;flex-direction:column;gap:7px;
+      outline:1.5px dashed var(--danger);outline-offset:-4px">
+      <div style="display:flex;align-items:center;gap:6px">
+        <div style="width:20px;height:20px;border-radius:999px;background:#7458A1"></div>
+        <span class="t-small" style="color:var(--tx2)">discoverer</span>
+        <span style="flex:1"></span><span class="t-small" style="color:var(--tx3)">&hearts; 0 &middot; 0</span>
+      </div>
+      <div class="t-label" style="color:#2D7B44">Analogue 784701</div>
+    </div>
+  </div>
+</div><div style="width:186px">
+  <div class="t-caption" style="color:var(--accent);font-weight:700;margin-bottom:8px">AFTER — 78% photograph</div>
+  <div style="background:var(--raised);border-radius:var(--r-card);overflow:hidden">
+  <div class="ph ph-1" style="height:196px"></div>
+  <div style="padding:9px 10px 11px;display:flex;flex-direction:column;gap:5px">
+    <div class="t-label" style="color:var(--tx)">Goldcrest, finally still</div>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <span class="t-small" style="color:#00798D;font-weight:600">Birding</span>
+      <span style="display:flex;align-items:center;gap:9px;color:var(--tx3)">
+        <span style="display:flex;align-items:center;gap:3px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.3s-7.3-4.4-7.3-9.2A4.1 4.1 0 0 1 12 8.2a4.1 4.1 0 0 1 7.3 2.9c0 4.8-7.3 9.2-7.3 9.2Z"/></svg><span class="t-small">34</span></span>
+        <span style="display:flex;align-items:center;gap:3px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20.4 12.3c0 3.8-3.8 6.9-8.4 6.9a9.9 9.9 0 0 1-2.5-.3L4.8 20.4l1.3-3.5a6.5 6.5 0 0 1-2.5-5c0-3.8 3.8-6.9 8.4-6.9s8.4 3.1 8.4 6.9Z"/></svg><span class="t-small">6</span></span>
+      </span>
+    </div>
+  </div>
+</div>
+</div>
+    <div style="display:flex;flex-direction:column;gap:14px;padding-top:26px;max-width:250px">
+      <div class="t-caption" style="color:var(--tx3);max-width:250px"><b>Avatar and handle removed.</b> Authorship belongs on post detail and on a profile, not on every tile in a grid.</div>
+      <div class="t-caption" style="color:var(--tx3);max-width:250px"><b>Title first, two lines.</b> It is the only thing a reader needs to decide whether to tap.</div>
+      <div class="t-caption" style="color:var(--tx3);max-width:250px"><b>Interest keeps its own hue</b> and stays a word, never a chip — the one rule the current build already gets right.</div>
+      <div class="t-caption" style="color:var(--tx3);max-width:250px"><b>Counts get real icons</b> at 13px, replacing &hearts; and a middot.</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

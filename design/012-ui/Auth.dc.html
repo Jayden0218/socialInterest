@@ -1,0 +1,112 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+  <style>
+/* Tokens lifted verbatim from apps/mobile/src/ui/tokens.ts — not rounded. */
+:root{
+  --bg:#FBFAF8; --raised:#FFFFFF; --sunken:#F3F1EC;
+  --tx:#16211A; --tx2:#43514A; --tx3:#606C66; --on-accent:#FFFFFF;
+  --hair:#ECEAE4; --strong:#CFCABE;
+  --accent:#1F6B3F; --danger:#C0392B;
+  --r-card:14px; --r-btn:11px; --r-field:21px; --r-sheet:20px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);
+  font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;
+  -webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none} a:hover{color:#17512F}
+/* Type roles — exact values from tokens.ts */
+.t-display{font-size:20px;line-height:26px;font-weight:700}
+.t-title{font-size:18px;line-height:24px;font-weight:700}
+.t-body{font-size:14px;line-height:21px;font-weight:400}
+.t-label{font-size:13.5px;line-height:18px;font-weight:600}
+.t-caption{font-size:12.5px;line-height:17px;font-weight:500}
+.t-small{font-size:11.5px;line-height:16px;font-weight:500}
+.t-tab{font-size:10.5px;line-height:14px;font-weight:600}
+.phone{width:390px;height:844px;background:var(--bg);position:relative;overflow:hidden;
+  display:flex;flex-direction:column}
+/* No fake status bar — the real one paints here on a device. */
+.safe-top{height:44px;flex:none}
+.scroll{flex:1;overflow:hidden}
+.nav{flex:none;background:var(--raised);border-top:1px solid var(--hair);
+  padding:8px 8px 22px;display:grid;grid-template-columns:repeat(5,1fr);align-items:end}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;
+  justify-content:center;color:var(--tx3)}
+.nav-item.on{color:var(--accent)}
+.compose{width:46px;height:34px;border-radius:var(--r-btn);background:var(--accent);
+  display:flex;align-items:center;justify-content:center;color:#fff;margin-bottom:3px}
+/* Photographic stand-ins: muted, natural, never a bright gradient. */
+.ph{background-color:#C9C3B6;background-repeat:no-repeat;position:relative;overflow:hidden}
+.ph-1{background-image:radial-gradient(120% 90% at 20% 15%,#8FA089 0%,#6E8270 45%,#43574B 100%)}
+.ph-2{background-image:radial-gradient(110% 80% at 75% 20%,#D8C3A0 0%,#B79770 50%,#7E6242 100%)}
+.ph-3{background-image:radial-gradient(120% 95% at 30% 80%,#A9B6C2 0%,#7B8C9C 50%,#4C5A69 100%)}
+.ph-4{background-image:radial-gradient(100% 85% at 60% 25%,#C9A79A 0%,#A67E70 50%,#6F4F46 100%)}
+.ph-5{background-image:radial-gradient(130% 90% at 25% 30%,#BFC7AE 0%,#93A17F 50%,#5D6B4C 100%)}
+.ph-6{background-image:radial-gradient(110% 90% at 70% 70%,#C6B8C9 0%,#9A88A3 50%,#63566E 100%)}
+
+  </style>
+</helmet>
+<div style="width:900px;min-height:940px;background:var(--bg);padding:32px">
+  <div class="t-display" style="margin-bottom:6px">Sign in and sign up</div>
+  <div class="t-body" style="color:var(--tx2);max-width:640px;margin-bottom:8px">
+    The submit sits <b>above</b> the fields. A soft keyboard opens below the field being typed
+    into, so a control above every field cannot be covered at any keyboard height.</div>
+  <div class="t-caption" style="color:var(--tx3);margin-bottom:22px">
+    Three device runs were spent signed out before this became an invariant rather than a measurement.</div>
+  <div style="display:flex;gap:40px"><div class="phone">
+  <div class="safe-top"></div>
+  <div style="flex:none;display:flex;align-items:center;justify-content:space-between;padding:2px 16px 14px">
+    <span class="t-display">Sign in</span>
+    <span class="t-caption" style="color:var(--on-accent);background:var(--accent);border-radius:var(--r-btn);
+      padding:11px 18px;font-weight:700">Sign in</span>
+  </div>
+  <div class="scroll" style="padding:0 16px">
+    <div class="t-title" style="font-size:24px;line-height:31px;margin-bottom:6px">
+      Things worth paying attention to.</div>
+    <div class="t-body" style="color:var(--tx2);margin-bottom:22px">
+      Photos and video from people deep in the things they love.</div>
+    <div style="display:flex;flex-direction:column;gap:13px"><div style="display:flex;flex-direction:column;gap:6px">
+  <span class="t-small" style="color:var(--tx3)">Email</span>
+  <div class="t-body" style="color:var(--tx);background:var(--sunken);border-radius:var(--r-field);
+    padding:12px 16px;letter-spacing:normal">jo@example.com</div></div><div style="display:flex;flex-direction:column;gap:6px">
+  <span class="t-small" style="color:var(--tx3)">Password</span>
+  <div class="t-body" style="color:var(--tx);background:var(--sunken);border-radius:var(--r-field);
+    padding:12px 16px;letter-spacing:1.5px">&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</div></div></div>
+    <div class="t-caption" style="color:var(--accent);text-align:center;font-weight:700;margin-top:22px">Create an account</div>
+  </div></div><div class="phone">
+  <div class="safe-top"></div>
+  <div style="flex:none;display:flex;align-items:center;justify-content:space-between;padding:2px 16px 14px">
+    <span class="t-display">Create account</span>
+    <span class="t-caption" style="color:var(--on-accent);background:var(--accent);border-radius:var(--r-btn);
+      padding:11px 18px;font-weight:700">Create</span>
+  </div>
+  <div class="scroll" style="padding:0 16px">
+    <div class="t-title" style="font-size:24px;line-height:31px;margin-bottom:6px">
+      Things worth paying attention to.</div>
+    <div class="t-body" style="color:var(--tx2);margin-bottom:22px">
+      Photos and video from people deep in the things they love.</div>
+    <div style="display:flex;flex-direction:column;gap:13px"><div style="display:flex;flex-direction:column;gap:6px">
+  <span class="t-small" style="color:var(--tx3)">Email</span>
+  <div class="t-body" style="color:var(--tx3);background:var(--sunken);border-radius:var(--r-field);
+    padding:12px 16px;letter-spacing:normal"></div></div><div style="display:flex;flex-direction:column;gap:6px">
+  <span class="t-small" style="color:var(--tx3)">Password</span>
+  <div class="t-body" style="color:var(--tx3);background:var(--sunken);border-radius:var(--r-field);
+    padding:12px 16px;letter-spacing:1.5px"></div></div><div style="display:flex;flex-direction:column;gap:6px">
+  <span class="t-small" style="color:var(--tx3)">Handle</span>
+  <div class="t-body" style="color:var(--tx3);background:var(--sunken);border-radius:var(--r-field);
+    padding:12px 16px;letter-spacing:normal"></div></div><div style="display:flex;flex-direction:column;gap:6px">
+  <span class="t-small" style="color:var(--tx3)">Name</span>
+  <div class="t-body" style="color:var(--tx3);background:var(--sunken);border-radius:var(--r-field);
+    padding:12px 16px;letter-spacing:normal"></div></div></div>
+    <div class="t-caption" style="color:var(--accent);text-align:center;font-weight:700;margin-top:22px">Sign in instead</div>
+  </div></div></div></div>
+</x-dc>
+</body>
+</html>

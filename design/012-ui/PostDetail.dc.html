@@ -1,0 +1,101 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+  <style>
+/* Tokens lifted verbatim from apps/mobile/src/ui/tokens.ts — not rounded. */
+:root{
+  --bg:#FBFAF8; --raised:#FFFFFF; --sunken:#F3F1EC;
+  --tx:#16211A; --tx2:#43514A; --tx3:#606C66; --on-accent:#FFFFFF;
+  --hair:#ECEAE4; --strong:#CFCABE;
+  --accent:#1F6B3F; --danger:#C0392B;
+  --r-card:14px; --r-btn:11px; --r-field:21px; --r-sheet:20px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);
+  font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;
+  -webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none} a:hover{color:#17512F}
+/* Type roles — exact values from tokens.ts */
+.t-display{font-size:20px;line-height:26px;font-weight:700}
+.t-title{font-size:18px;line-height:24px;font-weight:700}
+.t-body{font-size:14px;line-height:21px;font-weight:400}
+.t-label{font-size:13.5px;line-height:18px;font-weight:600}
+.t-caption{font-size:12.5px;line-height:17px;font-weight:500}
+.t-small{font-size:11.5px;line-height:16px;font-weight:500}
+.t-tab{font-size:10.5px;line-height:14px;font-weight:600}
+.phone{width:390px;height:844px;background:var(--bg);position:relative;overflow:hidden;
+  display:flex;flex-direction:column}
+/* No fake status bar — the real one paints here on a device. */
+.safe-top{height:44px;flex:none}
+.scroll{flex:1;overflow:hidden}
+.nav{flex:none;background:var(--raised);border-top:1px solid var(--hair);
+  padding:8px 8px 22px;display:grid;grid-template-columns:repeat(5,1fr);align-items:end}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;min-height:44px;
+  justify-content:center;color:var(--tx3)}
+.nav-item.on{color:var(--accent)}
+.compose{width:46px;height:34px;border-radius:var(--r-btn);background:var(--accent);
+  display:flex;align-items:center;justify-content:center;color:#fff;margin-bottom:3px}
+/* Photographic stand-ins: muted, natural, never a bright gradient. */
+.ph{background-color:#C9C3B6;background-repeat:no-repeat;position:relative;overflow:hidden}
+.ph-1{background-image:radial-gradient(120% 90% at 20% 15%,#8FA089 0%,#6E8270 45%,#43574B 100%)}
+.ph-2{background-image:radial-gradient(110% 80% at 75% 20%,#D8C3A0 0%,#B79770 50%,#7E6242 100%)}
+.ph-3{background-image:radial-gradient(120% 95% at 30% 80%,#A9B6C2 0%,#7B8C9C 50%,#4C5A69 100%)}
+.ph-4{background-image:radial-gradient(100% 85% at 60% 25%,#C9A79A 0%,#A67E70 50%,#6F4F46 100%)}
+.ph-5{background-image:radial-gradient(130% 90% at 25% 30%,#BFC7AE 0%,#93A17F 50%,#5D6B4C 100%)}
+.ph-6{background-image:radial-gradient(110% 90% at 70% 70%,#C6B8C9 0%,#9A88A3 50%,#63566E 100%)}
+
+  </style>
+</helmet>
+<div class="phone">
+  <div class="safe-top"></div>
+  <div style="flex:none;display:flex;align-items:center;justify-content:space-between;padding:2px 16px 10px;min-height:44px"><span style="display:flex;align-items:center;gap:10px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14.6 5.4 8 12l6.6 6.6"/></svg><span class="t-title">Birding</span></span><span style="display:flex;gap:6px;color:var(--tx2)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.4" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="18.6" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg></span></div>
+  <div class="scroll" style="overflow-y:hidden">
+    <div class="ph ph-1" style="height:390px"></div>
+    <div style="padding:14px 16px 0">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div style="width:34px;height:34px;border-radius:999px;background:#00798D;
+          display:flex;align-items:center;justify-content:center;color:#fff;font-size:13.5px;font-weight:700">M</div>
+        <div style="display:flex;flex-direction:column">
+          <span class="t-caption" style="color:var(--tx)">mara</span>
+          <span class="t-small" style="color:var(--tx3)">2 hours ago</span>
+        </div>
+        <span style="flex:1"></span>
+        <span class="t-caption" style="color:var(--accent);font-weight:700;
+          border:1.5px solid var(--accent);border-radius:var(--r-btn);padding:7px 14px">Follow</span>
+      </div>
+      <div class="t-body" style="color:var(--tx);margin-bottom:8px">
+        Goldcrest, finally still. Fourth morning at the same hedge — they never stop moving,
+        so this is mostly luck and a very cold hour.</div>
+      <div class="t-caption" style="color:#00798D;font-weight:700;margin-bottom:12px">Birding</div>
+      <div style="display:flex;gap:22px;border-top:1px solid var(--hair);padding-top:4px">
+        <span style="display:flex;align-items:center;gap:6px;color:var(--tx2);min-height:44px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.3s-7.3-4.4-7.3-9.2A4.1 4.1 0 0 1 12 8.2a4.1 4.1 0 0 1 7.3 2.9c0 4.8-7.3 9.2-7.3 9.2Z"/></svg><span class="t-caption">34</span></span><span style="display:flex;align-items:center;gap:6px;color:var(--tx2);min-height:44px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20.4 12.3c0 3.8-3.8 6.9-8.4 6.9a9.9 9.9 0 0 1-2.5-.3L4.8 20.4l1.3-3.5a6.5 6.5 0 0 1-2.5-5c0-3.8 3.8-6.9 8.4-6.9s8.4 3.1 8.4 6.9Z"/></svg><span class="t-caption">6</span></span><span style="display:flex;align-items:center;gap:6px;color:var(--tx2);min-height:44px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15.4V3.9m0 0L8.2 7.7M12 3.9l3.8 3.8"/><path d="M5.2 13.4v5.7a1 1 0 0 0 1 1h11.6a1 1 0 0 0 1-1v-5.7"/></svg><span class="t-caption">Share</span></span>
+        <span style="flex:1"></span><span style="display:flex;align-items:center;gap:6px;color:var(--tx2);min-height:44px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 4.6h10.8v15.8L12 16.2l-5.4 4.2Z"/></svg><span class="t-caption"></span></span>
+      </div>
+      <div style="display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--hair)">
+  <div style="width:28px;height:28px;border-radius:999px;background:#617214;flex:none;
+    display:flex;align-items:center;justify-content:center;color:#fff;font-size:11.5px;font-weight:700">J</div>
+  <div style="display:flex;flex-direction:column;gap:2px">
+    <span class="t-caption" style="color:var(--tx)">jonas</span>
+    <span class="t-body" style="color:var(--tx2)">That light on the crown is worth the cold.</span>
+  </div></div>
+      <div style="display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--hair)">
+  <div style="width:28px;height:28px;border-radius:999px;background:#964B78;flex:none;
+    display:flex;align-items:center;justify-content:center;color:#fff;font-size:11.5px;font-weight:700">P</div>
+  <div style="display:flex;flex-direction:column;gap:2px">
+    <span class="t-caption" style="color:var(--tx)">priya</span>
+    <span class="t-body" style="color:var(--tx2)">Fourth morning is dedication. Lovely.</span>
+  </div></div>
+    </div>
+  </div>
+  <div class="nav"><div class="nav-item on"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 10.2 12 3.8l8.4 6.4V20a1 1 0 0 1-1 1h-4.6v-6.1H9.2V21H4.6a1 1 0 0 1-1-1Z"/></svg><span class="t-tab">Feed</span></div><div class="nav-item"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.4"/><path d="m15.2 8.8-1.9 4.5-4.5 1.9 1.9-4.5Z"/></svg><span class="t-tab">Explore</span></div><div class="nav-item"><div class="compose"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.6v12.8M5.6 12h12.8"/></svg></div></div><div class="nav-item"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20.4 12.6c0 3.7-3.5 6.7-7.9 6.7a9.6 9.6 0 0 1-2.6-.35L5.2 20.4l1.2-3.3a6.4 6.4 0 0 1-2.8-5.2c0-3.7 3.6-6.7 8-6.7s8.8 2.7 8.8 7.4Z"/></svg><span class="t-tab">Chats</span></div><div class="nav-item"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.2" r="3.7"/><path d="M4.9 20.3a7.1 7.1 0 0 1 14.2 0"/></svg><span class="t-tab">You</span></div></div>
+</div>
+</x-dc>
+</body>
+</html>

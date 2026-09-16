@@ -1,0 +1,26 @@
+{
+  "pages": [
+    { "id": "page-1", "name": "Screens" },
+    { "id": "page-2", "name": "System" }
+  ],
+  "artboards": [
+    { "file": "Main.dc.html",       "page": "page-1", "x": 0,    "y": 0,    "w": 390, "h": 844, "title": "Home feed" },
+    { "file": "Explore.dc.html",    "page": "page-1", "x": 470,  "y": 0,    "w": 390, "h": 844 },
+    { "file": "PostDetail.dc.html", "page": "page-1", "x": 940,  "y": 0,    "w": 390, "h": 844, "title": "Post detail" },
+    { "file": "Profile.dc.html",    "page": "page-1", "x": 1410, "y": 0,    "w": 390, "h": 844 },
+    { "file": "Compose.dc.html",    "page": "page-1", "x": 1880, "y": 0,    "w": 390, "h": 844 },
+    { "file": "Activity.dc.html",   "page": "page-1", "x": 0,    "y": 984,  "w": 390, "h": 844 },
+    { "file": "Chats.dc.html",      "page": "page-1", "x": 470,  "y": 984,  "w": 390, "h": 844 },
+    { "file": "Auth.dc.html",       "page": "page-1", "x": 940,  "y": 984,  "w": 900, "h": 940, "title": "Sign in / Sign up" },
+    { "file": "Icons.dc.html",      "page": "page-2", "x": 0,    "y": 0,    "w": 880, "h": 520, "title": "Icon set" },
+    { "file": "CardAnatomy.dc.html","page": "page-2", "x": 980,  "y": 0,    "w": 720, "h": 600, "title": "Card anatomy" },
+    { "file": "States.dc.html",     "page": "page-2", "x": 0,    "y": 740,  "w": 1290,"h": 760, "title": "Loading / empty / failed" }
+  ],
+  "annotations": [
+    { "id": "brief", "x": 0, "y": -150, "w": 700, "page": "page-1",
+      "text": "socialInterest — redesign.\n\nThe measured problem: no icons anywhere (five destinations drawn as an 8px dot, a reaction drawn as ♥), cards that give half their height to metadata, and an Explore tab that asks you to type before it shows anything.\n\nTokens are lifted verbatim from apps/mobile/src/ui/tokens.ts — nothing rounded." },
+    { "id": "system-note", "x": 0, "y": -110, "w": 640, "page": "page-2",
+      "text": "The system behind the screens. The icon set is the single biggest change: one 24px grid, 1.75 stroke, used for every action and destination." }
+  ],
+  "launch": { "view": "canvas", "page": "page-1" }
+}
