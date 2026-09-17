@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { FlatList, RefreshControl, Text, View } from 'react-native';
-import { activePalette as palette, space, type } from '../ui/theme';
+import { activePalette as palette, space, type, textStyle } from '../ui/theme';
 import { EmptyState } from '../ui/primitives';
 import { Skeleton } from './Skeleton';
 
@@ -217,7 +217,7 @@ export function PagedPostList<T>({ state, keyOf, renderItem, onLoadMore, empty, 
             <Skeleton style={{ height: 220 }} />
           </View>
         ) : state.exhausted && state.items.length > 0 ? (
-          <Text testID="paged-end" style={{ textAlign: 'center', color: palette.text.muted, fontSize: type.caption.size }}>
+          <Text testID="paged-end" style={{ textAlign: 'center', color: palette.text.muted, ...textStyle.caption }}>
             You're all caught up
           </Text>
         ) : null

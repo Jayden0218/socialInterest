@@ -103,7 +103,7 @@ export function InterestSelector({
                 borderColor: palette.intent.accent,
               }}
             >
-              <Text style={{ color: palette.intent.accent, fontSize: type.body.size }}>{c.name}</Text>
+              <Text style={{ color: palette.intent.accent, ...textStyle.body }}>{c.name}</Text>
             </Pressable>
           ))}
         </View>
@@ -133,7 +133,7 @@ export function InterestSelector({
                 backgroundColor: isSelected ? palette.intent.accent : palette.bg.base,
               }}
             >
-              <Text style={{ color: isSelected ? palette.text.onAccent : palette.text.primary, fontSize: type.caption.size }}>
+              <Text style={{ color: isSelected ? palette.text.onAccent : palette.text.primary, ...textStyle.caption }}>
                 {label(item)}
               </Text>
             </Pressable>

@@ -6,7 +6,7 @@ import { Photo } from '../ui/Photo';
 import { mediaLabel } from './mediaLabel';
 import { Icon } from '../ui/Icon';
 import { useTheme } from '../ui/useTheme';
-import { radius, space, type as typeScale, font } from '../ui/tokens';
+import { radius, space, type as typeScale, font, textStyle } from '../ui/tokens';
 
 /**
  * 007/FR-021, FR-024 — THE WATERFALL CARD.
@@ -133,7 +133,7 @@ export function PostCard({
               <Text
                 style={{
                   color: palette.text.muted,
-                  fontSize: typeScale.small.size,
+                  ...textStyle.small,
                   lineHeight: typeScale.small.lineHeight,
                   textAlign: 'center',
                 }}
@@ -184,7 +184,7 @@ export function PostCard({
               <Text
                 style={{
                   color: palette.text.primary,
-                  fontSize: typeScale.small.size,
+                  ...textStyle.small,
                   lineHeight: typeScale.small.lineHeight,
                 }}
               >
@@ -215,7 +215,7 @@ export function PostCard({
               <Text
                 style={{
                   color: palette.text.primary,
-                  fontSize: typeScale.small.size,
+                  ...textStyle.small,
                   lineHeight: typeScale.small.lineHeight,
                 }}
               >
@@ -256,7 +256,7 @@ export function PostCard({
             numberOfLines={2}
             style={{
               color: palette.text.primary,
-              fontSize: typeScale.label.size,
+              ...textStyle.label,
               lineHeight: typeScale.label.lineHeight,
               ...font(typeScale.label.weight),
             }}
@@ -302,7 +302,7 @@ export function PostCard({
               <Text
                 style={{
                   color: palette.text.muted,
-                  fontSize: typeScale.small.size,
+                  ...textStyle.small,
                   lineHeight: typeScale.small.lineHeight,
                 }}
               >
@@ -314,7 +314,7 @@ export function PostCard({
               <Text
                 style={{
                   color: palette.text.muted,
-                  fontSize: typeScale.small.size,
+                  ...textStyle.small,
                   lineHeight: typeScale.small.lineHeight,
                 }}
               >
@@ -368,7 +368,7 @@ export function PostTile({ post, onOpen }: { post: Post; onOpen: (postId: string
           <Text
             style={{
               color: palette.text.muted,
-              fontSize: typeScale.small.size,
+              ...textStyle.small,
               lineHeight: typeScale.small.lineHeight,
               textAlign: 'center',
             }}
@@ -403,7 +403,7 @@ export function PostTile({ post, onOpen }: { post: Post; onOpen: (postId: string
             backgroundColor: palette.bg.raised,
           }}
         >
-          <Text style={{ fontSize: typeScale.small.size, color: palette.text.primary }}>
+          <Text style={{ ...textStyle.small, color: palette.text.primary }}>
             1/{visibleMediaCount(post)}
           </Text>
         </View>
@@ -421,7 +421,7 @@ export function PostTile({ post, onOpen }: { post: Post; onOpen: (postId: string
             backgroundColor: palette.bg.raised,
           }}
         >
-          <Text style={{ fontSize: typeScale.small.size, color: palette.text.primary }}>
+          <Text style={{ ...textStyle.small, color: palette.text.primary }}>
             Video
           </Text>
         </View>

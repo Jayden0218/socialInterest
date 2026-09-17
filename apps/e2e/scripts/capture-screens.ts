@@ -18,7 +18,7 @@
  * Usage: npx tsx apps/e2e/scripts/capture-screens.ts
  */
 import { execFileSync } from 'node:child_process';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { Page } from 'playwright';
 import { launchChromium } from '../support/browser';
@@ -61,16 +61,103 @@ async function main(): Promise<void> {
   process.env['E2E_BASE_URL'] = apiUrl;
   const web = await startWebServer(`${apiUrl}/v1`);
   const browser = await launchChromium();
-  // A phone-shaped viewport, so the captures read as the product rather than as
-  // a desktop page that happens to contain it.
-  const page = await browser.newPage({ viewport: { width: 414, height: 896 } });
+  /**
+   * 390x844 — THE ARTBOARDS' OWN FRAME, not merely "phone-shaped".
+   *
+   * This was 414x896, which is a real phone and the wrong number: every artboard
+   * in `design/007-ui` is drawn at 390x844 and `canvas.json` gives each frame
+   * exactly that size. Capturing at a different width means every comparison
+   * against the design is off by 24 points before anybody looks, and a fold
+   * measured here sits 52 points lower than the one the design was drawn for —
+   * which is the class of error that cost four device runs when a guard was
+   * written against an invented constant rather than a measured one.
+   */
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   page.on('pageerror', (e) => console.log('page error:', e.message));
 
   let n = 0;
+  /**
+   * WHAT THE BROWSER ACTUALLY COMPUTED, not what the source asked for.
+   *
+   * The audit's whole reason for reading the rendered DOM rather than the app's
+   * styles is the typeface defect: `tokens.ts` named Plus Jakarta Sans for nine
+   * features while every screen rendered in Roboto, because the token was
+   * applied to nothing. A source-to-source comparison calls that a match.
+   * `getComputedStyle` cannot be fooled that way — it reports the family the
+   * text is actually set in.
+   *
+   * Collected as SETS rather than per-element values, because Pass 1 is a
+   * vocabulary diff: it asks whether this screen's colours, sizes, weights and
+   * radii are the ones the artboard names, which needs no element-by-element
+   * correspondence and so needs no mapping file to be right first.
+   */
+  /**
+   * WHAT THE BROWSER ACTUALLY COMPUTED, not what the source asked for.
+   *
+   * The audit reads the rendered DOM rather than the app's styles because of the
+   * typeface defect: `tokens.ts` named Plus Jakarta Sans for nine features while
+   * every screen rendered in Roboto, since the token was applied to nothing. A
+   * source-to-source comparison calls that a match; `getComputedStyle` reports
+   * the family the text is actually set in and cannot be fooled that way.
+   *
+   * Sets, not per-element values: Pass 1 is a VOCABULARY diff — does this screen
+   * use the colours, sizes, weights and radii the artboard names — which needs
+   * no element-by-element correspondence, and so needs no mapping file to be
+   * right on its first run.
+   *
+   * PASSED AS A STRING, AND THAT IS NOT A STYLE CHOICE. `page.evaluate` ships
+   * the function's SOURCE to the browser, and this script runs under tsx, whose
+   * esbuild transform wraps inner functions in a `__name()` helper that exists
+   * only in the Node bundle. A normal callback therefore compiles fine, uploads
+   * fine, and dies in the page with `ReferenceError: __name is not defined` —
+   * which is what the first run of this did. A string is never transformed.
+   */
+  const MEASURE_JS = `(() => {
+    const colors = new Set(), fontSizes = new Set(), fontWeights = new Set();
+    const fontFamilies = new Set(), radii = new Set(), gaps = new Set();
+    const untyped = [];
+    const seen = (set, v) => {
+      if (v && v !== 'none' && v !== 'normal' && v !== '0px' && v !== 'rgba(0, 0, 0, 0)') set.add(v);
+    };
+    for (const el of Array.from(document.querySelectorAll('*'))) {
+      const r = el.getBoundingClientRect();
+      // Only what is ON the screen. An off-screen node's styles are not part of
+      // what this artboard shows, and counting them reports drift nobody sees.
+      if (r.width === 0 || r.height === 0 || r.bottom < 0 || r.top > 844) continue;
+      const c = getComputedStyle(el);
+      seen(colors, c.color); seen(colors, c.backgroundColor); seen(colors, c.borderTopColor);
+      if (el.textContent && el.textContent.trim().length > 0 && el.children.length === 0) {
+        seen(fontSizes, c.fontSize); seen(fontWeights, c.fontWeight); seen(fontFamilies, c.fontFamily);
+        // NAME THE OFFENDERS, do not merely count them. A number says drift
+        // exists; the text and the nearest testID say WHERE, which is the
+        // difference between a finding and a fix.
+        if (c.fontFamily.indexOf('PlusJakartaSans') === -1 && untyped.length < 12) {
+          var node = el, tid = '';
+          for (var up = 0; up < 6 && node; up += 1) {
+            var got = node.getAttribute && node.getAttribute('data-testid');
+            if (got) { tid = got; break; }
+            node = node.parentElement;
+          }
+          untyped.push(el.textContent.trim().slice(0, 42) + (tid ? '  [' + tid + ']' : '  [no testid]'));
+        }
+      }
+      seen(radii, c.borderTopLeftRadius); seen(gaps, c.gap);
+    }
+    const out = (s) => Array.from(s).sort();
+    return { colors: out(colors), fontSizes: out(fontSizes), fontWeights: out(fontWeights),
+             fontFamilies: out(fontFamilies), radii: out(radii), gaps: out(gaps),
+             untypedText: untyped };
+  })()`;
+
+  const measure = async (): Promise<Record<string, string[]>> =>
+    page.evaluate(MEASURE_JS) as Promise<Record<string, string[]>>;
+
+  const measured: Record<string, Record<string, string[]>> = {};
   const shot = async (name: string): Promise<void> => {
     n += 1;
     const file = resolve(OUT, `${String(n).padStart(2, '0')}-${name}.png`);
     await page.screenshot({ path: file, fullPage: false });
+    measured[name] = await measure();
     console.log(`captured ${file}`);
   };
   const click = async (testID: string): Promise<void> => {
@@ -321,7 +408,15 @@ async function main(): Promise<void> {
     await shot('compose');
   }
 
+  /**
+   * The measurements go beside the pictures, because a PNG is evidence a person
+   * can read and this is evidence a diff can read. One walk produces both, so
+   * they can never describe different runs.
+   */
+  const report = resolve(OUT, 'measured.json');
+  writeFileSync(report, `${JSON.stringify(measured, null, 2)}\n`);
   console.log(`\n${n} screens captured into ${OUT}`);
+  console.log(`measurements for ${Object.keys(measured).length} screens -> ${report}`);
   await browser.close();
   await web.stop();
   await stopApi();

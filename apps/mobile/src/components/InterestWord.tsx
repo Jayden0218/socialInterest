@@ -2,7 +2,7 @@ import { Pressable, Text } from 'react-native';
 import type { InterestRef } from '@sih/shared';
 import { interestColour } from '../ui/interest-colour';
 import { useTheme } from '../ui/useTheme';
-import { MIN_TOUCH_TARGET, type as typeScale, font } from '../ui/tokens';
+import { MIN_TOUCH_TARGET, type as typeScale, font, textStyle } from '../ui/tokens';
 
 /**
  * 007/FR-024 — THE INTEREST IS A COLOURED WORD. Not a chip, not a badge, not a
@@ -47,7 +47,7 @@ export function InterestWord({
     <Text
       style={{
         color: colour,
-        fontSize: typeScale.small.size,
+        ...textStyle.small,
         lineHeight: typeScale.small.lineHeight,
         ...font('600'),
       }}
@@ -80,7 +80,7 @@ export function InterestWord({
         testID={`interest-chip-${interest.slug}`}
         style={{
           color: colour,
-          fontSize: typeScale.small.size,
+          ...textStyle.small,
           lineHeight: typeScale.small.lineHeight,
           ...font('600'),
         }}

@@ -1,6 +1,6 @@
 import { FlatList, Text, View } from 'react-native';
 import type { Review } from '@sih/shared';
-import { activePalette as palette, space, font } from '../../ui/theme';
+import { activePalette as palette, space, font, textStyle } from '../../ui/theme';
 import { Button, EmptyState, Row } from '../../ui/primitives';
 
 /**
@@ -46,7 +46,7 @@ export function ReviewList({
             <Text style={{ color: palette.text.primary, ...font('600') }}>
               {item.author.displayName}
             </Text>
-            <Text testID={`review-score-${item.author.userId}`} style={{ color: palette.text.muted }}>
+            <Text testID={`review-score-${item.author.userId}`} style={{ ...textStyle.body, color: palette.text.muted }}>
               {'\u2605'.repeat(item.score)}
               {'\u2606'.repeat(5 - item.score)}
             </Text>
@@ -60,7 +60,7 @@ export function ReviewList({
             />
           </Row>
           {item.body ? (
-            <Text style={{ color: palette.text.primary }}>{item.body}</Text>
+            <Text style={{ ...textStyle.body, color: palette.text.primary }}>{item.body}</Text>
           ) : null}
         </View>
       )}

@@ -41,7 +41,7 @@ export function VisibilityControl({ value, onChange }: VisibilityControlProps) {
                 backgroundColor: selected ? palette.intent.accent : palette.bg.base,
               }}
             >
-              <Text style={{ color: selected ? palette.text.onAccent : palette.text.primary, fontSize: type.caption.size }}>
+              <Text style={{ color: selected ? palette.text.onAccent : palette.text.primary, ...textStyle.caption }}>
                 {option.label}
               </Text>
             </Pressable>

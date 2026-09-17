@@ -787,7 +787,7 @@ export function Shell({
             }}
             hitSlop={{ top: 5, bottom: 5, left: 8, right: 8 }}
           >
-            <Text style={{ color: palette.text.onAccent, fontSize: 22, lineHeight: 24 }}>+</Text>
+            <Text style={{ color: palette.text.onAccent, fontSize: 22, lineHeight: 24, ...font('600') }}>+</Text>
           </Pressable>
         </View>
 

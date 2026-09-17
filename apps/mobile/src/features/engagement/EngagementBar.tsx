@@ -1,5 +1,5 @@
 import { Pressable, Text } from 'react-native';
-import { activePalette as palette, space, touchTarget, type } from '../../ui/theme';
+import { activePalette as palette, space, touchTarget, type, textStyle } from '../../ui/theme';
 import { Row } from '../../ui/primitives';
 import { Icon } from '../../ui/Icon';
 
@@ -76,7 +76,7 @@ export function EngagementBar({
           <Text
             style={{
               color: state.viewerHasReacted ? palette.intent.accent : palette.text.muted,
-              fontSize: type.body.size,
+              ...textStyle.body,
             }}
           >
             {state.reactionCount}
@@ -90,7 +90,7 @@ export function EngagementBar({
         style={touchTarget} testID="comments-button" accessibilityRole="button" onPress={onOpenComments}>
         <Row style={{ gap: space.xs, alignItems: 'center' }}>
           <Icon name="comment" size="action" color={palette.text.muted} />
-          <Text style={{ color: palette.text.muted, fontSize: type.body.size }}>{state.commentCount}</Text>
+          <Text style={{ color: palette.text.muted, ...textStyle.body }}>{state.commentCount}</Text>
         </Row>
       </Pressable>
 
@@ -132,7 +132,7 @@ export function EngagementBar({
               accessibilityLabel={`Add to ${c.name}`}
               onPress={() => onFile(c.collectionId)}
             >
-              <Text style={{ color: palette.text.muted, fontSize: type.body.size }}>
+              <Text style={{ color: palette.text.muted, ...textStyle.body }}>
                 {`+ ${c.name}`}
               </Text>
             </Pressable>

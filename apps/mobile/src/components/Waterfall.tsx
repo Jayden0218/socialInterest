@@ -2,7 +2,7 @@ import { Fragment, useCallback, useMemo, useRef } from 'react';
 import { FlatList, RefreshControl, Text, View } from 'react-native';
 import type { Post } from '@sih/shared';
 import { useTheme } from '../ui/useTheme';
-import { space, type as typeScale } from '../ui/tokens';
+import { space, type as typeScale, textStyle } from '../ui/tokens';
 import { EmptyState } from '../ui/primitives';
 import { Skeleton } from './Skeleton';
 import { shouldLoadMore, type PagedState } from './PagedPostList';
@@ -198,7 +198,7 @@ export function Waterfall({
             style={{
               textAlign: 'center',
               color: palette.text.muted,
-              fontSize: typeScale.small.size,
+              ...textStyle.small,
               lineHeight: typeScale.small.lineHeight,
               paddingBottom: space.lg,
             }}
