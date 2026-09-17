@@ -116,6 +116,7 @@ async function main(): Promise<void> {
     const colors = new Set(), fontSizes = new Set(), fontWeights = new Set();
     const fontFamilies = new Set(), radii = new Set(), gaps = new Set();
     const untyped = [];
+    const site = {};
     const seen = (set, v) => {
       if (v && v !== 'none' && v !== 'normal' && v !== '0px' && v !== 'rgba(0, 0, 0, 0)') set.add(v);
     };
@@ -125,7 +126,28 @@ async function main(): Promise<void> {
       // what this artboard shows, and counting them reports drift nobody sees.
       if (r.width === 0 || r.height === 0 || r.bottom < 0 || r.top > 844) continue;
       const c = getComputedStyle(el);
-      seen(colors, c.color); seen(colors, c.backgroundColor); seen(colors, c.borderTopColor);
+      // A BORDER COLOUR ON A ZERO-WIDTH BORDER IS NOT A COLOUR ANYBODY SEES.
+      // CSS defaults border-color to black, and react-native-web leaves
+      // border-width at 0 on most nodes — so collecting it unconditionally
+      // reported #000000 as an off-palette colour on all twenty-one screens.
+      // That is a guard crying wolf on its first run, which is worse than
+      // silence: it teaches the reader to skim the report.
+      seen(colors, c.color); seen(colors, c.backgroundColor);
+      if (parseFloat(c.borderTopWidth) > 0) seen(colors, c.borderTopColor);
+      // Where each colour came from, so a stray one can be judged rather than
+      // merely counted. A generated interest hue and a wrong grey are both
+      // "not in the artboard"; only the site tells them apart.
+      const note = (v) => {
+        if (!v || site[v]) return;
+        var node = el, tid = '';
+        for (var up = 0; up < 6 && node; up += 1) {
+          var got = node.getAttribute && node.getAttribute('data-testid');
+          if (got) { tid = got; break; }
+          node = node.parentElement;
+        }
+        site[v] = tid || '(no testid)';
+      };
+      note(c.color); note(c.backgroundColor);
       if (el.textContent && el.textContent.trim().length > 0 && el.children.length === 0) {
         seen(fontSizes, c.fontSize); seen(fontWeights, c.fontWeight); seen(fontFamilies, c.fontFamily);
         // NAME THE OFFENDERS, do not merely count them. A number says drift
@@ -146,7 +168,7 @@ async function main(): Promise<void> {
     const out = (s) => Array.from(s).sort();
     return { colors: out(colors), fontSizes: out(fontSizes), fontWeights: out(fontWeights),
              fontFamilies: out(fontFamilies), radii: out(radii), gaps: out(gaps),
-             untypedText: untyped };
+             untypedText: untyped, colorSites: site };
   })()`;
 
   const measure = async (): Promise<Record<string, string[]>> =>

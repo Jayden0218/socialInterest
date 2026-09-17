@@ -279,6 +279,23 @@ export function EditProfileScreen({
             <Switch
               testID={`pref-${c.key}`}
               accessibilityLabel={c.label}
+              /**
+               * THE DESIGN'S COLOURS, NOT THE PLATFORM'S.
+               *
+               * These carried no colour props, so `Switch` fell back to its
+               * platform default and rendered in MATERIAL TEAL — `#009688` track
+               * with an `#a3d3cf` thumb — on a screen whose artboard uses the
+               * accent green three times and no teal at all. Nothing in the app
+               * asked for teal; it arrived because nothing asked for anything.
+               *
+               * Found by Pass 1 of the artboard audit rather than by reading:
+               * the colour is in no token and no stylesheet, so it appears
+               * nowhere in the source. Only what the browser actually computed
+               * shows it — the same reason the audit measures rather than reads.
+               */
+              trackColor={{ false: palette.line.hairline, true: palette.intent.accent }}
+              thumbColor={palette.bg.raised}
+              ios_backgroundColor={palette.line.hairline}
               value={draft.notificationPrefs[c.key]}
               onValueChange={(value) =>
                 // Only the toggled key changes; the server merges the rest.
@@ -303,6 +320,9 @@ export function EditProfileScreen({
         <Row style={{ justifyContent: 'space-between' }}>
           <Text style={{ ...textStyle.body, color: palette.text.primary }}>Private account</Text>
           <Switch
+            trackColor={{ false: palette.line.hairline, true: palette.intent.accent }}
+            thumbColor={palette.bg.raised}
+            ios_backgroundColor={palette.line.hairline}
             testID="account-privacy-switch"
             accessibilityLabel="Private account"
             value={draft.accountPrivacy === 'private'}

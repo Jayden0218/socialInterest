@@ -42,7 +42,18 @@
       "6px",
       "8px"
     ],
-    "untypedText": []
+    "untypedText": [],
+    "colorSites": {
+      "rgb(0, 0, 0)": "(no testid)",
+      "rgba(0, 0, 0, 0)": "(no testid)",
+      "rgb(251, 250, 248)": "(no testid)",
+      "rgb(22, 33, 26)": "home-feed-screen",
+      "rgb(31, 107, 63)": "feed-tab-for-you",
+      "rgb(96, 108, 102)": "feed-tab-following",
+      "rgb(67, 81, 74)": "feed-failed",
+      "rgb(255, 255, 255)": "retry-action",
+      "rgb(243, 241, 236)": "open-sign-in"
+    }
   },
   "sign-in": {
     "colors": [
@@ -83,12 +94,24 @@
       "12px",
       "16px"
     ],
-    "untypedText": []
+    "untypedText": [],
+    "colorSites": {
+      "rgb(0, 0, 0)": "(no testid)",
+      "rgba(0, 0, 0, 0)": "(no testid)",
+      "rgb(251, 250, 248)": "(no testid)",
+      "rgb(243, 241, 236)": "nav-back",
+      "rgb(22, 33, 26)": "nav-back",
+      "rgba(16, 16, 16, 0.3)": "sign-in-submit",
+      "rgb(31, 107, 63)": "sign-in-submit",
+      "rgb(255, 255, 255)": "sign-in-submit",
+      "rgb(67, 81, 74)": "sign-in-screen",
+      "rgb(96, 108, 102)": "sign-in-change-server"
+    }
   },
   "cold-start": {
     "colors": [
       "rgb(0, 0, 0)",
-      "rgb(145, 92, 0)",
+      "rgb(156, 73, 105)",
       "rgb(22, 33, 26)",
       "rgb(236, 234, 228)",
       "rgb(243, 241, 236)",
@@ -126,12 +149,24 @@
       "16px",
       "8px"
     ],
-    "untypedText": []
+    "untypedText": [],
+    "colorSites": {
+      "rgb(0, 0, 0)": "(no testid)",
+      "rgba(0, 0, 0, 0)": "(no testid)",
+      "rgb(251, 250, 248)": "(no testid)",
+      "rgb(243, 241, 236)": "nav-back",
+      "rgb(22, 33, 26)": "nav-back",
+      "rgb(96, 108, 102)": "pick-skip-header",
+      "rgb(67, 81, 74)": "pick-interests-screen",
+      "rgb(255, 255, 255)": "pick-01M2PS2BN8PTNQ938F20MWNPMR",
+      "rgb(156, 73, 105)": "interest-chip-fixture-66e151ff",
+      "rgb(31, 107, 63)": "pick-continue"
+    }
   },
   "home-feed": {
     "colors": [
       "rgb(0, 0, 0)",
-      "rgb(145, 92, 0)",
+      "rgb(156, 73, 105)",
       "rgb(22, 33, 26)",
       "rgb(236, 234, 228)",
       "rgb(243, 241, 236)",
@@ -171,12 +206,23 @@
       "6px",
       "8px"
     ],
-    "untypedText": []
+    "untypedText": [],
+    "colorSites": {
+      "rgb(0, 0, 0)": "(no testid)",
+      "rgba(0, 0, 0, 0)": "(no testid)",
+      "rgb(251, 250, 248)": "(no testid)",
+      "rgb(22, 33, 26)": "home-feed-screen",
+      "rgb(31, 107, 63)": "feed-tab-for-you",
+      "rgb(96, 108, 102)": "feed-tab-following",
+      "rgb(255, 255, 255)": "post-01M2PS2DY8HMDQSRAYTHYJSK9B",
+      "rgb(243, 241, 236)": "post-media-01M2PS2DY8HMDQSRAYTHYJSK9B",
+      "rgb(156, 73, 105)": "interest-chip-fixture-66e151ff"
+    }
   },
   "discover-search": {
     "colors": [
       "rgb(0, 0, 0)",
-      "rgb(145, 92, 0)",
+      "rgb(156, 73, 105)",
       "rgb(22, 33, 26)",
       "rgb(236, 234, 228)",
       "rgb(243, 241, 236)",
@@ -214,12 +260,23 @@
       "6px",
       "8px"
     ],
-    "untypedText": []
+    "untypedText": [],
+    "colorSites": {
+      "rgb(0, 0, 0)": "(no testid)",
+      "rgba(0, 0, 0, 0)": "(no testid)",
+      "rgb(251, 250, 248)": "(no testid)",
+      "rgb(22, 33, 26)": "interest-search-input",
+      "rgb(31, 107, 63)": "search-tab-interests",
+      "rgb(96, 108, 102)": "search-tab-posts",
+      "rgb(255, 255, 255)": "search-result-0",
+      "rgb(243, 241, 236)": "search-result-0-mosaic",
+      "rgb(156, 73, 105)": "interest-chip-fixture-66e151ff"
+    }
   },
   "discover-results": {
     "colors": [
       "rgb(0, 0, 0)",
-      "rgb(145, 92, 0)",
+      "rgb(156, 73, 105)",
       "rgb(22, 33, 26)",
       "rgb(236, 234, 228)",
       "rgb(251, 250, 248)",
@@ -254,12 +311,22 @@
       "6px",
       "8px"
     ],
-    "untypedText": []
+    "untypedText": [],
+    "colorSites": {
+      "rgb(0, 0, 0)": "(no testid)",
+      "rgba(0, 0, 0, 0)": "(no testid)",
+      "rgb(251, 250, 248)": "(no testid)",
+      "rgb(22, 33, 26)": "interest-search-input",
+      "rgb(31, 107, 63)": "search-tab-interests",
+      "rgb(96, 108, 102)": "search-tab-posts",
+      "rgb(156, 73, 105)": "search-result-colour-0",
+      "rgb(255, 255, 255)": "app-root"
+    }
   },
   "interest-space": {
     "colors": [
       "rgb(0, 0, 0)",
-      "rgb(145, 92, 0)",
+      "rgb(156, 73, 105)",
       "rgb(22, 33, 26)",
       "rgb(236, 234, 228)",
       "rgb(243, 241, 236)",
@@ -298,12 +365,23 @@
       "4px",
       "8px"
     ],
-    "untypedText": []
+    "untypedText": [],
+    "colorSites": {
+      "rgb(0, 0, 0)": "(no testid)",
+      "rgba(0, 0, 0, 0)": "(no testid)",
+      "rgb(251, 250, 248)": "(no testid)",
+      "rgb(243, 241, 236)": "nav-back",
+      "rgb(22, 33, 26)": "nav-back",
+      "rgb(255, 255, 255)": "interest-screen",
+      "rgb(156, 73, 105)": "interest-identity",
+      "rgb(31, 107, 63)": "follow-toggle",
+      "rgb(96, 108, 102)": "interest-counts"
+    }
   },
   "post-detail": {
     "colors": [
       "rgb(0, 0, 0)",
-      "rgb(145, 92, 0)",
+      "rgb(156, 73, 105)",
       "rgb(22, 33, 26)",
       "rgb(243, 241, 236)",
       "rgb(251, 250, 248)",
@@ -333,7 +411,17 @@
       "4px",
       "8px"
     ],
-    "untypedText": []
+    "untypedText": [],
+    "colorSites": {
+      "rgb(0, 0, 0)": "(no testid)",
+      "rgba(0, 0, 0, 0)": "(no testid)",
+      "rgb(251, 250, 248)": "(no testid)",
+      "rgb(243, 241, 236)": "nav-back",
+      "rgb(22, 33, 26)": "nav-back",
+      "rgb(255, 255, 255)": "media-page-0",
+      "rgb(156, 73, 105)": "interest-chip-fixture-66e151ff",
+      "rgb(96, 108, 102)": "react-button"
+    }
   },
   "comments": {
     "colors": [
@@ -372,7 +460,18 @@
       "4px",
       "8px"
     ],
-    "untypedText": []
+    "untypedText": [],
+    "colorSites": {
+      "rgb(0, 0, 0)": "(no testid)",
+      "rgba(0, 0, 0, 0)": "(no testid)",
+      "rgb(251, 250, 248)": "(no testid)",
+      "rgb(243, 241, 236)": "nav-back",
+      "rgb(22, 33, 26)": "nav-back",
+      "rgb(96, 108, 102)": "comment-0",
+      "rgb(31, 107, 63)": "comment-reply-0",
+      "rgba(16, 16, 16, 0.3)": "comment-submit",
+      "rgb(255, 255, 255)": "comment-submit"
+    }
   },
   "discover-place-result": {
     "colors": [
@@ -416,7 +515,17 @@
       "4px",
       "6px"
     ],
-    "untypedText": []
+    "untypedText": [],
+    "colorSites": {
+      "rgb(0, 0, 0)": "(no testid)",
+      "rgba(0, 0, 0, 0)": "(no testid)",
+      "rgb(251, 250, 248)": "(no testid)",
+      "rgb(22, 33, 26)": "interest-search-input",
+      "rgb(31, 107, 63)": "search-tab-interests",
+      "rgb(96, 108, 102)": "search-tab-posts",
+      "rgb(67, 81, 74)": "discover-empty",
+      "rgb(255, 255, 255)": "app-root"
+    }
   },
   "place-with-rating-and-reviews": {
     "colors": [
@@ -458,7 +567,18 @@
       "4px",
       "8px"
     ],
-    "untypedText": []
+    "untypedText": [],
+    "colorSites": {
+      "rgb(0, 0, 0)": "(no testid)",
+      "rgba(0, 0, 0, 0)": "(no testid)",
+      "rgb(251, 250, 248)": "(no testid)",
+      "rgb(243, 241, 236)": "nav-back",
+      "rgb(22, 33, 26)": "nav-back",
+      "rgb(96, 108, 102)": "place-meta",
+      "rgb(31, 107, 63)": "follow-place-toggle",
+      "rgb(255, 255, 255)": "follow-place-toggle",
+      "rgb(67, 81, 74)": "paged-empty"
+    }
   },
   "chats-inbox": {
     "colors": [
@@ -504,7 +624,17 @@
       "7px",
       "9px"
     ],
-    "untypedText": []
+    "untypedText": [],
+    "colorSites": {
+      "rgb(0, 0, 0)": "(no testid)",
+      "rgba(0, 0, 0, 0)": "(no testid)",
+      "rgb(251, 250, 248)": "(no testid)",
+      "rgb(22, 33, 26)": "inbox-screen",
+      "rgb(31, 107, 63)": "inbox-accepted",
+      "rgb(96, 108, 102)": "inbox-requested",
+      "rgb(255, 255, 255)": "inbox-requested",
+      "rgb(67, 81, 74)": "inbox-empty"
+    }
   },
   "new-group-empty": {
     "colors": [
@@ -542,18 +672,29 @@
       "12px",
       "8px"
     ],
-    "untypedText": []
+    "untypedText": [],
+    "colorSites": {
+      "rgb(0, 0, 0)": "(no testid)",
+      "rgba(0, 0, 0, 0)": "(no testid)",
+      "rgb(251, 250, 248)": "(no testid)",
+      "rgb(243, 241, 236)": "nav-back",
+      "rgb(22, 33, 26)": "nav-back",
+      "rgb(255, 255, 255)": "group-name-input",
+      "rgba(16, 16, 16, 0.3)": "create-group",
+      "rgb(96, 108, 102)": "create-group",
+      "rgb(67, 81, 74)": "group-search-empty"
+    }
   },
   "new-group-filled": {
     "colors": [
       "rgb(0, 0, 0)",
-      "rgb(152, 86, 17)",
+      "rgb(0, 123, 99)",
       "rgb(22, 33, 26)",
       "rgb(243, 241, 236)",
       "rgb(251, 250, 248)",
       "rgb(255, 255, 255)",
       "rgb(31, 107, 63)",
-      "rgb(49, 107, 169)",
+      "rgb(7, 112, 163)",
       "rgb(96, 108, 102)"
     ],
     "fontSizes": [
@@ -584,12 +725,24 @@
       "7px",
       "8px"
     ],
-    "untypedText": []
+    "untypedText": [],
+    "colorSites": {
+      "rgb(0, 0, 0)": "(no testid)",
+      "rgba(0, 0, 0, 0)": "(no testid)",
+      "rgb(251, 250, 248)": "(no testid)",
+      "rgb(243, 241, 236)": "nav-back",
+      "rgb(22, 33, 26)": "nav-back",
+      "rgb(255, 255, 255)": "group-name-input",
+      "rgb(31, 107, 63)": "create-group",
+      "rgb(0, 123, 99)": "avatar-shotgroupa-fc2f6e4f-ae00-4918-a928-a63dd0287ed7",
+      "rgb(7, 112, 163)": "avatar-shotgroupb-74d7f376-d63e-4d69-b5bd-d22fd0f7e299",
+      "rgb(96, 108, 102)": "group-search-results"
+    }
   },
   "group-conversation": {
     "colors": [
       "rgb(0, 0, 0)",
-      "rgb(135, 98, 0)",
+      "rgb(0, 124, 93)",
       "rgb(192, 57, 43)",
       "rgb(22, 33, 26)",
       "rgb(236, 234, 228)",
@@ -632,12 +785,25 @@
       "8px",
       "9px"
     ],
-    "untypedText": []
+    "untypedText": [],
+    "colorSites": {
+      "rgb(0, 0, 0)": "(no testid)",
+      "rgba(0, 0, 0, 0)": "(no testid)",
+      "rgb(251, 250, 248)": "(no testid)",
+      "rgb(243, 241, 236)": "nav-back",
+      "rgb(22, 33, 26)": "nav-back",
+      "rgb(0, 124, 93)": "avatar-01M2PS30FFX17M47EP72V7RDNN",
+      "rgb(255, 255, 255)": "avatar-01M2PS30FFX17M47EP72V7RDNN",
+      "rgb(96, 108, 102)": "conversation-screen",
+      "rgb(192, 57, 43)": "leave-group",
+      "rgba(16, 16, 16, 0.3)": "add-participant",
+      "rgb(31, 107, 63)": "message-01M2PS31AEPXCKKQBZC98CYM1F"
+    }
   },
   "chats-inbox-with-group": {
     "colors": [
       "rgb(0, 0, 0)",
-      "rgb(135, 98, 0)",
+      "rgb(0, 124, 93)",
       "rgb(22, 33, 26)",
       "rgb(236, 234, 228)",
       "rgb(251, 250, 248)",
@@ -683,21 +849,31 @@
       "7px",
       "9px"
     ],
-    "untypedText": []
+    "untypedText": [],
+    "colorSites": {
+      "rgb(0, 0, 0)": "(no testid)",
+      "rgba(0, 0, 0, 0)": "(no testid)",
+      "rgb(251, 250, 248)": "(no testid)",
+      "rgb(22, 33, 26)": "inbox-screen",
+      "rgb(31, 107, 63)": "inbox-accepted",
+      "rgb(96, 108, 102)": "inbox-requested",
+      "rgb(255, 255, 255)": "inbox-requested",
+      "rgb(0, 124, 93)": "avatar-01M2PS30FFX17M47EP72V7RDNN"
+    }
   },
   "activity": {
     "colors": [
       "rgb(0, 0, 0)",
-      "rgb(152, 86, 17)",
+      "rgb(0, 123, 99)",
+      "rgb(109, 90, 164)",
       "rgb(22, 33, 26)",
       "rgb(236, 234, 228)",
       "rgb(243, 241, 236)",
       "rgb(251, 250, 248)",
       "rgb(255, 255, 255)",
-      "rgb(28, 124, 76)",
       "rgb(31, 107, 63)",
-      "rgb(49, 107, 169)",
       "rgb(67, 81, 74)",
+      "rgb(7, 112, 163)",
       "rgb(96, 108, 102)"
     ],
     "fontSizes": [
@@ -728,12 +904,26 @@
       "4px",
       "8px"
     ],
-    "untypedText": []
+    "untypedText": [],
+    "colorSites": {
+      "rgb(0, 0, 0)": "(no testid)",
+      "rgba(0, 0, 0, 0)": "(no testid)",
+      "rgb(251, 250, 248)": "(no testid)",
+      "rgb(22, 33, 26)": "notifications-screen",
+      "rgb(96, 108, 102)": "notification-list",
+      "rgb(109, 90, 164)": "avatar-shotfriend-8e811438-625f-4a9f-9c6c-91a02c82b0c1",
+      "rgb(255, 255, 255)": "avatar-shotfriend-8e811438-625f-4a9f-9c6c-91a02c82b0c1",
+      "rgb(67, 81, 74)": "notification-0",
+      "rgb(243, 241, 236)": "notification-thumb-0",
+      "rgb(7, 112, 163)": "avatar-shotgroupb-74d7f376-d63e-4d69-b5bd-d22fd0f7e299",
+      "rgb(0, 123, 99)": "avatar-shotgroupa-fc2f6e4f-ae00-4918-a928-a63dd0287ed7",
+      "rgb(31, 107, 63)": "open-compose"
+    }
   },
   "profile": {
     "colors": [
       "rgb(0, 0, 0)",
-      "rgb(109, 110, 0)",
+      "rgb(107, 111, 0)",
       "rgb(207, 202, 190)",
       "rgb(22, 33, 26)",
       "rgb(236, 234, 228)",
@@ -775,7 +965,18 @@
       "8px",
       "9px"
     ],
-    "untypedText": []
+    "untypedText": [],
+    "colorSites": {
+      "rgb(0, 0, 0)": "(no testid)",
+      "rgba(0, 0, 0, 0)": "(no testid)",
+      "rgb(251, 250, 248)": "(no testid)",
+      "rgb(22, 33, 26)": "profile-screen",
+      "rgb(107, 111, 0)": "avatar-shotowner23943e8b",
+      "rgb(255, 255, 255)": "avatar-shotowner23943e8b",
+      "rgb(96, 108, 102)": "profile-screen",
+      "rgb(31, 107, 63)": "profile-screen",
+      "rgb(243, 241, 236)": "post-01M2PS2CTMREGBHBQ1KGHQ4CBJ"
+    }
   },
   "saved": {
     "colors": [
@@ -815,18 +1016,28 @@
       "12px",
       "8px"
     ],
-    "untypedText": []
+    "untypedText": [],
+    "colorSites": {
+      "rgb(0, 0, 0)": "(no testid)",
+      "rgba(0, 0, 0, 0)": "(no testid)",
+      "rgb(251, 250, 248)": "(no testid)",
+      "rgb(243, 241, 236)": "nav-back",
+      "rgb(22, 33, 26)": "nav-back",
+      "rgb(96, 108, 102)": "saved-screen",
+      "rgb(31, 107, 63)": "collection-tab-all",
+      "rgb(255, 255, 255)": "collection-tab-all",
+      "rgba(16, 16, 16, 0.3)": "create-collection",
+      "rgb(67, 81, 74)": "paged-empty"
+    }
   },
   "edit-profile": {
     "colors": [
       "rgb(0, 0, 0)",
-      "rgb(0, 117, 142)",
+      "rgb(0, 116, 149)",
       "rgb(0, 150, 136)",
-      "rgb(147, 147, 147)",
-      "rgb(163, 211, 207)",
       "rgb(22, 33, 26)",
+      "rgb(236, 234, 228)",
       "rgb(243, 241, 236)",
-      "rgb(250, 250, 250)",
       "rgb(251, 250, 248)",
       "rgb(255, 255, 255)",
       "rgb(31, 107, 63)",
@@ -864,7 +1075,20 @@
       "6px",
       "8px"
     ],
-    "untypedText": []
+    "untypedText": [],
+    "colorSites": {
+      "rgb(0, 0, 0)": "(no testid)",
+      "rgba(0, 0, 0, 0)": "(no testid)",
+      "rgb(251, 250, 248)": "(no testid)",
+      "rgb(243, 241, 236)": "nav-back",
+      "rgb(22, 33, 26)": "nav-back",
+      "rgb(31, 107, 63)": "save-profile",
+      "rgb(0, 116, 149)": "avatar-shotowner-0aebe89e-80c9-4e15-8466-6e6c23943e8b",
+      "rgb(255, 255, 255)": "avatar-shotowner-0aebe89e-80c9-4e15-8466-6e6c23943e8b",
+      "rgb(96, 108, 102)": "edit-profile-screen",
+      "rgb(0, 150, 136)": "pref-reaction",
+      "rgb(236, 234, 228)": "pref-mention"
+    }
   },
   "compose": {
     "colors": [
@@ -899,6 +1123,15 @@
       "3px",
       "8px"
     ],
-    "untypedText": []
+    "untypedText": [],
+    "colorSites": {
+      "rgb(0, 0, 0)": "(no testid)",
+      "rgba(0, 0, 0, 0)": "(no testid)",
+      "rgb(251, 250, 248)": "(no testid)",
+      "rgb(243, 241, 236)": "nav-back",
+      "rgb(22, 33, 26)": "nav-back",
+      "rgba(16, 16, 16, 0.3)": "media-continue",
+      "rgb(96, 108, 102)": "media-continue"
+    }
   }
 }
