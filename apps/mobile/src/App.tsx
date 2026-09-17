@@ -656,6 +656,7 @@ export function Shell({
             return (
               <View style={{ flex: 1 }}>
                 <HomeFeedContainer
+                  onOpenSearch={() => setTab('discover')}
                   onEmptyAction={() => setTab('discover')}
                   /**
                    * 012/FR-020, FR-021. The empty feed's OTHER action, for an

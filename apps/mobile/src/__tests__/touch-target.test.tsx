@@ -3,6 +3,7 @@ import { StyleSheet } from 'react-native';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { Button } from '../ui/primitives';
+import { ICON_SIZE } from '../ui/Icon';
 import { MIN_TOUCH_TARGET, type as typeScale } from '../ui/tokens';
 
 /**
@@ -91,6 +92,19 @@ describe('every control is reliably tappable', () => {
    * function call.
    */
   const SLOP_TARGETS: { file: string; match: string; label: string; boxHeight: number; boxWidth: number; slop: { top: number; bottom: number; left: number; right: number } }[] = [
+    {
+      file: 'src/features/feed/HomeFeedScreen.tsx',
+      match: 'feed-search',
+      label: "the feed header's search",
+      // The ICON's box, both ways: `action` is 20, and an Icon renders at
+      // exactly its size with no padding of its own. 20 + 12 + 12 = 44 on each
+      // axis, which is the arithmetic this guard exists to make somebody do —
+      // 012/Main.dc.html draws the glyph at 22 and says nothing about the
+      // target, and a 22pt tap area would have looked fine and been wrong.
+      boxHeight: ICON_SIZE.action,
+      boxWidth: ICON_SIZE.action,
+      slop: { top: 12, bottom: 12, left: 12, right: 12 },
+    },
     {
       file: 'src/components/InterestWord.tsx',
       match: 'interest-chip-',

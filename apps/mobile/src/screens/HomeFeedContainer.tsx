@@ -19,6 +19,7 @@ export function HomeFeedContainer({
   onCompose,
   onOpenPost,
   onOpenInterest,
+  onOpenSearch,
 }: {
   onEmptyAction: () => void;
   /**
@@ -31,6 +32,8 @@ export function HomeFeedContainer({
   onOpenPost: (postId: string) => void;
   /** 007/FR-017. One tap from a card to the interest's space. */
   onOpenInterest?: (interestId: string) => void;
+  /** The header magnifier (012/Main.dc.html). */
+  onOpenSearch?: () => void;
 }) {
   const data = useData();
   /**
@@ -142,6 +145,7 @@ export function HomeFeedContainer({
       onEmptyAction={onEmptyAction}
       tab={tab}
       onSelectTab={setTab}
+      {...(onOpenSearch ? { onOpenSearch } : {})}
       /**
        * 008/FR-009 — THE DWELL HOOK IS ATTACHED TO THE RANKED TAB ONLY.
        *

@@ -18,10 +18,28 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" />
     <style>
-      @font-face { font-family: 'PlusJakartaSans-Regular';  src: local('Plus Jakarta Sans'); font-weight: 400; }
-      @font-face { font-family: 'PlusJakartaSans-Medium';   src: local('Plus Jakarta Sans'); font-weight: 500; }
-      @font-face { font-family: 'PlusJakartaSans-SemiBold'; src: local('Plus Jakarta Sans'); font-weight: 600; }
-      @font-face { font-family: 'PlusJakartaSans-Bold';     src: local('Plus Jakarta Sans'); font-weight: 700; }
+      /* THE FONT FILES THIS REPOSITORY ALREADY SHIPS, served beside the page.
+
+         Two earlier versions failed, and both failed INVISIBLY to the audit:
+         `local('Plus Jakarta Sans')` resolves only if the typeface is installed
+         on the machine (it is not, on a runner or in this sandbox), and the
+         gstatic URLs cannot be fetched from here at all. Each time,
+         measured.json went on reporting `PlusJakartaSans-SemiBold` — because
+         getComputedStyle reports the family CSS ASKED FOR, not the one that
+         resolved — while every screenshot rendered in a serif fallback.
+
+         The SCREENSHOTS caught what the measurement could not, which is the
+         whole argument for keeping both. These are the same four files the APK
+         embeds, so the browser and the device now set type from one source and
+         no network is involved. */
+      @font-face { font-family: 'PlusJakartaSans-Regular'; font-weight: 400; font-display: block;
+        src: url('./fonts/PlusJakartaSans-Regular.ttf') format('truetype'); }
+      @font-face { font-family: 'PlusJakartaSans-Medium'; font-weight: 500; font-display: block;
+        src: url('./fonts/PlusJakartaSans-Medium.ttf') format('truetype'); }
+      @font-face { font-family: 'PlusJakartaSans-SemiBold'; font-weight: 600; font-display: block;
+        src: url('./fonts/PlusJakartaSans-SemiBold.ttf') format('truetype'); }
+      @font-face { font-family: 'PlusJakartaSans-Bold'; font-weight: 700; font-display: block;
+        src: url('./fonts/PlusJakartaSans-Bold.ttf') format('truetype'); }
     </style>
     <style>html,body,#root{height:100%;margin:0}/* #root must be a FLEX container: react-native-web renders the app root as a
    `flex: 1` div, and a flex child in a BLOCK parent sizes to its content

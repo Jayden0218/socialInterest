@@ -2,6 +2,7 @@ import { Pressable, Text, View } from 'react-native';
 import type { Post } from '@sih/shared';
 import { activePalette as palette, radius, space, textStyle, touchTarget, type, font } from '../../ui/theme';
 import { Screen } from '../../ui/primitives';
+import { Icon } from '../../ui/Icon';
 import { Waterfall } from '../../components/Waterfall';
 import type { PagedState } from '../../components/PagedPostList';
 
@@ -80,6 +81,7 @@ export function HomeFeedScreen({
   renderPost,
   tab = 'for-you',
   onSelectTab,
+  onOpenSearch,
   refreshing,
   onRefresh,
   fallback,
@@ -90,6 +92,9 @@ export function HomeFeedScreen({
   /** 008/FR-008. Which feed is showing. Defaults so existing render tests hold. */
   tab?: 'for-you' | 'following';
   onSelectTab?: (tab: 'for-you' | 'following') => void;
+  /** 012/Main.dc.html's header magnifier. Optional so a render test that
+   *  exercises the feed alone is not forced to route anywhere. */
+  onOpenSearch?: () => void;
   /** 007/FR-004. Absent in tests that render this screen directly. */
   onViewableChanged?: (postIds: string[]) => void;
   renderPost: (post: Post, index: number) => React.ReactElement;
@@ -124,8 +129,34 @@ export function HomeFeedScreen({
             color: palette.text.primary,
           }}
         >
-          Interest
+          socialInterest
         </Text>
+
+        {/*
+          012/Main.dc.html. THE HEADER HAS A SEARCH ICON, AND THIS ROW WAS
+          ALREADY SHAPED FOR IT.
+
+          `justifyContent: 'space-between'` on a row with ONE child does
+          nothing — the space on the right was reserved for a control that was
+          never built, which is the declared-half-with-no-other-half shape this
+          project keeps recording, in layout rather than in code.
+
+          22px on the artboard; `action` is 20 and `nav` is 23. `Icon.tsx`
+          argues the closed size union exists precisely to refuse "a bit
+          bigger", and this is an action a finger presses, so it takes the
+          action size rather than growing the scale by one.
+        */}
+        {onOpenSearch ? (
+          <Pressable
+            testID="feed-search"
+            accessibilityRole="button"
+            accessibilityLabel="Search"
+            onPress={onOpenSearch}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Icon name="search" size="action" color={palette.text.secondary} />
+          </Pressable>
+        ) : null}
       </View>
 
       <View

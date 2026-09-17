@@ -45,9 +45,23 @@ export async function startWebServer(apiBaseUrl: string): Promise<WebServer> {
       res.writeHead(404).end('not found');
       return;
     }
-    res.writeHead(200, {
-      'content-type': found.endsWith('.html') ? 'text/html' : 'application/javascript',
-    });
+    /**
+     * A TYPE PER EXTENSION, because the app now serves its own typeface.
+     *
+     * This answered `application/javascript` for everything that was not HTML,
+     * which was true while the only two things served were a page and a bundle.
+     * The font files that make the captures show the real typeface are neither,
+     * and a guessed content-type on a binary is the kind of thing that works in
+     * one browser and not the next.
+     */
+    const type = found.endsWith('.html')
+      ? 'text/html'
+      : found.endsWith('.ttf')
+        ? 'font/ttf'
+        : found.endsWith('.css')
+          ? 'text/css'
+          : 'application/javascript';
+    res.writeHead(200, { 'content-type': type });
     res.end(readFileSync(found));
   });
 
