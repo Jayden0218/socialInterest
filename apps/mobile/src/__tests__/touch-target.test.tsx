@@ -93,6 +93,17 @@ describe('every control is reliably tappable', () => {
    */
   const SLOP_TARGETS: { file: string; match: string; label: string; boxHeight: number; boxWidth: number; slop: { top: number; bottom: number; left: number; right: number } }[] = [
     {
+      file: 'src/App.tsx',
+      match: 'nav-back',
+      label: 'the back chevron on every pushed screen',
+      // It was a `Button` before — a control that sizes ITSELF and needed no
+      // entry here. A bare icon does not, and this is the most-pressed control
+      // in the product: nineteen routes, every screen you can push.
+      boxHeight: ICON_SIZE.action,
+      boxWidth: ICON_SIZE.action,
+      slop: { top: 12, bottom: 12, left: 12, right: 12 },
+    },
+    {
       file: 'src/features/feed/HomeFeedScreen.tsx',
       match: 'feed-search',
       label: "the feed header's search",

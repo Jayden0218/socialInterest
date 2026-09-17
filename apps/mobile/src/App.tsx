@@ -268,19 +268,52 @@ function headerTitle(route: Route): string {
   return OVERLAY_SCREENS[route.screen]?.title ?? route.screen;
 }
 
+/**
+ * THE HEADER ON EVERY PUSHED SCREEN, and the one place worth getting right.
+ *
+ * It rendered a SECONDARY BUTTON LABELLED "Back" — a filled pill with a border,
+ * sitting where `InterestSpace.dc.html`, `PostDetail.dc.html`, `Conversation`,
+ * `Saved`, `EditProfile` and every other pushed artboard draw a bare CHEVRON
+ * followed by the title. A button is the heaviest control in the system and it
+ * was carrying the most-repeated, least-remarkable action in the product, on
+ * nineteen routes.
+ *
+ * The title also moved: `t-title` (18/24/700) rather than body at 600, which is
+ * what the artboards set a pushed screen's name in, and it sits BESIDE the
+ * chevron with 10 between them rather than after a 12 gap.
+ *
+ * `nav-back` keeps its testID: nineteen route tests and the Maestro flows press
+ * it, and it marks the same thing it always did. The accessible label is now
+ * explicit, because a chevron has no text for a screen reader to read — that is
+ * the one thing the button was doing for free.
+ */
 function Header({ title, onBack }: { title: string; onBack: () => void }) {
   return (
     <Row
       style={{
         alignItems: 'center',
-        gap: space.md,
-        padding: space.sm,
+        gap: 10,
+        paddingHorizontal: space.lg,
+        paddingVertical: space.sm,
         borderBottomWidth: 1,
         borderBottomColor: palette.line.hairline,
       }}
     >
-      <Button testID="nav-back" label="Back" variant="secondary" onPress={onBack} />
-      <Text style={{ ...textStyle.body, ...font('600'), color: palette.text.primary }}>{title}</Text>
+      <Pressable
+        testID="nav-back"
+        accessibilityRole="button"
+        accessibilityLabel="Back"
+        onPress={onBack}
+        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+      >
+        <Icon name="back" size="action" color={palette.text.primary} />
+      </Pressable>
+      <Text
+        numberOfLines={1}
+        style={{ ...textStyle.title, color: palette.text.primary, flexShrink: 1 }}
+      >
+        {title}
+      </Text>
     </Row>
   );
 }
