@@ -101,6 +101,38 @@ interface Person {
   data: AppData;
 }
 
+/**
+ * SIGN-UP IS RATE LIMITED ON PURPOSE, AND THIS WAITS RATHER THAN ROUTING AROUND IT.
+ *
+ * `auth.controller.ts` allows 5 with a token back every 20 seconds, keyed on the
+ * client IP, under a comment saying "creating accounts is not something a person
+ * does in a burst". That is right, and a seeder is exactly the unusual caller it
+ * describes — seven accounts from one address in under a second. Found by
+ * running this against a local stack before ever pointing it at a deployment,
+ * where it would have failed identically and less legibly.
+ *
+ * So: sequential, and on the refusal the server names, wait and try again. The
+ * alternative — a flag that skips the limiter for seeding — is a hole in a
+ * safety control that exists for a reason, kept open for a convenience.
+ *
+ * It costs about forty seconds for seven people, and says so, because a silent
+ * forty-second pause reads as a hang.
+ */
+async function signUpRespectingTheLimit<T>(what: string, attempt: () => Promise<T>): Promise<T> {
+  for (let tries = 0; ; tries += 1) {
+    try {
+      return await attempt();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      const seconds = /Retry in (\d+)s/.exec(message)?.[1];
+      if (seconds === undefined || tries >= 6) throw err;
+      const wait = Number(seconds) + 1;
+      say(`  ${what}: the sign-up limit says retry in ${seconds}s — waiting (this is the product working)`);
+      await new Promise((resolve) => setTimeout(resolve, wait * 1000));
+    }
+  }
+}
+
 async function person(handle: string, displayName: string, bio: string): Promise<Person> {
   /**
    * A UNIQUE SUFFIX ON BOTH THE HANDLE AND THE ADDRESS, because this script is
@@ -117,7 +149,7 @@ async function person(handle: string, displayName: string, bio: string): Promise
   const tokens = new MemoryTokenStore();
   const data = createAppData({ baseUrl: `${baseUrl()}/v1`, tokens });
 
-  const profile = await data.session.signUp({
+  const profile = await signUpRespectingTheLimit(handle, () => data.session.signUp({
     email: `demo-${suffix}@example.invalid`,
     /**
      * Not a secret worth protecting and deliberately not a realistic one: these
@@ -127,7 +159,7 @@ async function person(handle: string, displayName: string, bio: string): Promise
     password: `demo-${suffix}-Aa1!`,
     handle: `${handle}${suffix}`,
     displayName,
-  });
+  }));
 
   // The bio is a separate call because sign-up does not take one — it asks for
   // the four things it cannot proceed without, and nothing else.
@@ -295,14 +327,19 @@ async function main(): Promise<void> {
   };
 
   say('creating people...');
-  const [maya, tomas, ingrid, rafael, noor, jonas] = await Promise.all([
-    person('mayaokonkwo', 'Maya Okonkwo', 'Birds at dawn, mostly. Lagos, then Lisbon.'),
-    person('tomasherrera', 'Tomás Herrera', 'Climbing anything with a view. Slowly getting faster.'),
-    person('ingridsandvik', 'Ingrid Sandvik', 'Ceramics and small paintings. Bergen.'),
-    person('rafaellim', 'Rafael Lim', 'Cooking whatever the garden gives me.'),
-    person('noorhaddad', 'Noor Haddad', 'Long rides at short notice. Amman.'),
-    person('jonasweber', 'Jonas Weber', 'Hand tools, old wood, loud records.'),
-  ]);
+  // SEQUENTIAL, and that is the fix rather than a style preference: a burst of
+  // seven sign-ups from one address is precisely what the limiter refuses.
+  const roster: ReadonlyArray<readonly [string, string, string]> = [
+    ['mayaokonkwo', 'Maya Okonkwo', 'Birds at dawn, mostly. Lagos, then Lisbon.'],
+    ['tomasherrera', 'Tomás Herrera', 'Climbing anything with a view. Slowly getting faster.'],
+    ['ingridsandvik', 'Ingrid Sandvik', 'Ceramics and small paintings. Bergen.'],
+    ['rafaellim', 'Rafael Lim', 'Cooking whatever the garden gives me.'],
+    ['noorhaddad', 'Noor Haddad', 'Long rides at short notice. Amman.'],
+    ['jonasweber', 'Jonas Weber', 'Hand tools, old wood, loud records.'],
+  ];
+  const made: Person[] = [];
+  for (const [handle, name, bio] of roster) made.push(await person(handle, name, bio));
+  const [maya, tomas, ingrid, rafael, noor, jonas] = made;
   const cast = [maya, tomas, ingrid, rafael, noor, jonas] as Person[];
 
   /**
