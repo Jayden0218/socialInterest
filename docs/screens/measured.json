@@ -108,13 +108,13 @@
   },
   "cold-start": {
     "colors": [
+      "rgb(150, 88, 10)",
       "rgb(22, 33, 26)",
       "rgb(236, 234, 228)",
       "rgb(243, 241, 236)",
       "rgb(251, 250, 248)",
       "rgb(255, 255, 255)",
       "rgb(31, 107, 63)",
-      "rgb(59, 105, 170)",
       "rgb(67, 81, 74)",
       "rgb(96, 108, 102)"
     ],
@@ -154,8 +154,8 @@
       "rgb(22, 33, 26)": "nav-back <DIV> .css-text-146c3p1",
       "rgb(96, 108, 102)": "pick-skip-header <DIV> .css-text-146c3p1",
       "rgb(67, 81, 74)": "pick-interests-screen <DIV> .css-text-146c3p1",
-      "rgb(255, 255, 255)": "pick-01M2PX6YBXGFKKPHRA09M57QNB <DIV> .css-view-g5y9jx r-cursor-1loqt21 r-touch",
-      "rgb(59, 105, 170)": "interest-chip-fixture-eb65604b <DIV> .css-text-146c3p1",
+      "rgb(255, 255, 255)": "pick-01M2PXH5BEG2SK2Q4WE48HWVRK <DIV> .css-view-g5y9jx r-cursor-1loqt21 r-touch",
+      "rgb(150, 88, 10)": "interest-chip-fixture-60f86e1e <DIV> .css-text-146c3p1",
       "rgb(31, 107, 63)": "pick-continue <BUTTON> .css-view-g5y9jx r-cursor-1loqt21 r-touch"
     },
     "borders": [
@@ -164,13 +164,13 @@
   },
   "home-feed": {
     "colors": [
+      "rgb(150, 88, 10)",
       "rgb(22, 33, 26)",
       "rgb(236, 234, 228)",
       "rgb(243, 241, 236)",
       "rgb(251, 250, 248)",
       "rgb(255, 255, 255)",
       "rgb(31, 107, 63)",
-      "rgb(59, 105, 170)",
       "rgb(96, 108, 102)"
     ],
     "fontSizes": [
@@ -211,9 +211,9 @@
       "rgb(22, 33, 26)": "home-feed-screen <DIV> .css-text-146c3p1",
       "rgb(31, 107, 63)": "feed-tab-for-you <DIV> .css-view-g5y9jx",
       "rgb(96, 108, 102)": "feed-tab-following <DIV> .css-text-146c3p1",
-      "rgb(255, 255, 255)": "post-01M2PX70NNGVVMS9ZH2TH0YC5H <BUTTON> .css-view-g5y9jx r-cursor-1loqt21 r-touch",
-      "rgb(243, 241, 236)": "post-media-01M2PX70NNGVVMS9ZH2TH0YC5H <DIV> .css-view-g5y9jx",
-      "rgb(59, 105, 170)": "interest-chip-fixture-eb65604b <DIV> .css-text-146c3p1"
+      "rgb(255, 255, 255)": "post-01M2PXH7MAD8JCBNJS17AW30W3 <BUTTON> .css-view-g5y9jx r-cursor-1loqt21 r-touch",
+      "rgb(243, 241, 236)": "post-media-01M2PXH7MAD8JCBNJS17AW30W3 <DIV> .css-view-g5y9jx",
+      "rgb(150, 88, 10)": "interest-chip-fixture-60f86e1e <DIV> .css-text-146c3p1"
     },
     "borders": [
       "rgb(236, 234, 228) @1px DIV"
@@ -221,13 +221,13 @@
   },
   "discover-search": {
     "colors": [
+      "rgb(150, 88, 10)",
       "rgb(22, 33, 26)",
       "rgb(236, 234, 228)",
       "rgb(243, 241, 236)",
       "rgb(251, 250, 248)",
       "rgb(255, 255, 255)",
       "rgb(31, 107, 63)",
-      "rgb(59, 105, 170)",
       "rgb(96, 108, 102)"
     ],
     "fontSizes": [
@@ -236,19 +236,23 @@
       "12.5px",
       "13.5px",
       "14px",
+      "20px",
       "22px"
     ],
     "fontWeights": [
       "500",
-      "600"
+      "600",
+      "700"
     ],
     "fontFamilies": [
+      "PlusJakartaSans-Bold",
       "PlusJakartaSans-Medium",
       "PlusJakartaSans-SemiBold"
     ],
     "radii": [
       "11px",
       "14px",
+      "21px",
       "999px"
     ],
     "gaps": [
@@ -257,45 +261,49 @@
       "3px",
       "4px",
       "6px",
-      "8px"
+      "8px",
+      "9px"
     ],
     "untypedText": [],
     "colorSites": {
       "rgba(0, 0, 0, 0)": "(no testid) <DIV>",
       "rgb(251, 250, 248)": "(no testid) <DIV> .css-view-g5y9jx",
-      "rgb(22, 33, 26)": "search-tab-interests <DIV> .css-text-146c3p1",
+      "rgb(22, 33, 26)": "interest-search-screen <DIV> .css-text-146c3p1",
+      "rgb(243, 241, 236)": "interest-search-screen <DIV> .css-view-g5y9jx",
       "rgb(31, 107, 63)": "search-tab-interests <DIV> .css-view-g5y9jx",
       "rgb(96, 108, 102)": "search-tab-posts <DIV> .css-text-146c3p1",
       "rgb(255, 255, 255)": "search-result-0 <BUTTON> .css-view-g5y9jx r-cursor-1loqt21 r-touch",
-      "rgb(243, 241, 236)": "search-result-0-mosaic <DIV> .css-view-g5y9jx",
-      "rgb(59, 105, 170)": "interest-chip-fixture-eb65604b <DIV> .css-text-146c3p1 r-maxWidth-dnmrzs r-ove"
+      "rgb(150, 88, 10)": "interest-chip-fixture-60f86e1e <DIV> .css-text-146c3p1 r-maxWidth-dnmrzs r-ove"
     },
     "borders": [
-      "rgb(236, 234, 228) @1px INPUT",
       "rgb(236, 234, 228) @1px DIV"
     ]
   },
   "discover-results": {
     "colors": [
+      "rgb(150, 88, 10)",
       "rgb(22, 33, 26)",
       "rgb(236, 234, 228)",
+      "rgb(243, 241, 236)",
       "rgb(251, 250, 248)",
       "rgb(255, 255, 255)",
       "rgb(31, 107, 63)",
-      "rgb(59, 105, 170)",
       "rgb(96, 108, 102)"
     ],
     "fontSizes": [
       "10.5px",
       "14px",
+      "20px",
       "22px"
     ],
     "fontWeights": [
       "400",
       "500",
-      "600"
+      "600",
+      "700"
     ],
     "fontFamilies": [
+      "PlusJakartaSans-Bold",
       "PlusJakartaSans-Medium",
       "PlusJakartaSans-Regular",
       "PlusJakartaSans-SemiBold"
@@ -303,6 +311,7 @@
     "radii": [
       "11px",
       "14px",
+      "21px",
       "999px"
     ],
     "gaps": [
@@ -310,16 +319,18 @@
       "24px",
       "4px",
       "6px",
-      "8px"
+      "8px",
+      "9px"
     ],
     "untypedText": [],
     "colorSites": {
       "rgba(0, 0, 0, 0)": "(no testid) <DIV>",
       "rgb(251, 250, 248)": "(no testid) <DIV> .css-view-g5y9jx",
-      "rgb(22, 33, 26)": "search-tab-interests <DIV> .css-text-146c3p1",
+      "rgb(22, 33, 26)": "interest-search-screen <DIV> .css-text-146c3p1",
+      "rgb(243, 241, 236)": "interest-search-screen <DIV> .css-view-g5y9jx",
       "rgb(31, 107, 63)": "search-tab-interests <DIV> .css-view-g5y9jx",
       "rgb(96, 108, 102)": "search-tab-posts <DIV> .css-text-146c3p1",
-      "rgb(59, 105, 170)": "search-result-colour-0 <DIV> .css-view-g5y9jx",
+      "rgb(150, 88, 10)": "search-result-colour-0 <DIV> .css-view-g5y9jx",
       "rgb(255, 255, 255)": "app-root <DIV> .css-view-g5y9jx"
     },
     "borders": [
@@ -329,13 +340,13 @@
   },
   "interest-space": {
     "colors": [
+      "rgb(150, 88, 10)",
       "rgb(22, 33, 26)",
       "rgb(236, 234, 228)",
       "rgb(243, 241, 236)",
       "rgb(251, 250, 248)",
       "rgb(255, 255, 255)",
       "rgb(31, 107, 63)",
-      "rgb(59, 105, 170)",
       "rgb(96, 108, 102)"
     ],
     "fontSizes": [
@@ -375,7 +386,7 @@
       "rgb(243, 241, 236)": "nav-back <BUTTON> .css-view-g5y9jx r-cursor-1loqt21 r-touch",
       "rgb(22, 33, 26)": "nav-back <DIV> .css-text-146c3p1",
       "rgb(255, 255, 255)": "interest-screen <DIV> .css-view-g5y9jx",
-      "rgb(59, 105, 170)": "interest-identity <DIV> .css-view-g5y9jx",
+      "rgb(150, 88, 10)": "interest-identity <DIV> .css-view-g5y9jx",
       "rgb(31, 107, 63)": "follow-toggle <BUTTON> .css-view-g5y9jx r-cursor-1loqt21 r-touch",
       "rgb(96, 108, 102)": "order-top <DIV> .css-text-146c3p1"
     },
@@ -387,11 +398,11 @@
   },
   "post-detail": {
     "colors": [
+      "rgb(150, 88, 10)",
       "rgb(22, 33, 26)",
       "rgb(243, 241, 236)",
       "rgb(251, 250, 248)",
       "rgb(255, 255, 255)",
-      "rgb(59, 105, 170)",
       "rgb(96, 108, 102)"
     ],
     "fontSizes": [
@@ -424,7 +435,7 @@
       "rgb(243, 241, 236)": "nav-back <BUTTON> .css-view-g5y9jx r-cursor-1loqt21 r-touch",
       "rgb(22, 33, 26)": "nav-back <DIV> .css-text-146c3p1",
       "rgb(255, 255, 255)": "media-page-0 <DIV> .css-view-g5y9jx",
-      "rgb(59, 105, 170)": "interest-chip-fixture-eb65604b <DIV> .css-text-146c3p1",
+      "rgb(150, 88, 10)": "interest-chip-fixture-60f86e1e <DIV> .css-text-146c3p1",
       "rgb(96, 108, 102)": "react-button <DIV> .css-text-146c3p1"
     },
     "borders": []
@@ -482,6 +493,7 @@
     "colors": [
       "rgb(22, 33, 26)",
       "rgb(236, 234, 228)",
+      "rgb(243, 241, 236)",
       "rgb(251, 250, 248)",
       "rgb(255, 255, 255)",
       "rgb(31, 107, 63)",
@@ -493,6 +505,7 @@
       "12.5px",
       "14px",
       "18px",
+      "20px",
       "22px"
     ],
     "fontWeights": [
@@ -510,6 +523,7 @@
     "radii": [
       "11px",
       "14px",
+      "21px",
       "999px"
     ],
     "gaps": [
@@ -517,13 +531,15 @@
       "16px",
       "24px",
       "4px",
-      "6px"
+      "6px",
+      "9px"
     ],
     "untypedText": [],
     "colorSites": {
       "rgba(0, 0, 0, 0)": "(no testid) <DIV>",
       "rgb(251, 250, 248)": "(no testid) <DIV> .css-view-g5y9jx",
-      "rgb(22, 33, 26)": "search-tab-interests <DIV> .css-text-146c3p1",
+      "rgb(22, 33, 26)": "interest-search-screen <DIV> .css-text-146c3p1",
+      "rgb(243, 241, 236)": "interest-search-screen <DIV> .css-view-g5y9jx",
       "rgb(31, 107, 63)": "search-tab-interests <DIV> .css-view-g5y9jx",
       "rgb(96, 108, 102)": "search-tab-posts <DIV> .css-text-146c3p1",
       "rgb(67, 81, 74)": "discover-empty <DIV> .css-text-146c3p1",
@@ -693,13 +709,13 @@
   },
   "new-group-filled": {
     "colors": [
-      "rgb(0, 120, 124)",
-      "rgb(156, 83, 33)",
       "rgb(22, 33, 26)",
       "rgb(243, 241, 236)",
       "rgb(251, 250, 248)",
       "rgb(255, 255, 255)",
       "rgb(31, 107, 63)",
+      "rgb(66, 121, 53)",
+      "rgb(92, 96, 170)",
       "rgb(96, 108, 102)"
     ],
     "fontSizes": [
@@ -738,8 +754,8 @@
       "rgb(22, 33, 26)": "nav-back <DIV> .css-text-146c3p1",
       "rgb(255, 255, 255)": "group-name-input <INPUT> .css-textinput-11aywtz r-placeholderTextC",
       "rgb(31, 107, 63)": "create-group <DIV> .css-text-146c3p1",
-      "rgb(0, 120, 124)": "avatar-shotgroupa-7652b7af-15c2-4030-9462-9e290c14c6a7 <DIV> .css-view-g5y9jx",
-      "rgb(156, 83, 33)": "avatar-shotgroupb-e6479a32-cad0-4cde-85e8-3c878e72fae2 <DIV> .css-view-g5y9jx",
+      "rgb(92, 96, 170)": "avatar-shotgroupa-d0223f91-2fad-4630-b38a-84b4ba00a4a9 <DIV> .css-view-g5y9jx",
+      "rgb(66, 121, 53)": "avatar-shotgroupb-091932e7-66c9-4459-99cb-4af56a92a531 <DIV> .css-view-g5y9jx",
       "rgb(96, 108, 102)": "group-search-results <DIV> .css-text-146c3p1"
     },
     "borders": []
@@ -752,8 +768,8 @@
       "rgb(243, 241, 236)",
       "rgb(251, 250, 248)",
       "rgb(255, 255, 255)",
-      "rgb(3, 125, 83)",
       "rgb(31, 107, 63)",
+      "rgb(38, 109, 167)",
       "rgb(96, 108, 102)"
     ],
     "fontSizes": [
@@ -794,11 +810,11 @@
       "rgb(251, 250, 248)": "(no testid) <DIV> .css-view-g5y9jx",
       "rgb(243, 241, 236)": "nav-back <BUTTON> .css-view-g5y9jx r-cursor-1loqt21 r-touch",
       "rgb(22, 33, 26)": "nav-back <DIV> .css-text-146c3p1",
-      "rgb(3, 125, 83)": "avatar-01M2PX7K8PB32T372T6321FQ6J <DIV> .css-view-g5y9jx",
-      "rgb(255, 255, 255)": "avatar-01M2PX7K8PB32T372T6321FQ6J <DIV> .css-text-146c3p1",
+      "rgb(38, 109, 167)": "avatar-01M2PXHT4P21HT0JYHAJR0Z720 <DIV> .css-view-g5y9jx",
+      "rgb(255, 255, 255)": "avatar-01M2PXHT4P21HT0JYHAJR0Z720 <DIV> .css-text-146c3p1",
       "rgb(96, 108, 102)": "conversation-screen <DIV> .css-text-146c3p1",
       "rgb(192, 57, 43)": "leave-group <BUTTON> .css-view-g5y9jx r-cursor-1loqt21 r-touch",
-      "rgb(31, 107, 63)": "message-01M2PX7M3NY4ZS8WANXDW0CDK3 <DIV> .css-view-g5y9jx"
+      "rgb(31, 107, 63)": "message-01M2PXHTZKRMDX04NPNV7TP835 <DIV> .css-view-g5y9jx"
     },
     "borders": [
       "rgb(236, 234, 228) @1px DIV"
@@ -810,8 +826,8 @@
       "rgb(236, 234, 228)",
       "rgb(251, 250, 248)",
       "rgb(255, 255, 255)",
-      "rgb(3, 125, 83)",
       "rgb(31, 107, 63)",
+      "rgb(38, 109, 167)",
       "rgb(96, 108, 102)"
     ],
     "fontSizes": [
@@ -860,7 +876,7 @@
       "rgb(31, 107, 63)": "inbox-accepted <DIV> .css-view-g5y9jx",
       "rgb(96, 108, 102)": "inbox-requested <DIV> .css-text-146c3p1",
       "rgb(255, 255, 255)": "inbox-requested <DIV> .css-text-146c3p1",
-      "rgb(3, 125, 83)": "avatar-01M2PX7K8PB32T372T6321FQ6J <DIV> .css-view-g5y9jx"
+      "rgb(38, 109, 167)": "avatar-01M2PXHT4P21HT0JYHAJR0Z720 <DIV> .css-view-g5y9jx"
     },
     "borders": [
       "rgb(236, 234, 228) @1px DIV"
@@ -868,15 +884,15 @@
   },
   "activity": {
     "colors": [
-      "rgb(0, 120, 124)",
-      "rgb(141, 78, 136)",
-      "rgb(156, 83, 33)",
       "rgb(22, 33, 26)",
       "rgb(236, 234, 228)",
       "rgb(243, 241, 236)",
       "rgb(251, 250, 248)",
       "rgb(255, 255, 255)",
       "rgb(31, 107, 63)",
+      "rgb(66, 121, 53)",
+      "rgb(87, 117, 33)",
+      "rgb(92, 96, 170)",
       "rgb(96, 108, 102)"
     ],
     "fontSizes": [
@@ -913,11 +929,11 @@
       "rgb(251, 250, 248)": "(no testid) <DIV> .css-view-g5y9jx",
       "rgb(22, 33, 26)": "notifications-screen <DIV> .css-text-146c3p1 r-maxWidth-dnmrzs r-ove",
       "rgb(96, 108, 102)": "notification-list <DIV> .css-text-146c3p1",
-      "rgb(141, 78, 136)": "avatar-shotfriend-3c1cf4f1-1924-4df5-bb52-e5dc70feb42b <DIV> .css-view-g5y9jx",
-      "rgb(255, 255, 255)": "avatar-shotfriend-3c1cf4f1-1924-4df5-bb52-e5dc70feb42b <DIV> .css-text-146c3p1",
+      "rgb(87, 117, 33)": "avatar-shotfriend-2b8c6f88-1938-4616-935b-4e664a49f949 <DIV> .css-view-g5y9jx",
+      "rgb(255, 255, 255)": "avatar-shotfriend-2b8c6f88-1938-4616-935b-4e664a49f949 <DIV> .css-text-146c3p1",
       "rgb(243, 241, 236)": "notification-thumb-0 <DIV> .css-view-g5y9jx r-flexBasis-1mlwlqe r-ov",
-      "rgb(156, 83, 33)": "avatar-shotgroupb-e6479a32-cad0-4cde-85e8-3c878e72fae2 <DIV> .css-view-g5y9jx",
-      "rgb(0, 120, 124)": "avatar-shotgroupa-7652b7af-15c2-4030-9462-9e290c14c6a7 <DIV> .css-view-g5y9jx",
+      "rgb(66, 121, 53)": "avatar-shotgroupb-091932e7-66c9-4459-99cb-4af56a92a531 <DIV> .css-view-g5y9jx",
+      "rgb(92, 96, 170)": "avatar-shotgroupa-d0223f91-2fad-4630-b38a-84b4ba00a4a9 <DIV> .css-view-g5y9jx",
       "rgb(31, 107, 63)": "open-compose <BUTTON> .css-view-g5y9jx r-cursor-1loqt21 r-touch"
     },
     "borders": [
@@ -926,7 +942,7 @@
   },
   "profile": {
     "colors": [
-      "rgb(0, 122, 113)",
+      "rgb(160, 77, 58)",
       "rgb(207, 202, 190)",
       "rgb(22, 33, 26)",
       "rgb(236, 234, 228)",
@@ -973,11 +989,11 @@
       "rgba(0, 0, 0, 0)": "(no testid) <DIV>",
       "rgb(251, 250, 248)": "(no testid) <DIV> .css-view-g5y9jx",
       "rgb(22, 33, 26)": "profile-screen <DIV> .css-text-146c3p1",
-      "rgb(0, 122, 113)": "avatar-shotownerc63f5368 <DIV> .css-view-g5y9jx",
-      "rgb(255, 255, 255)": "avatar-shotownerc63f5368 <DIV> .css-text-146c3p1",
+      "rgb(160, 77, 58)": "avatar-shotowner674ce79c <DIV> .css-view-g5y9jx",
+      "rgb(255, 255, 255)": "avatar-shotowner674ce79c <DIV> .css-text-146c3p1",
       "rgb(96, 108, 102)": "profile-screen <DIV> .css-text-146c3p1",
       "rgb(31, 107, 63)": "profile-screen <DIV> .css-view-g5y9jx",
-      "rgb(243, 241, 236)": "post-01M2PX6ZGSJEWSPASKZK0V0D09 <BUTTON> .css-view-g5y9jx r-cursor-1loqt21 r-touch"
+      "rgb(243, 241, 236)": "post-01M2PXH6FY9N8KQJJGS4VM3WBS <BUTTON> .css-view-g5y9jx r-cursor-1loqt21 r-touch"
     },
     "borders": [
       "rgb(207, 202, 190) @1px BUTTON",
@@ -1044,7 +1060,7 @@
       "rgb(251, 250, 248)",
       "rgb(255, 255, 255)",
       "rgb(31, 107, 63)",
-      "rgb(76, 101, 171)",
+      "rgb(47, 108, 168)",
       "rgb(96, 108, 102)"
     ],
     "fontSizes": [
@@ -1086,8 +1102,8 @@
       "rgb(243, 241, 236)": "nav-back <BUTTON> .css-view-g5y9jx r-cursor-1loqt21 r-touch",
       "rgb(22, 33, 26)": "nav-back <DIV> .css-text-146c3p1",
       "rgb(31, 107, 63)": "save-profile <DIV> .css-text-146c3p1",
-      "rgb(76, 101, 171)": "avatar-shotowner-b04669f6-6bf1-4453-8956-a78ec63f5368 <DIV> .css-view-g5y9jx",
-      "rgb(255, 255, 255)": "avatar-shotowner-b04669f6-6bf1-4453-8956-a78ec63f5368 <DIV> .css-text-146c3p1",
+      "rgb(47, 108, 168)": "avatar-shotowner-e8b670ba-3ff7-4a15-bead-f022674ce79c <DIV> .css-view-g5y9jx",
+      "rgb(255, 255, 255)": "avatar-shotowner-e8b670ba-3ff7-4a15-bead-f022674ce79c <DIV> .css-text-146c3p1",
       "rgb(96, 108, 102)": "edit-profile-screen <DIV> .css-text-146c3p1",
       "rgb(0, 150, 136)": "pref-reaction <DIV> .css-view-g5y9jx r-alignSelf-k200y r-bord",
       "rgb(236, 234, 228)": "pref-mention <DIV> .css-view-g5y9jx r-bottom-1p0dtai r-force"

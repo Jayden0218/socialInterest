@@ -80,23 +80,63 @@ export function InterestSearchScreen({
   const showPosts = mode === 'posts' && onSelectMode !== undefined;
   return (
     <Screen testID="interest-search-screen">
-      <TextInput
-        testID="interest-search-input"
-        // The artboard's words, and the better ones: this searches all three.
-        accessibilityLabel="Search interests, people and places"
-        placeholder="Interests, people, places"
-        value={query}
-        onChangeText={onQueryChange}
-        autoCorrect={false}
+      {/*
+        012/Explore.dc.html. THE SCREEN HAD NO NAME ON IT.
+        Every other artboard opens with its title in `t-display` at the top
+        left, and this one says "Explore"; the screen started straight at the
+        field. A person arriving by tab could not tell what they had opened,
+        which is a navigation problem before it is a cosmetic one.
+      */}
+      <Text
         style={{
-          borderWidth: 1,
-          borderColor: palette.line.hairline,
-          borderRadius: radius.md,
-          padding: space.md,
-          ...textStyle.body,
+          ...textStyle.display,
+          letterSpacing: -0.4,
           color: palette.text.primary,
+          paddingBottom: space.sm,
         }}
-      />
+      >
+        Explore
+      </Text>
+
+      {/*
+        THE FIELD IS A SUNKEN PILL WITH THE MAGNIFIER INSIDE IT, not a bordered
+        rectangle. The artboard fills it with `--sunken`, rounds it to
+        `--r-field` (21, the pill) and sets the glyph in the field; this was a
+        1px hairline border at `radius.md` (14) with no icon at all — so the one
+        control the screen exists for did not look like a search box.
+
+        The icon is 18 on the artboard and `action` is 20. Same call as the feed
+        header: `Icon.tsx` keeps a closed size union precisely to refuse "a bit
+        smaller", and two points do not carry meaning here.
+      */}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 9,
+          backgroundColor: palette.bg.sunken,
+          borderRadius: radius.field,
+          paddingVertical: 10,
+          paddingHorizontal: 14,
+        }}
+      >
+        <Icon name="search" size="action" color={palette.text.muted} />
+        <TextInput
+          testID="interest-search-input"
+          // The artboard's words, and the better ones: this searches all three.
+          accessibilityLabel="Search interests, people and places"
+          placeholder="Interests, people, places"
+          placeholderTextColor={palette.text.muted}
+          value={query}
+          onChangeText={onQueryChange}
+          autoCorrect={false}
+          style={{
+            flexGrow: 1,
+            ...textStyle.body,
+            color: palette.text.primary,
+          }}
+        />
+      </View>
 
       {/*
         012/FR-031. ONE FIELD BEFORE ANYTHING IS TYPED.
