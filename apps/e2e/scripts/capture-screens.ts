@@ -117,6 +117,7 @@ async function main(): Promise<void> {
     const fontFamilies = new Set(), radii = new Set(), gaps = new Set();
     const untyped = [];
     const site = {};
+    const border = [];
     const seen = (set, v) => {
       if (v && v !== 'none' && v !== 'normal' && v !== '0px' && v !== 'rgba(0, 0, 0, 0)') set.add(v);
     };
@@ -125,6 +126,17 @@ async function main(): Promise<void> {
       // Only what is ON the screen. An off-screen node's styles are not part of
       // what this artboard shows, and counting them reports drift nobody sees.
       if (r.width === 0 || r.height === 0 || r.bottom < 0 || r.top > 844) continue;
+      // THE DOCUMENT IS NOT THE APP. querySelectorAll('*') includes html and
+      // body, whose computed color defaults to black — which is where the
+      // #000000 reported as off-palette on all twenty-one screens came from.
+      // Third artifact of this measurement rather than a finding in the
+      // product, and the reason the residual was recorded as unexplained
+      // instead of being given a plausible cause.
+      //
+      // NOTE FOR THE NEXT EDITOR: this block lives inside a TEMPLATE LITERAL,
+      // so a backtick in a comment here ends the string and the file stops
+      // parsing. That is exactly how this edit broke on its first attempt.
+      if (el.tagName === 'HTML' || el.tagName === 'BODY') continue;
       const c = getComputedStyle(el);
       // A BORDER COLOUR ON A ZERO-WIDTH BORDER IS NOT A COLOUR ANYBODY SEES.
       // CSS defaults border-color to black, and react-native-web leaves
@@ -132,8 +144,17 @@ async function main(): Promise<void> {
       // reported #000000 as an off-palette colour on all twenty-one screens.
       // That is a guard crying wolf on its first run, which is worse than
       // silence: it teaches the reader to skim the report.
-      seen(colors, c.color); seen(colors, c.backgroundColor);
-      if (parseFloat(c.borderTopWidth) > 0) seen(colors, c.borderTopColor);
+      // A TEXT COLOUR ON AN ELEMENT WITH NO TEXT PAINTS NOTHING.
+      // Collected from every element, c.color reported the wrapper divs'
+      // INHERITED black on all twenty-one screens — and I called that drift,
+      // then blamed zero-width borders, then the document root, before
+      // measuring which element it actually was: a DIV with no testid and no
+      // class, i.e. a container. Only a leaf that HAS text can show a text
+      // colour, which is the same condition the font collection already used.
+      const hasText = el.textContent && el.textContent.trim().length > 0 && el.children.length === 0;
+      if (hasText) seen(colors, c.color);
+      seen(colors, c.backgroundColor);
+      if (parseFloat(c.borderTopWidth) > 0) { seen(colors, c.borderTopColor); border.push(c.borderTopColor + ' @' + c.borderTopWidth + ' ' + el.tagName); }
       // Where each colour came from, so a stray one can be judged rather than
       // merely counted. A generated interest hue and a wrong grey are both
       // "not in the artboard"; only the site tells them apart.
@@ -145,10 +166,11 @@ async function main(): Promise<void> {
           if (got) { tid = got; break; }
           node = node.parentElement;
         }
-        site[v] = tid || '(no testid)';
+        site[v] = (tid || '(no testid)') + ' <' + el.tagName + '>' + (el.className ? ' .' + String(el.className).slice(0, 40) : '');
       };
-      note(c.color); note(c.backgroundColor);
-      if (el.textContent && el.textContent.trim().length > 0 && el.children.length === 0) {
+      if (hasText) note(c.color);
+      note(c.backgroundColor);
+      if (hasText) {
         seen(fontSizes, c.fontSize); seen(fontWeights, c.fontWeight); seen(fontFamilies, c.fontFamily);
         // NAME THE OFFENDERS, do not merely count them. A number says drift
         // exists; the text and the nearest testID say WHERE, which is the
@@ -168,7 +190,8 @@ async function main(): Promise<void> {
     const out = (s) => Array.from(s).sort();
     return { colors: out(colors), fontSizes: out(fontSizes), fontWeights: out(fontWeights),
              fontFamilies: out(fontFamilies), radii: out(radii), gaps: out(gaps),
-             untypedText: untyped, colorSites: site };
+             untypedText: untyped, colorSites: site,
+             borders: Array.from(new Set(border)).slice(0, 14) };
   })()`;
 
   const measure = async (): Promise<Record<string, string[]>> =>
