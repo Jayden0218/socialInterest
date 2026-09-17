@@ -1,6 +1,6 @@
 import { FlatList, Pressable, Text, View } from 'react-native';
 import type { PublicProfile } from '@sih/shared';
-import { activePalette as palette, radius, space, textStyle, MIN_TOUCH_TARGET } from '../../ui/theme';
+import { activePalette as palette, radius, space, textStyle, MIN_TOUCH_TARGET, font } from '../../ui/theme';
 import { Banner, Button, EmptyState, Field, Row, Screen } from '../../ui/primitives';
 import { Avatar } from '../../components/Avatar';
 import { Icon } from '../../ui/Icon';
@@ -131,7 +131,7 @@ export function NewGroupScreen({
           <Text
             style={{
               ...textStyle.body,
-              fontWeight: '600',
+              ...font('600'),
               color: blocking || creating === true ? palette.text.muted : palette.intent.accent,
             }}
           >
@@ -207,7 +207,7 @@ export function NewGroupScreen({
             <Text
               style={{
                 ...textStyle.caption,
-                fontWeight: '700',
+                ...font('700'),
                 letterSpacing: 0.7,
                 color: palette.text.muted,
               }}
@@ -219,7 +219,7 @@ export function NewGroupScreen({
               SERVER's rule (see MAX_PARTICIPANTS above) and this only says where
               you are against it.
             */}
-            <Text style={{ ...textStyle.caption, fontWeight: '600', color: palette.text.muted }}>
+            <Text style={{ ...textStyle.caption, ...font('600'), color: palette.text.muted }}>
               {`${selected.length} of ${MAX_PARTICIPANTS}`}
             </Text>
           </Row>
@@ -247,7 +247,7 @@ export function NewGroupScreen({
               <Row style={{ paddingVertical: 9, paddingHorizontal: space.lg, gap: space.md }}>
                 <Avatar userId={item.userId} displayName={item.displayName} url={item.avatarUrl} size={42} />
                 <View style={{ flexGrow: 1, flexShrink: 1, gap: 2 }}>
-                  <Text style={{ ...textStyle.body, fontWeight: '600', color: palette.text.primary }}>
+                  <Text style={{ ...textStyle.body, ...font('600'), color: palette.text.primary }}>
                     {item.displayName}
                   </Text>
                   <Text style={{ ...textStyle.caption, color: palette.text.muted }}>@{item.handle}</Text>

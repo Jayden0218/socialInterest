@@ -1,6 +1,6 @@
 import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
 import type { Interest, InterestRef, Post } from '@sih/shared';
-import { activePalette as palette, MIN_TOUCH_TARGET, radius, space, textStyle } from '../../ui/theme';
+import { activePalette as palette, MIN_TOUCH_TARGET, radius, space, textStyle, font } from '../../ui/theme';
 import { Row, Screen, ScreenHeader } from '../../ui/primitives';
 import { interestColour } from '../../ui/interest-colour';
 import { PagedPostList, type PagedState } from '../../components/PagedPostList';
@@ -201,13 +201,13 @@ export function InterestScreen({
             `interest-counts` is in the testID snapshot and in two flows. */}
         <View testID="interest-counts" style={{ flexDirection: 'row', gap: 18 }}>
           <Text style={{ ...textStyle.small, color: palette.text.muted }}>
-            <Text style={{ color: palette.text.primary, fontWeight: '700' }}>
+            <Text style={{ color: palette.text.primary, ...font('700') }}>
               {data.interest.postCount.toLocaleString('en-US')}
             </Text>
             {` ${data.interest.postCount === 1 ? 'post' : 'posts'}`}
           </Text>
           <Text style={{ ...textStyle.small, color: palette.text.muted }}>
-            <Text style={{ color: palette.text.primary, fontWeight: '700' }}>
+            <Text style={{ color: palette.text.primary, ...font('700') }}>
               {data.interest.followerCount.toLocaleString('en-US')}
             </Text>
             {` ${data.interest.followerCount === 1 ? 'follower' : 'followers'}`}

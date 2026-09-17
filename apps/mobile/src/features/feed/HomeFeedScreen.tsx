@@ -1,6 +1,6 @@
 import { Pressable, Text, View } from 'react-native';
 import type { Post } from '@sih/shared';
-import { activePalette as palette, radius, space, textStyle, touchTarget, type } from '../../ui/theme';
+import { activePalette as palette, radius, space, textStyle, touchTarget, type, font } from '../../ui/theme';
 import { Screen } from '../../ui/primitives';
 import { Waterfall } from '../../components/Waterfall';
 import type { PagedState } from '../../components/PagedPostList';
@@ -119,7 +119,7 @@ export function HomeFeedScreen({
         <Text
           style={{
             ...textStyle.display,
-            fontWeight: type.display.weight,
+            ...font(type.display.weight),
             letterSpacing: -0.4,
             color: palette.text.primary,
           }}
@@ -146,7 +146,7 @@ export function HomeFeedScreen({
           <Text
             style={{
               ...textStyle.body,
-              fontWeight: tab === 'for-you' ? '600' : '500',
+              ...font(tab === 'for-you' ? '600' : '500'),
               color: tab === 'for-you' ? palette.text.primary : palette.text.muted,
             }}
           >
@@ -175,7 +175,7 @@ export function HomeFeedScreen({
           <Text
             style={{
               ...textStyle.body,
-              fontWeight: tab === 'following' ? '600' : '500',
+              ...font(tab === 'following' ? '600' : '500'),
               color: tab === 'following' ? palette.text.primary : palette.text.muted,
             }}
           >

@@ -6,7 +6,7 @@ import { Photo } from '../ui/Photo';
 import { mediaLabel } from './mediaLabel';
 import { Icon } from '../ui/Icon';
 import { useTheme } from '../ui/useTheme';
-import { radius, space, type as typeScale } from '../ui/tokens';
+import { radius, space, type as typeScale, font } from '../ui/tokens';
 
 /**
  * 007/FR-021, FR-024 — THE WATERFALL CARD.
@@ -258,7 +258,7 @@ export function PostCard({
               color: palette.text.primary,
               fontSize: typeScale.label.size,
               lineHeight: typeScale.label.lineHeight,
-              fontWeight: typeScale.label.weight,
+              ...font(typeScale.label.weight),
             }}
           >
             {post.caption}

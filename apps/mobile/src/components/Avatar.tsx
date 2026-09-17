@@ -1,7 +1,7 @@
 import { Image, Text, View } from 'react-native';
 import { oklch, stableHash } from '../ui/color';
 import { useTheme } from '../ui/useTheme';
-import { radius, type as typeScale } from '../ui/tokens';
+import { radius, type as typeScale, font } from '../ui/tokens';
 
 /**
  * 006/FR-009, FR-010, R5. A person, visible wherever they are named.
@@ -146,7 +146,7 @@ export function Avatar({
           color: palette.text.onInterest,
           fontSize: Math.round(size * 0.42),
           lineHeight: Math.round(size * 0.5),
-          fontWeight: typeScale.label.weight,
+          ...font(typeScale.label.weight),
         }}
       >
         {initial}

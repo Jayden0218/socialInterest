@@ -1,6 +1,6 @@
 import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
 import type { Interest, InterestRef, PlaceSummary, PublicProfile } from '@sih/shared';
-import { activePalette as palette, radius, space, textStyle, touchTarget, MIN_TOUCH_TARGET } from '../../ui/theme';
+import { activePalette as palette, radius, space, textStyle, touchTarget, MIN_TOUCH_TARGET, font } from '../../ui/theme';
 import { interestColour } from '../../ui/interest-colour';
 import { EmptyState, Row, Screen } from '../../ui/primitives';
 import { labelWithParent } from './InterestScreen';
@@ -145,7 +145,7 @@ export function InterestSearchScreen({
               <Text
                 style={{
                   ...textStyle.body,
-                  fontWeight: mode === m ? '600' : '500',
+                  ...font(mode === m ? '600' : '500'),
                   color: mode === m ? palette.text.primary : palette.text.muted,
                 }}
               >

@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native';
 import type { Place, Post, Review } from '@sih/shared';
-import { activePalette as palette, space, textStyle } from '../../ui/theme';
+import { activePalette as palette, space, textStyle, font } from '../../ui/theme';
 import { Button, Row, Screen } from '../../ui/primitives';
 import { PagedPostList, type PagedState } from '../../components/PagedPostList';
 import { RatingControl } from './RatingControl';
@@ -57,7 +57,7 @@ export function PlaceScreen({
   return (
     <Screen testID="place-screen">
       <View style={{ padding: space.sm, gap: space.xs }}>
-        <Text testID="place-name" style={{ ...textStyle.title, color: palette.text.primary, fontWeight: '600' }}>
+        <Text testID="place-name" style={{ ...textStyle.title, color: palette.text.primary, ...font('600') }}>
           {place.name}
         </Text>
         <Text testID="place-meta" style={{ ...textStyle.caption, color: palette.text.muted }}>

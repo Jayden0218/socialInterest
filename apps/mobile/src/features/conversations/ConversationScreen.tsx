@@ -1,6 +1,6 @@
 import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
 import type { Conversation, Message } from '@sih/shared';
-import { activePalette as palette, radius, space, textStyle, MIN_TOUCH_TARGET } from '../../ui/theme';
+import { activePalette as palette, radius, space, textStyle, MIN_TOUCH_TARGET, font } from '../../ui/theme';
 import { Banner, Button, EmptyState, Field, Row, Screen } from '../../ui/primitives';
 import { Avatar } from '../../components/Avatar';
 import { Icon } from '../../ui/Icon';
@@ -119,7 +119,7 @@ export function ConversationScreen({
         <View style={{ flexGrow: 1, flexShrink: 1, gap: 1 }}>
           <Text
             numberOfLines={1}
-            style={{ ...textStyle.body, fontWeight: '600', color: palette.text.primary }}
+            style={{ ...textStyle.body, ...font('600'), color: palette.text.primary }}
           >
             {conversationTitle(conversation)}
           </Text>

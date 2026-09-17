@@ -1,6 +1,6 @@
 import { Pressable, Text, View } from 'react-native';
 import type { InterestRef, Post } from '@sih/shared';
-import { activePalette as palette, space, textStyle, MIN_TOUCH_TARGET } from '../../ui/theme';
+import { activePalette as palette, space, textStyle, MIN_TOUCH_TARGET, font } from '../../ui/theme';
 import { Screen } from '../../ui/primitives';
 import { Avatar } from '../../components/Avatar';
 import { PagedPostList, type PagedState } from '../../components/PagedPostList';
@@ -129,7 +129,7 @@ function PillButton({
       <Text
         style={{
           ...textStyle.body,
-          fontWeight: '600',
+          ...font('600'),
           color: disabled
             ? palette.text.muted
             : accent
@@ -165,7 +165,7 @@ function ProfileTabs({ onOpenSaved }: { onOpenSaved: () => void }) {
       }}
     >
       <View style={{ alignItems: 'center', gap: 9, minHeight: MIN_TOUCH_TARGET }}>
-        <Text style={{ ...textStyle.body, fontWeight: '600', color: palette.text.primary }}>
+        <Text style={{ ...textStyle.body, ...font('600'), color: palette.text.primary }}>
           Posts
         </Text>
         <View style={{ height: 2.5, width: 30, borderRadius: 2, backgroundColor: palette.intent.accent }} />
@@ -178,7 +178,7 @@ function ProfileTabs({ onOpenSaved }: { onOpenSaved: () => void }) {
         onPress={onOpenSaved}
         style={{ alignItems: 'center', gap: 9, minHeight: MIN_TOUCH_TARGET }}
       >
-        <Text style={{ ...textStyle.body, fontWeight: '500', color: palette.text.muted }}>Saved</Text>
+        <Text style={{ ...textStyle.body, ...font('500'), color: palette.text.muted }}>Saved</Text>
         <View style={{ height: 2.5, width: 30, borderRadius: 2, backgroundColor: 'transparent' }} />
       </Pressable>
     </View>

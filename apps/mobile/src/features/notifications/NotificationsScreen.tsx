@@ -1,6 +1,6 @@
 import { FlatList, Image, RefreshControl, Text, View } from 'react-native';
 import type { Notification } from '@sih/shared';
-import { activePalette as palette, radius, space, textStyle, type } from '../../ui/theme';
+import { activePalette as palette, radius, space, textStyle, type, font } from '../../ui/theme';
 import { EmptyState, Screen, ScreenHeader } from '../../ui/primitives';
 import { Avatar } from '../../components/Avatar';
 
@@ -74,7 +74,7 @@ function SectionLabel({ children }: { children: string }) {
     <Text
       style={{
         ...textStyle.caption,
-        fontWeight: '700',
+        ...font('700'),
         letterSpacing: 0.7,
         color: palette.text.muted,
         paddingHorizontal: space.md,
@@ -116,9 +116,9 @@ function NotificationRow({
       <Text
         accessibilityRole="button"
         onPress={() => onOpen(notification)}
-        style={{ ...textStyle.label, fontWeight: type.label.weight, color: palette.text.secondary, flexGrow: 1, flexShrink: 1 }}
+        style={{ ...textStyle.label, ...font(type.label.weight), color: palette.text.secondary, flexGrow: 1, flexShrink: 1 }}
       >
-        <Text style={{ fontWeight: '600', color: palette.text.primary }}>{who}</Text>
+        <Text style={{ ...font('600'), color: palette.text.primary }}>{who}</Text>
         {` ${what}`}
       </Text>
 

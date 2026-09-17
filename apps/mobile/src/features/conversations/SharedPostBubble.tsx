@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native';
 import type { Message } from '@sih/shared';
-import { activePalette as palette, space } from '../../ui/theme';
+import { activePalette as palette, space, font } from '../../ui/theme';
 import { Button } from '../../ui/primitives';
 
 /**
@@ -55,7 +55,7 @@ export function SharedPostBubble({
         gap: space.xs,
       }}
     >
-      <Text style={{ color: palette.text.primary, fontWeight: '600' }}>
+      <Text style={{ color: palette.text.primary, ...font('600') }}>
         {message.sharedPost.author.displayName}
       </Text>
       <Text numberOfLines={2} style={{ color: palette.text.muted }}>

@@ -1,7 +1,8 @@
-import { dark, light, radius, space, type, textStyle, touchTarget, FONT_FAMILY, MIN_TOUCH_TARGET, type Palette } from './tokens';
+import { dark, light, radius, space, type, textStyle, touchTarget, FONT_FAMILY, FONT, font, MIN_TOUCH_TARGET, type Palette } from './tokens';
 
-export { dark, light, radius, space, type, textStyle, touchTarget, FONT_FAMILY, MIN_TOUCH_TARGET };
+export { dark, light, radius, space, type, textStyle, touchTarget, FONT_FAMILY, FONT, font, MIN_TOUCH_TARGET };
 export type { Palette };
+export type { FontWeight } from './tokens';
 
 /**
  * The active palette.

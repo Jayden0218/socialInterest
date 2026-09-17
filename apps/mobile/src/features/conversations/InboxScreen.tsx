@@ -1,6 +1,6 @@
 import { FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 import type { ConversationState, ConversationSummary } from '@sih/shared';
-import { activePalette as palette, space, textStyle, type, MIN_TOUCH_TARGET } from '../../ui/theme';
+import { activePalette as palette, space, textStyle, type, MIN_TOUCH_TARGET, font } from '../../ui/theme';
 import { Screen, ScreenHeader } from '../../ui/primitives';
 import { Avatar } from '../../components/Avatar';
 import { Icon } from '../../ui/Icon';
@@ -83,7 +83,7 @@ function InboxTab({
         <Text
           style={{
             ...textStyle.body,
-            fontWeight: selected ? '600' : '500',
+            ...font(selected ? '600' : '500'),
             color: selected ? palette.text.primary : palette.text.muted,
           }}
         >
@@ -101,7 +101,7 @@ function InboxTab({
               justifyContent: 'center',
             }}
           >
-            <Text style={{ ...textStyle.small, fontWeight: '700', color: palette.text.onAccent }}>
+            <Text style={{ ...textStyle.small, ...font('700'), color: palette.text.onAccent }}>
               {count}
             </Text>
           </View>
@@ -294,7 +294,7 @@ function ConversationRow({
             <Text
               testID={`group-row-${conversationSlug(item)}`}
               numberOfLines={1}
-              style={{ ...textStyle.body, fontWeight: '600', color: palette.text.primary, flexShrink: 1 }}
+              style={{ ...textStyle.body, ...font('600'), color: palette.text.primary, flexShrink: 1 }}
             >
               {title}
             </Text>
@@ -302,13 +302,13 @@ function ConversationRow({
             <Text
               testID={`conversation-title-${item.conversationId}`}
               numberOfLines={1}
-              style={{ ...textStyle.body, fontWeight: '600', color: palette.text.primary, flexShrink: 1 }}
+              style={{ ...textStyle.body, ...font('600'), color: palette.text.primary, flexShrink: 1 }}
             >
               {title}
             </Text>
           )}
           {group && members > 0 ? (
-            <Text style={{ ...textStyle.small, fontWeight: type.small.weight, color: palette.text.muted }}>
+            <Text style={{ ...textStyle.small, ...font(type.small.weight), color: palette.text.muted }}>
               {members}
             </Text>
           ) : null}
@@ -318,7 +318,7 @@ function ConversationRow({
           numberOfLines={1}
           style={{
             ...textStyle.label,
-            fontWeight: '400',
+            ...font('400'),
             color: unread ? palette.text.primary : palette.text.muted,
           }}
         >

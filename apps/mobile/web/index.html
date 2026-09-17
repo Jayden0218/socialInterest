@@ -1,6 +1,28 @@
 <!doctype html>
 <html>
   <head><meta charset="utf-8" /><title>socialInterest</title>
+    <!-- THE TYPEFACE, FOR THE BROWSER HARNESS.
+
+         Native embeds these through `expo-font` (app.config.ts); react-native-web
+         resolves `fontFamily` as CSS instead, so without this the browser renders
+         the app in the default sans while a device renders Plus Jakarta Sans —
+         and every screenshot in docs/screens/ would keep showing a typeface the
+         product does not use. That is exactly what they were doing before: the
+         font was declared in tokens.ts, loaded by nothing, and applied to
+         nothing, on either platform.
+
+         The four families are named per weight to match `FONT` in tokens.ts,
+         because Android registers Medium and SemiBold as separate families
+         rather than as weights of one. The @font-face rules below alias those
+         names onto the real family so one set of style objects works on both. -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" />
+    <style>
+      @font-face { font-family: 'PlusJakartaSans-Regular';  src: local('Plus Jakarta Sans'); font-weight: 400; }
+      @font-face { font-family: 'PlusJakartaSans-Medium';   src: local('Plus Jakarta Sans'); font-weight: 500; }
+      @font-face { font-family: 'PlusJakartaSans-SemiBold'; src: local('Plus Jakarta Sans'); font-weight: 600; }
+      @font-face { font-family: 'PlusJakartaSans-Bold';     src: local('Plus Jakarta Sans'); font-weight: 700; }
+    </style>
     <style>html,body,#root{height:100%;margin:0}/* #root must be a FLEX container: react-native-web renders the app root as a
    `flex: 1` div, and a flex child in a BLOCK parent sizes to its content
    instead of stretching. The app therefore stopped at the last element and

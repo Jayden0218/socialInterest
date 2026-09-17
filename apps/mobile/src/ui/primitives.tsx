@@ -1,5 +1,5 @@
 import { Pressable, ScrollView, Text, TextInput, View, type TextStyle, type ViewStyle } from 'react-native';
-import { activePalette as palette, MIN_TOUCH_TARGET, radius, space, textStyle, type } from './theme';
+import { activePalette as palette, MIN_TOUCH_TARGET, radius, space, textStyle, type, font } from './theme';
 import { Icon } from './Icon';
 import type { IconName } from './icons';
 
@@ -52,7 +52,7 @@ export function Button({
         style={{
           color: fg,
           ...textStyle.label,
-          fontWeight: type.label.weight,
+          ...font(type.label.weight),
         }}
       >
         {label}
@@ -133,7 +133,7 @@ export function EmptyState({
       <Text
         style={{
           ...textStyle.title,
-          fontWeight: type.title.weight,
+          ...font(type.title.weight),
           color: palette.text.primary,
         }}
       >
@@ -324,7 +324,7 @@ export function ScreenHeader({
         numberOfLines={1}
         style={{
           ...textStyle.display,
-          fontWeight: type.display.weight,
+          ...font(type.display.weight),
           letterSpacing: -0.4,
           color: palette.text.primary,
           flexShrink: 1,

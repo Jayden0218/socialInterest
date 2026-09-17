@@ -1,5 +1,5 @@
 import { Pressable, Switch, Text, View } from 'react-native';
-import { activePalette as palette, radius, space, textStyle, MIN_TOUCH_TARGET } from '../../ui/theme';
+import { activePalette as palette, radius, space, textStyle, MIN_TOUCH_TARGET, font } from '../../ui/theme';
 import { Banner, Button, Field, Row, Screen } from '../../ui/primitives';
 import { Avatar } from '../../components/Avatar';
 
@@ -192,7 +192,7 @@ export function EditProfileScreen({
           <Text
             style={{
               ...textStyle.body,
-              fontWeight: '600',
+              ...font('600'),
               color:
                 !canSaveProfile(draft) || saving === true
                   ? palette.text.muted
@@ -444,7 +444,7 @@ function LabelledField({
       <Text
         style={{
           ...textStyle.caption,
-          fontWeight: '600',
+          ...font('600'),
           letterSpacing: 0.35,
           color: palette.text.muted,
         }}

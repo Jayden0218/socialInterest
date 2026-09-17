@@ -1,5 +1,5 @@
 import { Text, View } from 'react-native';
-import { activePalette as palette, radius, space, textStyle, type } from './theme';
+import { activePalette as palette, radius, space, textStyle, type, font } from './theme';
 import { Button, EmptyState } from './primitives';
 import { Icon } from './Icon';
 import { Skeleton } from '../components/Skeleton';
@@ -129,7 +129,7 @@ export function FailedState({
   return (
     <View testID={testID} style={{ padding: space.xl, alignItems: 'center', gap: space.md }}>
       <Icon name="close" size="state" color={palette.intent.danger} />
-      <Text style={{ ...textStyle.title, fontWeight: type.title.weight, color: palette.text.primary }}>
+      <Text style={{ ...textStyle.title, ...font(type.title.weight), color: palette.text.primary }}>
         Could not load
       </Text>
       {/*

@@ -1,5 +1,5 @@
 import { FlatList, Image, Pressable, Text, View } from 'react-native';
-import { activePalette as palette, space, textStyle, MIN_TOUCH_TARGET } from '../../ui/theme';
+import { activePalette as palette, space, textStyle, MIN_TOUCH_TARGET, font } from '../../ui/theme';
 import { Banner, Button, Screen } from '../../ui/primitives';
 import { MEDIA_LIMITS_HINT } from './limits';
 
@@ -83,7 +83,7 @@ export function MediaPickerScreen({
           <Text
             style={{
               ...textStyle.body,
-              fontWeight: '600',
+              ...font('600'),
               color: selected.length === 0 ? palette.text.muted : palette.intent.accent,
             }}
           >
@@ -205,7 +205,7 @@ export function MediaPickerScreen({
                     justifyContent: 'center',
                   }}
                 >
-                  <Text style={{ ...textStyle.small, fontWeight: '700', color: palette.text.onAccent }}>
+                  <Text style={{ ...textStyle.small, ...font('700'), color: palette.text.onAccent }}>
                     {selected.findIndex((sel) => sel.uri === item.uri) + 1}
                   </Text>
                 </View>

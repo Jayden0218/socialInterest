@@ -1,5 +1,5 @@
 import { Pressable, Text, View } from 'react-native';
-import { activePalette as palette, space, textStyle, type } from '../../ui/theme';
+import { activePalette as palette, space, textStyle, type, font } from '../../ui/theme';
 import { MIN_TOUCH_TARGET } from '../../ui/tokens';
 import { Banner, Button, Field, Screen } from '../../ui/primitives';
 
@@ -122,7 +122,7 @@ export function SignUpScreen({
         <Text
           style={{
             ...textStyle.display,
-            fontWeight: type.display.weight,
+            ...font(type.display.weight),
             letterSpacing: -0.4,
             color: palette.text.primary,
           }}

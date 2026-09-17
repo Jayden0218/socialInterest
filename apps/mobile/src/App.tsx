@@ -15,7 +15,7 @@ import { Pressable, StatusBar, Text, View } from 'react-native';
  * prebuild and a fresh APK — a JS-only reload will not pick it up.
  */
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { activePalette as palette, radius, space, textStyle, MIN_TOUCH_TARGET } from './ui/theme';
+import { activePalette as palette, radius, space, textStyle, MIN_TOUCH_TARGET, font } from './ui/theme';
 import { Button, Row } from './ui/primitives';
 import { Icon } from './ui/Icon';
 import type { IconName } from './ui/icons';
@@ -117,7 +117,7 @@ function TabButton({
       <Text
         style={{
           ...textStyle.tab,
-          fontWeight: active ? '600' : '500',
+          ...font(active ? '600' : '500'),
           color: active ? palette.intent.accent : palette.text.muted,
         }}
       >
@@ -280,7 +280,7 @@ function Header({ title, onBack }: { title: string; onBack: () => void }) {
       }}
     >
       <Button testID="nav-back" label="Back" variant="secondary" onPress={onBack} />
-      <Text style={{ ...textStyle.body, fontWeight: '600', color: palette.text.primary }}>{title}</Text>
+      <Text style={{ ...textStyle.body, ...font('600'), color: palette.text.primary }}>{title}</Text>
     </Row>
   );
 }

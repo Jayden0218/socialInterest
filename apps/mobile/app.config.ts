@@ -31,6 +31,32 @@ export default {
       { android: { usesCleartextTraffic: true } },
     ],
     [
+      /**
+       * THE TYPEFACE, EMBEDDED AT BUILD TIME (FR-022).
+       *
+       * `expo-font`'s plugin copies these into the native project, so the app
+       * has them the instant it starts — no `useFonts`, no loading gate, and no
+       * flash of Roboto before the real face arrives. A release build that has
+       * to fetch or await its own brand font is a release build that renders
+       * wrong for the first frame every cold start.
+       *
+       * THE FAMILY NAME ON ANDROID IS THE FILE NAME WITHOUT ITS EXTENSION, which
+       * is why these are named for their weights and why `FONT` in `tokens.ts`
+       * maps weight to exactly these four strings. Rename a file here and the
+       * app silently falls back to Roboto — which is the defect this whole
+       * change exists to fix, so the names are load-bearing.
+       */
+      'expo-font',
+      {
+        fonts: [
+          './assets/fonts/PlusJakartaSans-Regular.ttf',
+          './assets/fonts/PlusJakartaSans-Medium.ttf',
+          './assets/fonts/PlusJakartaSans-SemiBold.ttf',
+          './assets/fonts/PlusJakartaSans-Bold.ttf',
+        ],
+      },
+    ],
+    [
       'expo-image-picker',
       {
         photosPermission:

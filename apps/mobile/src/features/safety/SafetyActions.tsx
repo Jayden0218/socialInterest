@@ -1,5 +1,5 @@
 import { Pressable, Text, View } from 'react-native';
-import { activePalette as palette, radius, space, textStyle, touchTarget } from '../../ui/theme';
+import { activePalette as palette, radius, space, textStyle, touchTarget, font } from '../../ui/theme';
 import { Banner, Button, Screen } from '../../ui/primitives';
 
 /**
@@ -87,7 +87,7 @@ export function SafetyActions({
       <Text
         style={{
           ...textStyle.title,
-          fontWeight: '600',
+          ...font('600'),
           color: palette.text.primary,
         }}
       >

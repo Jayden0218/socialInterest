@@ -219,24 +219,83 @@ export const type = {
  * the order properties happen to appear in — a silent, positional bug in place
  * of an explicit line.
  */
-export const textStyle = {
-  display: { fontSize: type.display.size, lineHeight: type.display.lineHeight },
-  title: { fontSize: type.title.size, lineHeight: type.title.lineHeight },
-  body: { fontSize: type.body.size, lineHeight: type.body.lineHeight },
-  label: { fontSize: type.label.size, lineHeight: type.label.lineHeight },
-  caption: { fontSize: type.caption.size, lineHeight: type.caption.lineHeight },
-  small: { fontSize: type.small.size, lineHeight: type.small.lineHeight },
-  tab: { fontSize: type.tab.size, lineHeight: type.tab.lineHeight },
+/**
+ * THE ONE FAMILY (FR-022), AND THE FOUR NAMES ANDROID ACTUALLY NEEDS.
+ *
+ * THIS USED TO BE A CSS FONT STACK — `'Plus Jakarta Sans, system-ui, …'` — with
+ * a comment explaining that a stack was chosen so the app stayed legible "if the
+ * font fails to load". Three things were wrong with that, and together they
+ * meant the design had NEVER ONCE been rendered in its own typeface, on any
+ * platform, in any screenshot in this repository:
+ *
+ *  1. React Native cannot parse a stack. `fontFamily` takes ONE registered
+ *     name; a comma-separated list matches nothing and falls back to the
+ *     platform default — Roboto on Android.
+ *  2. No font file existed in the project and `expo-font` was not installed, so
+ *     there was nothing to load and nothing to fail loading. The comment
+ *     described a fallback for an event that could not occur.
+ *  3. `FONT_FAMILY` WAS APPLIED TO NOTHING. Its only references were this line
+ *     and a re-export in `theme.ts`. Not one component set `fontFamily`.
+ *
+ * That is the ninth instance of this project's declared-half-with-no-other-half:
+ * a token naming a typeface, a requirement citing it, and no loader, no file and
+ * no call site. It survived nine features because every measurement was right —
+ * spacing, colour, radius and touch targets all match the artboards exactly —
+ * and typography is the part a test does not measure.
+ *
+ * FOUR NAMES, NOT ONE FAMILY PLUS `fontWeight`. Read the files' own name tables:
+ * Regular and Bold register as family "Plus Jakarta Sans" (subfamily Regular /
+ * Bold), but Medium and SemiBold register as SEPARATE FAMILIES — "Plus Jakarta
+ * Sans Medium", subfamily "Regular". So asking Android for the family plus
+ * weight 600 silently returns Regular for two of the four weights, which is the
+ * same class of silent fallback being fixed here. Selecting the family by name
+ * per weight is deterministic, and deterministic is what a change nobody can
+ * verify on a device from this environment has to be.
+ */
+export const FONT = {
+  '400': 'PlusJakartaSans-Regular',
+  '500': 'PlusJakartaSans-Medium',
+  '600': 'PlusJakartaSans-SemiBold',
+  '700': 'PlusJakartaSans-Bold',
 } as const;
 
+export type FontWeight = keyof typeof FONT;
+
 /**
- * THE ONE FAMILY (FR-022).
+ * The only way to set a weight in this app.
  *
- * A fallback stack, not a bare name: if the font fails to load the app must
- * still be legible in something with the same metrics, rather than falling back
- * to a serif and looking like a different product.
+ * Returns the family AND the weight together, so the two cannot disagree and a
+ * weight cannot be set without a family — which is exactly how the family came
+ * to be absent everywhere. `no-bare-font-weight.test.ts` fails the build on a
+ * plain `fontWeight:` anywhere in `apps/mobile/src`.
+ *
+ * `fontWeight` is kept alongside the family because react-native-web needs it
+ * (the browser matches the weight within the CSS family) and because assistive
+ * tech and the platform's own bolding read it.
  */
-export const FONT_FAMILY = 'Plus Jakarta Sans, system-ui, -apple-system, sans-serif';
+export function font(weight: FontWeight): { fontFamily: string; fontWeight: FontWeight } {
+  return { fontFamily: FONT[weight], fontWeight: weight };
+}
+
+/** The family for body text. Kept as a name because FR-022 says "one family". */
+export const FONT_FAMILY = FONT['400'];
+
+/**
+ * Each role's size, line height, WEIGHT and FAMILY. The last two are new: before
+ * this, `textStyle.x` carried size and line height only, every screen restated
+ * the weight by hand as `fontWeight: type.x.weight`, and the family was on
+ * nothing at all. Spreading one of these is now a complete text style.
+ */
+export const textStyle = {
+  display: { fontSize: type.display.size, lineHeight: type.display.lineHeight, ...font(type.display.weight) },
+  title: { fontSize: type.title.size, lineHeight: type.title.lineHeight, ...font(type.title.weight) },
+  body: { fontSize: type.body.size, lineHeight: type.body.lineHeight, ...font(type.body.weight) },
+  label: { fontSize: type.label.size, lineHeight: type.label.lineHeight, ...font(type.label.weight) },
+  caption: { fontSize: type.caption.size, lineHeight: type.caption.lineHeight, ...font(type.caption.weight) },
+  small: { fontSize: type.small.size, lineHeight: type.small.lineHeight, ...font(type.small.weight) },
+  tab: { fontSize: type.tab.size, lineHeight: type.tab.lineHeight, ...font(type.tab.weight) },
+} as const;
+
 
 /** A 4-point rhythm. Every gap and pad in the app is one of these. */
 export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;

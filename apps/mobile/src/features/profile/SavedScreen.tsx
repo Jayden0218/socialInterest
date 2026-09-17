@@ -1,6 +1,6 @@
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import type { Post } from '@sih/shared';
-import { activePalette as palette, radius, space, textStyle, MIN_TOUCH_TARGET } from '../../ui/theme';
+import { activePalette as palette, radius, space, textStyle, MIN_TOUCH_TARGET, font } from '../../ui/theme';
 import { Banner, Button, Screen, ScreenHeader } from '../../ui/primitives';
 import { PagedPostList, type PagedState } from '../../components/PagedPostList';
 
@@ -68,7 +68,7 @@ export function SavedScreen({
         <ScreenHeader
           title="Saved"
           right={
-            <Text style={{ ...textStyle.label, fontWeight: '400', color: palette.text.muted }}>
+            <Text style={{ ...textStyle.label, ...font('400'), color: palette.text.muted }}>
               only you
             </Text>
           }
