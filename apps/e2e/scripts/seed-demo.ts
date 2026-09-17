@@ -28,22 +28,35 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { randomUUID } from 'node:crypto';
-import { Pool } from 'pg';
-import jwt from 'jsonwebtoken';
 import { createAppData, MemoryTokenStore, type AppData } from '@sih/mobile/data';
-import { PersonRepository } from '../../api/src/persistence/person.repository';
 import { baseUrl } from '../support/base-url';
-import { e2eEnv } from '../support/env';
 import { publishReadyImage, publishReadyNamingInterest } from '../support/publish';
 
 const execFileAsync = promisify(execFile);
 
-const argToken = process.argv[2];
-if (!argToken) {
-  process.stderr.write('usage: seed-demo.ts <device-token>\n');
-  process.exit(2);
-}
-const deviceToken: string = argToken;
+/**
+ * THE TOKEN IS OPTIONAL NOW, AND THAT IS WHAT MAKES THIS RUNNABLE AGAINST A
+ * HOSTED BACKEND.
+ *
+ * It used to be required, and it had to be: every person was created by writing
+ * a row with the API's OWN `PersonRepository` and then signing a JWT with
+ * `LOCAL_JWT_SECRET`. Both of those are reachable only from the machine the
+ * datastore is on, so this script could seed a laptop and nothing else — and
+ * pointing it at a deployment would have meant handing it the production
+ * secret, which is not a thing to ask anybody for.
+ *
+ * 011 made sign-up self-service, so the product now has a way to create a
+ * person that needs no secret at all. Using it is strictly better than what was
+ * here: no `pg`, no `jsonwebtoken`, no import reaching into `apps/api`, and the
+ * people this creates come into existence down the same path a real one does.
+ * A failure here is a failure a real sign-up would have had.
+ *
+ * Given a token, `me` is that account — the laptop flow, unchanged. Given none,
+ * `me` is a demo account this script signs up. The ranked feed reads across the
+ * catalogue rather than a follow graph (007), so posts by these people reach
+ * ANY signed-in person's feed, including yours.
+ */
+const deviceToken: string | undefined = process.argv[2];
 
 /**
  * The step being attempted, so a failure can name it.
@@ -73,8 +86,6 @@ const say = (line: string): void => {
 // a fresh session (the case this exists for) gets the clean name every time,
 // and a re-run against a local table that already holds one stays unambiguous.
 // ---------------------------------------------------------------------------
-const pool = new Pool({ connectionString: e2eEnv.postgresUrl });
-const people = new PersonRepository(pool, e2eEnv.tableName);
 
 /**
  * Structurally an `Actor` — `token` included — because `publishReadyImage`
@@ -91,36 +102,41 @@ interface Person {
 }
 
 async function person(handle: string, displayName: string, bio: string): Promise<Person> {
-  const userId = `demo-${randomUUID()}`;
-  const taken = await people.findByHandle(handle);
-  const finalHandle = taken ? `${handle}${userId.slice(-4)}` : handle;
-
-  await people.create({
-    userId,
-    handle: finalHandle,
-    displayName,
-    bio,
-    followerCount: 0,
-    followingCount: 0,
-    interestFollowCount: 0,
-    notificationPrefs: { reaction: true, comment: true, follow: true, message: true, mention: true },
-    status: 'active',
-    createdAt: new Date().toISOString(),
-  });
-
-  const token = jwt.sign({ sub: userId, operator: false }, e2eEnv.jwtSecret, {
-    issuer: e2eEnv.jwtIssuer,
-    expiresIn: '4h',
-  });
+  /**
+   * A UNIQUE SUFFIX ON BOTH THE HANDLE AND THE ADDRESS, because this script is
+   * expected to run more than once against the same backend.
+   *
+   * The old version read the handle back first and only suffixed a collision.
+   * It cannot here: a handle lookup is not a public route, and asking would be
+   * a round trip to learn what the conditional write already enforces —
+   * `PersonRepository.create` claims the handle, so a clash is a 409 rather
+   * than a silently-second holder. 011 found that defect and fixed it there;
+   * this just stops racing it.
+   */
+  const suffix = randomUUID().slice(0, 6);
   const tokens = new MemoryTokenStore();
-  tokens.set(token);
-  return {
-    userId,
-    handle: finalHandle,
+  const data = createAppData({ baseUrl: `${baseUrl()}/v1`, tokens });
+
+  const profile = await data.session.signUp({
+    email: `demo-${suffix}@example.invalid`,
+    /**
+     * Not a secret worth protecting and deliberately not a realistic one: these
+     * accounts exist to be looked at. `.invalid` is the reserved TLD (RFC 2606)
+     * so no address here can ever belong to a real person.
+     */
+    password: `demo-${suffix}-Aa1!`,
+    handle: `${handle}${suffix}`,
     displayName,
-    token,
-    data: createAppData({ baseUrl: `${baseUrl()}/v1`, tokens }),
-  };
+  });
+
+  // The bio is a separate call because sign-up does not take one — it asks for
+  // the four things it cannot proceed without, and nothing else.
+  await data.session.updateProfile({ bio });
+
+  const token = tokens.get();
+  if (token === null) throw new Error(`sign-up for ${handle} returned no credential`);
+
+  return { userId: profile.userId, handle: profile.handle, displayName, token, data };
 }
 
 // ---------------------------------------------------------------------------
@@ -234,10 +250,23 @@ async function inBatches<T, R>(items: T[], size: number, fn: (item: T) => Promis
 }
 
 async function main(): Promise<void> {
-  const tokens = new MemoryTokenStore();
-  tokens.set(deviceToken);
-  const me = createAppData({ baseUrl: `${baseUrl()}/v1`, tokens });
-  const myProfile = await me.session.me();
+  /**
+   * With a token, `me` is that account. Without one, `me` is a demo account
+   * signed up here — see the note on `deviceToken` above.
+   */
+  let me: AppData;
+  let myProfile: { userId: string; handle: string; token: string };
+  if (deviceToken === undefined) {
+    const owner = await person('demoowner', 'Demo owner', 'Seeded so there is something to look at.');
+    me = owner.data;
+    myProfile = { userId: owner.userId, handle: owner.handle, token: owner.token };
+    say(`no token given — signed up @${owner.handle} to own the demo data`);
+  } else {
+    const tokens = new MemoryTokenStore();
+    tokens.set(deviceToken);
+    me = createAppData({ baseUrl: `${baseUrl()}/v1`, tokens });
+    myProfile = { ...(await me.session.me()), token: deviceToken };
+  }
 
   /**
    * 013/FR-004. THE INTERESTS ARE NAMED INTO EXISTENCE, NOT LOOKED UP.
@@ -491,7 +520,7 @@ async function main(): Promise<void> {
 
   // ---- the device person's own two posts, so their profile is not empty
   const mine = await publishReadyImage(
-    { data: me, handle: myProfile.handle, userId: myProfile.userId, token: deviceToken },
+    { data: me, handle: myProfile.handle, userId: myProfile.userId, token: myProfile.token },
     [id('Photography')],
     {
       caption: 'First post from the phone.',

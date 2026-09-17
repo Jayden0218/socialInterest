@@ -16,21 +16,34 @@ set -Eeuo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
-[ -n "${1:-}" ] || { echo "usage: pnpm seed:demo \"<token>\"   (get one from: pnpm mint:token)" >&2; exit 2; }
-[ -f .env.local ] || { echo "✗ .env.local does not exist — see docs/laptop-runbook.md" >&2; exit 1; }
-set -a
-# shellcheck disable=SC1091
-. ./.env.local
-set +a
+# Only the LOCAL run needs the env file, and only for the port. A remote seed
+# reads nothing from this machine.
+if [ -z "${E2E_BASE_URL:-}" ]; then
+  [ -f .env.local ] || { echo "✗ .env.local does not exist — see docs/laptop-runbook.md" >&2; exit 1; }
+  set -a
+  # shellcheck disable=SC1091
+  . ./.env.local
+  set +a
+fi
 
+# A REMOTE ADDRESS IS ALLOWED NOW. The seeder stopped needing the datastore and
+# the JWT secret when it moved to sign-up, so "the backend" no longer has to be
+# the machine you are standing on. `E2E_BASE_URL` points it anywhere; unset, it
+# is the local server exactly as before.
+BASE_URL="${E2E_BASE_URL:-}"
 PORT="${API_PORT:-3000}"
 # Against the RUNNING server, not the datastore directly: the seed publishes
 # through the app's own data layer, so a failure here is a failure a client
 # would have had too.
-curl -sf -o /dev/null "http://127.0.0.1:${PORT}/v1/health" || {
-  echo "✗ nothing is answering on port ${PORT}. Start it first, in another tab: pnpm laptop" >&2
+TARGET="${BASE_URL:-http://127.0.0.1:${PORT}}"
+curl -sf -o /dev/null --max-time 90 "${TARGET}/v1/health" || {
+  if [ -n "$BASE_URL" ]; then
+    echo "✗ ${TARGET}/v1/health did not answer. A sleeping free instance can take 30-60s to wake — try again." >&2
+  else
+    echo "✗ nothing is answering on port ${PORT}. Start it first, in another tab: pnpm laptop" >&2
+  fi
   exit 1
 }
 
 cd apps/e2e
-E2E_BASE_URL="http://127.0.0.1:${PORT}" exec npx tsx scripts/seed-demo.ts "$1"
+E2E_BASE_URL="$TARGET" exec npx tsx scripts/seed-demo.ts ${1:+"$1"}

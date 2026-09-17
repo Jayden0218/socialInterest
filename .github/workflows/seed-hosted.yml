@@ -1,0 +1,70 @@
+# Fill a HOSTED backend with something to look at.
+#
+# WHY A WORKFLOW AND NOT A TERMINAL. The seeder is an HTTP client, and the
+# sandbox this project is developed in cannot reach `onrender.com` at all — its
+# egress proxy answers `connect_rejected`, by two different mechanisms, checked.
+# A runner has open egress, and a public repository's runners are free, so this
+# is the cheapest way to point the seeder at a deployment.
+#
+# IT NEEDS NO SECRETS, and that is the change that made it possible. The seeder
+# used to write people with the API's own `PersonRepository` and mint their
+# tokens with `LOCAL_JWT_SECRET` — both reachable only from the machine holding
+# the datastore. It signs its people up through `POST /v1/auth/sign-up` now, so
+# it needs an ADDRESS and nothing else, and every person it creates comes into
+# existence down the path a real one does.
+name: Seed a hosted backend
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Backend address, WITHOUT the /v1 (e.g. https://socialinterest-api.onrender.com)'
+        required: true
+        type: string
+      token:
+        # Optional. Given one, the demo data is owned by that account; without
+        # one the seeder signs up its own owner. The ranked feed reads across
+        # the catalogue rather than a follow graph (007), so the posts reach any
+        # signed-in person's feed either way.
+        description: 'Optional: a token for the account that should own the data'
+        required: false
+        default: ''
+        type: string
+
+jobs:
+  seed:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+
+      # The seeder draws its photographs with ffmpeg rather than shipping
+      # binaries: `jpegPlain()` is one black pixel, which is right for asserting
+      # a byte reached storage and useless for a feed anyone looks at.
+      - name: ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      # A free instance sleeps after 15 idle minutes and takes 30-60s to wake.
+      # Waking it FIRST means the seeder's own first call is not the one paying
+      # that cost, and a backend that never answers fails here, with a reason,
+      # rather than as a timeout in the middle of publishing.
+      - name: Wake the backend and prove it answers
+        run: |
+          for i in $(seq 1 24); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "${{ inputs.base_url }}/v1/health" || true)
+            echo "attempt $i: $code"
+            [ "$code" = "200" ] && exit 0
+            sleep 10
+          done
+          echo "::error::${{ inputs.base_url }}/v1/health never answered 200"
+          exit 1
+
+      - name: Seed
+        working-directory: apps/e2e
+        env:
+          E2E_BASE_URL: ${{ inputs.base_url }}
+        run: npx tsx scripts/seed-demo.ts ${{ inputs.token }}
